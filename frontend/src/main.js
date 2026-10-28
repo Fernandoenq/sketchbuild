@@ -64,8 +64,8 @@ const scenePagesListEl = document.getElementById("scene-pages-list");
 const tagsListEl = document.getElementById("tags-list");
 const tagsEmptyEl = document.getElementById("tags-empty");
 const menuTopItemEls = document.querySelectorAll(".menu-top-item[data-menu]");
-const defaultTrayEl = document.getElementById("default-tray");
 const outlinerTreeEl = document.getElementById("outliner-tree");
+const outlinerEmptyEl = document.getElementById("outliner-empty");
 const viewBtnEls = document.querySelectorAll(".view-btn");
 const entityInfoEl = document.getElementById("entity-info");
 const entityInfoEmptyEl = document.getElementById("entity-info-empty");
@@ -794,7 +794,9 @@ function applySceneDTO(sceneDTO) {
   outlinerTreeEl.innerHTML = "";
   currentOutliner = buildOutlinerTree(sceneDTO, selectInstanceById);
   outlinerTreeEl.appendChild(currentOutliner.element);
-  defaultTrayEl.classList.remove("hidden");
+  outlinerEmptyEl.classList.add("hidden");
+  sceneNameInputEl.disabled = false;
+  sceneCreateBtnEl.disabled = false;
   refreshScenePages();
   refreshTags();
 

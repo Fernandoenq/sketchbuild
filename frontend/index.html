@@ -228,6 +228,8 @@
     #tags-empty.hidden { display: none; }
     #tags-list { padding: 8px 14px; }
     #entity-info-empty.hidden { display: none; }
+    #outliner-empty { padding: 14px; font-size: 11px; color: var(--muted); font-style: italic; }
+    #outliner-empty.hidden { display: none; }
     #entity-info { padding: 10px 14px; }
     #entity-info.hidden { display: none; }
     .entity-info-row { margin-bottom: 10px; }
@@ -874,7 +876,7 @@
     </div>
   </div>
 
-  <div id="default-tray" class="hidden">
+  <div id="default-tray">
     <div class="tray-section" id="tray-entity-info">
       <div class="tray-header" data-section="tray-entity-info">
         <span class="tray-arrow"></span>
@@ -918,6 +920,7 @@
         <span>Estrutura</span>
       </div>
       <div class="tray-body">
+        <div id="outliner-empty">Nenhum modelo aberto.</div>
         <div id="outliner-tree"></div>
       </div>
     </div>
@@ -928,10 +931,10 @@
       </div>
       <div class="tray-body">
         <div class="row" style="margin-bottom: 6px;">
-          <input id="scene-name-input" type="text" placeholder="Nome da cena" style="flex: 1;" />
-          <button id="scene-create-btn" class="panel-btn" title="Janela &gt; Bandeja padrao &gt; Cenas &gt; + -- SUSceneCreate/SUModelAddScenes real, captura so o nome (sem camera)">+ Criar cena</button>
+          <input id="scene-name-input" type="text" placeholder="Nome da cena" style="flex: 1;" disabled />
+          <button id="scene-create-btn" class="panel-btn" disabled title="Janela &gt; Bandeja padrao &gt; Cenas &gt; + -- SUSceneCreate/SUModelAddScenes real, captura so o nome (sem camera)">+ Criar cena</button>
         </div>
-        <div id="scene-pages-list"></div>
+        <div id="scene-pages-list"><div style="font-size: 11px; color: var(--muted); font-style: italic;">Nenhum modelo aberto.</div></div>
       </div>
     </div>
   </div>

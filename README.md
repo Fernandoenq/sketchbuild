@@ -273,10 +273,17 @@ corporativos, ícones lineares, sem dark mode):
 - **Top Toolbar** (`#top-toolbar`) fixa no topo, com separadores verticais
   de 1px entre grupos de botões -- ícones SVG inline (sem lib de ícones
   externa) pras 4 vistas padrão + salvar.
-- **Default Tray** (`#default-tray`) -- painel direito único com Outliner e
-  Entity Info como seções sanfonadas (accordion) independentes, cada uma
-  recolhível pelo próprio cabeçalho, igual ao comportamento real do Default
-  Tray do SketchUp.
+- **Default Tray** (`#default-tray`) -- painel direito único com
+  Informações da entidade/Etiquetas/Estrutura/Cenas como seções sanfonadas
+  (accordion) independentes, cada uma recolhível pelo próprio cabeçalho,
+  igual ao comportamento real do Default Tray do SketchUp. **Sempre
+  visível, mesmo sem nenhum modelo aberto** -- correção de 28/10/2026:
+  antes a bandeja inteira só aparecia depois de abrir um `.skp`
+  (`class="hidden"` no HTML), diferente do SketchUp real, que mostra a
+  bandeja com os painéis vazios já na Página Inicial. Cada seção tem seu
+  próprio estado vazio real ("Nenhuma instância selecionada."/"Nenhum
+  modelo aberto.") em vez de a bandeja inteira sumir; o campo e o botão
+  "+ Criar cena" ficam desabilitados até um modelo existir.
 - Paleta de tokens em `:root` (`--bg`, `--panel`, `--toolbar`, `--border`,
   `--accent`, etc.) -- trocar aqui já re-tema o app inteiro.
 - Inputs numéricos do Entity Info alinhados à direita, fonte monoespaçada,
