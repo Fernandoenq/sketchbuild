@@ -15,6 +15,9 @@ import {
   paintInstance,
   paintFace,
   tagInstance,
+  listScenePages,
+  createScenePage,
+  activateScenePage,
   listRecentFiles,
   uploadThumbnail,
   ApiError,
@@ -48,6 +51,9 @@ const paintArmBtnEl = document.getElementById("paint-arm-btn");
 const paintFaceArmBtnEl = document.getElementById("paint-face-arm-btn");
 const tagNameInputEl = document.getElementById("tag-name-input");
 const tagArmBtnEl = document.getElementById("tag-arm-btn");
+const sceneNameInputEl = document.getElementById("scene-name-input");
+const sceneCreateBtnEl = document.getElementById("scene-create-btn");
+const scenePagesListEl = document.getElementById("scene-pages-list");
 const menuTopItemEls = document.querySelectorAll(".menu-top-item[data-menu]");
 const defaultTrayEl = document.getElementById("default-tray");
 const outlinerTreeEl = document.getElementById("outliner-tree");
@@ -750,6 +756,7 @@ function applySceneDTO(sceneDTO) {
   currentOutliner = buildOutlinerTree(sceneDTO, selectInstanceById);
   outlinerTreeEl.appendChild(currentOutliner.element);
   defaultTrayEl.classList.remove("hidden");
+  refreshScenePages();
 
   return {
     totalDefinitions: sceneDTO.definitions.length,
@@ -1150,6 +1157,79 @@ async function handleTagClick(mesh) {
   }
 }
 
+/** Janela > Bandeja padrao > Cenas: lista/cria/ativa Cenas reais do
+ * modelo aberto (SUSceneCreate/SUModelAddScenes/SUSceneActivate, ver
+ * core/su_api.py e REVERSE_ENGINEERING_NOTES.md secao 28.20). Limitacao
+ * documentada: nao captura/restaura camera (este projeto nao tem
+ * binding de SUCameraRef) -- "Ativar" muda a cena ativa real do
+ * modelo (persistida ao salvar), mas nao move a camera do viewer. */
+function renderScenePages(pages) {
+  scenePagesListEl.innerHTML = "";
+  if (!pages.length) {
+    const empty = document.createElement("div");
+    empty.style.cssText = "font-size: 11px; color: var(--muted);";
+    empty.textContent = "Nenhuma cena neste modelo ainda.";
+    scenePagesListEl.appendChild(empty);
+    return;
+  }
+  for (const page of pages) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.style.cssText = "margin-top: 4px; align-items: center; justify-content: space-between;";
+
+    const label = document.createElement("span");
+    label.style.cssText = "font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
+    label.textContent = page.active ? `${page.name} (ativa)` : page.name;
+    row.appendChild(label);
+
+    if (!page.active) {
+      const activateBtn = document.createElement("button");
+      activateBtn.className = "panel-btn";
+      activateBtn.textContent = "Ativar";
+      activateBtn.addEventListener("click", () => handleActivateScene(page.scene_id));
+      row.appendChild(activateBtn);
+    }
+    scenePagesListEl.appendChild(row);
+  }
+}
+
+async function refreshScenePages() {
+  try {
+    const { pages } = await listScenePages();
+    renderScenePages(pages);
+  } catch {
+    // painel de Cenas e cosmetico -- nao interrompe a abertura do modelo
+  }
+}
+
+async function handleCreateScene() {
+  const name = sceneNameInputEl.value.trim();
+  if (!name) {
+    setStatus("Escreva o nome da cena antes de criar.", true);
+    return;
+  }
+  try {
+    await createScenePage(name);
+    sceneNameInputEl.value = "";
+    await refreshScenePages();
+    setStatus(`Cena "${name}" criada.`);
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro ao criar cena: ${detail}`, true);
+  }
+}
+
+async function handleActivateScene(sceneId) {
+  try {
+    await activateScenePage(sceneId);
+    await refreshScenePages();
+    setStatus("Cena ativada (nao move a camera do viewer -- ver limitacao documentada).");
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro ao ativar cena: ${detail}`, true);
+  }
+}
+
 /** Ferramentas > Texto 3D: extrusao REAL de fonte em malha (THREE.Font/
  * TextGeometry, carregada do mesmo CDN de onde a lib ja vem -- ver
  * loadFont()), diferente do rotulo billboard 2D de "Texto" (28.13).
@@ -1267,6 +1347,7 @@ textCreateBtnEl.addEventListener("click", handleArmText);
 text3dCreateBtnEl.addEventListener("click", handleArmText3D);
 paintArmBtnEl.addEventListener("click", handleArmPaint);
 paintFaceArmBtnEl.addEventListener("click", handleArmPaintFace);
+sceneCreateBtnEl.addEventListener("click", handleCreateScene);
 tagArmBtnEl.addEventListener("click", handleArmTag);
 
 // -- Barra de menu real (Arquivo/Editar) -----------------------------------
@@ -1320,6 +1401,7 @@ const MENU_ACTIONS = {
   "tool-paint": () => handleArmPaint(),
   "tool-paint-face": () => handleArmPaintFace(),
   "tool-tag": () => handleArmTag(),
+  "toggle-tray-scenes": () => toggleTraySection("tray-scenes", "menu-item-tray-scenes"),
   "rect-as-group": () => {
     rectAsGroupCheckboxEl.checked = true;
     rectWidthInputEl.focus();

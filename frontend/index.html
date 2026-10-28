@@ -636,7 +636,7 @@
             <div class="menu-dropdown-item disabled"><span>Estilos</span></div>
             <div class="menu-dropdown-item disabled"><span>Ambientes</span></div>
             <div class="menu-dropdown-item disabled"><span>Etiquetas</span></div>
-            <div class="menu-dropdown-item disabled"><span>Cenas</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-tray-scenes" data-action="toggle-tray-scenes" title="SUModelAddScenes/SUSceneActivate reais -- ver REVERSE_ENGINEERING_NOTES.md secao 28.20"><span><span class="menu-check">&#10003;</span>Cenas</span></div>
             <div class="menu-dropdown-item" id="menu-item-tray-shadows" data-action="toggle-shadows" title="Mesmo toggle real de Visualizar > Sombras"><span><span class="menu-check">&#10003;</span>Sombras</span></div>
             <div class="menu-dropdown-item" id="menu-item-tray-fog" data-action="toggle-fog" title="Mesmo toggle real de Visualizar > Névoa"><span><span class="menu-check">&#10003;</span>Névoa</span></div>
             <div class="menu-dropdown-item disabled"><span>Adaptar à foto</span></div>
@@ -742,6 +742,19 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+    <div class="tray-section" id="tray-scenes">
+      <div class="tray-header" data-section="tray-scenes">
+        <span class="tray-arrow"></span>
+        <span>Cenas</span>
+      </div>
+      <div class="tray-body">
+        <div class="row" style="margin-bottom: 6px;">
+          <input id="scene-name-input" type="text" placeholder="Nome da cena" style="flex: 1;" />
+          <button id="scene-create-btn" class="panel-btn" title="Janela &gt; Bandeja padrao &gt; Cenas &gt; + -- SUSceneCreate/SUModelAddScenes real, captura so o nome (sem camera)">+ Criar cena</button>
+        </div>
+        <div id="scene-pages-list"></div>
       </div>
     </div>
   </div>

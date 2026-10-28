@@ -9,11 +9,15 @@ from fastapi import APIRouter, Depends
 
 from app.controllers.scene_controller import SceneController
 from app.schemas.scene import (
+    ActivateScenePageResponse,
     AddRectangleRequest,
     AddRectangleResponse,
+    CreateScenePageRequest,
+    CreateScenePageResponse,
     DeleteInstanceResponse,
     ExportModelRequest,
     ExportModelResponse,
+    ListScenePagesResponse,
     NewSceneFromTemplateRequest,
     OpenSceneRequest,
     PaintFaceRequest,
@@ -153,3 +157,38 @@ async def paint_face(
     controller: SceneController = Depends(get_controller),
 ) -> PaintFaceResponse:
     return await controller.paint_face(face_id, body.r, body.g, body.b)
+
+
+@router.get(
+    "/pages",
+    response_model=ListScenePagesResponse,
+    summary="Lista todas as Cenas reais do modelo aberto (equivalente a Janela > Bandeja padrao > Cenas)",
+)
+async def list_scene_pages(
+    controller: SceneController = Depends(get_controller),
+) -> ListScenePagesResponse:
+    return await controller.list_scenes()
+
+
+@router.post(
+    "/pages",
+    response_model=CreateScenePageResponse,
+    summary="Cria uma Cena real nova a partir do estado atual (SUSceneCreate/SUModelAddScenes)",
+)
+async def create_scene_page(
+    body: CreateScenePageRequest,
+    controller: SceneController = Depends(get_controller),
+) -> CreateScenePageResponse:
+    return await controller.create_scene(body.name)
+
+
+@router.post(
+    "/pages/{scene_id}/activate",
+    response_model=ActivateScenePageResponse,
+    summary="Ativa uma Cena real (SUSceneActivate) -- nao move a camera do viewer nesta sessao",
+)
+async def activate_scene_page(
+    scene_id: str,
+    controller: SceneController = Depends(get_controller),
+) -> ActivateScenePageResponse:
+    return await controller.activate_scene(scene_id)

@@ -17,13 +17,17 @@ from app.domain.exceptions import (
     SceneSessionError,
 )
 from app.schemas.scene import (
+    ActivateScenePageResponse,
     AddRectangleResponse,
+    CreateScenePageResponse,
     DeleteInstanceResponse,
     ExportModelResponse,
+    ListScenePagesResponse,
     PaintFaceResponse,
     PaintInstanceResponse,
     SaveSceneResponse,
     SceneResponse,
+    ScenePageDTO,
     TagInstanceResponse,
     UpdateTransformResponse,
 )
@@ -157,6 +161,39 @@ class SceneController:
                 status_code=status.HTTP_409_CONFLICT, detail=str(e)
             ) from e
         return PaintFaceResponse(face_id=face_id, painted=True, color=[r, g, b])
+
+    async def list_scenes(self) -> ListScenePagesResponse:
+        """Equivalente real de "Janela > Bandeja padrao > Cenas" -- ver
+        REVERSE_ENGINEERING_NOTES.md secao 28.20."""
+        try:
+            pages = await self._service.list_scenes()
+        except SceneSessionError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=str(e)
+            ) from e
+        return ListScenePagesResponse(pages=[ScenePageDTO.model_validate(p) for p in pages])
+
+    async def create_scene(self, name: str) -> CreateScenePageResponse:
+        try:
+            result = await self._service.create_scene(name)
+        except InvalidModelPathError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+            ) from e
+        except SceneSessionError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=str(e)
+            ) from e
+        return CreateScenePageResponse.model_validate(result)
+
+    async def activate_scene(self, scene_id: str) -> ActivateScenePageResponse:
+        try:
+            await self._service.activate_scene(scene_id)
+        except SceneSessionError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=str(e)
+            ) from e
+        return ActivateScenePageResponse(scene_id=scene_id, activated=True)
 
     async def export_model_obj(self, path: str) -> ExportModelResponse:
         try:

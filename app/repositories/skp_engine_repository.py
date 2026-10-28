@@ -259,6 +259,60 @@ class SkpEngineRepository:
         except RuntimeError as e:
             raise SceneSessionError(f"falha ao aplicar a etiqueta: {e}") from e
 
+    def list_scenes(self) -> list[dict]:
+        """Equivalente real de "Janela > Bandeja padrao > Cenas" -- lista
+        TODAS as cenas reais do modelo aberto (inclusive as que ja
+        vinham salvas no .skp antes desta sessao, nao so as criadas
+        agora) via SUModelGetScenes/SUModelGetNumScenes (ver
+        core/su_api.py e REVERSE_ENGINEERING_NOTES.md secao 28.20).
+        `scene_id` e derivado do ponteiro bruto do Ref, nao persiste
+        entre sessoes diferentes (mesmo padrao de face_id)."""
+        session = self._require_session()
+        scenes = session.api.get_scenes(session.model.raw_ref)
+        active = session.api.get_active_scene(session.model.raw_ref)
+        active_id = f"scene_{active.ptr or 0:x}" if active is not None else None
+        result = []
+        for scene in scenes:
+            scene_id = f"scene_{scene.ptr or 0:x}"
+            result.append(
+                {
+                    "scene_id": scene_id,
+                    "name": session.api.get_scene_name(scene) or scene_id,
+                    "active": scene_id == active_id,
+                }
+            )
+        return result
+
+    def create_scene(self, name: str) -> dict:
+        """Cria uma Cena real nova a partir do estado atual -- equivalente
+        real de "Janela > Bandeja padrao > Cenas > +". NAO captura
+        camera/estilo visual (ver core/su_api.py create_scene() --
+        limitacao documentada, este projeto nao tem binding de
+        SUCameraRef)."""
+        session = self._require_session()
+        try:
+            scene = session.api.create_scene(session.model.raw_ref, name)
+        except RuntimeError as e:
+            raise SceneSessionError(f"falha ao criar a cena: {e}") from e
+        return {"scene_id": f"scene_{scene.ptr or 0:x}", "name": name}
+
+    def activate_scene(self, scene_id: str) -> None:
+        """Equivalente real de clicar numa aba de Cena -- SUSceneActivate
+        (ver core/su_api.py). Nao move a camera do viewer nesta sessao
+        (limitacao documentada, mesma de create_scene())."""
+        session = self._require_session()
+        target = None
+        for scene in session.api.get_scenes(session.model.raw_ref):
+            if f"scene_{scene.ptr or 0:x}" == scene_id:
+                target = scene
+                break
+        if target is None:
+            raise SceneSessionError(f"cena {scene_id!r} nao encontrada na sessao atual")
+        try:
+            session.api.activate_scene(session.model.raw_ref, target)
+        except RuntimeError as e:
+            raise SceneSessionError(f"falha ao ativar a cena: {e}") from e
+
     def export_obj(self, file_path: str) -> str:
         """Equivalente parcial do "Arquivo > Exportar > Modelo 3D..." --
         so formato OBJ por enquanto (ver core/obj_exporter.py e

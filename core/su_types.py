@@ -112,6 +112,16 @@ SUDrawingElementRef = make_ref_struct("SUDrawingElementRef")
 SUGroupRef = make_ref_struct("SUGroupRef")
 SULayerRef = make_ref_struct("SULayerRef")
 
+# SUSceneRef -- model/scene.h. Confirmado via REA/Ghidra (28/10/2026,
+# menu Janela > Bandeja padrao > Cenas, ver REVERSE_ENGINEERING_NOTES.md
+# secao 28.20) como export publico real: SUSceneCreate (alocador padrao),
+# SUSceneSetName/SUSceneGetName, SUModelAddScenes (array, mesmo padrao de
+# SUModelAddLayers), SUSceneActivate, SUModelGetScenes/SUModelGetNumScenes/
+# SUModelGetActiveScene. A API Ruby do SketchUp chama o mesmo objeto de
+# "Page" (Sketchup::Page) -- e o mesmo dado, dois nomes diferentes
+# dependendo da API (C vs Ruby).
+SUSceneRef = make_ref_struct("SUSceneRef")
+
 
 class SUColor(ctypes.Structure):
     """model/color.h -- RGBA, 1 byte por canal (0-255)."""

@@ -165,7 +165,14 @@ itens funcionais cada (ver `REVERSE_ENGINEERING_NOTES.md` seção 28):
   ligados ao colapso das seções do Default Tray já existentes;
   Sombras/Névoa ligados ao MESMO toggle real de "Visualizar >
   Sombras/Névoa" (duplicação de caminho de UI, igual o SketchUp real);
-  "Informações do modelo" mostra as contagens reais da cena aberta.
+  "Informações do modelo" mostra as contagens reais da cena aberta;
+  "Cenas" lista/cria/ativa Cenas reais do modelo via
+  `SUSceneCreate`/`SUModelAddScenes`/`SUModelSetActiveScene` (família
+  de exports públicos confirmada via engenharia reversa, ver
+  `REVERSE_ENGINEERING_NOTES.md` seção 28.20 -- a API Ruby chama o
+  mesmo objeto de "Page"). Limitação documentada: não captura nem
+  restaura câmera/estilo visual (este projeto não tem binding de
+  `SUCameraRef`).
 - **Ajuda**: "Sobre o SketchBuild..." mostra uma mensagem informativa
   na barra de status; "Bem-vindo ao SketchUp..." reabre a Página
   Inicial real (mesma tela da Fase 6).
@@ -348,6 +355,9 @@ Malha extraida: 2 definicoes, 2 instancias, 9138 vertices, 3046 triangulos
 | POST | `/api/v1/scene/instances/{instance_id}/material` | Aplica uma cor RGBA nova de verdade numa instância (equivalente real de "Ferramentas > Pintura" -- `SUMaterialCreate`/`SUMaterialSetColor`/`SUDrawingElementSetMaterial`, ver `REVERSE_ENGINEERING_NOTES.md` seção 28.15). |
 | POST | `/api/v1/scene/instances/{instance_id}/tag` | Aplica uma Etiqueta (Tag) real numa instância (equivalente real de "Ferramentas > Etiqueta" -- `SULayerCreate`/`SULayerSetName`/`SUModelAddLayers`/`SUDrawingElementSetLayer`, ver `REVERSE_ENGINEERING_NOTES.md` seção 28.18). |
 | POST | `/api/v1/scene/faces/{face_id}/material` | Aplica uma cor RGBA nova numa FACE específica (não a instância inteira) -- `SUFaceToDrawingElement`/`SUDrawingElementSetMaterial`, afeta todas as instâncias que compartilham a mesma definição (ver `REVERSE_ENGINEERING_NOTES.md` seção 28.19). |
+| GET | `/api/v1/scene/pages` | Lista todas as Cenas reais do modelo aberto (equivalente a "Janela > Bandeja padrão > Cenas"), com a flag `active` de qual está ativa agora. |
+| POST | `/api/v1/scene/pages` | Cria uma Cena real nova a partir do estado atual (`SUSceneCreate`/`SUModelAddScenes`). Não captura câmera/estilo visual. |
+| POST | `/api/v1/scene/pages/{scene_id}/activate` | Ativa uma Cena real (`SUModelSetActiveScene`) -- vira a "cena ativa" do modelo, persistida ao salvar. |
 | GET | `/api/v1/recent-files` | Lista os `.skp` recentemente abertos por este app (mais recente primeiro) -- alimenta a Página Inicial. |
 | POST | `/api/v1/recent-files/thumbnail` | Recebe um PNG real (snapshot do canvas 3D) pra virar a thumbnail de um arquivo na Página Inicial. |
 | GET | `/health` | Saúde do sidecar + ping na ponte Ruby (arquitetura alternativa, ver abaixo). |
@@ -537,6 +547,37 @@ instância), a mudança fica gravada no `.skp` pra TODAS as instâncias
 que compartilham essa definição. Não devolve a cena inteira. Erros:
 `400` (componente de cor fora de 0-255), `409` (nenhuma sessão aberta
 ou face não encontrada).
+
+### `GET /api/v1/scene/pages` / `POST /api/v1/scene/pages` / `POST /api/v1/scene/pages/{scene_id}/activate`
+
+```jsonc
+// GET /scene/pages -- Response 200
+{ "pages": [
+  { "scene_id": "scene_1f38abe7a50", "name": "Vista Inicial", "active": true },
+  { "scene_id": "scene_1f38abe7fd0", "name": "Vista Lateral", "active": false }
+] }
+
+// POST /scene/pages -- Request
+{ "name": "Vista Inicial" }
+// Response 200
+{ "scene_id": "scene_1f38abe7a50", "name": "Vista Inicial" }
+
+// POST /scene/pages/{scene_id}/activate -- Response 200
+{ "scene_id": "scene_1f38abe7a50", "activated": true }
+```
+Cenas reais do modelo (equivalente a "Janela > Bandeja padrão >
+Cenas" -- a API Ruby chama o mesmo objeto de "Page", mesmo dado).
+`POST /pages` cria via `SUSceneCreate` → `SUSceneSetName` →
+`SUModelAddScenes` (array de 1, mesmo padrão de `create_tag()`).
+`POST /pages/{scene_id}/activate` usa `SUModelSetActiveScene` --
+**não** `SUSceneActivate`, que existe na DLL mas não altera o estado
+que `SUModelGetActiveScene` lê (achado via teste isolado, ver
+`REVERSE_ENGINEERING_NOTES.md` seção 28.20). `GET /pages` recalcula
+`active` a cada chamada comparando com `SUModelGetActiveScene`, sem
+cache, pra nunca ficar desatualizado. Limitação documentada: não
+captura nem restaura câmera/estilo visual -- este projeto não tem
+binding de `SUCameraRef`. Erros: `400` (nome vazio), `409` (nenhuma
+sessão aberta, ou cena não encontrada ao ativar).
 
 ## API em código (sem HTTP)
 

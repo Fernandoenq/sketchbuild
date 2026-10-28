@@ -44,6 +44,7 @@ from core.su_types import (
     SUDrawingElementRef,
     SUGroupRef,
     SULayerRef,
+    SUSceneRef,
     SUColor,
     SUPoint3D,
     SUVector3D,
@@ -607,6 +608,85 @@ class SketchUpAPI:
         dll.SUFaceToDrawingElement.argtypes = [SUFaceRef]
         dll.SUFaceToDrawingElement.restype = SUDrawingElementRef
 
+        # -- Cenas (menu Janela > Bandeja padrao > Cenas) [Confirmado via
+        # REA/Ghidra, 28/10/2026 -- ver REVERSE_ENGINEERING_NOTES.md secao
+        # 28.20]. Familia inteira confirmada por pseudocodigo real batendo
+        # com o SDK publico documentado pela Trimble (model/scene.h). A API
+        # Ruby chama o mesmo objeto de "Page" -- mesmo dado, nome diferente.
+
+        # SU_RESULT SUSceneCreate(SUSceneRef* scene); -- alocador padrao
+        # (pseudocodigo real: 1=NULL_POINTER_INPUT se param_1==0, mesmo
+        # padrao de SUGroupCreate/SULayerCreate).
+        dll.SUSceneCreate.argtypes = [ctypes.POINTER(SUSceneRef)]
+        dll.SUSceneCreate.restype = ctypes.c_int
+
+        # SU_RESULT SUSceneSetName(SUSceneRef scene, const char* name);
+        # [Confirmado por pseudocodigo: 1=NULL_POINTER_INPUT se name nulo,
+        # mesmo padrao de SUGroupSetName/SULayerSetName.]
+        dll.SUSceneSetName.argtypes = [SUSceneRef, ctypes.c_char_p]
+        dll.SUSceneSetName.restype = ctypes.c_int
+
+        # SU_RESULT SUSceneGetName(SUSceneRef scene, SUStringRef* name);
+        dll.SUSceneGetName.argtypes = [SUSceneRef, ctypes.POINTER(SUStringRef)]
+        dll.SUSceneGetName.restype = ctypes.c_int
+
+        # SU_RESULT SUModelAddScenes(SUModelRef model, size_t len,
+        #     const SUSceneRef scenes[]); -- [Confirmado por pseudocodigo:
+        # mesmo padrao array de SUModelAddLayers, usado aqui em vez do
+        # SUModelAddScene singular pra reaproveitar a mesma convencao ja
+        # validada neste projeto.]
+        dll.SUModelAddScenes.argtypes = [
+            SUModelRef,
+            ctypes.c_size_t,
+            ctypes.POINTER(SUSceneRef),
+        ]
+        dll.SUModelAddScenes.restype = ctypes.c_int
+
+        # SU_RESULT SUModelSetActiveScene(SUModelRef model, SUSceneRef scene);
+        # -- TROCADO em 28/10/2026: `SUSceneActivate` (1 ou 2 parametros,
+        # ambas as tentativas testadas isoladamente) sempre retornava
+        # sucesso (0) mas `SUModelGetActiveScene` continuava devolvendo
+        # NO_DATA depois -- ou seja, nao e essa a funcao que o SDK usa pra
+        # setar o estado que `SUModelGetActiveScene` le. Busca nova via REA
+        # (`search_procedures("ActiveScene")`) achou `SUModelSetActiveScene`
+        # (endereco 0x180004507), funcao SEPARADA de `SUSceneActivate`.
+        # Pseudocodigo real confirma 2 parametros (model, scene), ambos
+        # validados contra null (retorna 2=INVALID_INPUT), retorna 6 se a
+        # chamada interna falhar, 0 em sucesso -- exatamente o padrao
+        # esperado pelo par get/set. Testado isoladamente (fora do HTTP)
+        # antes de aplicar aqui: `SUModelGetActiveScene` passou a refletir
+        # a cena ativada.
+        dll.SUModelSetActiveScene.argtypes = [SUModelRef, SUSceneRef]
+        dll.SUModelSetActiveScene.restype = ctypes.c_int
+
+        # SU_RESULT SUModelGetNumScenes(SUModelRef model, size_t* count);
+        dll.SUModelGetNumScenes.argtypes = [
+            SUModelRef,
+            ctypes.POINTER(ctypes.c_size_t),
+        ]
+        dll.SUModelGetNumScenes.restype = ctypes.c_int
+
+        # SU_RESULT SUModelGetScenes(SUModelRef model, size_t len,
+        #     SUSceneRef scenes[], size_t* count);
+        dll.SUModelGetScenes.argtypes = [
+            SUModelRef,
+            ctypes.c_size_t,
+            ctypes.POINTER(SUSceneRef),
+            ctypes.POINTER(ctypes.c_size_t),
+        ]
+        dll.SUModelGetScenes.restype = ctypes.c_int
+
+        # SU_RESULT SUModelGetActiveScene(SUModelRef model, SUSceneRef* scene);
+        # [Confirmado por pseudocodigo: 2=INVALID_INPUT se model nulo,
+        # 3=NULL_POINTER_OUTPUT se scene nulo, 9=NO_DATA se nao houver cena
+        # ativa -- tratado especialmente em get_active_scene() abaixo, nao
+        # como erro generico.]
+        dll.SUModelGetActiveScene.argtypes = [
+            SUModelRef,
+            ctypes.POINTER(SUSceneRef),
+        ]
+        dll.SUModelGetActiveScene.restype = ctypes.c_int
+
     # -- ciclo de vida da API -------------------------------------------------
 
     def initialize(self) -> None:
@@ -899,6 +979,86 @@ class SketchUpAPI:
             dll.SUDrawingElementSetLayer(drawing_elem, layer),
             "SUDrawingElementSetLayer",
         )
+
+    def create_scene(self, model: SUModelRef, name: str) -> SUSceneRef:
+        """Cria uma Cena real e a registra no modelo -- equivalente real
+        de "Janela > Bandeja padrao > Cenas" (ver REVERSE_ENGINEERING_
+        NOTES.md secao 28.20). A API Ruby chama o mesmo objeto de "Page".
+        Fluxo: SceneCreate -> SetName -> ModelAddScenes (array de 1, mesmo
+        padrao de create_tag()). NAO captura camera/estilo visual -- este
+        projeto nao tem binding de SUCameraRef ainda (limitacao
+        documentada, nao escondida)."""
+        dll = self._dll
+        scene = SUSceneRef()
+        su_check(dll.SUSceneCreate(ctypes.byref(scene)), "SUSceneCreate")
+        su_check(
+            dll.SUSceneSetName(scene, name.encode("utf-8")), "SUSceneSetName"
+        )
+        arr = (SUSceneRef * 1)(scene)
+        su_check(dll.SUModelAddScenes(model, 1, arr), "SUModelAddScenes")
+        return scene
+
+    def activate_scene(self, model: SUModelRef, scene: SUSceneRef) -> None:
+        """Ativa uma Cena real (SUModelSetActiveScene) -- vira a "cena
+        ativa" do modelo, persistida ao salvar o .skp. Nao move a camera
+        do viewer nesta sessao (este projeto nao le/escreve SUCameraRef
+        ainda -- limitacao documentada, ver REVERSE_ENGINEERING_NOTES.md
+        secao 28.20)."""
+        su_check(
+            self._dll.SUModelSetActiveScene(model, scene), "SUModelSetActiveScene"
+        )
+
+    def get_scenes(self, model: SUModelRef) -> list[SUSceneRef]:
+        count = ctypes.c_size_t()
+        su_check(
+            self._dll.SUModelGetNumScenes(model, ctypes.byref(count)),
+            "SUModelGetNumScenes",
+        )
+        n = count.value
+        if n == 0:
+            return []
+        arr = (SUSceneRef * n)()
+        actual = ctypes.c_size_t()
+        su_check(
+            self._dll.SUModelGetScenes(model, n, arr, ctypes.byref(actual)),
+            "SUModelGetScenes",
+        )
+        return list(arr)[: actual.value]
+
+    def get_scene_name(self, scene: SUSceneRef) -> str:
+        """Mesmo padrao de leitura de SUStringRef ja usado em
+        get_definition_name()."""
+        dll = self._dll
+        name_ref = SUStringRef()
+        su_check(dll.SUStringCreate(ctypes.byref(name_ref)), "SUStringCreate")
+        try:
+            su_check(dll.SUSceneGetName(scene, ctypes.byref(name_ref)), "SUSceneGetName")
+            length = ctypes.c_size_t()
+            su_check(
+                dll.SUStringGetUTF8Length(name_ref, ctypes.byref(length)),
+                "SUStringGetUTF8Length",
+            )
+            buf = ctypes.create_string_buffer(length.value + 1)
+            actual = ctypes.c_size_t()
+            su_check(
+                dll.SUStringGetUTF8(name_ref, length.value + 1, buf, ctypes.byref(actual)),
+                "SUStringGetUTF8",
+            )
+            return buf.value.decode("utf-8")
+        finally:
+            dll.SUStringRelease(ctypes.byref(name_ref))
+
+    def get_active_scene(self, model: SUModelRef) -> SUSceneRef | None:
+        """SUModelGetActiveScene devolve SU_ERROR_NO_DATA (codigo 9, ver
+        SU_ERRORS em core/su_types.py) quando nao ha cena ativa -- tratado
+        aqui como `None`, nao como excecao (diferente de todo outro
+        binding deste arquivo, que usa su_check genérico)."""
+        scene = SUSceneRef()
+        result = self._dll.SUModelGetActiveScene(model, ctypes.byref(scene))
+        if result == 9:  # SU_ERROR_NO_DATA
+            return None
+        su_check(result, "SUModelGetActiveScene")
+        return scene
 
     def get_definition_entities(
         self, definition: SUComponentDefinitionRef

@@ -137,6 +137,34 @@ export function paintFace(faceId, r, g, b) {
   );
 }
 
+/** Lista TODAS as Cenas reais do modelo aberto (equivalente real de
+ * "Janela > Bandeja padrão > Cenas" -- ver core/su_api.py get_scenes()
+ * e REVERSE_ENGINEERING_NOTES.md seção 28.20). Inclui cenas que já
+ * vinham salvas no .skp antes desta sessão. */
+export async function listScenePages() {
+  const res = await fetch("/api/v1/scene/pages");
+  if (!res.ok) throw new ApiError(res.statusText, res.status);
+  return res.json();
+}
+
+/** Cria uma Cena real nova a partir do estado atual (SUSceneCreate/
+ * SUModelAddScenes) -- NÃO captura câmera/estilo visual (limitação
+ * documentada, ver REVERSE_ENGINEERING_NOTES.md seção 28.20). */
+export function createScenePage(name) {
+  return postJson("/api/v1/scene/pages", "POST", { name });
+}
+
+/** Ativa uma Cena real (SUSceneActivate) -- vira a "cena ativa" do
+ * modelo, persistida ao salvar. Não move a câmera do viewer nesta
+ * sessão (mesma limitação de createScenePage). */
+export function activateScenePage(sceneId) {
+  return postJson(
+    `/api/v1/scene/pages/${encodeURIComponent(sceneId)}/activate`,
+    "POST",
+    {}
+  );
+}
+
 /** Lista de .skp recentemente abertos por este app (mais recente primeiro). */
 export async function listRecentFiles() {
   const res = await fetch("/api/v1/recent-files");

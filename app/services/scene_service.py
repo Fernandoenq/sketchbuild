@@ -99,6 +99,16 @@ class SceneService:
         self._validate_rgb(r, g, b)
         await run_in_threadpool(self._repository.paint_face, face_id, r, g, b)
 
+    async def list_scenes(self) -> list[dict]:
+        return await run_in_threadpool(self._repository.list_scenes)
+
+    async def create_scene(self, name: str) -> dict:
+        self._validate_scene_name(name)
+        return await run_in_threadpool(self._repository.create_scene, name)
+
+    async def activate_scene(self, scene_id: str) -> None:
+        await run_in_threadpool(self._repository.activate_scene, scene_id)
+
     # -- validacoes de dominio ------------------------------------------------
 
     def _validate_model_path(self, file_path: str) -> None:
@@ -137,3 +147,7 @@ class SceneService:
     def _validate_tag_name(self, tag_name: str) -> None:
         if not tag_name or not tag_name.strip():
             raise InvalidModelPathError("nome da etiqueta nao pode ser vazio")
+
+    def _validate_scene_name(self, name: str) -> None:
+        if not name or not name.strip():
+            raise InvalidModelPathError("nome da cena nao pode ser vazio")

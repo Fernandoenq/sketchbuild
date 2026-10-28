@@ -206,6 +206,57 @@ class TagInstanceResponse(BaseModel):
     tag_name: str
 
 
+class ScenePageDTO(BaseModel):
+    """Uma Cena real do modelo (model/scene.h -- a API Ruby chama o
+    mesmo objeto de "Page", mesmo dado). Nome prefixado "Page" aqui só
+    pra não colidir com `SceneResponse` (o DTO da cena 3D inteira, termo
+    já sobrecarregado neste arquivo)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    scene_id: str
+    name: str
+    active: bool
+
+
+class ListScenePagesResponse(BaseModel):
+    """Saída de GET /scene/pages -- TODAS as cenas reais do modelo
+    aberto (inclusive as que já vinham salvas no .skp antes desta
+    sessão)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    pages: list[ScenePageDTO]
+
+
+class CreateScenePageRequest(BaseModel):
+    """Entrada de POST /scene/pages -- equivalente real de "Janela >
+    Bandeja padrão > Cenas > +" (ver REVERSE_ENGINEERING_NOTES.md seção
+    28.20: SUSceneCreate/SUSceneSetName/SUModelAddScenes). NÃO captura
+    câmera/estilo visual (limitação documentada, este projeto não tem
+    binding de SUCameraRef)."""
+
+    name: str = Field(..., min_length=1, examples=["Cena 1"])
+
+
+class CreateScenePageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    scene_id: str
+    name: str
+
+
+class ActivateScenePageResponse(BaseModel):
+    """Saída de POST /scene/pages/{scene_id}/activate -- SUSceneActivate
+    real (ver core/su_api.py). Não move a câmera do viewer nesta sessão
+    (mesma limitação de CreateScenePageRequest)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    scene_id: str
+    activated: bool
+
+
 class ExportModelRequest(BaseModel):
     """Entrada de POST /scene/export/obj -- equivalente parcial de
     "Arquivo > Exportar > Modelo 3D..." (so formato OBJ por enquanto)."""
