@@ -15,8 +15,10 @@ from app.schemas.scene import (
     CreateScenePageRequest,
     CreateScenePageResponse,
     DeleteInstanceResponse,
+    DiscardAutosaveDraftResponse,
     ExportModelRequest,
     ExportModelResponse,
+    ListAutosaveDraftsResponse,
     ListScenePagesResponse,
     NewSceneFromTemplateRequest,
     OpenSceneRequest,
@@ -63,6 +65,50 @@ async def new_scene_from_template(
     controller: SceneController = Depends(get_controller),
 ) -> SceneResponse:
     return await controller.new_scene_from_template(body.template_id)
+
+
+@router.get(
+    "/session",
+    response_model=SceneResponse,
+    summary="Reextrai a sessao JA ABERTA em memoria sem tocar o disco (cobre reload da pagina com o backend ainda rodando) -- 409 se nao ha sessao",
+)
+async def get_current_session(
+    controller: SceneController = Depends(get_controller),
+) -> SceneResponse:
+    return await controller.get_current_session()
+
+
+@router.get(
+    "/autosave",
+    response_model=ListAutosaveDraftsResponse,
+    summary="Lista rascunhos de autosave reais (.skp em app/data/autosave/) disponiveis pra recuperacao",
+)
+async def list_autosave_drafts(
+    controller: SceneController = Depends(get_controller),
+) -> ListAutosaveDraftsResponse:
+    return await controller.list_autosave_drafts()
+
+
+@router.post(
+    "/autosave/{draft_id}/recover",
+    response_model=SceneResponse,
+    summary="Reabre um rascunho de autosave, associando a sessao de volta ao caminho ORIGINAL (nao ao arquivo de rascunho)",
+)
+async def recover_autosave_draft(
+    draft_id: str, controller: SceneController = Depends(get_controller)
+) -> SceneResponse:
+    return await controller.recover_autosave_draft(draft_id)
+
+
+@router.delete(
+    "/autosave/{draft_id}",
+    response_model=DiscardAutosaveDraftResponse,
+    summary="Descarta um rascunho de autosave sem recuperar (apaga o .skp interno e a entrada do manifesto)",
+)
+async def discard_autosave_draft(
+    draft_id: str, controller: SceneController = Depends(get_controller)
+) -> DiscardAutosaveDraftResponse:
+    return await controller.discard_autosave_draft(draft_id)
 
 
 @router.patch(

@@ -109,6 +109,21 @@ class SceneService:
     async def activate_scene(self, scene_id: str) -> None:
         await run_in_threadpool(self._repository.activate_scene, scene_id)
 
+    async def get_current_session(self) -> dict | None:
+        """Cobre o caso de F5 na pagina com o backend ainda rodando --
+        ver app/repositories/skp_engine_repository.py
+        get_current_session(). None quando nao ha sessao aberta."""
+        return await run_in_threadpool(self._repository.get_current_session)
+
+    async def list_autosave_drafts(self) -> list[dict]:
+        return await run_in_threadpool(self._repository.list_autosave_drafts)
+
+    async def recover_autosave_draft(self, draft_id: str) -> dict:
+        return await run_in_threadpool(self._repository.recover_draft, draft_id)
+
+    async def discard_autosave_draft(self, draft_id: str) -> None:
+        await run_in_threadpool(self._repository.discard_autosave_draft, draft_id)
+
     async def set_instance_axes(
         self,
         instance_id: str,

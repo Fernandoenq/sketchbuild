@@ -21,11 +21,15 @@ import {
   setInstanceAxes,
   listRecentFiles,
   uploadThumbnail,
+  getCurrentSession,
+  listAutosaveDrafts,
+  recoverAutosaveDraft,
+  discardAutosaveDraft,
   ApiError,
 } from "./api.js";
 import { buildSceneGroup, meshMatrixToApiTransform, worldPointToLocalInches } from "./sceneBuilder.js";
 import { buildOutlinerTree } from "./outliner.js";
-import { renderRecentFiles } from "./welcome.js";
+import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
 
 const viewportEl = document.getElementById("viewport");
 const pathInputEl = document.getElementById("path-input");
@@ -75,6 +79,8 @@ const welcomeOpenRowEl = document.getElementById("welcome-open-row");
 const welcomePathInputEl = document.getElementById("welcome-path-input");
 const welcomeOpenConfirmBtnEl = document.getElementById("welcome-open-confirm-btn");
 const welcomeRecentGridEl = document.getElementById("welcome-recent-grid");
+const welcomeAutosaveSectionEl = document.getElementById("welcome-autosave-section");
+const welcomeAutosaveGridEl = document.getElementById("welcome-autosave-grid");
 const welcomeTemplateCardEls = document.querySelectorAll(
   ".welcome-template-card[data-template-id]"
 );
@@ -1606,6 +1612,74 @@ async function loadRecentFilesIntoWelcomeScreen() {
   }
 }
 
+/** Reabre um rascunho de autosave (ver "Persistencia de sessao" no
+ * README.md) -- a sessao volta associada ao arquivo ORIGINAL, "Salvar"
+ * continua sobrescrevendo o arquivo de verdade do usuario. */
+async function handleRecoverDraft(draftId) {
+  setStatus("Recuperando sessao nao salva...");
+  try {
+    const sceneDTO = await recoverAutosaveDraft(draftId);
+    const counts = applySceneDTO(sceneDTO);
+    hideWelcomeScreen();
+    setStatus(
+      `Sessao recuperada -- ${counts.totalDefinitions} definicoes, ${counts.totalInstances} ` +
+        `instancias. As edicoes nao salvas foram restauradas; "Salvar" sobrescreve o arquivo original.`
+    );
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro ao recuperar sessao: ${detail}`, true);
+  }
+}
+
+/** Descarta um rascunho de autosave sem recuperar e atualiza a grade. */
+async function handleDiscardDraft(draftId) {
+  try {
+    await discardAutosaveDraft(draftId);
+    setStatus("Rascunho descartado.");
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro ao descartar rascunho: ${detail}`, true);
+  }
+  loadAutosaveDraftsIntoWelcomeScreen();
+}
+
+async function loadAutosaveDraftsIntoWelcomeScreen() {
+  try {
+    const drafts = await listAutosaveDrafts();
+    welcomeAutosaveSectionEl.style.display = drafts.length ? "" : "none";
+    renderAutosaveDrafts(welcomeAutosaveGridEl, drafts, handleRecoverDraft, handleDiscardDraft);
+  } catch {
+    welcomeAutosaveSectionEl.style.display = "none";
+  }
+}
+
+/** Ponto de entrada do app: tenta reconectar numa sessao JA ABERTA em
+ * memoria no backend (cobre F5 na pagina sem perder edicoes nao salvas,
+ * ver README.md "Persistencia de sessao") antes de mostrar a Pagina
+ * Inicial. So quando nao ha sessao em memoria (backend reiniciado, ou
+ * primeira abertura desta execucao) e que a Pagina Inicial aparece,
+ * junto com qualquer rascunho de autosave pendente oferecido pra
+ * recuperacao. */
+async function boot() {
+  try {
+    const sceneDTO = await getCurrentSession();
+    if (sceneDTO) {
+      const counts = applySceneDTO(sceneDTO);
+      hideWelcomeScreen();
+      setStatus(
+        `Sessao restaurada (reload da pagina) -- ${counts.totalDefinitions} definicoes, ` +
+          `${counts.totalInstances} instancias. Nenhuma edicao foi perdida.`
+      );
+      return;
+    }
+  } catch {
+    // backend inacessivel/erro inesperado -- segue pro fluxo normal da
+    // Pagina Inicial em vez de travar o boot do app
+  }
+  loadRecentFilesIntoWelcomeScreen();
+  loadAutosaveDraftsIntoWelcomeScreen();
+}
+
 /** Cria o modelo a partir do template clicado e fecha a Pagina Inicial
  * (reusa handleNewFromTemplate, mesmo padrao de openFromWelcomeScreen). */
 async function newModelFromWelcomeScreen(templateId) {
@@ -1631,4 +1705,4 @@ welcomePathInputEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter") openFromWelcomeScreen(welcomePathInputEl.value.trim());
 });
 
-loadRecentFilesIntoWelcomeScreen();
+boot();

@@ -19,9 +19,12 @@ from app.domain.exceptions import (
 from app.schemas.scene import (
     ActivateScenePageResponse,
     AddRectangleResponse,
+    AutosaveDraftDTO,
     CreateScenePageResponse,
     DeleteInstanceResponse,
+    DiscardAutosaveDraftResponse,
     ExportModelResponse,
+    ListAutosaveDraftsResponse,
     ListScenePagesResponse,
     PaintFaceResponse,
     PaintInstanceResponse,
@@ -85,6 +88,56 @@ class SceneController:
             ) from e
 
         return SceneResponse.model_validate(result)
+
+    async def get_current_session(self) -> SceneResponse:
+        """Cobre o F5 na pagina (ver REVERSE_ENGINEERING_NOTES.md nao se
+        aplica -- isto nao e engenharia reversa, e persistencia de sessao
+        no app em si, ver README.md "Persistencia de sessao"). 409 quando
+        o backend nao tem nenhuma sessao aberta no momento (acabou de
+        reiniciar, ou ninguem abriu nada ainda nesta execucao)."""
+        result = await self._service.get_current_session()
+        if result is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="nenhuma sessao aberta nesta execucao do backend",
+            )
+        return SceneResponse.model_validate(result)
+
+    async def list_autosave_drafts(self) -> ListAutosaveDraftsResponse:
+        drafts = await self._service.list_autosave_drafts()
+        return ListAutosaveDraftsResponse(
+            drafts=[AutosaveDraftDTO.model_validate(d) for d in drafts]
+        )
+
+    async def recover_autosave_draft(self, draft_id: str) -> SceneResponse:
+        try:
+            result = await self._service.recover_autosave_draft(draft_id)
+        except SceneSessionError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=str(e)
+            ) from e
+        except SceneParseError as e:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)
+            ) from e
+
+        original_path = result.get("model_path")
+        if original_path:
+            try:
+                await self._recent_files_service.register_opened(original_path)
+            except OSError:
+                logger.warning("Falha ao registrar arquivo recente: %s", original_path)
+
+        return SceneResponse.model_validate(result)
+
+    async def discard_autosave_draft(self, draft_id: str) -> DiscardAutosaveDraftResponse:
+        try:
+            await self._service.discard_autosave_draft(draft_id)
+        except SceneSessionError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=str(e)
+            ) from e
+        return DiscardAutosaveDraftResponse(id=draft_id, discarded=True)
 
     async def update_instance_transform(
         self, instance_id: str, transform: list[float]

@@ -314,6 +314,33 @@ class AddRectangleRequest(BaseModel):
     )
 
 
+class AutosaveDraftDTO(BaseModel):
+    """Um rascunho de autosave real (.skp gravado em app/data/autosave/
+    a cada edicao, ver app/repositories/skp_engine_repository.py
+    _autosave()) oferecido pra recuperacao na Pagina Inicial quando o
+    backend reinicia com edicoes nao salvas pendentes."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    original_path: str
+    name: str
+    saved_at: str
+
+
+class ListAutosaveDraftsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    drafts: list[AutosaveDraftDTO]
+
+
+class DiscardAutosaveDraftResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    discarded: bool
+
+
 class AddRectangleResponse(BaseModel):
     """A cena inteira pós-criação -- diferente de excluir/mover uma
     instância, geometria nova precisa que o frontend reconstrua a malha

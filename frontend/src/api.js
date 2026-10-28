@@ -183,6 +183,44 @@ export function setInstanceAxes(instanceId, origin, xPoint, yPoint) {
   );
 }
 
+/** Reextrai a sessao JA ABERTA em memoria no backend (sem reler do disco)
+ * -- cobre dar F5 na pagina com o backend ainda rodando, sem perder
+ * edicoes ainda nao salvas (ver README.md "Persistencia de sessao").
+ * `null` quando o backend nao tem nenhuma sessao aberta no momento
+ * (acabou de reiniciar, ou ninguem abriu nada ainda nesta execucao). */
+export async function getCurrentSession() {
+  const res = await fetch("/api/v1/scene/session");
+  if (res.status === 409) return null;
+  if (!res.ok) throw new ApiError(res.statusText, res.status);
+  return res.json();
+}
+
+/** Lista rascunhos de autosave reais disponiveis pra recuperacao (ver
+ * README.md "Persistencia de sessao") -- cobre o caso de o backend ter
+ * reiniciado com edicoes ainda nao salvas. */
+export async function listAutosaveDrafts() {
+  const res = await fetch("/api/v1/scene/autosave");
+  if (!res.ok) throw new ApiError(res.statusText, res.status);
+  const body = await res.json();
+  return body.drafts;
+}
+
+/** Reabre um rascunho de autosave -- a sessao resultante fica associada
+ * ao arquivo ORIGINAL (nao ao rascunho interno), entao "Salvar" continua
+ * sobrescrevendo o arquivo de verdade do usuario. */
+export function recoverAutosaveDraft(draftId) {
+  return postJson(`/api/v1/scene/autosave/${encodeURIComponent(draftId)}/recover`, "POST", {});
+}
+
+/** Descarta um rascunho de autosave sem recuperar. */
+export async function discardAutosaveDraft(draftId) {
+  const res = await fetch(`/api/v1/scene/autosave/${encodeURIComponent(draftId)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new ApiError(res.statusText, res.status);
+  return res.json();
+}
+
 /** Lista de .skp recentemente abertos por este app (mais recente primeiro). */
 export async function listRecentFiles() {
   const res = await fetch("/api/v1/recent-files");

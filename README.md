@@ -270,6 +270,49 @@ exatamente o mesmo código, com os mesmos argumentos, contra a mesma DLL, em
 **Python 3.12**: funciona perfeitamente. A `SketchUpAPI.dll` nunca teve
 nenhuma limitação real.
 
+## Persistência de sessão (autosave)
+
+Diferente de um app web comum, este visualizador mantém o `.skp` **aberto
+de verdade** na sessão (`core/su_api.py`/`core/su_types.py` via `ctypes`,
+singleton de módulo `_SESSION` em
+`app/repositories/skp_engine_repository.py`) -- não é um documento
+re-serializado a cada request. Isso cria duas camadas distintas de
+"estado perdido ao recarregar a página", resolvidas de formas diferentes:
+
+1. **Reload simples (F5) com o backend ainda no ar.** A sessão em memória
+   sobrevive ao reload do navegador (o processo do backend é separado da
+   aba). `GET /api/v1/scene/session` reextrai o DTO atual sem tocar o
+   disco -- o frontend chama isso ANTES de mostrar a Página Inicial
+   (`frontend/src/main.js` `boot()`), e se já há uma sessão aberta, reabre
+   direto nela. Antes dessa mudança, o frontend "esquecia" a sessão e, se
+   o usuário clicasse pra reabrir o mesmo arquivo, isso chamava
+   `POST /scene/open` -- que fecha a sessão atual e relê do disco do
+   zero, **descartando qualquer edição ainda não salva**. Esse era o bug
+   real por trás de "recarreguei a página e perdi o que eu tava mexendo".
+
+2. **Reinício do backend (ou da máquina) com edições não salvas.** Pra
+   sobreviver a isso, cada edição real (mover, pintar, etiquetar, criar
+   geometria, Cena, Eixos -- todo método mutante do
+   `SkpEngineRepository`) dispara um **autosave real**: o mesmo
+   `SUModelSaveToFile` usado em "Salvar", mas gravando num rascunho
+   separado em `app/data/autosave/{id}.skp` (nunca no arquivo original do
+   usuário). Ao abrir o app sem uma sessão em memória, a Página Inicial
+   lista esses rascunhos reais (`GET /api/v1/scene/autosave`) numa seção
+   "Recuperar sessão não salva", com botões **Recuperar**
+   (`POST /scene/autosave/{id}/recover` -- reabre o rascunho, mas associa
+   a sessão de volta ao caminho ORIGINAL, então "Salvar" nunca sobrescreve
+   o arquivo errado) e **Descartar**
+   (`DELETE /api/v1/scene/autosave/{id}`). Um "Salvar" bem-sucedido
+   descarta automaticamente o rascunho associado (a fonte da verdade
+   passou a ser o arquivo real); abrir o arquivo original explicitamente
+   (em vez de recuperar) também descarta qualquer rascunho pendente pra
+   esse caminho.
+
+Limitação documentada: só funciona pra sessões com `model_path` definido
+(um arquivo real já aberto, ou já salvo ao menos uma vez) -- um modelo
+criado por template e nunca salvo ainda não tem uma chave estável pra
+associar o rascunho, mesma exigência já feita pelo "Salvar" de verdade.
+
 ## Stack tecnológica
 
 | Camada | Tecnologia |
@@ -356,6 +399,10 @@ Malha extraida: 2 definicoes, 2 instancias, 9138 vertices, 3046 triangulos
 | Método | Path | Descrição |
 |---|---|---|
 | POST | `/api/v1/scene/open` | Abre um `.skp` via motor `ctypes` (standalone), inicia uma sessão de edição e devolve `{model_path, definitions[], instances[]}` -- geometria + matrizes de transformação prontas pro Three.js. |
+| GET | `/api/v1/scene/session` | Reextrai a sessão JÁ ABERTA em memória sem tocar o disco (cobre reload da página com o backend ainda rodando, ver "Persistência de sessão" acima). `409` se não há sessão. |
+| GET | `/api/v1/scene/autosave` | Lista rascunhos de autosave reais disponíveis pra recuperação (ver "Persistência de sessão"). |
+| POST | `/api/v1/scene/autosave/{draft_id}/recover` | Reabre um rascunho de autosave, associando a sessão de volta ao caminho ORIGINAL (não ao arquivo de rascunho interno). |
+| DELETE | `/api/v1/scene/autosave/{draft_id}` | Descarta um rascunho de autosave sem recuperar. |
 | POST | `/api/v1/scene/new` | Cria um modelo novo a partir de um template real da Trimble (`{template_id}` -- ver seção "Criar novo modelo" acima). `model_path` volta `null` até o primeiro "Salvar Como". |
 | PATCH | `/api/v1/scene/instances/{instance_id}/transform` | Aplica uma nova transformação (mundial, column-major) a uma instância da sessão aberta -- só em memória, ainda não grava em disco. |
 | POST | `/api/v1/scene/save` | Grava o modelo editado em disco (`path` omitido = sobrescreve o arquivo aberto; exige `path` explícito se o modelo ainda não tiver um -- caso de modelo criado por template). |

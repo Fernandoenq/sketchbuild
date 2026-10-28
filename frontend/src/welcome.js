@@ -80,3 +80,64 @@ export function renderRecentFiles(container, entries, onOpen) {
     container.appendChild(card);
   }
 }
+
+/**
+ * Monta a grade "Recuperar sessão não salva" (rascunhos reais de
+ * autosave, ver app/repositories/autosave_repository.py) -- cada card
+ * tem botão Recuperar (reabre a sessão com as edições ainda não salvas)
+ * e Descartar (apaga o rascunho sem recuperar), diferente de
+ * renderRecentFiles() que só abre com um clique no card inteiro.
+ * @param {HTMLElement} container
+ * @param {Array<object>} entries - lista de AutosaveDraftDTO (ver schemas/scene.py)
+ * @param {(draftId: string) => void} onRecover
+ * @param {(draftId: string) => void} onDiscard
+ */
+export function renderAutosaveDrafts(container, entries, onRecover, onDiscard) {
+  container.innerHTML = "";
+
+  for (const entry of entries) {
+    const card = document.createElement("div");
+    card.className = "recent-card autosave-card";
+    card.title = entry.original_path;
+
+    const thumbEl = document.createElement("div");
+    thumbEl.className = "recent-card-thumb";
+    thumbEl.innerHTML = PLACEHOLDER_ICON_SVG;
+
+    const nameEl = document.createElement("div");
+    nameEl.className = "recent-card-name";
+    nameEl.textContent = entry.name;
+
+    const dateEl = document.createElement("div");
+    dateEl.className = "recent-card-date";
+    dateEl.textContent = `Nao salvo -- rascunho de ${formatDateTime(entry.saved_at)}`;
+
+    const actionsEl = document.createElement("div");
+    actionsEl.className = "autosave-card-actions";
+
+    const recoverBtn = document.createElement("button");
+    recoverBtn.textContent = "Recuperar";
+    recoverBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onRecover(entry.id);
+    });
+
+    const discardBtn = document.createElement("button");
+    discardBtn.textContent = "Descartar";
+    discardBtn.className = "autosave-discard-btn";
+    discardBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onDiscard(entry.id);
+    });
+
+    actionsEl.appendChild(recoverBtn);
+    actionsEl.appendChild(discardBtn);
+
+    card.appendChild(thumbEl);
+    card.appendChild(nameEl);
+    card.appendChild(dateEl);
+    card.appendChild(actionsEl);
+
+    container.appendChild(card);
+  }
+}

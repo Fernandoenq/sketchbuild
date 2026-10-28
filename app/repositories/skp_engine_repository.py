@@ -23,9 +23,11 @@ REVERSE_ENGINEERING_NOTES.md secao 15 (regressao do ctypes no Python
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 from app.domain.exceptions import SceneParseError, SceneSessionError
+from app.repositories.autosave_repository import AutosaveRepository
 from core.mesh_extractor import (
     extract_scene,
     extract_scene_with_registry,
@@ -35,6 +37,8 @@ from core.mesh_extractor import (
 )
 from core.obj_exporter import write_obj
 from core.su_api import SketchUpAPI, SketchUpModel
+
+logger = logging.getLogger("sketchbuild")
 
 
 @dataclass
@@ -55,7 +59,17 @@ _SESSION: _Session | None = None
 
 
 class SkpEngineRepository:
+    def __init__(self, autosave_repository: AutosaveRepository | None = None):
+        self._autosave_repo = autosave_repository or AutosaveRepository()
+
     def open(self, file_path: str) -> dict:
+        # abertura EXPLICITA a partir do arquivo real -- o usuario esta
+        # escolhendo a copia do disco em vez de um rascunho eventualmente
+        # pendente pra esse mesmo caminho (oferecido separadamente via
+        # list_autosave_drafts()/recover_draft()); descarta esse rascunho
+        # agora pra nunca mais ser oferecido como "recuperar" depois de
+        # uma reabertura explicita e intencional.
+        self._autosave_repo.discard(file_path)
         dto = self._open_and_extract(
             lambda api: api.open_model(file_path), "falha ao abrir o .skp", file_path
         )
@@ -102,6 +116,70 @@ class SkpEngineRepository:
         dto["model_path"] = session_path
         return dto
 
+    def recover_draft(self, draft_id: str) -> dict:
+        """Reabre um rascunho de autosave real (mesmo .skp que o proprio
+        app gravou em app/data/autosave/, ver _autosave() abaixo), mas
+        associa a sessao ao CAMINHO ORIGINAL (`entry["original_path"]`)
+        -- nao ao arquivo de rascunho -- pra "Salvar" continuar
+        sobrescrevendo o arquivo de verdade do usuario, nunca o
+        rascunho interno. Usado pra recuperar edicoes nao salvas depois
+        de reiniciar o backend (reload simples de pagina ja e coberto
+        por get_current_session(), sem precisar disso)."""
+        entry = self._autosave_repo.get_entry(draft_id)
+        if entry is None:
+            raise SceneSessionError(f"rascunho de autosave {draft_id!r} nao encontrado")
+        draft_file = self._autosave_repo.draft_file_path(entry["original_path"])
+        return self._open_and_extract(
+            lambda api: api.open_model(draft_file),
+            "falha ao recuperar o rascunho de autosave",
+            entry["original_path"],
+        )
+
+    def get_current_session(self) -> dict | None:
+        """Reextrai o DTO da sessao JA ABERTA em memoria, sem tocar o
+        disco -- cobre o caso de dar F5 na pagina com o MESMO processo
+        de backend ainda rodando: o `_SESSION` module-level sobrevive a
+        qualquer reload do navegador, so o frontend "esquecia" disso e
+        reabria do zero (perdendo qualquer edicao ainda nao salva em
+        disco). Devolve None se nao ha sessao (backend reiniciado, ou
+        nenhum modelo foi aberto ainda)."""
+        if _SESSION is None:
+            return None
+        dto, registry, faces_registry = extract_scene_with_registry(
+            _SESSION.api, _SESSION.model
+        )
+        _SESSION.registry = registry
+        _SESSION.faces = faces_registry
+        dto["model_path"] = _SESSION.model_path
+        return dto
+
+    def list_autosave_drafts(self) -> list[dict]:
+        return self._autosave_repo.list_drafts()
+
+    def discard_autosave_draft(self, draft_id: str) -> None:
+        if self._autosave_repo.get_entry(draft_id) is None:
+            raise SceneSessionError(f"rascunho de autosave {draft_id!r} nao encontrado")
+        self._autosave_repo.discard_by_id(draft_id)
+
+    def _autosave(self) -> None:
+        """Grava um rascunho .skp REAL (mesmo SUModelSaveToFile usado em
+        "Salvar", so que num arquivo separado em app/data/autosave/, nunca
+        no arquivo original do usuario) toda vez que uma edicao real e
+        aplicada na sessao -- e o que permite sobreviver a um reinicio do
+        backend sem perder trabalho nao salvo. So roda se a sessao ja tem
+        `model_path` (modelos criados por template e nunca salvos uma vez
+        ainda nao tem uma chave estavel pra associar o rascunho -- mesma
+        exigencia ja feita pelo "Salvar" de verdade). Melhor esforco: uma
+        falha aqui nunca pode quebrar a edicao que a originou."""
+        if _SESSION is None or _SESSION.model_path is None:
+            return
+        try:
+            draft_path = self._autosave_repo.draft_file_path(_SESSION.model_path)
+            _SESSION.model.save(draft_path)
+            self._autosave_repo.record_autosave(_SESSION.model_path)
+        except (RuntimeError, OSError):
+            logger.warning("Falha ao gravar autosave de %s", _SESSION.model_path, exc_info=True)
+
     def set_instance_transform(self, instance_id: str, new_world_transform: list[float]) -> None:
         session = self._require_session()
         entry = session.registry.get(instance_id)
@@ -126,6 +204,7 @@ class SkpEngineRepository:
         # parent_world de qualquer instancia aninhada dentro dela --
         # nesta fase (edicao so de instancias de topo) isso nao e
         # recalculado em cascata; ver pendencia na secao 18 das notas.
+        self._autosave()
 
     def save(self, path: str | None) -> str:
         session = self._require_session()
@@ -140,6 +219,11 @@ class SkpEngineRepository:
             session.model.save(target_path)
         except RuntimeError as e:
             raise SceneSessionError(f"falha ao salvar o .skp: {e}") from e
+        # "Salvar" de verdade grava a fonte da verdade -- o rascunho de
+        # autosave associado ao caminho ANTERIOR (se havia) fica
+        # redundante e e descartado agora, antes de reassociar a chave.
+        if session.model_path is not None:
+            self._autosave_repo.discard(session.model_path)
         # depois do 1o save de um modelo novo, "Salvar" simples passa a
         # sobrescrever o caminho escolhido aqui -- nunca mais o template.
         session.model_path = target_path
@@ -161,6 +245,7 @@ class SkpEngineRepository:
         except RuntimeError as e:
             raise SceneSessionError(f"falha ao excluir a instancia: {e}") from e
         del session.registry[instance_id]
+        self._autosave()
 
     def paint_instance(self, instance_id: str, r: int, g: int, b: int) -> None:
         """Equivalente real de "Ferramentas > Pintura": aplica uma cor
@@ -181,6 +266,7 @@ class SkpEngineRepository:
             session.api.paint_instance(entry["ref"], r, g, b)
         except RuntimeError as e:
             raise SceneSessionError(f"falha ao pintar a instancia: {e}") from e
+        self._autosave()
 
     def paint_face(self, face_id: str, r: int, g: int, b: int) -> None:
         """Equivalente real de pintar uma FACE especifica (nao a
@@ -199,6 +285,7 @@ class SkpEngineRepository:
             session.api.paint_face(face, r, g, b)
         except RuntimeError as e:
             raise SceneSessionError(f"falha ao pintar a face: {e}") from e
+        self._autosave()
 
     def add_rectangle(self, width_m: float, height_m: float, as_group: bool = False) -> dict:
         """Equivalente real de "Desenho > Formas > Retângulo": cria uma
@@ -239,6 +326,7 @@ class SkpEngineRepository:
         session.registry = registry
         session.faces = faces_registry
         dto["model_path"] = session.model_path
+        self._autosave()
         return dto
 
     def tag_instance(self, instance_id: str, tag_name: str) -> None:
@@ -264,6 +352,7 @@ class SkpEngineRepository:
             session.api.set_instance_tag(entry["ref"], layer)
         except RuntimeError as e:
             raise SceneSessionError(f"falha ao aplicar a etiqueta: {e}") from e
+        self._autosave()
 
     def list_scenes(self) -> list[dict]:
         """Equivalente real de "Janela > Bandeja padrao > Cenas" -- lista
@@ -300,6 +389,7 @@ class SkpEngineRepository:
             scene = session.api.create_scene(session.model.raw_ref, name)
         except RuntimeError as e:
             raise SceneSessionError(f"falha ao criar a cena: {e}") from e
+        self._autosave()
         return {"scene_id": f"scene_{scene.ptr or 0:x}", "name": name}
 
     def activate_scene(self, scene_id: str) -> None:
@@ -321,6 +411,7 @@ class SkpEngineRepository:
             session.api.activate_scene(session.model.raw_ref, target)
         except RuntimeError as e:
             raise SceneSessionError(f"falha ao ativar a cena: {e}") from e
+        self._autosave()
 
     def set_instance_axes(
         self,
@@ -365,6 +456,7 @@ class SkpEngineRepository:
             if axes is not None:
                 session.api.release_axes(axes)
 
+        self._autosave()
         return {"instance_id": instance_id, "applied": True}
 
     def export_obj(self, file_path: str) -> str:
