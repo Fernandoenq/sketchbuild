@@ -1,9 +1,14 @@
 // Cliente HTTP fino contra o backend FastAPI -- sem logica de UI aqui.
 
 export class ApiError extends Error {
-  constructor(message, status) {
+  /** `detail` e o valor bruto de `errorBody.detail` -- normalmente uma
+   * string, mas pode ser um objeto estruturado (ex.: `{code: "...", ...}`,
+   * ver SceneOverwriteConfirmationRequiredError) quando o backend precisa
+   * mandar mais do que uma mensagem pro chamador decidir o que fazer. */
+  constructor(message, status, detail) {
     super(message);
     this.status = status;
+    this.detail = detail !== undefined ? detail : message;
   }
 }
 
@@ -18,11 +23,12 @@ async function postJson(url, method, body) {
     let detail = res.statusText;
     try {
       const errorBody = await res.json();
-      detail = errorBody.detail || detail;
+      detail = errorBody.detail ?? detail;
     } catch {
       // resposta nao era JSON -- mantem o statusText
     }
-    throw new ApiError(detail, res.status);
+    const message = typeof detail === "string" ? detail : detail?.message || res.statusText;
+    throw new ApiError(message, res.status, detail);
   }
 
   return res.json();
@@ -50,9 +56,17 @@ export function updateInstanceTransform(instanceId, transform) {
   );
 }
 
-/** `path` vazio/undefined sobrescreve o arquivo que foi aberto. */
-export function saveScene(path) {
-  return postJson("/api/v1/scene/save", "POST", { path: path || null });
+/** `path` vazio/undefined sobrescreve o arquivo que foi aberto.
+ * `overwriteConfirmed`: so precisa ser `true` quando uma chamada anterior
+ * devolveu 409 com `detail.code === "overwrite_confirmation_required"` e
+ * o usuario confirmou que quer sobrescrever o arquivo existente mesmo
+ * assim (ver handleSave() em main.js e a trava em
+ * app/repositories/skp_engine_repository.py save()). */
+export function saveScene(path, overwriteConfirmed = false) {
+  return postJson("/api/v1/scene/save", "POST", {
+    path: path || null,
+    overwrite_confirmed: overwriteConfirmed,
+  });
 }
 
 /** Exclui de verdade a instancia da sessao aberta (equivalente a "Editar

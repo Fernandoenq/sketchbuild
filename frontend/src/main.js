@@ -930,15 +930,40 @@ async function handleNewFromTemplate(templateId) {
   }
 }
 
-async function handleSave() {
+/** `overwriteConfirmed`: true so quando esta chamada e um retry depois do
+ * usuario confirmar no window.confirm() abaixo -- nunca passar `true` na
+ * chamada inicial (ver trava em app/repositories/skp_engine_repository.py
+ * save(), adicionada depois de um incidente real de 28/10/2026 em que um
+ * modelo de template foi salvo por cima de um .skp de producao sem aviso). */
+async function handleSave(overwriteConfirmed = false) {
   const path = savePathInputEl.value.trim();
   saveBtnEl.disabled = true;
   setStatus(path ? `Salvando em ${path}...` : "Salvando (sobrescrevendo o arquivo aberto)...");
 
   try {
-    const result = await saveScene(path);
+    const result = await saveScene(path, overwriteConfirmed);
     setStatus(`Salvo em ${result.path}.`);
   } catch (err) {
+    if (
+      !overwriteConfirmed &&
+      err instanceof ApiError &&
+      err.detail &&
+      err.detail.code === "overwrite_confirmation_required"
+    ) {
+      const sizeMb = (err.detail.existing_size_bytes / (1024 * 1024)).toFixed(1);
+      const confirmado = window.confirm(
+        `Atencao: "${err.detail.existing_path}" ja existe no disco (${sizeMb} MB) e e ` +
+          "diferente do modelo aberto nesta sessao.\n\n" +
+          "Salvar aqui vai SOBRESCREVER esse arquivo com o conteudo atual, sem possibilidade " +
+          "de desfazer pelo app.\n\nTem certeza que quer continuar?"
+      );
+      if (confirmado) {
+        await handleSave(true);
+      } else {
+        setStatus("Salvar cancelado -- o arquivo existente nao foi alterado.", true);
+      }
+      return;
+    }
     const detail = err instanceof ApiError ? err.message : String(err);
     setStatus(`Erro ao salvar: ${detail}`, true);
   } finally {
@@ -1715,8 +1740,11 @@ openBtnEl.addEventListener("click", handleOpen);
 pathInputEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter") handleOpen();
 });
-saveBtnEl.addEventListener("click", handleSave);
-toolbarSaveBtnEl.addEventListener("click", handleSave);
+// () => handleSave() (nao so a referencia) -- addEventListener passaria o
+// MouseEvent como 1o argumento, que seria lido como `overwriteConfirmed`
+// truthy e puraria a trava de confirmacao de sobrescrita silenciosamente.
+saveBtnEl.addEventListener("click", () => handleSave());
+toolbarSaveBtnEl.addEventListener("click", () => handleSave());
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;

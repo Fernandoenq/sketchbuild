@@ -607,12 +607,36 @@ falha ao aplicar -- ver `SceneSessionError`).
 
 ```jsonc
 // Request
-{ "path": null }  // ou um caminho absoluto -- null/omitido sobrescreve o arquivo aberto
+{ "path": null, "overwrite_confirmed": false }  // path: null/omitido sobrescreve o arquivo aberto
 
 // Response 200
 { "saved": true, "path": "C:/.../arquivo.skp" }
 ```
-Erro: `409` (nenhuma sessão aberta ou falha ao salvar).
+Erro: `409` (nenhuma sessão aberta ou falha ao salvar) -- ou, se `path` **já
+existir no disco** e for **diferente** do arquivo atualmente aberto nesta
+sessão, `409` com um `detail` estruturado em vez de string:
+
+```jsonc
+// Response 409 -- trava de sobrescrita
+{
+  "detail": {
+    "code": "overwrite_confirmation_required",
+    "message": "...",
+    "existing_path": "C:/.../arquivo_que_ja_existia.skp",
+    "existing_size_bytes": 172199000
+  }
+}
+```
+Reenviar com `overwrite_confirmed: true` confirma e sobrescreve. Re-salvar o
+próprio arquivo já aberto (mesmo `model_path` da sessão) nunca exige
+confirmação, mesmo que o conteúdo tenha encolhido por uma edição legítima --
+a trava só dispara quando o caminho de destino é de um arquivo **alheio** à
+sessão atual. Adicionada depois de um incidente real (28/10/2026): um modelo
+de template vazio foi salvo sem aviso por cima de um `.skp` de produção real
+(~170MB), sem recuperação possível pelo app -- `SUModelSaveToFile` sobrescreve
+direto, não passa pela Lixeira do Windows. No frontend, `handleSave()` em
+`main.js` mostra um `window.confirm()` com o tamanho do arquivo existente
+antes de reenviar confirmado.
 
 ### `DELETE /api/v1/scene/instances/{instance_id}`
 

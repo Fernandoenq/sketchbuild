@@ -148,9 +148,13 @@ class UpdateTransformResponse(BaseModel):
 
 class SaveSceneRequest(BaseModel):
     """Entrada de POST /scene/save. `path` vazio/omitido sobrescreve o
-    arquivo que foi aberto."""
+    arquivo que foi aberto. `overwrite_confirmed` confirma explicitamente
+    que, se `path` ja existir no disco e for diferente do arquivo aberto
+    nesta sessao, pode sobrescrever mesmo assim (ver
+    SceneOverwriteConfirmationRequiredError em app/domain/exceptions.py)."""
 
     path: str | None = Field(default=None, min_length=1)
+    overwrite_confirmed: bool = False
 
 
 class SaveSceneResponse(BaseModel):

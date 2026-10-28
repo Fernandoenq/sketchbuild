@@ -24,9 +24,14 @@ REVERSE_ENGINEERING_NOTES.md secao 15 (regressao do ctypes no Python
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass, field
 
-from app.domain.exceptions import SceneParseError, SceneSessionError
+from app.domain.exceptions import (
+    SceneOverwriteConfirmationRequiredError,
+    SceneParseError,
+    SceneSessionError,
+)
 from app.repositories.autosave_repository import AutosaveRepository
 from core.mesh_extractor import (
     extract_scene,
@@ -206,7 +211,7 @@ class SkpEngineRepository:
         # recalculado em cascata; ver pendencia na secao 18 das notas.
         self._autosave()
 
-    def save(self, path: str | None) -> str:
+    def save(self, path: str | None, overwrite_confirmed: bool = False) -> str:
         session = self._require_session()
         target_path = path or session.model_path
         if not target_path:
@@ -214,6 +219,21 @@ class SkpEngineRepository:
                 "este modelo foi criado a partir de um template e ainda nao "
                 "tem um arquivo associado -- informe um `path` (equivalente "
                 'a "Salvar Como")'
+            )
+        # trava contra o incidente real de 28/10/2026: salvar por cima
+        # de um arquivo que JA EXISTE e e DIFERENTE do que esta aberto
+        # nesta sessao (ex.: template vazio salvo sem querer em cima de
+        # um .skp de producao) exige confirmacao explicita do chamador.
+        # Re-salvar o PROPRIO arquivo que ja esta aberto (target_path ==
+        # session.model_path) nunca exige isso, mesmo que o conteudo
+        # tenha encolhido por uma edicao legitima.
+        if (
+            not overwrite_confirmed
+            and target_path != session.model_path
+            and os.path.exists(target_path)
+        ):
+            raise SceneOverwriteConfirmationRequiredError(
+                target_path, os.path.getsize(target_path)
             )
         try:
             session.model.save(target_path)

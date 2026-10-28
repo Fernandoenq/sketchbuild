@@ -69,8 +69,8 @@ class SceneService:
             self._repository.set_instance_transform, instance_id, transform
         )
 
-    async def save_scene(self, path: str | None) -> str:
-        return await run_in_threadpool(self._repository.save, path)
+    async def save_scene(self, path: str | None, overwrite_confirmed: bool = False) -> str:
+        return await run_in_threadpool(self._repository.save, path, overwrite_confirmed)
 
     async def delete_instance(self, instance_id: str) -> None:
         await run_in_threadpool(self._repository.delete_instance, instance_id)

@@ -46,3 +46,23 @@ class SceneSessionError(SketchBuildError):
     """Erro de sessao de edicao: nenhum modelo aberto, instancia
     inexistente, ou falha ao aplicar transformacao/salvar (ver
     app/repositories/skp_engine_repository.py -- secao 18 das notas)."""
+
+
+class SceneOverwriteConfirmationRequiredError(SceneSessionError):
+    """"Salvar"/"Salvar Como" apontou pra um arquivo que JA EXISTE no
+    disco e e DIFERENTE do modelo atualmente aberto na sessao -- exige
+    confirmacao explicita do usuario (`overwrite_confirmed=true`) antes
+    de sobrescrever. Trava adicionada depois de um incidente real
+    (28/10/2026): um modelo de template vazio foi salvo por cima de um
+    arquivo de producao real de ~170MB, sem nenhum aviso, perdendo o
+    conteudo original (sem recuperacao possivel pelo app -- `SUModelSaveToFile`
+    sobrescreve direto, nao passa pela Lixeira do Windows)."""
+
+    def __init__(self, existing_path: str, existing_size_bytes: int):
+        self.existing_path = existing_path
+        self.existing_size_bytes = existing_size_bytes
+        super().__init__(
+            f'"{existing_path}" ja existe no disco ({existing_size_bytes} bytes) e e '
+            "diferente do modelo aberto nesta sessao -- confirme explicitamente "
+            "pra sobrescrever"
+        )

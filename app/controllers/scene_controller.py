@@ -13,6 +13,7 @@ from fastapi import HTTPException, status
 from app.domain.exceptions import (
     InvalidModelPathError,
     ModelFileNotFoundError,
+    SceneOverwriteConfirmationRequiredError,
     SceneParseError,
     SceneSessionError,
 )
@@ -153,9 +154,24 @@ class SceneController:
             ) from e
         return UpdateTransformResponse(instance_id=instance_id, applied=True)
 
-    async def save_scene(self, path: str | None) -> SaveSceneResponse:
+    async def save_scene(
+        self, path: str | None, overwrite_confirmed: bool = False
+    ) -> SaveSceneResponse:
         try:
-            saved_path = await self._service.save_scene(path)
+            saved_path = await self._service.save_scene(path, overwrite_confirmed)
+        except SceneOverwriteConfirmationRequiredError as e:
+            # 409 estruturado (nao so string) -- o frontend distingue esse
+            # caso do erro generico pelo campo "code" e mostra um
+            # window.confirm() antes de re-enviar com overwrite_confirmed=true.
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "overwrite_confirmation_required",
+                    "message": str(e),
+                    "existing_path": e.existing_path,
+                    "existing_size_bytes": e.existing_size_bytes,
+                },
+            ) from e
         except SceneSessionError as e:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail=str(e)

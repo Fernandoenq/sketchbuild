@@ -135,7 +135,7 @@ async def update_instance_transform(
 async def save_scene(
     body: SaveSceneRequest, controller: SceneController = Depends(get_controller)
 ) -> SaveSceneResponse:
-    return await controller.save_scene(body.path)
+    return await controller.save_scene(body.path, body.overwrite_confirmed)
 
 
 @router.delete(
