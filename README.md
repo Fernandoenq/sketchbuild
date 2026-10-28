@@ -636,7 +636,12 @@ de template vazio foi salvo sem aviso por cima de um `.skp` de produção real
 (~170MB), sem recuperação possível pelo app -- `SUModelSaveToFile` sobrescreve
 direto, não passa pela Lixeira do Windows. No frontend, `handleSave()` em
 `main.js` mostra um `window.confirm()` com o tamanho do arquivo existente
-antes de reenviar confirmado.
+antes de reenviar confirmado. **Checagem de recuperação do incidente real**:
+sem OneDrive sincronizado na pasta, sem cópia na Lixeira (esperado, já que
+sobrescrita em disco não passa por ela) e, verificado depois, sem indício de
+Cópias de Sombra/Proteção do Sistema/Histórico de Arquivos ativos na máquina
+(serviço `fhsvc` parado) -- essa trava previne a recorrência, mas o arquivo
+já perdido nesse incidente específico não foi recuperado.
 
 ### `DELETE /api/v1/scene/instances/{instance_id}`
 
