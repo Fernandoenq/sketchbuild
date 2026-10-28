@@ -10,7 +10,7 @@ class OpenSceneRequest(BaseModel):
         ...,
         min_length=1,
         description="Caminho absoluto de um arquivo .skp no disco local.",
-        examples=[r"C:\Users\Fernando\Desktop\CatalogoRevenda\Moto mola.skp"],
+        examples=[r"C:\Users\<usuario>\Desktop\modelo.skp"],
     )
 
 
@@ -214,7 +214,7 @@ class ExportModelRequest(BaseModel):
         ...,
         min_length=1,
         description="Caminho absoluto de destino, terminando em .obj.",
-        examples=[r"C:\Users\Fernando\Desktop\modelo.obj"],
+        examples=[r"C:\Users\<usuario>\Desktop\modelo.obj"],
     )
 
 

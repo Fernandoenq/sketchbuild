@@ -5,7 +5,7 @@ SketchUp e abre um modelo .skp real, sem ctypes, sem crash.
 Pre-requisito: o SketchUp precisa estar aberto com a bridge carregada.
 No Ruby Console do SketchUp:
 
-    load 'C:/Users/Fernando/sketchup_companion/ruby_bridge/sketchup_bridge.rb'
+    load 'C:/caminho/para/sketchup_companion/ruby_bridge/sketchup_bridge.rb'
 
 Uso:
     py -3 bridge_demo.py                    -> so testa ping()

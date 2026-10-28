@@ -15,12 +15,12 @@
 # Como carregar (modo desenvolvimento, sem instalar como extensao):
 #   1. Abra o SketchUp.
 #   2. Window > Ruby Console.
-#   3. load 'C:/Users/Fernando/sketchbuild/ruby_bridge/sketchup_bridge.rb'
+#   3. load 'C:/caminho/para/sketchup_companion/ruby_bridge/sketchup_bridge.rb'
 #   4. O servidor comeca a escutar em 127.0.0.1:9876 (ver PORT abaixo).
 #
 # Para instalar como extensao de verdade (carrega sozinho no startup):
 #   copiar este arquivo (ou um wrapper que faça `require`) para
-#   C:\Users\Fernando\AppData\Roaming\SketchUp\SketchUp 2026\SketchUp\Plugins
+#   C:\Users\<usuario>\AppData\Roaming\SketchUp\SketchUp 2026\SketchUp\Plugins
 #
 # Protocolo: TCP, uma linha de texto = um objeto JSON, terminada em "\n".
 #   Requisicao: {"id": 1, "cmd": "ping", "params": {}}

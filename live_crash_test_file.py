@@ -5,6 +5,6 @@ api = SketchUpAPI()
 with api:
     print("SUInitialize ok, versao:", api.get_api_version(), flush=True)
     print("chamando open_model (via arquivo)...", flush=True)
-    with api.open_model(r"C:\Users\Fernando\Desktop\CatalogoRevenda\Moto mola.skp") as modelo:
+    with api.open_model(r"C:\Users\<usuario>\Desktop\modelo.skp") as modelo:
         print("abriu! resumo:", modelo.count_summary(), flush=True)
 print("fim", flush=True)

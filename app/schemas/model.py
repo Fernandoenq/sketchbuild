@@ -10,7 +10,7 @@ class OpenModelRequest(BaseModel):
         ...,
         min_length=1,
         description="Caminho absoluto de um arquivo .skp no disco local do SketchUp.",
-        examples=[r"C:\Users\Fernando\Desktop\CatalogoRevenda\Moto mola.skp"],
+        examples=[r"C:\Users\<usuario>\Desktop\modelo.skp"],
     )
 
 

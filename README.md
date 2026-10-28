@@ -6,6 +6,28 @@ pública oficial da Trimble (`SketchUpAPI.dll`) -- sem precisar do SketchUp
 Desktop instalado nem aberto -- e renderiza num visualizador web com
 Three.js/WebGL.
 
+## Sobre este projeto
+
+Este é um projeto **pessoal de estudo de engenharia reversa e portfólio
+técnico**, não um produto comercial nem um substituto do SketchUp. Pontos
+importantes:
+
+- A `SketchUpAPI.dll` usada é o **SDK público e oficial** distribuído pela
+  própria Trimble junto com a instalação do SketchUp (não é código
+  proprietário extraído ou redistribuído) -- a engenharia reversa feita
+  aqui (via Ghidra/REA) serve só para **confirmar o comportamento real** de
+  funções desse SDK quando a documentação pública da Trimble é incompleta
+  ou ambígua, nunca para contornar proteção/licenciamento.
+- Toda a investigação foi feita contra uma instalação **licenciada própria**
+  do SketchUp 2026, na própria máquina.
+- "SketchBuild" é só o nome deste projeto pessoal -- **sem qualquer
+  afiliação, parceria ou endosso da Trimble/SketchUp**. "SketchUp" é marca
+  registrada da Trimble Inc.
+- Objetivo: aprendizado próprio (ctypes, FastAPI, Three.js, engenharia
+  reversa de APIs nativas) e demonstração de competência técnica em
+  portfólio -- não distribuição do SketchUp, da DLL, nem de arquivos `.skp`
+  de terceiros.
+
 > Histórico completo de engenharia reversa -- incluindo a investigação de
 > crash com WinDbg/`cdb.exe` que revelou a causa raiz real (uma regressão do
 > `ctypes` no Python 3.14, não uma limitação da DLL) -- está em
