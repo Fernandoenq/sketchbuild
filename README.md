@@ -1,10 +1,46 @@
 # SketchBuild
 
-Editor/visualizador 3D **standalone** de arquivos `.skp`: lê geometria real
-(vértices, normais, árvore de componentes) via `ctypes` contra a C API
-pública oficial da Trimble (`SketchUpAPI.dll`) -- sem precisar do SketchUp
-Desktop instalado nem aberto -- e renderiza num visualizador web com
-Three.js/WebGL.
+**Editor/visualizador 3D standalone de arquivos `.skp`**, construído lendo
+a C API pública da Trimble direto via `ctypes` -- sem precisar do SketchUp
+Desktop instalado nem aberto. Renderiza, edita e salva geometria real num
+visualizador web Three.js/WebGL, com um clone visual fiel do SketchUp Pro
+Desktop (menus, Large Tool Set, Default Tray).
+
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-sidecar-009688?logo=fastapi&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-WebGL-000000?logo=three.js&logoColor=white)
+![ctypes](https://img.shields.io/badge/engine-ctypes%20%2B%20SketchUpAPI.dll-444444)
+![status](https://img.shields.io/badge/status-estudo%20pessoal%20%2F%20portf%C3%B3lio-blueviolet)
+
+## Destaques
+
+- **Lê o formato `.skp` sem o SketchUp aberto** -- `ctypes` fino sobre a
+  `SketchUpAPI.dll` oficial, confirmando via engenharia reversa
+  (Ghidra/REA) o comportamento real de dezenas de funções quando a
+  documentação pública da Trimble é incompleta ou ambígua.
+- **Os 9 menus do SketchUp Desktop catalogados e, na maioria, implementados
+  de verdade** (Arquivo, Editar, Visualizar, Câmera, Desenho, Ferramentas,
+  Janela, Extensões, Ajuda) -- mover/girar/escalar, pintura por instância e
+  por face, Grupos, Etiquetas (Tags), Cenas, Eixos customizados, exportar
+  OBJ, e mais.
+- **Lê a câmera real salva no arquivo** (eye/target/up/FOV via
+  `SUCameraGetOrientation`), em vez de um enquadramento automático
+  aproximado -- a vista inicial bate com o que o SketchUp Desktop mostraria.
+- **Persistência de sessão real com autosave** -- recarregar a página ou
+  reiniciar o backend não perde edição em andamento.
+- Histórico completo de cada achado de engenharia reversa, com
+  pseudocódigo decompilado e teste ao vivo documentado, em
+  [`REVERSE_ENGINEERING_NOTES.md`](./REVERSE_ENGINEERING_NOTES.md).
+
+## Sumário
+
+- [Sobre este projeto](#sobre-este-projeto)
+- [Visão geral e arquitetura](#visão-geral-e-arquitetura)
+- [Persistência de sessão (autosave)](#persistência-de-sessão-autosave)
+- [Stack tecnológica](#stack-tecnológica)
+- [Instalação e execução](#instalação-e-execução)
+- [Documentação dos endpoints](#documentação-dos-endpoints)
+- [Pendências conhecidas](#pendências-conhecidas)
 
 ## Sobre este projeto
 
