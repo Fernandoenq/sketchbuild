@@ -109,6 +109,21 @@ class SceneService:
     async def activate_scene(self, scene_id: str) -> None:
         await run_in_threadpool(self._repository.activate_scene, scene_id)
 
+    async def set_instance_axes(
+        self,
+        instance_id: str,
+        origin: list[float],
+        x_point: list[float],
+        y_point: list[float],
+    ) -> dict:
+        return await run_in_threadpool(
+            self._repository.set_instance_axes,
+            instance_id,
+            tuple(origin),
+            tuple(x_point),
+            tuple(y_point),
+        )
+
     # -- validacoes de dominio ------------------------------------------------
 
     def _validate_model_path(self, file_path: str) -> None:

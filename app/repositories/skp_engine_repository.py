@@ -26,7 +26,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from app.domain.exceptions import SceneParseError, SceneSessionError
-from core.mesh_extractor import extract_scene, extract_scene_with_registry, invert_affine4, matmul4
+from core.mesh_extractor import (
+    extract_scene,
+    extract_scene_with_registry,
+    invert_affine4,
+    matmul4,
+    orthonormal_axes_from_points,
+)
 from core.obj_exporter import write_obj
 from core.su_api import SketchUpAPI, SketchUpModel
 
@@ -297,9 +303,12 @@ class SkpEngineRepository:
         return {"scene_id": f"scene_{scene.ptr or 0:x}", "name": name}
 
     def activate_scene(self, scene_id: str) -> None:
-        """Equivalente real de clicar numa aba de Cena -- SUSceneActivate
-        (ver core/su_api.py). Nao move a camera do viewer nesta sessao
-        (limitacao documentada, mesma de create_scene())."""
+        """Equivalente real de clicar numa aba de Cena --
+        SUModelSetActiveScene (ver core/su_api.py; NAO SUSceneActivate,
+        que existe na DLL mas nao altera o estado lido por
+        SUModelGetActiveScene -- ver REVERSE_ENGINEERING_NOTES.md secao
+        28.20). Nao move a camera do viewer nesta sessao (limitacao
+        documentada, mesma de create_scene())."""
         session = self._require_session()
         target = None
         for scene in session.api.get_scenes(session.model.raw_ref):
@@ -312,6 +321,51 @@ class SkpEngineRepository:
             session.api.activate_scene(session.model.raw_ref, target)
         except RuntimeError as e:
             raise SceneSessionError(f"falha ao ativar a cena: {e}") from e
+
+    def set_instance_axes(
+        self,
+        instance_id: str,
+        origin: tuple[float, float, float],
+        x_point: tuple[float, float, float],
+        y_point: tuple[float, float, float],
+    ) -> dict:
+        """Equivalente real de "Ferramentas > Eixos": redefine o sistema
+        de eixos LOCAL da definicao por tras da instancia/Grupo clicado
+        (SUComponentDefinitionSetAxes -- ver core/su_api.py e
+        REVERSE_ENGINEERING_NOTES.md secao 28.21). `origin`/`x_point`/
+        `y_point` ja chegam em POLEGADAS no espaco LOCAL dessa definicao
+        (o frontend faz essa conversao, ver meshMatrixToApiTransform-like
+        helper em sceneBuilder.js) -- o eixo X fica exato na direcao
+        origem->x_point, o eixo Y so define o plano (reprojetado via
+        Gram-Schmidt em orthonormal_axes_from_points() pra garantir
+        ortogonalidade exata, exigida pela DLL). So muda o sistema de
+        coordenadas interno da definicao (afeta TODAS as instancias que
+        a compartilham, como Etiqueta/Pintura por face) -- nao move a
+        geometria nem a instancia visivelmente."""
+        session = self._require_session()
+        entry = session.registry.get(instance_id)
+        if entry is None or entry["ref"] is None:
+            raise SceneSessionError(
+                f"instancia {instance_id!r} nao encontrada na sessao atual "
+                "(ou e o pseudo-objeto 'inst_root', que nao tem eixos editaveis)"
+            )
+        try:
+            xaxis, yaxis, zaxis = orthonormal_axes_from_points(origin, x_point, y_point)
+        except ValueError as e:
+            raise SceneSessionError(f"pontos invalidos pra definir eixos: {e}") from e
+
+        definition = session.api.get_instance_definition(entry["ref"])
+        axes = None
+        try:
+            axes = session.api.create_custom_axes(origin, xaxis, yaxis, zaxis)
+            session.api.set_definition_axes(definition, axes)
+        except RuntimeError as e:
+            raise SceneSessionError(f"falha ao aplicar os eixos customizados: {e}") from e
+        finally:
+            if axes is not None:
+                session.api.release_axes(axes)
+
+        return {"instance_id": instance_id, "applied": True}
 
     def export_obj(self, file_path: str) -> str:
         """Equivalente parcial do "Arquivo > Exportar > Modelo 3D..." --

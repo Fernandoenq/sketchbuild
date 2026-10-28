@@ -27,6 +27,8 @@ from app.schemas.scene import (
     SaveSceneRequest,
     SaveSceneResponse,
     SceneResponse,
+    SetInstanceAxesRequest,
+    SetInstanceAxesResponse,
     TagInstanceRequest,
     TagInstanceResponse,
     UpdateTransformRequest,
@@ -185,10 +187,25 @@ async def create_scene_page(
 @router.post(
     "/pages/{scene_id}/activate",
     response_model=ActivateScenePageResponse,
-    summary="Ativa uma Cena real (SUSceneActivate) -- nao move a camera do viewer nesta sessao",
+    summary="Ativa uma Cena real (SUModelSetActiveScene) -- nao move a camera do viewer nesta sessao",
 )
 async def activate_scene_page(
     scene_id: str,
     controller: SceneController = Depends(get_controller),
 ) -> ActivateScenePageResponse:
     return await controller.activate_scene(scene_id)
+
+
+@router.post(
+    "/instances/{instance_id}/axes",
+    response_model=SetInstanceAxesResponse,
+    summary="Redefine os eixos customizados (locais) da definicao por tras da instancia/Grupo clicado (equivalente a Ferramentas > Eixos)",
+)
+async def set_instance_axes(
+    instance_id: str,
+    body: SetInstanceAxesRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SetInstanceAxesResponse:
+    return await controller.set_instance_axes(
+        instance_id, body.origin, body.x_point, body.y_point
+    )

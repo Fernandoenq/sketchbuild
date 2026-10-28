@@ -92,6 +92,53 @@ def invert_affine4(m: list[float]) -> list[float]:
     ]
 
 
+def vec_sub(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+
+def vec_cross(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    )
+
+
+def vec_normalize(v: tuple[float, float, float]) -> tuple[float, float, float]:
+    length = (v[0] ** 2 + v[1] ** 2 + v[2] ** 2) ** 0.5
+    if length < 1e-9:
+        raise ValueError("vetor degenerado (comprimento ~0) -- pontos coincidentes")
+    return (v[0] / length, v[1] / length, v[2] / length)
+
+
+def orthonormal_axes_from_points(
+    origin: tuple[float, float, float],
+    x_point: tuple[float, float, float],
+    y_point: tuple[float, float, float],
+) -> tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float]]:
+    """Monta uma base ortonormal (xaxis, yaxis, zaxis) a partir de 3 pontos
+    clicados -- mesmo principio da ferramenta "Eixos" real do SketchUp:
+    o eixo X fica EXATO na direcao origem->x_point; o eixo Y so define o
+    PLANO (origem, x_point, y_point), reprojetado pra ficar ortogonal ao
+    X de verdade (processo de Gram-Schmidt, nao e so normalizar o vetor
+    bruto origem->y_point). Z = X cross Y_bruto (regra da mao direita),
+    Y final = Z cross X (garante ortogonalidade exata nos 3 eixos --
+    requisito de `SUAxesCreateCustom`, que rejeita eixos nao-ortogonais
+    com SU_ERROR_GENERIC). Levanta ValueError se os pontos forem
+    coincidentes/colineares (nao dá pra formar um plano)."""
+    xaxis = vec_normalize(vec_sub(x_point, origin))
+    y_raw = vec_normalize(vec_sub(y_point, origin))
+    zaxis = vec_cross(xaxis, y_raw)
+    try:
+        zaxis = vec_normalize(zaxis)
+    except ValueError:
+        raise ValueError(
+            "pontos colineares -- origem, direcao X e direcao Y precisam formar um plano"
+        ) from None
+    yaxis = vec_cross(zaxis, xaxis)  # ja unitario: cross de 2 unitarios ortogonais
+    return xaxis, yaxis, zaxis
+
+
 def _build_definition_mesh(api, entities, faces_registry: dict) -> dict:
     """Acumula vertices/normals/indices de todas as faces diretas de um
     Entities, ajustando o offset dos indices por face. Tambem monta

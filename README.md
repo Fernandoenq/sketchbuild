@@ -161,6 +161,16 @@ itens funcionais cada (ver `REVERSE_ENGINEERING_NOTES.md` seção 28):
   real. Limitação documentada: visualmente, só a instância clicada
   nesta sessão reflete a pintura (`THREE.BufferGeometry.groups` +
   array de materiais no mesh específico).
+- **Ferramentas > Eixos**: redefine os eixos locais (origem + X/Y/Z) da
+  definição por trás da instância/Grupo clicado via
+  `SUAxesCreateCustom`/`SUComponentDefinitionSetAxes` (família de
+  exports públicos confirmada via engenharia reversa, ver seção
+  28.21). Ferramenta de 3 cliques (clique 1 = instância-alvo + origem;
+  cliques 2/3 = direção X e plano Y, em qualquer superfície da cena) --
+  a base ortonormal real é calculada no backend via Gram-Schmidt antes
+  de chamar a DLL (que exige ortogonalidade estrita). Só funciona em
+  definição de Grupo/Componente (não na raiz do modelo), mesma
+  restrição do SketchUp real.
 - **Janela > Bandeja padrão**: Informações da entidade/Componentes
   ligados ao colapso das seções do Default Tray já existentes;
   Sombras/Névoa ligados ao MESMO toggle real de "Visualizar >
@@ -358,6 +368,7 @@ Malha extraida: 2 definicoes, 2 instancias, 9138 vertices, 3046 triangulos
 | GET | `/api/v1/scene/pages` | Lista todas as Cenas reais do modelo aberto (equivalente a "Janela > Bandeja padrão > Cenas"), com a flag `active` de qual está ativa agora. |
 | POST | `/api/v1/scene/pages` | Cria uma Cena real nova a partir do estado atual (`SUSceneCreate`/`SUModelAddScenes`). Não captura câmera/estilo visual. |
 | POST | `/api/v1/scene/pages/{scene_id}/activate` | Ativa uma Cena real (`SUModelSetActiveScene`) -- vira a "cena ativa" do modelo, persistida ao salvar. |
+| POST | `/api/v1/scene/instances/{instance_id}/axes` | Redefine os eixos locais (origem + X/Y/Z) da definição por trás da instância/Grupo clicado (equivalente real de "Ferramentas > Eixos" -- `SUAxesCreateCustom`/`SUComponentDefinitionSetAxes`, ver `REVERSE_ENGINEERING_NOTES.md` seção 28.21). Só funciona em Grupo/Componente, não na raiz do modelo. |
 | GET | `/api/v1/recent-files` | Lista os `.skp` recentemente abertos por este app (mais recente primeiro) -- alimenta a Página Inicial. |
 | POST | `/api/v1/recent-files/thumbnail` | Recebe um PNG real (snapshot do canvas 3D) pra virar a thumbnail de um arquivo na Página Inicial. |
 | GET | `/health` | Saúde do sidecar + ping na ponte Ruby (arquitetura alternativa, ver abaixo). |
@@ -578,6 +589,35 @@ cache, pra nunca ficar desatualizado. Limitação documentada: não
 captura nem restaura câmera/estilo visual -- este projeto não tem
 binding de `SUCameraRef`. Erros: `400` (nome vazio), `409` (nenhuma
 sessão aberta, ou cena não encontrada ao ativar).
+
+### `POST /api/v1/scene/instances/{instance_id}/axes`
+
+```jsonc
+// Request -- origin/x_point/y_point em POLEGADAS, espaço LOCAL da
+// definição (conversão feita no frontend a partir do clique em
+// espaço de mundo, ver sceneBuilder.js worldPointToLocalInches())
+{
+  "origin": [0.0, 0.0, 0.0],
+  "x_point": [10.0, 0.0, 0.0],
+  "y_point": [3.0, 7.0, 0.0]
+}
+// Response 200
+{ "instance_id": "inst_2", "applied": true }
+```
+Redefine os eixos locais (origem + X/Y/Z) da definição por trás da
+instância/Grupo clicado -- equivalente real de "Ferramentas > Eixos"
+(ver `REVERSE_ENGINEERING_NOTES.md` seção 28.21). `x_point`/`y_point`
+só precisam estar aproximadamente corretos: o backend monta uma base
+ortonormal real via Gram-Schmidt (`Z = normalize(cross(X, Y_bruto))`,
+`Y_final = cross(Z, X)`) antes de chamar `SUAxesCreateCustom` →
+`SUComponentDefinitionSetAxes` → `SUAxesRelease` (a DLL exige
+ortogonalidade estrita entre os 3 eixos). Como é metadado da
+DEFINIÇÃO (não da instância), afeta todas as instâncias que a
+compartilham no `.skp` -- mesmo comportamento do SketchUp real. Só
+funciona em Grupo/Componente, nunca na raiz do modelo (não existe
+`SUModelSetAxes` na API pública). Erros: `400` (pontos colineares/
+coincidentes -- base degenerada), `409` (nenhuma sessão aberta, ou
+instância não encontrada).
 
 ## API em código (sem HTTP)
 

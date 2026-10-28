@@ -122,6 +122,20 @@ SULayerRef = make_ref_struct("SULayerRef")
 # dependendo da API (C vs Ruby).
 SUSceneRef = make_ref_struct("SUSceneRef")
 
+# SUAxesRef -- model/axes.h. Confirmado via REA/Ghidra (28/10/2026, menu
+# Ferramentas > Eixos, ver REVERSE_ENGINEERING_NOTES.md secao 28.21):
+# SUAxesCreateCustom(SUAxesRef*, SUPoint3D* origin, SUVector3D* xaxis,
+# SUVector3D* yaxis, SUVector3D* zaxis) -- pseudocodigo real confirmou os
+# 5 parametros batendo com o SDK publico documentado pela Trimble, com
+# validacao real de ortogonalidade entre os 3 eixos (retorna
+# SU_ERROR_GENERIC=6 se nao-ortogonais -- por isso a base e sempre
+# recomposta via Gram-Schmidt em core/mesh_extractor.py antes da chamada,
+# nunca manda os vetores clicados crus). SUComponentDefinitionSetAxes
+# aplica os eixos customizados na definicao de um Grupo/Componente (so
+# ai existe um "set" no SDK publico -- nao ha SUModelSetAxes pra mudar
+# os eixos do modelo raiz, so SUModelGetAxes de leitura).
+SUAxesRef = make_ref_struct("SUAxesRef")
+
 
 class SUColor(ctypes.Structure):
     """model/color.h -- RGBA, 1 byte por canal (0-255)."""

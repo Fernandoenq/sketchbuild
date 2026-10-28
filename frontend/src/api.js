@@ -165,6 +165,24 @@ export function activateScenePage(sceneId) {
   );
 }
 
+/** Redefine os eixos customizados (locais) da definicao por tras da
+ * instancia/Grupo clicado -- equivalente real de "Ferramentas > Eixos"
+ * (ver core/su_api.py create_custom_axes()/set_definition_axes() e
+ * REVERSE_ENGINEERING_NOTES.md secao 28.21). `origin`/`xPoint`/`yPoint`
+ * ja vem em POLEGADAS no espaco LOCAL dessa definicao (conversao feita
+ * no frontend, ver sceneBuilder.js worldPointToLocalInches()) -- o
+ * backend monta a base ortonormal real (Gram-Schmidt) antes de chamar a
+ * DLL. Como e um metadado da DEFINICAO (nao da instancia), afeta todas
+ * as instancias que a compartilham no .skp -- mesmo comportamento do
+ * SketchUp real. */
+export function setInstanceAxes(instanceId, origin, xPoint, yPoint) {
+  return postJson(
+    `/api/v1/scene/instances/${encodeURIComponent(instanceId)}/axes`,
+    "POST",
+    { origin, x_point: xPoint, y_point: yPoint }
+  );
+}
+
 /** Lista de .skp recentemente abertos por este app (mais recente primeiro). */
 export async function listRecentFiles() {
   const res = await fetch("/api/v1/recent-files");

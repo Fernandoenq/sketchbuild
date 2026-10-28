@@ -18,11 +18,12 @@ import {
   listScenePages,
   createScenePage,
   activateScenePage,
+  setInstanceAxes,
   listRecentFiles,
   uploadThumbnail,
   ApiError,
 } from "./api.js";
-import { buildSceneGroup, meshMatrixToApiTransform } from "./sceneBuilder.js";
+import { buildSceneGroup, meshMatrixToApiTransform, worldPointToLocalInches } from "./sceneBuilder.js";
 import { buildOutlinerTree } from "./outliner.js";
 import { renderRecentFiles } from "./welcome.js";
 
@@ -204,6 +205,8 @@ let currentSceneDTO = null; // ultima cena aberta/criada -- usado por "Janela > 
 let lassoSelection = []; // Ferramentas > Laco: lista de meshes acumulados por cliques sucessivos
 let loadedFont = null; // cache da fonte carregada pra "Ferramentas > Texto 3D"
 let fontLoadPromise = null;
+let axesPoints = []; // Ferramentas > Eixos: acumula 3 cliques (origem, direcao X, direcao Y)
+let axesTargetMesh = null; // mesh do 1o clique -- define a instancia/definicao alvo dos outros 2
 
 /** Carrega (uma vez, com cache) a fonte publica do CDN do Three.js
  * (mesmo CDN de onde a lib ja vem, ver index.html importmap) pra
@@ -263,6 +266,8 @@ function setToolMode(mode) {
   measureFirstPoint = null;
   protractorPoints = [];
   dimensionFirstPoint = null;
+  axesPoints = [];
+  axesTargetMesh = null;
   if (mode !== "lasso") setLassoSelection([]);
   if (mode === "erase") setStatus("Modo Apagar: clique numa peca pra excluir na hora.");
   else if (mode === "measure") setStatus("Modo Fita metrica: clique no primeiro ponto.");
@@ -275,6 +280,7 @@ function setToolMode(mode) {
   else if (mode === "paint") setStatus("Modo Pintura: clique numa peca pra aplicar a cor escolhida.");
   else if (mode === "paintFace") setStatus("Modo Pintura por face: clique numa FACE pra aplicar a cor escolhida (afeta todas as instancias da mesma peca no arquivo).");
   else if (mode === "tag") setStatus("Modo Etiqueta: clique numa peca pra aplicar a etiqueta digitada.");
+  else if (mode === "axes") setStatus("Modo Eixos: clique na peca pra definir a ORIGEM dos eixos novos.");
   else setStatus("Modo Selecionar.");
 }
 
@@ -449,6 +455,10 @@ renderer.domElement.addEventListener("click", (event) => {
   }
   if (toolMode === "tag") {
     if (hits.length) handleTagClick(hits[0].object);
+    return;
+  }
+  if (toolMode === "axes") {
+    if (hits.length) handleAxesClick(hits[0]);
     return;
   }
 
@@ -1157,9 +1167,56 @@ async function handleTagClick(mesh) {
   }
 }
 
+/** Ferramentas > Eixos: 3 cliques reais na geometria (origem, ponto na
+ * direcao X, ponto no plano XY) redefinem o sistema de eixos LOCAL da
+ * definicao por tras da peca clicada no 1o clique -- SUAxesCreateCustom/
+ * SUComponentDefinitionSetAxes (ver core/su_api.py e
+ * REVERSE_ENGINEERING_NOTES.md secao 28.21). Os 2 cliques seguintes
+ * usam SEMPRE o `mesh.matrix` do 1o clique pra converter o ponto (pode
+ * cair em qualquer peca da cena, so o PONTO importa -- mesma UX do
+ * SketchUp real, que deixa clicar em qualquer superficie pra definir
+ * direcao). Muda metadado da DEFINICAO (afeta todas as instancias que a
+ * compartilham, mesma semantica de Etiqueta/Pintura por face) -- nao
+ * move a geometria nem a peca visivelmente nesta sessao. */
+function handleAxesClick(hit) {
+  if (axesPoints.length === 0) {
+    axesTargetMesh = hit.object;
+    axesPoints.push(hit.point.clone());
+    setStatus("Modo Eixos: clique no ponto que define a direção do eixo X (vermelho).");
+    return;
+  }
+  axesPoints.push(hit.point.clone());
+  if (axesPoints.length === 2) {
+    setStatus("Modo Eixos: clique no ponto que define o plano do eixo Y (verde).");
+    return;
+  }
+  applyCustomAxes();
+}
+
+async function applyCustomAxes() {
+  const mesh = axesTargetMesh;
+  const [originWorld, xWorld, yWorld] = axesPoints;
+  const origin = worldPointToLocalInches(mesh, originWorld);
+  const xPoint = worldPointToLocalInches(mesh, xWorld);
+  const yPoint = worldPointToLocalInches(mesh, yWorld);
+  try {
+    await setInstanceAxes(mesh.name, origin, xPoint, yPoint);
+    setStatus(
+      `Eixos de ${mesh.name} redefinidos (afeta todas as instâncias dessa peça no arquivo). ` +
+        "Modo Eixos continua ativo -- clique na próxima origem."
+    );
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro ao redefinir eixos: ${detail}`, true);
+  } finally {
+    axesPoints = [];
+    axesTargetMesh = null;
+  }
+}
+
 /** Janela > Bandeja padrao > Cenas: lista/cria/ativa Cenas reais do
- * modelo aberto (SUSceneCreate/SUModelAddScenes/SUSceneActivate, ver
- * core/su_api.py e REVERSE_ENGINEERING_NOTES.md secao 28.20). Limitacao
+ * modelo aberto (SUSceneCreate/SUModelAddScenes/SUModelSetActiveScene,
+ * ver core/su_api.py e REVERSE_ENGINEERING_NOTES.md secao 28.20). Limitacao
  * documentada: nao captura/restaura camera (este projeto nao tem
  * binding de SUCameraRef) -- "Ativar" muda a cena ativa real do
  * modelo (persistida ao salvar), mas nao move a camera do viewer. */
@@ -1401,6 +1458,7 @@ const MENU_ACTIONS = {
   "tool-paint": () => handleArmPaint(),
   "tool-paint-face": () => handleArmPaintFace(),
   "tool-tag": () => handleArmTag(),
+  "tool-axes": () => setToolMode("axes"),
   "toggle-tray-scenes": () => toggleTraySection("tray-scenes", "menu-item-tray-scenes"),
   "rect-as-group": () => {
     rectAsGroupCheckboxEl.checked = true;

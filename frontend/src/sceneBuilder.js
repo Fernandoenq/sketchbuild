@@ -171,3 +171,23 @@ export function meshMatrixToApiTransform(matrix) {
   position.multiplyScalar(1 / INCHES_TO_METERS);
   return new THREE.Matrix4().compose(position, quaternion, scale).toArray();
 }
+
+/**
+ * Converte um ponto em espaco de MUNDO do Three.js (metros, Y-up -- ex.:
+ * um ponto clicado no viewport via Raycaster) pro espaco LOCAL da
+ * definicao por tras de `mesh` (polegadas, convencao de eixo nativa do
+ * .skp -- o MESMO espaco em que os vertices da geometria e os pontos de
+ * `SUAxesCreateCustom` vivem). Usado por "Ferramentas > Eixos" (ver
+ * REVERSE_ENGINEERING_NOTES.md secao 28.21): `mesh.matrix` ja e
+ * `SKP_TO_THREE_UP @ worldTransformSkp` (ver buildSceneGroup acima), entao
+ * invertê-la desfaz os dois passos de uma vez -- nao precisa aplicar
+ * THREE_TO_SKP_UP separadamente como em meshMatrixToApiTransform (que
+ * converte uma matriz de mundo inteira, nao um ponto relativo a UM mesh
+ * especifico).
+ */
+export function worldPointToLocalInches(mesh, worldPoint) {
+  const inverse = new THREE.Matrix4().copy(mesh.matrix).invert();
+  const local = worldPoint.clone().applyMatrix4(inverse);
+  local.multiplyScalar(1 / INCHES_TO_METERS);
+  return [local.x, local.y, local.z];
+}

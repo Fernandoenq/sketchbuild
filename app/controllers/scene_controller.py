@@ -28,6 +28,7 @@ from app.schemas.scene import (
     SaveSceneResponse,
     SceneResponse,
     ScenePageDTO,
+    SetInstanceAxesResponse,
     TagInstanceResponse,
     UpdateTransformResponse,
 )
@@ -194,6 +195,23 @@ class SceneController:
                 status_code=status.HTTP_409_CONFLICT, detail=str(e)
             ) from e
         return ActivateScenePageResponse(scene_id=scene_id, activated=True)
+
+    async def set_instance_axes(
+        self,
+        instance_id: str,
+        origin: list[float],
+        x_point: list[float],
+        y_point: list[float],
+    ) -> SetInstanceAxesResponse:
+        try:
+            result = await self._service.set_instance_axes(
+                instance_id, origin, x_point, y_point
+            )
+        except SceneSessionError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=str(e)
+            ) from e
+        return SetInstanceAxesResponse.model_validate(result)
 
     async def export_model_obj(self, path: str) -> ExportModelResponse:
         try:

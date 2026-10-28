@@ -247,7 +247,7 @@ class CreateScenePageResponse(BaseModel):
 
 
 class ActivateScenePageResponse(BaseModel):
-    """Saída de POST /scene/pages/{scene_id}/activate -- SUSceneActivate
+    """Saída de POST /scene/pages/{scene_id}/activate -- SUModelSetActiveScene
     real (ver core/su_api.py). Não move a câmera do viewer nesta sessão
     (mesma limitação de CreateScenePageRequest)."""
 
@@ -255,6 +255,27 @@ class ActivateScenePageResponse(BaseModel):
 
     scene_id: str
     activated: bool
+
+
+class SetInstanceAxesRequest(BaseModel):
+    """Entrada de POST /scene/instances/{instance_id}/axes -- equivalente
+    real de "Ferramentas > Eixos" (ver REVERSE_ENGINEERING_NOTES.md seção
+    28.21: SUAxesCreateCustom/SUComponentDefinitionSetAxes). Os 3 pontos
+    já chegam em POLEGADAS no espaço LOCAL da definição por trás da
+    instância clicada (mesma convenção de unidade do resto da API) --
+    o frontend faz essa conversão antes de mandar. `origin`/`x_point`/
+    `y_point` não podem ser colineares (backend valida e recusa com 400)."""
+
+    origin: list[float] = Field(..., min_length=3, max_length=3)
+    x_point: list[float] = Field(..., min_length=3, max_length=3)
+    y_point: list[float] = Field(..., min_length=3, max_length=3)
+
+
+class SetInstanceAxesResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    instance_id: str
+    applied: bool
 
 
 class ExportModelRequest(BaseModel):

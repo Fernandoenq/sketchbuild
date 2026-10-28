@@ -45,6 +45,7 @@ from core.su_types import (
     SUGroupRef,
     SULayerRef,
     SUSceneRef,
+    SUAxesRef,
     SUColor,
     SUPoint3D,
     SUVector3D,
@@ -687,6 +688,45 @@ class SketchUpAPI:
         ]
         dll.SUModelGetActiveScene.restype = ctypes.c_int
 
+        # -- Eixos customizados (menu Ferramentas > Eixos) [Confirmado via
+        # REA/Ghidra, 28/10/2026 -- ver REVERSE_ENGINEERING_NOTES.md secao
+        # 28.21]. model/axes.h.
+
+        # SU_RESULT SUAxesCreateCustom(SUAxesRef* axes, const SUPoint3D* origin,
+        #     const SUVector3D* xaxis, const SUVector3D* yaxis,
+        #     const SUVector3D* zaxis); -- pseudocodigo real confirmou os 5
+        # parametros batendo com o SDK publico; valida que os 3 eixos sao
+        # realmente ortogonais entre si (retorna 6=GENERIC se nao forem --
+        # por isso a base e sempre recomposta via Gram-Schmidt antes de
+        # chegar aqui, ver orthonormal_axes_from_points() em
+        # core/mesh_extractor.py).
+        dll.SUAxesCreateCustom.argtypes = [
+            ctypes.POINTER(SUAxesRef),
+            ctypes.POINTER(SUPoint3D),
+            ctypes.POINTER(SUVector3D),
+            ctypes.POINTER(SUVector3D),
+            ctypes.POINTER(SUVector3D),
+        ]
+        dll.SUAxesCreateCustom.restype = ctypes.c_int
+
+        # SU_RESULT SUComponentDefinitionSetAxes(SUComponentDefinitionRef
+        #     definition, SUAxesRef axes); -- unico "set" de eixos que o SDK
+        # publico expoe (so em definicao de Grupo/Componente -- nao ha
+        # SUModelSetAxes pra mudar os eixos do modelo raiz, so leitura via
+        # SUModelGetAxes).
+        dll.SUComponentDefinitionSetAxes.argtypes = [
+            SUComponentDefinitionRef,
+            SUAxesRef,
+        ]
+        dll.SUComponentDefinitionSetAxes.restype = ctypes.c_int
+
+        # SU_RESULT SUAxesRelease(SUAxesRef* axes); -- mesmo padrao de
+        # release de todo objeto alocado por SUAxesCreateCustom (nao e
+        # consumido/possuido por SetAxes, que so LE os valores -- precisa
+        # ser liberado por quem criou).
+        dll.SUAxesRelease.argtypes = [ctypes.POINTER(SUAxesRef)]
+        dll.SUAxesRelease.restype = ctypes.c_int
+
     # -- ciclo de vida da API -------------------------------------------------
 
     def initialize(self) -> None:
@@ -1059,6 +1099,47 @@ class SketchUpAPI:
             return None
         su_check(result, "SUModelGetActiveScene")
         return scene
+
+    def create_custom_axes(
+        self,
+        origin: tuple[float, float, float],
+        xaxis: tuple[float, float, float],
+        yaxis: tuple[float, float, float],
+        zaxis: tuple[float, float, float],
+    ) -> SUAxesRef:
+        """SUAxesCreateCustom -- `origin`/`xaxis`/`yaxis`/`zaxis` ja devem
+        chegar como uma base ORTONORMAL (ver
+        core.mesh_extractor.orthonormal_axes_from_points()), senao a DLL
+        rejeita com SU_ERROR_GENERIC (6). Coordenadas em POLEGADAS (mesma
+        unidade nativa do .skp -- ver core/su_api.py topo do arquivo)."""
+        axes = SUAxesRef()
+        su_check(
+            self._dll.SUAxesCreateCustom(
+                ctypes.byref(axes),
+                ctypes.byref(SUPoint3D(*origin)),
+                ctypes.byref(SUVector3D(*xaxis)),
+                ctypes.byref(SUVector3D(*yaxis)),
+                ctypes.byref(SUVector3D(*zaxis)),
+            ),
+            "SUAxesCreateCustom",
+        )
+        return axes
+
+    def set_definition_axes(
+        self, definition: SUComponentDefinitionRef, axes: SUAxesRef
+    ) -> None:
+        """SUComponentDefinitionSetAxes -- redefine o sistema de eixos
+        LOCAL da definicao de um Grupo/Componente (equivalente real de
+        "Ferramentas > Eixos"). So LE os valores de `axes` (nao assume
+        posse do Ref) -- quem chamou continua responsavel por liberar
+        via release_axes()."""
+        su_check(
+            self._dll.SUComponentDefinitionSetAxes(definition, axes),
+            "SUComponentDefinitionSetAxes",
+        )
+
+    def release_axes(self, axes: SUAxesRef) -> None:
+        su_check(self._dll.SUAxesRelease(ctypes.byref(axes)), "SUAxesRelease")
 
     def get_definition_entities(
         self, definition: SUComponentDefinitionRef
