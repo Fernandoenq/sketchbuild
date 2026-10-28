@@ -38,6 +38,31 @@ export function openScene(path) {
   return postJson("/api/v1/scene/open", "POST", { path });
 }
 
+/** Abre um .skp enviado via upload real do navegador (`<input
+ * type="file">`) -- o unico jeito de um app web usar o seletor NATIVO de
+ * arquivos do SO sem o usuario digitar/colar o caminho a mao. Por
+ * seguranca padrao de toda a web (nao so deste app), o navegador nunca
+ * expoe o caminho real em disco de um arquivo escolhido assim, so o seu
+ * conteudo -- por isso a sessao resultante fica sem `model_path`, igual
+ * `newSceneFromTemplate()`, exigindo "Salvar Como" no primeiro Salvar. */
+export async function openUploadedScene(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/api/v1/scene/open-upload", { method: "POST", body: formData });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const errorBody = await res.json();
+      detail = errorBody.detail ?? detail;
+    } catch {
+      // resposta nao era JSON -- mantem o statusText
+    }
+    const message = typeof detail === "string" ? detail : detail?.message || res.statusText;
+    throw new ApiError(message, res.status, detail);
+  }
+  return res.json();
+}
+
 /** Cria um modelo novo a partir de um template real da Trimble (ver
  * "Criar novo modelo" na Pagina Inicial). O DTO volta com `model_path:
  * null` -- o modelo ainda nao tem arquivo no disco, precisa de "Salvar

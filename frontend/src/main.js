@@ -6,6 +6,7 @@ import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
 
 import {
   openScene,
+  openUploadedScene,
   newSceneFromTemplate,
   updateInstanceTransform,
   saveScene,
@@ -42,6 +43,8 @@ import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
 const viewportEl = document.getElementById("viewport");
 const pathInputEl = document.getElementById("path-input");
 const openBtnEl = document.getElementById("open-btn");
+const chooseFileBtnEl = document.getElementById("choose-file-btn");
+const filePickerInputEl = document.getElementById("file-picker-input");
 const statusEl = document.getElementById("status");
 const editPanelEl = document.getElementById("edit-panel");
 const selectedLabelEl = document.getElementById("selected-label");
@@ -88,6 +91,7 @@ const welcomeOpenBtnEl = document.getElementById("welcome-open-btn");
 const welcomeOpenRowEl = document.getElementById("welcome-open-row");
 const welcomePathInputEl = document.getElementById("welcome-path-input");
 const welcomeOpenConfirmBtnEl = document.getElementById("welcome-open-confirm-btn");
+const welcomeChooseFileBtnEl = document.getElementById("welcome-choose-file-btn");
 const welcomeRecentGridEl = document.getElementById("welcome-recent-grid");
 const welcomeAutosaveSectionEl = document.getElementById("welcome-autosave-section");
 const welcomeAutosaveGridEl = document.getElementById("welcome-autosave-grid");
@@ -906,6 +910,35 @@ async function handleOpen() {
   }
 }
 
+/** Abre um .skp escolhido pelo seletor NATIVO de arquivos do Windows
+ * (`<input type="file">`, disparado por chooseFileBtnEl/
+ * welcomeChooseFileBtnEl/menu "Arquivo > Abrir..."). Por seguranca padrao
+ * de toda a web, o navegador nunca informa o caminho real em disco do
+ * arquivo escolhido assim, so o conteudo -- por isso a sessao fica sem
+ * `model_path` (igual um modelo criado por template), exigindo "Salvar
+ * Como" no primeiro Salvar.
+ * @returns {Promise<boolean>} true se o modelo abriu com sucesso. */
+async function handleOpenUpload(file) {
+  deselectMesh();
+  setStatus(`Abrindo "${file.name}" (enviado pelo seletor do Windows)...`);
+
+  try {
+    const sceneDTO = await openUploadedScene(file);
+    const counts = applySceneDTO(sceneDTO);
+    hideWelcomeScreen();
+    setStatus(
+      `OK -- ${counts.totalDefinitions} definicoes, ${counts.totalInstances} ` +
+        `instancias, ${counts.totalVertices} vertices, ${counts.totalTriangles} triangulos. ` +
+        `"Salvar" vai pedir um caminho (Salvar Como) -- o navegador nao informa o caminho original.`
+    );
+    return true;
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro: ${detail}`, true);
+    return false;
+  }
+}
+
 /** Cria um modelo novo a partir de um template real da Trimble (cards da
  * secao "Criar novo modelo"). Nao ha thumbnail/caminho pra registrar em
  * "Arquivos recentes" ainda -- so depois de um "Salvar Como".
@@ -1594,7 +1627,7 @@ sceneCreateBtnEl.addEventListener("click", handleCreateScene);
 // indisponiveis -- nunca escondidos, so inativos.
 const MENU_ACTIONS = {
   new: () => welcomeScreenEl.classList.remove("hidden"),
-  open: () => pathInputEl.focus(),
+  open: () => filePickerInputEl.click(),
   save: () => handleSave(),
   "save-as": () => savePathInputEl.focus(),
   "export-obj": () => exportObjPathInputEl.focus(),
@@ -1739,6 +1772,14 @@ toolsToolbarEl.querySelectorAll(".toolbar-btn[data-action]").forEach((btn) => {
 openBtnEl.addEventListener("click", handleOpen);
 pathInputEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter") handleOpen();
+});
+
+chooseFileBtnEl.addEventListener("click", () => filePickerInputEl.click());
+welcomeChooseFileBtnEl.addEventListener("click", () => filePickerInputEl.click());
+filePickerInputEl.addEventListener("change", () => {
+  const file = filePickerInputEl.files[0];
+  filePickerInputEl.value = ""; // permite escolher o mesmo arquivo de novo depois
+  if (file) handleOpenUpload(file);
 });
 // () => handleSave() (nao so a referencia) -- addEventListener passaria o
 // MouseEvent como 1o argumento, que seria lido como `overwriteConfirmed`

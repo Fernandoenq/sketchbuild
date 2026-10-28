@@ -62,6 +62,11 @@ class SceneService:
             self._repository.open_new_from_template, template_path
         )
 
+    async def open_uploaded_scene(self, data: bytes) -> dict:
+        if not data:
+            raise InvalidModelPathError("arquivo enviado esta vazio")
+        return await run_in_threadpool(self._repository.open_from_upload, data)
+
     async def update_instance_transform(
         self, instance_id: str, transform: list[float]
     ) -> None:

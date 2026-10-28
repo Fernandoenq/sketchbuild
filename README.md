@@ -348,9 +348,19 @@ SketchUp Desktop -- com dado **100% real**, nada forjado:
   backend (`POST /api/v1/recent-files/thumbnail`) gravar em
   `app/data/thumbnails/{id}.png`, servido via `StaticFiles` em
   `/thumbnails`.
-- **Abrir arquivo** -- campo de caminho inline (o app roda no navegador,
-  não tem acesso a um seletor de arquivo nativo do SO como o SketchUp
-  Desktop; essa limitação é assumida, não escondida).
+- **Abrir arquivo** -- botão **"Escolher arquivo... (seletor do Windows)"**
+  abre o seletor de arquivos NATIVO do SO (`<input type="file">`, padrão
+  de qualquer navegador, sem extensão/plugin) e faz upload real dos bytes
+  pra `POST /scene/open-upload`. Por segurança padrão de toda a web
+  (não só deste app), o navegador nunca informa o caminho real em disco
+  de um arquivo escolhido assim -- só o conteúdo -- então a sessão fica
+  sem `model_path` (igual um modelo criado por template) e o primeiro
+  "Salvar" pede um caminho ("Salvar Como"). Pra reabrir um arquivo e
+  continuar sobrescrevendo ele diretamente com "Salvar" simples, o campo
+  de texto "ou cole o caminho completo" continua disponível como
+  alternativa avançada (`POST /scene/open`, mesmo endpoint de sempre).
+  O menu **Arquivo > Abrir...** e o atalho **Ctrl+O** agora abrem o
+  seletor nativo diretamente.
 - **Criar novo modelo** -- grade com os 6 templates reais da Trimble
   (Simples/Visualização/Arquitetura × unidades), **funcional**
   (`POST /api/v1/scene/new`). Não usa `SUModelCreate`: descobriu-se que o
@@ -522,6 +532,7 @@ Malha extraida: 2 definicoes, 2 instancias, 9138 vertices, 3046 triangulos
 | Método | Path | Descrição |
 |---|---|---|
 | POST | `/api/v1/scene/open` | Abre um `.skp` via motor `ctypes` (standalone), inicia uma sessão de edição e devolve `{model_path, definitions[], instances[]}` -- geometria + matrizes de transformação prontas pro Three.js. |
+| POST | `/api/v1/scene/open-upload` | Abre um `.skp` enviado via upload real do navegador (`multipart/form-data`, campo `file`) -- usado pelo botão "Escolher arquivo..." (seletor nativo do SO). Mesmo DTO de resposta de `/scene/open`, mas `model_path` sempre `null` (o navegador não informa o caminho real em disco). |
 | GET | `/api/v1/scene/session` | Reextrai a sessão JÁ ABERTA em memória sem tocar o disco (cobre reload da página com o backend ainda rodando, ver "Persistência de sessão" acima). `409` se não há sessão. |
 | GET | `/api/v1/scene/autosave` | Lista rascunhos de autosave reais disponíveis pra recuperação (ver "Persistência de sessão"). |
 | POST | `/api/v1/scene/autosave/{draft_id}/recover` | Reabre um rascunho de autosave, associando a sessão de volta ao caminho ORIGINAL (não ao arquivo de rascunho interno). |
@@ -588,6 +599,31 @@ draft, add rectangle, sessão restaurada), não só `/scene/open`.
 Erros: `400` (caminho inválido/não é `.skp`/não existe), `502` (falha do
 motor `ctypes` ao processar o arquivo -- ver `SceneParseError`). Abrir um
 novo arquivo fecha a sessão de edição anterior, se houver.
+
+### `POST /api/v1/scene/open-upload`
+
+```
+Request: multipart/form-data, campo "file" = o .skp escolhido no seletor nativo do navegador
+
+Response 200: mesmo SceneResponse de /scene/open, mas "model_path": null sempre
+```
+Caminho usado pelo botão **"Escolher arquivo... (seletor do Windows)"** e
+pelo menu **Arquivo > Abrir...**/**Ctrl+O**: abre o seletor NATIVO de
+arquivos do sistema operacional via `<input type="file">` (HTML padrão,
+funciona em qualquer navegador, sem extensão/plugin) e envia os bytes
+reais pro backend, que abre via `SUModelCreateFromBufferWithStatus` (mesma
+chamada já usada em "Criar novo modelo" -- ver `core/su_api.py
+open_model_from_bytes()`). Por segurança padrão de toda a web (não é uma
+limitação deste app específico), o navegador nunca informa o caminho real
+em disco de um arquivo escolhido assim -- só entrega o conteúdo -- então
+`model_path` sempre volta `null`, e o primeiro "Salvar" exige um caminho
+explícito ("Salvar Como"), igual um modelo criado por template. Não
+registra em "Arquivos recentes" pelo mesmo motivo (sem caminho real pra
+gravar lá). Pra reabrir um arquivo e continuar sobrescrevendo ele
+diretamente com "Salvar" simples (sem precisar de "Salvar Como" de novo),
+use `/scene/open` colando o caminho completo no campo de texto -- os dois
+fluxos continuam disponíveis lado a lado. Erros: `400` (upload vazio),
+`502` (falha do motor `ctypes` ao processar o arquivo enviado).
 
 ### `PATCH /api/v1/scene/instances/{instance_id}/transform`
 

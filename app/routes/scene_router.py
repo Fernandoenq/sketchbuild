@@ -5,7 +5,7 @@ path, metodo, schema de entrada/saida, e delega pro controller.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 
 from app.controllers.scene_controller import SceneController
 from app.schemas.scene import (
@@ -56,6 +56,19 @@ async def open_scene(
     body: OpenSceneRequest, controller: SceneController = Depends(get_controller)
 ) -> SceneResponse:
     return await controller.open_scene(body.path)
+
+
+@router.post(
+    "/open-upload",
+    response_model=SceneResponse,
+    summary="Abre um .skp enviado via upload do navegador (seletor nativo de arquivo do SO, sem precisar digitar o caminho)",
+)
+async def open_uploaded_scene(
+    file: UploadFile = File(...),
+    controller: SceneController = Depends(get_controller),
+) -> SceneResponse:
+    data = await file.read()
+    return await controller.open_uploaded_scene(data)
 
 
 @router.post(

@@ -93,6 +93,22 @@ class SkpEngineRepository:
             None,
         )
 
+    def open_from_upload(self, data: bytes) -> dict:
+        """Abre um .skp a partir dos bytes enviados pelo navegador (upload
+        via <input type="file">) -- unica forma de um app web usar o
+        seletor NATIVO de arquivos do SO sem o usuario precisar digitar/
+        colar o caminho a mao: por seguranca, nenhum navegador expoe o
+        caminho real em disco de um arquivo escolhido assim, so o seu
+        conteudo. `model_path` fica None na sessao, igual
+        open_new_from_template() -- o primeiro "Salvar" exige um `path`
+        explicito ("Salvar Como"), ja que nao ha caminho original pra
+        sobrescrever."""
+        return self._open_and_extract(
+            lambda api: api.open_model_from_bytes(data),
+            "falha ao abrir o .skp enviado",
+            None,
+        )
+
     def _open_and_extract(self, opener, open_error_prefix: str, session_path: str | None) -> dict:
         global _SESSION
 

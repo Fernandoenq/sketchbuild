@@ -93,6 +93,25 @@ class SceneController:
 
         return SceneResponse.model_validate(result)
 
+    async def open_uploaded_scene(self, data: bytes) -> SceneResponse:
+        """Abre um .skp enviado via upload do navegador (<input
+        type="file">, seletor nativo do SO) -- NAO registra em "Arquivos
+        recentes": `model_path` fica None (sem arquivo no disco ainda),
+        nao ha caminho real pra gravar la, mesma limitacao de
+        new_scene_from_template()."""
+        try:
+            result = await self._service.open_uploaded_scene(data)
+        except (InvalidModelPathError, ModelFileNotFoundError) as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+            ) from e
+        except SceneParseError as e:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)
+            ) from e
+
+        return SceneResponse.model_validate(result)
+
     async def get_current_session(self) -> SceneResponse:
         """Cobre o F5 na pagina (ver REVERSE_ENGINEERING_NOTES.md nao se
         aplica -- isto nao e engenharia reversa, e persistencia de sessao

@@ -1588,7 +1588,17 @@ class SketchUpAPI:
         """
         with open(file_path, "rb") as f:
             data = f.read()
+        return self.open_model_from_bytes(data)
 
+    def open_model_from_bytes(self, data: bytes) -> "SketchUpModel":
+        """Abre um .skp a partir de bytes que ja estao em memoria -- usado
+        pelo upload via <input type="file"> do navegador (ver
+        app/repositories/skp_engine_repository.py open_from_upload()): o
+        navegador nunca expoe o caminho real em disco de um arquivo
+        escolhido assim, so o conteudo, entao nao ha path pra ler aqui.
+        Mesma chamada SUModelCreateFromBufferWithStatus de
+        open_model_from_buffer(), que delega pra este metodo depois de ler
+        o arquivo do disco."""
         model = SUModelRef()
         status = ctypes.c_int(-1)
         su_check(
