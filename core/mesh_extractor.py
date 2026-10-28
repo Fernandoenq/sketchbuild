@@ -323,7 +323,11 @@ def extract_scene_with_registry(api, model) -> tuple[dict, dict, dict]:
         parent_instance_id="inst_root",
     )
 
-    dto = {"definitions": list(definitions.values()), "instances": instances}
+    dto = {
+        "definitions": list(definitions.values()),
+        "instances": instances,
+        "camera": api.get_model_camera(model.raw_ref),
+    }
     return dto, registry, faces_registry
 
 

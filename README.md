@@ -75,7 +75,11 @@ Sidecar Pattern em três camadas desacopladas:
   toolbar de ícones; as 7 vistas reais -- incluindo Inferior/Posterior/
   Esquerda -- no menu Câmera) reposicionam a câmera instantaneamente com
   base na bounding box do modelo carregado (`setStandardView()` em
-  `main.js`). Painel **Etiquetas** (`#tags-list`) lista as etiquetas
+  `main.js`). O posicionamento **inicial** da câmera (ao abrir ou criar
+  um modelo) é diferente: usa a **câmera real salva no `.skp`**
+  (`CameraDTO`, ver `REVERSE_ENGINEERING_NOTES.md` seção 28.23), com o
+  auto-fit por bounding box servindo só de fallback quando o arquivo não
+  tem câmera perspectiva salva. Painel **Etiquetas** (`#tags-list`) lista as etiquetas
   reais do modelo (nome + checkbox de visibilidade), cada instância do
   Outliner carrega o nome real da sua etiqueta -- ver seção "Janela >
   Bandeja padrão" abaixo.
@@ -525,12 +529,26 @@ Malha extraida: 2 definicoes, 2 instancias, 9138 vertices, 3046 triangulos
       "transform": [ /* 16 floats, column-major */ ],
       "parent_instance_id": "inst_root"
     }
-  ]
+  ],
+  "camera": {
+    "eye": [189.18, -240.10, 74.02],
+    "target": [-332.79, 565.02, -38.72],
+    "up": [-0.06, 0.10, 0.99],
+    "perspective": true,
+    "fov_deg": 35.0,
+    "fov_is_height": true
+  }
 }
 ```
 `parent_instance_id` preserva a hierarquia original da árvore (`null` só
 pra `inst_root`, a pseudo-instância sintética do `Entities` raiz) -- usado
 pelo painel Outliner do frontend pra remontar a árvore client-side.
+`camera` é a câmera **real** salva no arquivo (eye/target/up em
+POLEGADAS/Z-up cru, igual ao resto do DTO -- ver
+`REVERSE_ENGINEERING_NOTES.md` seção 28.23); `fov_deg`/`fov_is_height`
+vêm `null`/`true` quando a câmera salva não é perspectiva. Presente em
+TODAS as respostas que trazem um `SceneResponse` (open, new, recover
+draft, add rectangle, sessão restaurada), não só `/scene/open`.
 Erros: `400` (caminho inválido/não é `.skp`/não existe), `502` (falha do
 motor `ctypes` ao processar o arquivo -- ver `SceneParseError`). Abrir um
 novo arquivo fecha a sessão de edição anterior, se houver.

@@ -136,6 +136,18 @@ SUSceneRef = make_ref_struct("SUSceneRef")
 # os eixos do modelo raiz, so SUModelGetAxes de leitura).
 SUAxesRef = make_ref_struct("SUAxesRef")
 
+# SUCameraRef -- model/camera.h. Confirmado via REA/Ghidra (28/10/2026,
+# câmera da Bandeja padrão errada ao abrir/criar modelo, ver
+# REVERSE_ENGINEERING_NOTES.md seção 28.23): SUModelGetCamera devolve um
+# ponteiro INTERNO pra dentro do SUModelRef (não precisa de release, mesmo
+# padrão de "ref emprestada" já visto nesse SDK), SUCameraGetOrientation
+# devolve eye/target/up (3x SUPoint3D/SUVector3D = 9 doubles, confirmado
+# lendo os offsets reais da struct), SUCameraGetPerspective/
+# GetPerspectiveFrustumFOV/GetFOVIsHeight/GetAspectRatio lêem os campos de
+# projeção (FOV devolve SU_ERROR_NO_DATA=9 se a câmera não for perspectiva;
+# aspect ratio devolve NO_DATA se for "automático", caso comum).
+SUCameraRef = make_ref_struct("SUCameraRef")
+
 
 class SUColor(ctypes.Structure):
     """model/color.h -- RGBA, 1 byte por canal (0-255)."""

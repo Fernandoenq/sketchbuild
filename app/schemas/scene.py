@@ -85,6 +85,25 @@ class InstanceDTO(BaseModel):
     )
 
 
+class CameraDTO(BaseModel):
+    """Camera REAL "atual" do modelo (SUModelGetCamera/SUCameraGetOrientation
+    -- ver core/su_api.py get_model_camera() e REVERSE_ENGINEERING_NOTES.md
+    secao 28.23). `eye`/`target`/`up` em polegadas, Z-up (mesma convencao
+    bruta de `InstanceDTO.transform` -- o frontend converte pra metros/
+    Y-up). `fov_deg`/`fov_is_height` vem `null` quando a camera nao esta
+    em modo perspectiva (o frontend cai pro enquadramento automatico por
+    bounding box nesse caso)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    eye: list[float]
+    target: list[float]
+    up: list[float]
+    perspective: bool
+    fov_deg: float | None = None
+    fov_is_height: bool = True
+
+
 class SceneResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -98,6 +117,13 @@ class SceneResponse(BaseModel):
     )
     definitions: list[DefinitionDTO]
     instances: list[InstanceDTO]
+    camera: CameraDTO | None = Field(
+        default=None,
+        description="Camera real salva no arquivo (ver CameraDTO) -- o "
+        "frontend usa isso pra posicionar a camera inicial em vez de so "
+        "enquadrar pela bounding box, ver REVERSE_ENGINEERING_NOTES.md "
+        "secao 28.23.",
+    )
 
 
 class UpdateTransformRequest(BaseModel):

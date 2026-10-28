@@ -29,7 +29,13 @@ import {
   discardAutosaveDraft,
   ApiError,
 } from "./api.js";
-import { buildSceneGroup, meshMatrixToApiTransform, worldPointToLocalInches } from "./sceneBuilder.js";
+import {
+  buildSceneGroup,
+  meshMatrixToApiTransform,
+  worldPointToLocalInches,
+  skpPointToThree,
+  skpDirectionToThree,
+} from "./sceneBuilder.js";
 import { buildOutlinerTree } from "./outliner.js";
 import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
 
@@ -618,7 +624,17 @@ function setStandardView(viewName) {
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
   const radius = Math.max(size.length() / 2, 0.1);
-  const distance = radius * 2.2 * projectionDistanceScale();
+  // Distancia minima pra caber a esfera que envolve a bounding box inteira
+  // dentro do FOV atual da camera (vertical E horizontal, usa o mais
+  // restritivo dos dois) -- formula exata (arcsin), nao uma aproximacao
+  // por tan(), com 15% de folga visual. Usar `camera.fov`/`camera.aspect`
+  // direto (em vez do multiplicador fixo antigo) tambem faz a vista
+  // respeitar a Projecao paralela e o Campo de visao customizado (Camera
+  // > Campo de visao) automaticamente, sem precisar de um fator separado.
+  const halfFovV = THREE.MathUtils.degToRad(camera.fov / 2);
+  const halfFovH = Math.atan(Math.tan(halfFovV) * camera.aspect);
+  const limitingHalfFov = Math.min(halfFovV, halfFovH);
+  const distance = (radius / Math.sin(limitingHalfFov)) * 1.15;
 
   camera.up.copy(up);
   controls.target.copy(center);
@@ -632,6 +648,49 @@ function setStandardView(viewName) {
 viewBtnEls.forEach((btn) => {
   btn.addEventListener("click", () => setStandardView(btn.dataset.view));
 });
+
+/**
+ * Aplica a camera REAL salva no .skp (ver CameraDTO em app/schemas/scene.py,
+ * SUModelGetCamera/SUCameraGetOrientation em core/su_api.py,
+ * REVERSE_ENGINEERING_NOTES.md secao 28.23), em vez do enquadramento
+ * automatico por bounding box de `setStandardView`. Achado comparando com o
+ * SketchUp 2026 real rodando na maquina: a vista inicial de um template NAO
+ * e um "fit" calculado -- e a camera exata gravada no arquivo (bem mais
+ * distante do modelo do que qualquer auto-fit produziria).
+ *
+ * Retorna false (e quem chamou deve cair pro auto-fit de `setStandardView`)
+ * quando o DTO nao trouxe camera, ou quando ela nao e perspectiva/nao tem
+ * FOV -- esses dois casos (camera paralela/ortografica salva no arquivo)
+ * ainda nao tem conversao implementada aqui.
+ */
+function applyRealCamera(sceneDTO) {
+  const cam = sceneDTO.camera;
+  if (!cam || !cam.perspective || cam.fov_deg == null) return false;
+
+  const eye = skpPointToThree(...cam.eye);
+  const target = skpPointToThree(...cam.target);
+  const up = skpDirectionToThree(...cam.up);
+
+  let verticalFov = cam.fov_deg;
+  if (!cam.fov_is_height) {
+    // SUCameraGetFOVIsHeight false => o valor salvo e o FOV HORIZONTAL;
+    // `camera.fov` do Three.js e sempre vertical, entao converte via aspect.
+    const halfHorizontal = THREE.MathUtils.degToRad(cam.fov_deg / 2);
+    verticalFov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(halfHorizontal) / camera.aspect));
+  }
+
+  camera.up.copy(up);
+  camera.position.copy(eye);
+  controls.target.copy(target);
+  camera.fov = verticalFov;
+
+  const distance = Math.max(eye.distanceTo(target), 0.1);
+  camera.near = distance / 100;
+  camera.far = Math.max(distance * 100, 100);
+  camera.updateProjectionMatrix();
+  controls.update();
+  return true;
+}
 
 function setProjectionMode(mode) {
   if (mode === projectionMode) return;
@@ -783,7 +842,16 @@ function applySceneDTO(sceneDTO) {
   setLassoSelection([]);
   currentGroup = buildSceneGroup(sceneDTO);
   scene.add(currentGroup);
-  setStandardView("iso");
+  // componentes "sempre de frente pra camera" (ex.: a figura de escala dos
+  // templates) so recebem a rotacao correta de pitch/roll dentro do loop
+  // de animacao (updateBillboards(), chamado a cada frame) -- sem rodar
+  // isso aqui ANTES de enquadrar a camera, o Box3 usado por
+  // setStandardView() mede a malha ainda deitada (altura Y = 0), o que
+  // zera o raio calculado e deixa a camera colada na figura.
+  updateBillboards();
+  if (!applyRealCamera(sceneDTO)) {
+    setStandardView("iso");
+  }
   editPanelEl.classList.remove("hidden");
   // o novo grupo traz material/overlay de arestas no estado padrao --
   // reaplica os toggles de "Visualizar" que estavam ativos antes de abrir

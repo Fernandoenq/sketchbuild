@@ -61,6 +61,26 @@ function buildGeometry(definitionDTO) {
 }
 
 /**
+ * Converte um PONTO em polegadas/Z-up (SketchUp) pra metros/Y-up (Three.js)
+ * -- mesma conversao aplicada a `position` em `buildSceneGroup` acima, usada
+ * aqui pra reposicionar a camera real (eye/target, ver CameraDTO em
+ * app/schemas/scene.py e REVERSE_ENGINEERING_NOTES.md secao 28.23).
+ */
+export function skpPointToThree(x, y, z) {
+  const v = new THREE.Vector3(x, y, z).multiplyScalar(INCHES_TO_METERS);
+  return v.applyMatrix4(SKP_TO_THREE_UP);
+}
+
+/**
+ * Converte um VETOR de direcao (ex.: `up` da camera) -- sem escala de
+ * unidade, so a rotacao de eixo (SKP_TO_THREE_UP e uma rotacao pura, sem
+ * translacao, entao aplicar em ponto ou vetor da no mesmo resultado).
+ */
+export function skpDirectionToThree(x, y, z) {
+  return new THREE.Vector3(x, y, z).applyMatrix4(SKP_TO_THREE_UP).normalize();
+}
+
+/**
  * Monta um THREE.Group a partir do DTO de /api/v1/scene/open.
  * Uma geometria por definicao (deduplicada), um Mesh por instancia
  * (aplicando a matriz de transformacao em espaco de mundo).

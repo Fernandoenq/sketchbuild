@@ -46,6 +46,7 @@ from core.su_types import (
     SULayerRef,
     SUSceneRef,
     SUAxesRef,
+    SUCameraRef,
     SUColor,
     SUPoint3D,
     SUVector3D,
@@ -794,6 +795,53 @@ class SketchUpAPI:
         dll.SUAxesRelease.argtypes = [ctypes.POINTER(SUAxesRef)]
         dll.SUAxesRelease.restype = ctypes.c_int
 
+        # -- Camera real do modelo (bandeja padrao -- posicao/angulo
+        # errados ao abrir/criar modelo) [Confirmado via REA/Ghidra,
+        # 28/10/2026 -- ver REVERSE_ENGINEERING_NOTES.md secao 28.23].
+        # model/camera.h.
+
+        # SU_RESULT SUModelGetCamera(SUModelRef model, SUCameraRef* camera);
+        # Achado especifico (pseudocodigo real): devolve um ponteiro
+        # INTERNO pra dentro do proprio SUModelRef (offset fixo) -- "ref
+        # emprestada", nao precisa (e nao deve) ser liberada com um
+        # release, mesmo padrao ja visto noutros *GetX deste SDK que
+        # devolvem sub-objetos do model em vez de alocar algo novo.
+        dll.SUModelGetCamera.argtypes = [SUModelRef, ctypes.POINTER(SUCameraRef)]
+        dll.SUModelGetCamera.restype = ctypes.c_int
+
+        # SU_RESULT SUCameraGetOrientation(SUCameraRef camera,
+        #     SUPoint3D* position, SUPoint3D* target, SUVector3D* up_vector);
+        # Pseudocodigo real confirmou os 3 parametros de saida (9 doubles
+        # no total) lendo direto dos offsets da struct da camera -- mesma
+        # convencao de unidade/eixo (polegadas, Z-up) da geometria e das
+        # transforms de instancia, conversao pra metros/Y-up fica a cargo
+        # do frontend (mesmo padrao ja usado pro resto do DTO).
+        dll.SUCameraGetOrientation.argtypes = [
+            SUCameraRef,
+            ctypes.POINTER(SUPoint3D),
+            ctypes.POINTER(SUPoint3D),
+            ctypes.POINTER(SUVector3D),
+        ]
+        dll.SUCameraGetOrientation.restype = ctypes.c_int
+
+        # SU_RESULT SUCameraGetPerspective(SUCameraRef camera, bool* is_perspective);
+        dll.SUCameraGetPerspective.argtypes = [SUCameraRef, ctypes.POINTER(ctypes.c_bool)]
+        dll.SUCameraGetPerspective.restype = ctypes.c_int
+
+        # SU_RESULT SUCameraGetPerspectiveFrustumFOV(SUCameraRef camera,
+        #     double* fov); -- Achado especifico (pseudocodigo real): devolve
+        # 9=NO_DATA se a camera nao estiver em modo perspectiva (campo
+        # interno de flag zerado), nunca sucesso com valor invalido.
+        dll.SUCameraGetPerspectiveFrustumFOV.argtypes = [
+            SUCameraRef,
+            ctypes.POINTER(ctypes.c_double),
+        ]
+        dll.SUCameraGetPerspectiveFrustumFOV.restype = ctypes.c_int
+
+        # SU_RESULT SUCameraGetFOVIsHeight(SUCameraRef camera, bool* fov_is_height);
+        dll.SUCameraGetFOVIsHeight.argtypes = [SUCameraRef, ctypes.POINTER(ctypes.c_bool)]
+        dll.SUCameraGetFOVIsHeight.restype = ctypes.c_int
+
     # -- ciclo de vida da API -------------------------------------------------
 
     def initialize(self) -> None:
@@ -1313,6 +1361,72 @@ class SketchUpAPI:
 
     def release_axes(self, axes: SUAxesRef) -> None:
         su_check(self._dll.SUAxesRelease(ctypes.byref(axes)), "SUAxesRelease")
+
+    def get_model_camera(self, model: SUModelRef) -> dict:
+        """Devolve a camera REAL "atual" do modelo (eye/target/up, FOV --
+        a mesma que o SketchUp real mostra ao abrir um arquivo ou criar
+        um modelo novo a partir de um template, ver REVERSE_ENGINEERING_NOTES.md
+        secao 28.23) em vez de so enquadrar pela bounding box como o
+        frontend fazia antes. Posicao/alvo/up saem em polegadas, Z-up
+        (mesma convencao bruta do resto do DTO) -- conversao pra
+        metros/Y-up fica a cargo do frontend.
+
+        `fov_deg`/`fov_is_height` ficam `None` quando a camera nao esta em
+        modo perspectiva (SUCameraGetPerspectiveFrustumFOV devolve
+        SU_ERROR_NO_DATA=9 nesse caso) -- o frontend cai pro enquadramento
+        automatico por bounding box como limitacao aceita (este projeto
+        nao implementa projecao paralela "de verdade" vinda do arquivo,
+        so a aproximacao ja existente de Camera > Projecao paralela)."""
+        camera = SUCameraRef()
+        su_check(
+            self._dll.SUModelGetCamera(model, ctypes.byref(camera)),
+            "SUModelGetCamera",
+        )
+
+        eye = SUPoint3D()
+        target = SUPoint3D()
+        up = SUVector3D()
+        su_check(
+            self._dll.SUCameraGetOrientation(
+                camera, ctypes.byref(eye), ctypes.byref(target), ctypes.byref(up)
+            ),
+            "SUCameraGetOrientation",
+        )
+
+        is_perspective = ctypes.c_bool()
+        su_check(
+            self._dll.SUCameraGetPerspective(camera, ctypes.byref(is_perspective)),
+            "SUCameraGetPerspective",
+        )
+
+        fov_deg = None
+        fov_is_height = True
+        if is_perspective.value:
+            fov = ctypes.c_double()
+            fov_result = self._dll.SUCameraGetPerspectiveFrustumFOV(
+                camera, ctypes.byref(fov)
+            )
+            if fov_result == 0:
+                fov_deg = fov.value
+                fov_is_height_c = ctypes.c_bool()
+                su_check(
+                    self._dll.SUCameraGetFOVIsHeight(
+                        camera, ctypes.byref(fov_is_height_c)
+                    ),
+                    "SUCameraGetFOVIsHeight",
+                )
+                fov_is_height = fov_is_height_c.value
+            elif fov_result != 9:
+                su_check(fov_result, "SUCameraGetPerspectiveFrustumFOV")
+
+        return {
+            "eye": [eye.x, eye.y, eye.z],
+            "target": [target.x, target.y, target.z],
+            "up": [up.x, up.y, up.z],
+            "perspective": is_perspective.value,
+            "fov_deg": fov_deg,
+            "fov_is_height": fov_is_height,
+        }
 
     def get_definition_entities(
         self, definition: SUComponentDefinitionRef
