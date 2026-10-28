@@ -190,6 +190,61 @@ itens funcionais cada (ver `REVERSE_ENGINEERING_NOTES.md` seção 28):
   plugins de terceiros, fora do escopo deste visualizador/editor
   (decisão de escopo confirmada explicitamente por Fernando).
 
+### Barra de ferramentas por ícone ("Large Tool Set" real) + VCB
+
+Antes, as ferramentas do menu "Ferramentas" ficavam disponíveis só como
+uma coluna de botões com rótulo de texto, empilhada no painel flutuante
+à esquerda -- visual completamente diferente da barra de ícones real do
+SketchUp Desktop (`#top-toolbar`/`#panel`, no commit anterior a este).
+Catalogada via screenshot real do SketchUp 2026 rodando na máquina
+(PowerShell + Win32 `SetForegroundWindow`/`System.Drawing`, mesma
+metodologia das demais seções deste README), a ferramenta de edição
+principal do SketchUp real é a **"Large Tool Set"**: uma segunda barra
+de ícones logo abaixo da barra de menu/primeira toolbar, na ordem
+Selecionar/Apagar/Pintura, Retângulo/Linha/Arco, Empurrar-Puxar/Siga-me,
+Mover/Rotar/Escala, Equidistância, Fita métrica/Transferidor/Eixos/
+Dimensões/Texto/Texto 3D, Orbitar/Panorâmica/Zoom, Plano de seção,
+Percorrer.
+
+`#tools-toolbar` reproduz essa ordem real como uma segunda barra fixa
+(`frontend/index.html`, logo abaixo de `#top-toolbar`). Cada ícone já
+implementado tem `data-action` apontando pro MESMO `MENU_ACTIONS[...]`
+já ligado no dropdown "Ferramentas"/"Desenho"/"Editar" (nenhuma lógica
+duplicada -- um clique no ícone ou no item de menu correspondente chama
+exatamente a mesma função). Ícones sem equivalente implementado (Linha,
+Arco, Empurrar/Puxar, Siga-me, Equidistância, Orbitar/Panorâmica/Zoom --
+estes 3 últimos já funcionam via mouse, mesmo racional já usado em
+"Câmera > Orbitar/Panorâmica/Zoom" --, Percorrer) ficam `.disabled`
+(cinza, sem clique), igual o SketchUp real faz com itens indisponíveis
+no contexto atual. Três ferramentas deste app (Laço, Pintura por face,
+Etiqueta) são invenções de UX própria sem ícone real equivalente na
+Large Tool Set -- por fidelidade ao SketchUp real, ficaram de fora da
+barra de ícones e continuam só no menu "Ferramentas", em vez de
+inventar um slot falso pra elas.
+
+O ícone ativo (ferramenta corrente, seja `toolMode` ou o modo do gizmo
+Mover/Rotar/Escala) fica destacado em azul -- mesma semântica visual que
+antes era dada pela classe `.active` nos botões de texto do painel.
+
+Os campos contextuais que antes ficavam sempre visíveis no painel
+esquerdo (dimensões do retângulo, cor da pintura, nome da etiqueta,
+conteúdo do texto) viraram uma **VCB (Value Control Box)** real: uma
+caixinha fixa no canto inferior direito (`#vcb`), no mesmo lugar onde o
+SketchUp real mostra sua VCB na barra de status, que só aparece enquanto
+a ferramenta correspondente está ativa (`toolMode`) -- nunca mais de uma
+por vez. `syncToolUI()` (`frontend/src/main.js`) centraliza essa troca,
+chamada de dentro de `setToolMode()`/`setMode()`. Os IDs dos inputs
+(`rect-width-input`, `tag-name-input`, `paint-color-input`,
+`text-content-input` etc.) não mudaram -- só migraram de markup
+(`#edit-panel` → `#vcb`), então nenhuma lógica de leitura/escrita desses
+campos precisou mudar.
+
+`#edit-panel` (painel esquerdo) ficou só com o que não é "ferramenta":
+rótulo da instância selecionada, Salvar/Salvar como e Exportar .obj --
+os botões Mover/Girar/Escalar/Excluir (redundantes com os ícones novos
+e com Editar > Excluir/tecla Del) e os campos que migraram pra VCB
+foram removidos do painel, não escondidos.
+
 ### Design system -- clone visual SketchUp Pro Classic
 
 A UI replica o padrão visual do SketchUp Desktop (tema claro, cinzas

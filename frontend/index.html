@@ -21,7 +21,7 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
       font-family: var(--su-font); }
-    #viewport { position: fixed; inset: 60px 0 0 0; }
+    #viewport { position: fixed; inset: 94px 0 0 0; }
 
     /* Barra de menu real (texto), igual a barra do SketchUp Desktop --
        ver REVERSE_ENGINEERING_NOTES.md secao 26 (catalogada via clique
@@ -86,9 +86,39 @@
     .toolbar-btn:hover { background: #DCDCDC; border-color: var(--border); }
     .toolbar-btn:active { background: #CFCFCF; }
     .toolbar-btn svg { width: 16px; height: 16px; stroke: var(--text); fill: none; stroke-width: 1.4; }
+    .toolbar-btn.active { background: var(--accent); border-color: #336f9c; }
+    .toolbar-btn.active svg { stroke: #FFFFFF; }
+    .toolbar-btn.disabled { opacity: .35; cursor: default; pointer-events: none; }
+
+    /* "Large Tool Set" real do SketchUp -- ferramentas por icone em vez
+       de botoes com rotulo de texto (ver REVERSE_ENGINEERING_NOTES.md /
+       README.md: catalogada via screenshot do SketchUp 2026 real rodando
+       na maquina). Reusa os mesmos data-action/MENU_ACTIONS ja ligados
+       no menu "Ferramentas" -- nenhuma logica nova, so outra forma de
+       disparar a mesma funcao. */
+    #tools-toolbar {
+      position: fixed; top: 60px; left: 0; right: 0; height: 34px; z-index: 29;
+      background: var(--toolbar); border-bottom: 1px solid var(--border);
+      display: flex; align-items: stretch; overflow-x: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+
+    /* VCB ("Value Control Box") -- igual a caixa contextual real do
+       SketchUp (barra de status, canto inferior direito): so aparece
+       enquanto a ferramenta correspondente esta ativa, em vez de ficar
+       sempre visivel num painel lateral fixo. */
+    #vcb {
+      position: fixed; right: 16px; bottom: 16px; z-index: 20;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 2px;
+      padding: 8px 10px; box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      display: none; align-items: center; gap: 8px; font-size: 11px;
+    }
+    #vcb.visible { display: flex; }
+    .vcb-field { display: none; align-items: center; gap: 6px; }
+    .vcb-field.visible { display: flex; }
 
     #panel {
-      position: absolute; top: 76px; left: 16px; z-index: 10;
+      position: absolute; top: 110px; left: 16px; z-index: 10;
       background: var(--panel); border: 1px solid var(--border); border-radius: 2px;
       padding: 12px 14px; width: min(420px, calc(100vw - 32px));
       box-shadow: 0 2px 8px rgba(0,0,0,.15);
@@ -151,9 +181,9 @@
 
     /* Default Tray -- painel direito unificado, abas sanfonadas (accordion) */
     #default-tray {
-      position: absolute; top: 76px; right: 16px; z-index: 10;
+      position: absolute; top: 110px; right: 16px; z-index: 10;
       background: var(--panel); border: 1px solid var(--border); border-radius: 2px;
-      width: min(280px, calc(100vw - 32px)); max-height: calc(100vh - 92px);
+      width: min(280px, calc(100vw - 32px)); max-height: calc(100vh - 126px);
       box-shadow: 0 2px 8px rgba(0,0,0,.15);
       display: flex; flex-direction: column; overflow: hidden;
     }
@@ -628,7 +658,7 @@
         <div class="menu-dropdown-item" data-action="tool-axes" title="3 cliques (origem, direcao X, direcao Y) redefinem os eixos locais da peca clicada -- SUAxesCreateCustom/SUComponentDefinitionSetAxes, muda a definicao e afeta todas as instancias dela no arquivo"><span>Eixos</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item" data-action="tool-dimension" title="Dois cliques criam uma cota 3D real e persistente (linha + rotulo com a distancia) na cena"><span>Dimensões</span></div>
-        <div class="menu-dropdown-item" data-action="text" title="Foca o campo de texto -- escreva o conteudo e clique em Criar texto"><span>Texto</span></div>
+        <div class="menu-dropdown-item" data-action="tool-text" title="Arma o modo Texto -- escreva o conteudo na caixa (VCB) que aparece no canto inferior direito e clique no viewport pra posicionar"><span>Texto</span></div>
         <div class="menu-dropdown-item" data-action="tool-text3d" title="Extrusao real de fonte em malha (THREE.TextGeometry) -- escreva no campo de Texto e clique no botao, depois no viewport"><span>Texto 3D</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item has-submenu" title="Corta de verdade a geometria usando THREE.Plane/clipping nativo do WebGL"><span>Plano de seção</span><span class="menu-dropdown-shortcut">&#9656;</span>
@@ -726,6 +756,121 @@
     </div>
   </div>
 
+  <div id="tools-toolbar">
+    <div class="toolbar-group">
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="select" data-action="tool-select" title="Selecionar (Espaço)" aria-label="Selecionar">
+        <svg viewBox="0 0 24 24"><path d="M6 3l12 9-5 1.2L16 19l-2.4 1L11 14.5 7 17z" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="erase" data-action="tool-erase" title="Apagar (E)" aria-label="Apagar">
+        <svg viewBox="0 0 24 24"><rect x="4" y="12" width="16" height="7" rx="1" transform="rotate(-15 12 12)" /><line x1="7" y1="12" x2="14" y2="5" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="paint" data-action="tool-paint" title="Pintura (B)" aria-label="Pintura">
+        <svg viewBox="0 0 24 24"><path d="M6 4l9 9-4 4-9-9z" /><path d="M14 6l4 4" /><path d="M8 16c-2 2-2 4 0 4s2-2 0-4z" /></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="rect" data-action="tool-rect" title="Retângulo (R)" aria-label="Retângulo">
+        <svg viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="10" /></svg>
+      </button>
+      <button class="toolbar-btn disabled" title="Linhas (fora de escopo -- exigiria um subsistema de autoria interativa, ver REVERSE_ENGINEERING_NOTES.md secao 28.6)" aria-label="Linhas" disabled>
+        <svg viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5" /><circle cx="5" cy="19" r="1.4" fill="currentColor" /><circle cx="19" cy="5" r="1.4" fill="currentColor" /></svg>
+      </button>
+      <button class="toolbar-btn disabled" title="Arcos (fora de escopo)" aria-label="Arcos" disabled>
+        <svg viewBox="0 0 24 24"><path d="M4 18c2-9 14-9 16 0" /></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-btn disabled" title="Empurrar/Puxar (fora de escopo)" aria-label="Empurrar/Puxar" disabled>
+        <svg viewBox="0 0 24 24"><path d="M7 9h10v10H7z" /><path d="M7 9l3-4h4l3 4" /><line x1="12" y1="2" x2="12" y2="6" /></svg>
+      </button>
+      <button class="toolbar-btn disabled" title="Siga-me (fora de escopo)" aria-label="Siga-me" disabled>
+        <svg viewBox="0 0 24 24"><path d="M4 16c2-8 14-8 16 0" /><path d="M17 13l3 3-3 3" /></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="translate" data-action="tool-translate" title="Mover (W)" aria-label="Mover">
+        <svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M5 9l-3 3 3 3M19 9l3 3-3 3M9 5l3-3 3 3M9 19l3 3 3-3" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="rotate" data-action="tool-rotate" title="Rotar (Q)" aria-label="Rotar">
+        <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 2.5 5.8" /><path d="M4 12l0-5M4 12l5 1" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="scale" data-action="tool-scale" title="Escala (S)" aria-label="Escala">
+        <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" /><path d="M5 9V5h4M19 15v4h-4" /></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-btn disabled" title="Equidistância (fora de escopo)" aria-label="Equidistância" disabled>
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="10" height="10" /><rect x="10" y="10" width="10" height="10" /></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="measure" data-action="tool-measure" title="Fita métrica (T)" aria-label="Fita métrica">
+        <svg viewBox="0 0 24 24"><path d="M3 15l6-6 12 12-6 6z" /><line x1="7" y1="13" x2="9" y2="15" /><line x1="10" y1="10" x2="12" y2="12" /><line x1="13" y1="7" x2="15" y2="9" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="protractor" data-action="tool-protractor" title="Transferidor" aria-label="Transferidor">
+        <svg viewBox="0 0 24 24"><path d="M4 16a8 8 0 0 1 16 0z" /><line x1="12" y1="16" x2="12" y2="9" /><line x1="12" y1="16" x2="17" y2="11" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="axes" data-action="tool-axes" title="Eixos" aria-label="Eixos">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="4" /><line x1="4" y1="18" x2="20" y2="18" /><line x1="12" y1="18" x2="18" y2="12" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="dimension" data-action="tool-dimension" title="Dimensões" aria-label="Dimensões">
+        <svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="8" x2="4" y2="16" /><line x1="20" y1="8" x2="20" y2="16" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="text" data-action="tool-text" title="Texto" aria-label="Texto">
+        <svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="6" /><line x1="12" y1="6" x2="12" y2="18" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="text3d" data-action="tool-text3d" title="Texto 3D" aria-label="Texto 3D">
+        <svg viewBox="0 0 24 24"><line x1="6" y1="5" x2="15" y2="5" /><line x1="10.5" y1="5" x2="10.5" y2="15" /><line x1="9" y1="19" x2="18" y2="19" /><line x1="13.5" y1="19" x2="13.5" y2="9" /></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-btn disabled" title="Orbitar -- já disponível via mouse (arrastar com botão esquerdo)" aria-label="Orbitar" disabled>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" /><path d="M5 9c5-3 9-3 14 0" /></svg>
+      </button>
+      <button class="toolbar-btn disabled" title="Panorâmica -- já disponível via mouse (arrastar com botão direito)" aria-label="Panorâmica" disabled>
+        <svg viewBox="0 0 24 24"><path d="M9 11V5a1.5 1.5 0 0 1 3 0v6" /><path d="M12 11V4a1.5 1.5 0 0 1 3 0v7" /><path d="M9 11l-2 1v4a4 4 0 0 0 4 4h3a4 4 0 0 0 4-4v-3" /></svg>
+      </button>
+      <button class="toolbar-btn disabled" title="Zoom -- já disponível via mouse (roda do mouse)" aria-label="Zoom" disabled>
+        <svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6" /><line x1="15" y1="15" x2="20" y2="20" /></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="section" data-action="tool-section" title="Plano de seção" aria-label="Plano de seção">
+        <svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="3" transform="rotate(-10 12 10.5)" /><line x1="12" y1="12" x2="12" y2="20" stroke-dasharray="2 2" /></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-btn disabled" title="Percorrer (fora de escopo)" aria-label="Percorrer" disabled>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2" /><path d="M12 8v6M12 14l-4 6M12 14l4 6M8 10l-3 3M16 10l3 3" /></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="vcb">
+    <div class="vcb-field" id="vcb-rect">
+      <input id="rect-width-input" class="dim-input" type="number" step="0.1" min="0.01" value="1" style="width: 60px;" title="Largura (m)" />
+      <span style="color: var(--muted);">&times;</span>
+      <input id="rect-height-input" class="dim-input" type="number" step="0.1" min="0.01" value="1" style="width: 60px;" title="Profundidade (m)" />
+      <button id="rect-create-btn" class="panel-btn" title="Desenho &gt; Formas &gt; Retângulo">Criar (m)</button>
+      <label style="display: flex; align-items: center; gap: 4px; color: var(--muted); white-space: nowrap;">
+        <input id="rect-as-group-checkbox" type="checkbox" title="Editar &gt; Criar grupo" />
+        Como grupo
+      </label>
+    </div>
+    <div class="vcb-field" id="vcb-tag">
+      <span style="color: var(--muted);">Etiqueta:</span>
+      <input id="tag-name-input" type="text" placeholder="Nome da etiqueta" style="width: 140px;" />
+    </div>
+    <div class="vcb-field" id="vcb-paint">
+      <span style="color: var(--muted);">Cor:</span>
+      <input id="paint-color-input" type="color" value="#3c7fb1" title="Cor da pintura" style="width: 36px; height: 24px; padding: 0; border: none; cursor: pointer;" />
+    </div>
+    <div class="vcb-field" id="vcb-text">
+      <span style="color: var(--muted);">Texto:</span>
+      <input id="text-content-input" type="text" placeholder="Conteúdo do rótulo" style="width: 160px;" />
+    </div>
+  </div>
+
   <div id="default-tray" class="hidden">
     <div class="tray-section" id="tray-outliner">
       <div class="tray-header" data-section="tray-outliner">
@@ -789,12 +934,6 @@
     <div id="edit-panel" class="hidden">
       <hr />
       <div id="selected-label">Nenhuma instancia selecionada.</div>
-      <div class="row">
-        <button class="mode-btn" data-mode="translate">Mover (W)</button>
-        <button class="mode-btn" data-mode="rotate">Girar (E)</button>
-        <button class="mode-btn" data-mode="scale">Escalar (R)</button>
-        <button id="delete-btn" class="panel-btn" title="Editar &gt; Excluir (Del)">Excluir (Del)</button>
-      </div>
       <hr />
       <div class="row">
         <input id="save-path-input" type="text" placeholder="(vazio = sobrescreve o arquivo aberto)" />
@@ -803,33 +942,6 @@
       <div class="row" style="margin-top: 6px;">
         <input id="export-obj-path-input" type="text" placeholder="C:\caminho\para\modelo.obj" />
         <button id="export-obj-btn" class="panel-btn" title="Arquivo &gt; Exportar &gt; Modelo 3D (.obj)">Exportar .obj</button>
-      </div>
-      <hr />
-      <div class="row" style="align-items: center;">
-        <input id="rect-width-input" class="dim-input" type="number" step="0.1" min="0.01" value="1" style="width: 70px;" title="Largura (m)" />
-        <span style="font-size: 11px; color: var(--muted);">&times;</span>
-        <input id="rect-height-input" class="dim-input" type="number" step="0.1" min="0.01" value="1" style="width: 70px;" title="Profundidade (m)" />
-        <button id="rect-create-btn" class="panel-btn" title="Desenho &gt; Formas &gt; Retângulo">Criar retângulo (m)</button>
-      </div>
-      <div class="row" style="margin-top: 4px; align-items: center;">
-        <label style="font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px;">
-          <input id="rect-as-group-checkbox" type="checkbox" title="Editar &gt; Criar grupo -- a face nasce dentro de um Grupo novo real (SUGroupCreate/SUEntitiesAddGroup)" />
-          Criar como grupo
-        </label>
-      </div>
-      <div class="row" style="margin-top: 6px;">
-        <input id="text-content-input" type="text" placeholder="Texto do rotulo" style="width: 140px;" />
-        <button id="text-create-btn" class="panel-btn" title="Ferramentas &gt; Texto -- clique no botao, depois no viewport pra posicionar">Criar texto (clique no viewport)</button>
-        <button id="text3d-create-btn" class="panel-btn" title="Ferramentas &gt; Texto 3D -- extrusao real de fonte, clique no botao e depois no viewport">Criar texto 3D</button>
-      </div>
-      <div class="row" style="margin-top: 6px; align-items: center;">
-        <input id="paint-color-input" type="color" value="#3c7fb1" title="Cor da pintura" style="width: 40px; height: 28px; padding: 0; border: none; cursor: pointer;" />
-        <button id="paint-arm-btn" class="panel-btn" title="Ferramentas &gt; Pintura -- clique no botao, depois numa peca no viewport">Pintar (clique na peça)</button>
-        <button id="paint-face-arm-btn" class="panel-btn" title="Ferramentas &gt; Pintura por face -- SUFaceSetFrontMaterial, muda so a face clicada (afeta todas as instancias da mesma definicao no arquivo)">Pintar face (clique na face)</button>
-      </div>
-      <div class="row" style="margin-top: 6px; align-items: center;">
-        <input id="tag-name-input" type="text" placeholder="Nome da etiqueta" style="width: 140px;" />
-        <button id="tag-arm-btn" class="panel-btn" title="Ferramentas &gt; Etiqueta -- clique no botao, depois numa peca no viewport">Etiquetar (clique na peça)</button>
       </div>
     </div>
   </div>

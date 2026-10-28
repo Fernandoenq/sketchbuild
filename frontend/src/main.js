@@ -37,11 +37,9 @@ const openBtnEl = document.getElementById("open-btn");
 const statusEl = document.getElementById("status");
 const editPanelEl = document.getElementById("edit-panel");
 const selectedLabelEl = document.getElementById("selected-label");
-const modeBtnEls = document.querySelectorAll(".mode-btn");
 const savePathInputEl = document.getElementById("save-path-input");
 const saveBtnEl = document.getElementById("save-btn");
 const toolbarSaveBtnEl = document.getElementById("toolbar-save-btn");
-const deleteBtnEl = document.getElementById("delete-btn");
 const exportObjPathInputEl = document.getElementById("export-obj-path-input");
 const exportObjBtnEl = document.getElementById("export-obj-btn");
 const rectWidthInputEl = document.getElementById("rect-width-input");
@@ -49,13 +47,15 @@ const rectHeightInputEl = document.getElementById("rect-height-input");
 const rectCreateBtnEl = document.getElementById("rect-create-btn");
 const rectAsGroupCheckboxEl = document.getElementById("rect-as-group-checkbox");
 const textContentInputEl = document.getElementById("text-content-input");
-const textCreateBtnEl = document.getElementById("text-create-btn");
-const text3dCreateBtnEl = document.getElementById("text3d-create-btn");
 const paintColorInputEl = document.getElementById("paint-color-input");
-const paintArmBtnEl = document.getElementById("paint-arm-btn");
-const paintFaceArmBtnEl = document.getElementById("paint-face-arm-btn");
 const tagNameInputEl = document.getElementById("tag-name-input");
-const tagArmBtnEl = document.getElementById("tag-arm-btn");
+const toolsToolbarEl = document.getElementById("tools-toolbar");
+const toolIconBtnEls = document.querySelectorAll(".tool-icon-btn");
+const vcbEl = document.getElementById("vcb");
+const vcbRectEl = document.getElementById("vcb-rect");
+const vcbTagEl = document.getElementById("vcb-tag");
+const vcbPaintEl = document.getElementById("vcb-paint");
+const vcbTextEl = document.getElementById("vcb-text");
 const sceneNameInputEl = document.getElementById("scene-name-input");
 const sceneCreateBtnEl = document.getElementById("scene-create-btn");
 const scenePagesListEl = document.getElementById("scene-pages-list");
@@ -267,6 +267,26 @@ function setLassoSelection(meshes) {
  * (ver group.userData.sharedMaterial em sceneBuilder.js). */
 let sectionPlane = null;
 
+/** Sincroniza o icone ativo na "Large Tool Set" (#tools-toolbar) e a
+ * caixa contextual (#vcb, "Value Control Box") com o toolMode/modo do
+ * gizmo atuais -- mesmo padrao visual do SketchUp real: so um icone
+ * destacado por vez, so os campos da ferramenta ativa visiveis. */
+function syncToolUI(activeKey) {
+  toolIconBtnEls.forEach((btn) => btn.classList.toggle("active", btn.dataset.toolMode === activeKey));
+  const fields = [
+    [vcbRectEl, activeKey === "rect"],
+    [vcbTagEl, activeKey === "tag"],
+    [vcbPaintEl, activeKey === "paint" || activeKey === "paintFace"],
+    [vcbTextEl, activeKey === "text" || activeKey === "text3d"],
+  ];
+  let any = false;
+  fields.forEach(([el, visible]) => {
+    el.classList.toggle("visible", visible);
+    if (visible) any = true;
+  });
+  vcbEl.classList.toggle("visible", any);
+}
+
 function setToolMode(mode) {
   toolMode = mode;
   measureFirstPoint = null;
@@ -280,20 +300,22 @@ function setToolMode(mode) {
   else if (mode === "protractor") setStatus("Modo Transferidor: clique no vertice do angulo.");
   else if (mode === "section") setStatus("Modo Plano de secao: clique num ponto pra cortar o modelo nessa altura.");
   else if (mode === "dimension") setStatus("Modo Dimensoes: clique no primeiro ponto da cota.");
-  else if (mode === "text") setStatus("Modo Texto: clique no viewport pra posicionar o rotulo.");
-  else if (mode === "text3d") setStatus("Modo Texto 3D: clique no viewport pra posicionar (carregando fonte na 1a vez).");
+  else if (mode === "text") setStatus("Modo Texto: escreva o conteudo na caixa no canto inferior direito e clique no viewport pra posicionar.");
+  else if (mode === "text3d") setStatus("Modo Texto 3D: escreva o conteudo na caixa no canto inferior direito e clique no viewport (carregando fonte na 1a vez).");
   else if (mode === "lasso") { lassoSelection = []; setStatus("Modo Laco: va clicando em varias pecas (Shift+clique tambem funciona). Esc limpa."); }
-  else if (mode === "paint") setStatus("Modo Pintura: clique numa peca pra aplicar a cor escolhida.");
-  else if (mode === "paintFace") setStatus("Modo Pintura por face: clique numa FACE pra aplicar a cor escolhida (afeta todas as instancias da mesma peca no arquivo).");
-  else if (mode === "tag") setStatus("Modo Etiqueta: clique numa peca pra aplicar a etiqueta digitada.");
+  else if (mode === "paint") setStatus("Modo Pintura: escolha a cor na caixa no canto inferior direito e clique numa peca.");
+  else if (mode === "paintFace") setStatus("Modo Pintura por face: escolha a cor na caixa no canto inferior direito e clique numa FACE (afeta todas as instancias da mesma peca no arquivo).");
+  else if (mode === "tag") setStatus("Modo Etiqueta: escreva o nome na caixa no canto inferior direito e clique numa peca.");
   else if (mode === "axes") setStatus("Modo Eixos: clique na peca pra definir a ORIGEM dos eixos novos.");
+  else if (mode === "rect") setStatus("Modo Retangulo: informe largura/profundidade na caixa no canto inferior direito e clique em Criar.");
   else setStatus("Modo Selecionar.");
+  syncToolUI(mode);
 }
 
 function setMode(mode) {
   toolMode = "select"; // mover/girar/escalar precisam do modo de selecao pra funcionar
   transformControls.setMode(mode);
-  modeBtnEls.forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === mode));
+  syncToolUI(mode);
 }
 
 /** Reflete posicao (metros)/rotacao (graus) do mesh selecionado nos campos
@@ -540,9 +562,6 @@ window.addEventListener("keydown", (event) => {
   else if (event.key === "Delete" || event.key === "Backspace") handleDeleteSelected();
 });
 
-modeBtnEls.forEach((btn) => {
-  btn.addEventListener("click", () => setMode(btn.dataset.mode));
-});
 setMode("translate");
 
 // Direcao (a partir do centro do modelo) + vetor "up" da camera pra cada
@@ -976,15 +995,6 @@ function handleDimensionClick(worldPoint) {
  * campo do painel, no ponto clicado. Diferente de "Texto 3D" (extrusao
  * de fonte em malha), este e um rotulo billboard, mesma abordagem do
  * SketchUp real pra "Texto" (nao o "Texto 3D", que e outro item). */
-function handleArmText() {
-  const content = textContentInputEl.value.trim();
-  if (!content) {
-    setStatus("Escreva o texto do rotulo antes de clicar no viewport.", true);
-    return;
-  }
-  setToolMode("text");
-}
-
 function handleTextClick(worldPoint) {
   const content = textContentInputEl.value.trim();
   if (!content) {
@@ -1403,15 +1413,9 @@ async function handleAddRectangle() {
   }
 }
 
-deleteBtnEl.addEventListener("click", handleDeleteSelected);
 exportObjBtnEl.addEventListener("click", handleExportObj);
 rectCreateBtnEl.addEventListener("click", handleAddRectangle);
-textCreateBtnEl.addEventListener("click", handleArmText);
-text3dCreateBtnEl.addEventListener("click", handleArmText3D);
-paintArmBtnEl.addEventListener("click", handleArmPaint);
-paintFaceArmBtnEl.addEventListener("click", handleArmPaintFace);
 sceneCreateBtnEl.addEventListener("click", handleCreateScene);
-tagArmBtnEl.addEventListener("click", handleArmTag);
 
 // -- Barra de menu real (Arquivo/Editar) -----------------------------------
 // Catalogada via clique real no SketchUp 2026 rodando na maquina (ver
@@ -1458,7 +1462,8 @@ const MENU_ACTIONS = {
   "tool-section": () => setToolMode("section"),
   "section-clear": () => handleSectionClear(),
   "tool-dimension": () => setToolMode("dimension"),
-  text: () => textContentInputEl.focus(),
+  "tool-text": () => setToolMode("text"),
+  "tool-rect": () => setToolMode("rect"),
   "tool-lasso": () => setToolMode("lasso"),
   "tool-text3d": () => handleArmText3D(),
   "tool-paint": () => handleArmPaint(),
@@ -1468,6 +1473,7 @@ const MENU_ACTIONS = {
   "toggle-tray-scenes": () => toggleTraySection("tray-scenes", "menu-item-tray-scenes"),
   "rect-as-group": () => {
     rectAsGroupCheckboxEl.checked = true;
+    setToolMode("rect");
     rectWidthInputEl.focus();
   },
   "model-info": () => handleModelInfo(),
@@ -1475,7 +1481,10 @@ const MENU_ACTIONS = {
   "toggle-tray-entity-info": () => toggleTraySection("tray-entity-info", "menu-item-tray-entity-info"),
   "toggle-tray-outliner": () => toggleTraySection("tray-outliner", "menu-item-tray-outliner"),
   about: () => handleAbout(),
-  "draw-rectangle": () => rectWidthInputEl.focus(),
+  "draw-rectangle": () => {
+    setToolMode("rect");
+    rectWidthInputEl.focus();
+  },
 };
 
 /** "Janela > Bandeja padrão > Informações da entidade/Componentes" --
@@ -1545,6 +1554,16 @@ menuTopItemEls.forEach((item) => {
 
 document.addEventListener("click", (event) => {
   if (!event.target.closest(".menu-top-item")) closeAllMenus();
+});
+
+// -- "Large Tool Set" (icones) -- reusa os mesmos MENU_ACTIONS ja ligados
+// no menu "Ferramentas"/"Desenho"/"Editar"; so outra forma de disparar a
+// mesma funcao (ver index.html #tools-toolbar).
+toolsToolbarEl.querySelectorAll(".toolbar-btn[data-action]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    if (btn.classList.contains("disabled") || btn.disabled) return;
+    MENU_ACTIONS[btn.dataset.action]?.();
+  });
 });
 
 openBtnEl.addEventListener("click", handleOpen);
