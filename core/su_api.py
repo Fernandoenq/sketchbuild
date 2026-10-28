@@ -37,9 +37,18 @@ from core.su_types import (
     SUComponentInstanceRef,
     SUMeshHelperRef,
     SUStringRef,
+    SUEntityRef,
+    SUGeometryInputRef,
+    SULoopInputRef,
+    SUMaterialRef,
+    SUDrawingElementRef,
+    SUGroupRef,
+    SULayerRef,
+    SUColor,
     SUPoint3D,
     SUVector3D,
     SUTransformation,
+    SUComponentBehavior,
     su_check,
 )
 
@@ -240,6 +249,25 @@ class SketchUpAPI:
         ]
         dll.SUComponentDefinitionGetName.restype = ctypes.c_int
 
+        # SU_RESULT SUComponentDefinitionGetBehavior(SUComponentDefinitionRef
+        #     comp_def, struct SUComponentBehavior* behavior);
+        # [Observado via REA/Ghidra, 27/10/2026] Corpo real (atras do thunk
+        # do export) valida comp_def==NULL (-> 2) e behavior==NULL (-> 3),
+        # depois preenche uma struct de 16 bytes via uma funcao auxiliar
+        # (FUN_1800b9a70): component_type:int32 @0, component_cuts_opening:
+        # bool @4 (calculado via chamada de funcao), component_always_face_
+        # camera:bool @5, component_shadows_face_sun:bool @6 (esses dois
+        # lidos direto do objeto da definicao) -- ORDEM dos 3 bools
+        # confirmada empiricamente via Console Ruby real (nao só pelo
+        # pseudocodigo, que por si só sugeria ordem errada -- ver nota em
+        # SUComponentBehavior, core/su_types.py). Os 8 bytes finais
+        # (offset 8..15) sao um campo NAO documentado no SDK publico.
+        dll.SUComponentDefinitionGetBehavior.argtypes = [
+            SUComponentDefinitionRef,
+            ctypes.POINTER(SUComponentBehavior),
+        ]
+        dll.SUComponentDefinitionGetBehavior.restype = ctypes.c_int
+
         # SU_RESULT SUStringCreate(SUStringRef* string);
         dll.SUStringCreate.argtypes = [ctypes.POINTER(SUStringRef)]
         dll.SUStringCreate.restype = ctypes.c_int
@@ -348,6 +376,236 @@ class SketchUpAPI:
             ctypes.c_char_p,
         ]
         dll.SUModelSaveToFile.restype = ctypes.c_int
+
+        # SU_RESULT SUModelGetUnits(SUModelRef model, SUModelUnits* units);
+        # [Observado via REA/Ghidra, 27/10/2026 -- assinatura confirmada
+        # por pseudocodigo real, nao assumida do SDK publico] Valida
+        # model==NULL (-> 2 SU_ERROR_INVALID_INPUT) e units==NULL (-> 3
+        # SU_ERROR_NULL_POINTER_OUTPUT). Internamente chama
+        # SUModelGetOptionsManager -> SUOptionsManagerGetOptionsProviderByName
+        # ("UnitsOptions") -> SUOptionsProviderGetValue("LengthUnit") e
+        # ("LengthFormat"). *units recebe o valor de "LengthUnit" como
+        # passthrough direto (0..4), EXCETO quando "LengthFormat" indica
+        # formato pes-e-polegadas (==2 -> forca *units=1) ou
+        # polegadas fracionarias/decimais (==1 ou 3 -> forca *units=0).
+        # Esse override nao aparece no header publico do SDK; so afeta
+        # os casos de Polegadas/Pes, nao Milimetros/Centimetros/Metros.
+        dll.SUModelGetUnits.argtypes = [
+            SUModelRef,
+            ctypes.POINTER(ctypes.c_int),
+        ]
+        dll.SUModelGetUnits.restype = ctypes.c_int
+
+        # -- exclusao de entidade (menu Editar > Excluir) [Observado via
+        # REA/Ghidra, 27/10/2026 -- catalogacao do menu Editar, ver
+        # REVERSE_ENGINEERING_NOTES.md secao 26]
+
+        # SUEntityRef SUComponentInstanceToEntity(SUComponentInstanceRef instance);
+        # [Confirmado por pseudocodigo] passthrough puro (`return param_1;`)
+        # -- so reinterpreta o mesmo ponteiro como SUEntityRef (ver nota em
+        # core/su_types.py). Passado/retornado por valor (struct de 1
+        # ponteiro cabe em registrador, igual aos demais Refs).
+        dll.SUComponentInstanceToEntity.argtypes = [SUComponentInstanceRef]
+        dll.SUComponentInstanceToEntity.restype = SUEntityRef
+
+        # SU_RESULT SUEntitiesErase(SUEntitiesRef entities, size_t len,
+        #     const SUEntityRef entities_arr[]);
+        # [Confirmado via assembly] entities==NULL -> 2
+        # SU_ERROR_INVALID_INPUT; entities_arr==NULL -> 1
+        # SU_ERROR_NULL_POINTER_INPUT. Remove de verdade os `len` entities
+        # do array de `entities` (a Entities PAI onde a instancia vive --
+        # nao da pra passar qualquer Entities, precisa ser a direta).
+        # Equivalente nativo do "Editar > Excluir" / tecla Del do SketchUp
+        # real.
+        dll.SUEntitiesErase.argtypes = [
+            SUEntitiesRef,
+            ctypes.c_size_t,
+            ctypes.POINTER(SUEntityRef),
+        ]
+        dll.SUEntitiesErase.restype = ctypes.c_int
+
+        # -- criacao de geometria nova (menu Desenho > Formas > Retangulo)
+        # [Confirmado via REA/Ghidra, 27/10/2026 -- catalogacao do menu
+        # Desenho, ver REVERSE_ENGINEERING_NOTES.md secao 28] Familia
+        # inteira de funcoes confirmadas como exports publicos reais da
+        # DLL (pseudocodigo com corpo nao-trivial, nao stub) -- mesma
+        # familia documentada publicamente pelo SDK da Trimble
+        # (model/geometry_input.h). Fluxo: GeometryInputCreate -> N x
+        # AddVertex -> LoopInputCreate -> N x LoopInputAddVertexIndex ->
+        # GeometryInputAddFace (consome o loop, zera o ponteiro do
+        # chamador -- ownership transfer, mesmo padrao do SDK publico) ->
+        # EntitiesFill (processa tudo e cria as SUFaceRef/SUEdgeRef de
+        # verdade dentro da Entities) -> GeometryInputRelease.
+
+        # SU_RESULT SUGeometryInputCreate(SUGeometryInputRef* geometry_input);
+        dll.SUGeometryInputCreate.argtypes = [ctypes.POINTER(SUGeometryInputRef)]
+        dll.SUGeometryInputCreate.restype = ctypes.c_int
+
+        # SU_RESULT SUGeometryInputRelease(SUGeometryInputRef* geometry_input);
+        dll.SUGeometryInputRelease.argtypes = [ctypes.POINTER(SUGeometryInputRef)]
+        dll.SUGeometryInputRelease.restype = ctypes.c_int
+
+        # SU_RESULT SUGeometryInputAddVertex(SUGeometryInputRef geometry_input,
+        #     const SUPoint3D* vertex);
+        dll.SUGeometryInputAddVertex.argtypes = [
+            SUGeometryInputRef,
+            ctypes.POINTER(SUPoint3D),
+        ]
+        dll.SUGeometryInputAddVertex.restype = ctypes.c_int
+
+        # SU_RESULT SULoopInputCreate(SULoopInputRef* loop_input);
+        dll.SULoopInputCreate.argtypes = [ctypes.POINTER(SULoopInputRef)]
+        dll.SULoopInputCreate.restype = ctypes.c_int
+
+        # SU_RESULT SULoopInputRelease(SULoopInputRef* loop_input); -- so
+        # usada se AddFace nao for chamada (erro no meio do caminho); em
+        # fluxo normal a posse do loop passa pra AddFace, que libera.
+        dll.SULoopInputRelease.argtypes = [ctypes.POINTER(SULoopInputRef)]
+        dll.SULoopInputRelease.restype = ctypes.c_int
+
+        # SU_RESULT SULoopInputAddVertexIndex(SULoopInputRef loop_input,
+        #     size_t vertex_index);
+        dll.SULoopInputAddVertexIndex.argtypes = [SULoopInputRef, ctypes.c_size_t]
+        dll.SULoopInputAddVertexIndex.restype = ctypes.c_int
+
+        # SU_RESULT SUGeometryInputAddFace(SUGeometryInputRef geometry_input,
+        #     SULoopInputRef* loop_input); -- consome e zera *loop_input.
+        dll.SUGeometryInputAddFace.argtypes = [
+            SUGeometryInputRef,
+            ctypes.POINTER(SULoopInputRef),
+        ]
+        dll.SUGeometryInputAddFace.restype = ctypes.c_int
+
+        # SU_RESULT SUEntitiesFill(SUEntitiesRef entities,
+        #     SUGeometryInputRef geometry_input, bool weld_vertices);
+        dll.SUEntitiesFill.argtypes = [
+            SUEntitiesRef,
+            SUGeometryInputRef,
+            ctypes.c_bool,
+        ]
+        dll.SUEntitiesFill.restype = ctypes.c_int
+
+        # -- material/cor (menu Ferramentas > Pintura) [Confirmado via
+        # REA/Ghidra, 28/10/2026 -- ver REVERSE_ENGINEERING_NOTES.md
+        # secao 28] Familia completa de exports publicos reais
+        # (pseudocodigo real batendo com o SDK publico documentado,
+        # model/material.h e model/drawing_element.h): cria um
+        # SUMaterialRef novo, define a cor RGBA, converte a instancia
+        # pra SUDrawingElementRef (mesmo "Ref generico" de
+        # SUComponentInstanceToEntity, so reinterpretacao de ponteiro) e
+        # aplica o material nela.
+
+        # SU_RESULT SUMaterialCreate(SUMaterialRef* material);
+        dll.SUMaterialCreate.argtypes = [ctypes.POINTER(SUMaterialRef)]
+        dll.SUMaterialCreate.restype = ctypes.c_int
+
+        # SU_RESULT SUMaterialRelease(SUMaterialRef* material);
+        dll.SUMaterialRelease.argtypes = [ctypes.POINTER(SUMaterialRef)]
+        dll.SUMaterialRelease.restype = ctypes.c_int
+
+        # SU_RESULT SUMaterialSetColor(SUMaterialRef material, const SUColor* color);
+        dll.SUMaterialSetColor.argtypes = [SUMaterialRef, ctypes.POINTER(SUColor)]
+        dll.SUMaterialSetColor.restype = ctypes.c_int
+
+        # SUDrawingElementRef SUComponentInstanceToDrawingElement(
+        #     SUComponentInstanceRef instance); -- passthrough puro
+        # (`return param_1;`, confirmado via pseudocodigo real), mesmo
+        # padrao de SUComponentInstanceToEntity (secao 26): retorna o
+        # Ref por VALOR, nao via ponteiro de saida, e nao tem SU_RESULT
+        # pra checar.
+        dll.SUComponentInstanceToDrawingElement.argtypes = [SUComponentInstanceRef]
+        dll.SUComponentInstanceToDrawingElement.restype = SUDrawingElementRef
+
+        # SU_RESULT SUDrawingElementSetMaterial(SUDrawingElementRef drawing_elem,
+        #     SUMaterialRef material);
+        dll.SUDrawingElementSetMaterial.argtypes = [SUDrawingElementRef, SUMaterialRef]
+        dll.SUDrawingElementSetMaterial.restype = ctypes.c_int
+
+        # -- Grupos (menu Editar > Criar grupo) e Etiqueta/Tag (menu
+        # Ferramentas > Etiqueta) [Confirmado via REA/Ghidra, 28/10/2026 --
+        # ver REVERSE_ENGINEERING_NOTES.md secao 28.17] Familia inteira
+        # confirmada por pseudocodigo real batendo com o SDK publico
+        # documentado pela Trimble (model/group.h, model/layer.h). A UI
+        # chama "Etiqueta" o que a API interna ainda chama "Layer" (nome
+        # legado da Trimble).
+
+        # SU_RESULT SUGroupCreate(SUGroupRef* group);
+        dll.SUGroupCreate.argtypes = [ctypes.POINTER(SUGroupRef)]
+        dll.SUGroupCreate.restype = ctypes.c_int
+
+        # SU_RESULT SUEntitiesAddGroup(SUEntitiesRef entities, SUGroupRef group);
+        dll.SUEntitiesAddGroup.argtypes = [SUEntitiesRef, SUGroupRef]
+        dll.SUEntitiesAddGroup.restype = ctypes.c_int
+
+        # SU_RESULT SUGroupGetEntities(SUGroupRef group, SUEntitiesRef* entities);
+        dll.SUGroupGetEntities.argtypes = [SUGroupRef, ctypes.POINTER(SUEntitiesRef)]
+        dll.SUGroupGetEntities.restype = ctypes.c_int
+
+        # SU_RESULT SUGroupSetName(SUGroupRef group, const char* name);
+        dll.SUGroupSetName.argtypes = [SUGroupRef, ctypes.c_char_p]
+        dll.SUGroupSetName.restype = ctypes.c_int
+
+        # SUComponentInstanceRef SUGroupToComponentInstance(SUGroupRef group);
+        # [Confirmado por pseudocodigo] passthrough puro (`return param_1;`),
+        # mesmo padrao de SUComponentInstanceToEntity/ToDrawingElement -- um
+        # Grupo E um ComponentInstance especial por baixo (confirmado via
+        # dynamic_cast real no corpo de SUGroupCreate).
+        dll.SUGroupToComponentInstance.argtypes = [SUGroupRef]
+        dll.SUGroupToComponentInstance.restype = SUComponentInstanceRef
+
+        # SU_RESULT SUEntitiesGetGroups(SUEntitiesRef entities, size_t len,
+        #     SUGroupRef groups[], size_t* count);
+        dll.SUEntitiesGetGroups.argtypes = [
+            SUEntitiesRef,
+            ctypes.c_size_t,
+            ctypes.POINTER(SUGroupRef),
+            ctypes.POINTER(ctypes.c_size_t),
+        ]
+        dll.SUEntitiesGetGroups.restype = ctypes.c_int
+
+        # SU_RESULT SUEntitiesGetNumGroups(SUEntitiesRef entities, size_t* count);
+        dll.SUEntitiesGetNumGroups.argtypes = [
+            SUEntitiesRef,
+            ctypes.POINTER(ctypes.c_size_t),
+        ]
+        dll.SUEntitiesGetNumGroups.restype = ctypes.c_int
+
+        # SU_RESULT SULayerCreate(SULayerRef* layer);
+        dll.SULayerCreate.argtypes = [ctypes.POINTER(SULayerRef)]
+        dll.SULayerCreate.restype = ctypes.c_int
+
+        # SU_RESULT SULayerSetName(SULayerRef layer, const char* name);
+        dll.SULayerSetName.argtypes = [SULayerRef, ctypes.c_char_p]
+        dll.SULayerSetName.restype = ctypes.c_int
+
+        # SU_RESULT SUModelAddLayers(SUModelRef model, size_t len,
+        #     const SULayerRef layers[]);
+        dll.SUModelAddLayers.argtypes = [
+            SUModelRef,
+            ctypes.c_size_t,
+            ctypes.POINTER(SULayerRef),
+        ]
+        dll.SUModelAddLayers.restype = ctypes.c_int
+
+        # SU_RESULT SUDrawingElementSetLayer(SUDrawingElementRef drawing_elem,
+        #     SULayerRef layer);
+        dll.SUDrawingElementSetLayer.argtypes = [SUDrawingElementRef, SULayerRef]
+        dll.SUDrawingElementSetLayer.restype = ctypes.c_int
+
+        # -- Pintura por face (menu Ferramentas > Pintura, modo "face")
+        # [Confirmado via REA/Ghidra, 28/10/2026 -- ver
+        # REVERSE_ENGINEERING_NOTES.md secao 28.19]. SUFaceSetFrontMaterial/
+        # SUFaceSetBackMaterial sao exports publicos reais, e o pseudocodigo
+        # real confirmou que SUFaceSetFrontMaterial e um thin wrapper que so
+        # chama SUFaceToDrawingElement(face) (passthrough puro, `return
+        # param_1;`, mesmo layout binario de todo "Ref" do SDK) seguido de
+        # SUDrawingElementSetMaterial -- por isso usamos o mesmo caminho
+        # direto aqui (ver paint_face() abaixo), igual ja feito em
+        # paint_instance().
+
+        # SUDrawingElementRef SUFaceToDrawingElement(SUFaceRef face);
+        dll.SUFaceToDrawingElement.argtypes = [SUFaceRef]
+        dll.SUFaceToDrawingElement.restype = SUDrawingElementRef
 
     # -- ciclo de vida da API -------------------------------------------------
 
@@ -459,6 +717,189 @@ class SketchUpAPI:
             "SUComponentInstanceSetTransform",
         )
 
+    def erase_instance(
+        self, parent_entities: SUEntitiesRef, instance: SUComponentInstanceRef
+    ) -> None:
+        """Remove de verdade uma SUComponentInstanceRef do seu Entities pai,
+        via SUComponentInstanceToEntity + SUEntitiesErase (equivalente
+        nativo do "Editar > Excluir"/Del). `parent_entities` precisa ser o
+        Entities DIRETO onde a instancia vive (ver registry["parent_entities"]
+        em core/mesh_extractor.py)."""
+        entity = self._dll.SUComponentInstanceToEntity(instance)
+        arr = (SUEntityRef * 1)(entity)
+        su_check(
+            self._dll.SUEntitiesErase(parent_entities, 1, arr),
+            "SUEntitiesErase",
+        )
+
+    def add_face(self, entities: SUEntitiesRef, points: list[tuple[float, float, float]]) -> None:
+        """Cria uma face plana nova dentro de `entities` a partir de uma
+        lista ordenada de vertices coplanares (polegadas, unidade nativa
+        da SDK -- ver conversao em sceneBuilder.js) -- equivalente real
+        de "Desenho > Formas > Retangulo"/"Círculo"/"Polígono" (aqui só o
+        caso retangular/poligonal simples é usado, ver
+        app/repositories/skp_engine_repository.py). Fluxo documentado em
+        _bind_prototypes() (criacao de geometria nova, REVERSE_ENGINEERING_
+        NOTES.md secao 28): GeometryInput -> N vertices -> 1 loop com
+        todos os indices -> 1 face -> EntitiesFill grava de verdade."""
+        dll = self._dll
+        geometry_input = SUGeometryInputRef()
+        su_check(dll.SUGeometryInputCreate(ctypes.byref(geometry_input)), "SUGeometryInputCreate")
+        try:
+            for x, y, z in points:
+                vertex = SUPoint3D(x=x, y=y, z=z)
+                su_check(
+                    dll.SUGeometryInputAddVertex(geometry_input, ctypes.byref(vertex)),
+                    "SUGeometryInputAddVertex",
+                )
+
+            loop_input = SULoopInputRef()
+            su_check(dll.SULoopInputCreate(ctypes.byref(loop_input)), "SULoopInputCreate")
+            for index in range(len(points)):
+                su_check(
+                    dll.SULoopInputAddVertexIndex(loop_input, ctypes.c_size_t(index)),
+                    "SULoopInputAddVertexIndex",
+                )
+            su_check(
+                dll.SUGeometryInputAddFace(geometry_input, ctypes.byref(loop_input)),
+                "SUGeometryInputAddFace",
+            )  # a partir daqui o loop_input foi consumido (ownership transfer)
+
+            su_check(
+                dll.SUEntitiesFill(entities, geometry_input, ctypes.c_bool(True)),
+                "SUEntitiesFill",
+            )
+        finally:
+            su_check(dll.SUGeometryInputRelease(ctypes.byref(geometry_input)), "SUGeometryInputRelease")
+
+    def paint_instance(
+        self, instance: SUComponentInstanceRef, r: int, g: int, b: int, a: int = 255
+    ) -> None:
+        """Aplica uma cor RGBA nova (0-255 por canal) de verdade numa
+        instancia real do modelo -- equivalente real de "Ferramentas >
+        Pintura" (ver REVERSE_ENGINEERING_NOTES.md secao 28). Fluxo
+        confirmado via REA/Ghidra (pseudocodigo real, familia completa
+        de exports publicos): MaterialCreate -> MaterialSetColor ->
+        ComponentInstanceToDrawingElement (passthrough) ->
+        DrawingElementSetMaterial. O material fica "dono" da cena (nao
+        e liberado aqui -- `SUMaterialRelease` destruiria o material
+        que acabou de ser atribuido; o SDK transfere a posse pro
+        modelo quando o material e aplicado, mesmo padrao do
+        GeometryInput em add_face)."""
+        dll = self._dll
+        material = SUMaterialRef()
+        su_check(dll.SUMaterialCreate(ctypes.byref(material)), "SUMaterialCreate")
+        color = SUColor(red=r, green=g, blue=b, alpha=a)
+        su_check(dll.SUMaterialSetColor(material, ctypes.byref(color)), "SUMaterialSetColor")
+        drawing_elem = dll.SUComponentInstanceToDrawingElement(instance)
+        su_check(
+            dll.SUDrawingElementSetMaterial(drawing_elem, material),
+            "SUDrawingElementSetMaterial",
+        )
+
+    def paint_face(self, face: SUFaceRef, r: int, g: int, b: int, a: int = 255) -> None:
+        """Aplica uma cor RGBA nova de verdade numa FACE especifica (nao
+        na instancia inteira) -- equivalente real de pintar por face no
+        SketchUp (ver REVERSE_ENGINEERING_NOTES.md secao 28.19). Como a
+        face pertence a geometria da DEFINICAO (nao da instancia), a
+        mudanca fica gravada no .skp pra TODAS as instancias que
+        compartilham essa definicao -- mesmo comportamento do SketchUp
+        real (diferente de paint_instance(), que so afeta UMA
+        instancia). Mesmo fluxo confirmado via REA pra
+        SUFaceSetFrontMaterial: MaterialCreate -> MaterialSetColor ->
+        SUFaceToDrawingElement (passthrough) -> DrawingElementSetMaterial."""
+        dll = self._dll
+        material = SUMaterialRef()
+        su_check(dll.SUMaterialCreate(ctypes.byref(material)), "SUMaterialCreate")
+        color = SUColor(red=r, green=g, blue=b, alpha=a)
+        su_check(dll.SUMaterialSetColor(material, ctypes.byref(color)), "SUMaterialSetColor")
+        drawing_elem = dll.SUFaceToDrawingElement(face)
+        su_check(
+            dll.SUDrawingElementSetMaterial(drawing_elem, material),
+            "SUDrawingElementSetMaterial",
+        )
+
+    def create_group(self, parent_entities: SUEntitiesRef, name: str) -> SUGroupRef:
+        """Cria um Grupo real dentro de `parent_entities` -- equivalente
+        real de "Editar > Criar grupo" (ver REVERSE_ENGINEERING_NOTES.md
+        secao 28.17). Fluxo confirmado via REA/Ghidra (pseudocodigo real):
+        GroupCreate -> SetName -> EntitiesAddGroup. Devolve o SUGroupRef
+        pra o chamador preencher geometria via get_group_entities() (o
+        grupo nasce vazio, igual um Entities novo)."""
+        dll = self._dll
+        group = SUGroupRef()
+        su_check(dll.SUGroupCreate(ctypes.byref(group)), "SUGroupCreate")
+        su_check(
+            dll.SUGroupSetName(group, name.encode("utf-8")), "SUGroupSetName"
+        )
+        su_check(
+            dll.SUEntitiesAddGroup(parent_entities, group), "SUEntitiesAddGroup"
+        )
+        return group
+
+    def get_group_entities(self, group: SUGroupRef) -> SUEntitiesRef:
+        entities = SUEntitiesRef()
+        su_check(
+            self._dll.SUGroupGetEntities(group, ctypes.byref(entities)),
+            "SUGroupGetEntities",
+        )
+        return entities
+
+    def get_groups(self, entities: SUEntitiesRef) -> list[SUGroupRef]:
+        """Grupos sao uma colecao SEPARADA de ComponentInstances no SDK
+        (SUEntitiesGetGroups, nao aparecem em SUEntitiesGetInstances) --
+        ver core/mesh_extractor.py, que converte cada um via
+        group_to_instance() pra reaproveitar o mesmo caminho de
+        extracao/edicao ja existente pra instancias."""
+        count = ctypes.c_size_t()
+        su_check(
+            self._dll.SUEntitiesGetNumGroups(entities, ctypes.byref(count)),
+            "SUEntitiesGetNumGroups",
+        )
+        n = count.value
+        if n == 0:
+            return []
+        arr = (SUGroupRef * n)()
+        actual = ctypes.c_size_t()
+        su_check(
+            self._dll.SUEntitiesGetGroups(entities, n, arr, ctypes.byref(actual)),
+            "SUEntitiesGetGroups",
+        )
+        return list(arr)[: actual.value]
+
+    def group_to_instance(self, group: SUGroupRef) -> SUComponentInstanceRef:
+        """Um SUGroupRef E um SUComponentInstanceRef especial por baixo
+        (confirmado via dynamic_cast real no corpo de SUGroupCreate) --
+        passthrough puro, mesmo padrao de SUComponentInstanceToEntity."""
+        return self._dll.SUGroupToComponentInstance(group)
+
+    def create_tag(self, model: SUModelRef, name: str) -> SULayerRef:
+        """Cria uma Etiqueta (Tag) real e a registra no modelo --
+        equivalente real de "Ferramentas > Etiqueta" (ver
+        REVERSE_ENGINEERING_NOTES.md secao 28.17). A UI chama "Etiqueta"
+        o que a API interna ainda chama "Layer" (nome legado da Trimble).
+        Fluxo: LayerCreate -> SetName -> ModelAddLayers (array de 1)."""
+        dll = self._dll
+        layer = SULayerRef()
+        su_check(dll.SULayerCreate(ctypes.byref(layer)), "SULayerCreate")
+        su_check(
+            dll.SULayerSetName(layer, name.encode("utf-8")), "SULayerSetName"
+        )
+        arr = (SULayerRef * 1)(layer)
+        su_check(dll.SUModelAddLayers(model, 1, arr), "SUModelAddLayers")
+        return layer
+
+    def set_instance_tag(self, instance: SUComponentInstanceRef, layer: SULayerRef) -> None:
+        """Aplica uma Etiqueta (Tag/Layer) real numa instancia -- mesmo
+        padrao de paint_instance() (ComponentInstanceToDrawingElement +
+        setter), so trocando Material por Layer."""
+        dll = self._dll
+        drawing_elem = dll.SUComponentInstanceToDrawingElement(instance)
+        su_check(
+            dll.SUDrawingElementSetLayer(drawing_elem, layer),
+            "SUDrawingElementSetLayer",
+        )
+
     def get_definition_entities(
         self, definition: SUComponentDefinitionRef
     ) -> SUEntitiesRef:
@@ -470,6 +911,23 @@ class SketchUpAPI:
             "SUComponentDefinitionGetEntities",
         )
         return entities
+
+    def get_definition_always_faces_camera(
+        self, definition: SUComponentDefinitionRef
+    ) -> bool:
+        """True quando o componente tem a opcao "Sempre de frente para a
+        camera" ligada (ex.: o personagem de escala dos templates) -- ver
+        SUComponentBehavior em core/su_types.py. So expomos esse campo por
+        enquanto; os outros 3 (glue-to/shadows/cuts_opening) nao sao
+        usados pelo visualizador ainda."""
+        behavior = SUComponentBehavior()
+        su_check(
+            self._dll.SUComponentDefinitionGetBehavior(
+                definition, ctypes.byref(behavior)
+            ),
+            "SUComponentDefinitionGetBehavior",
+        )
+        return bool(behavior.component_always_face_camera)
 
     def get_definition_name(self, definition: SUComponentDefinitionRef) -> str:
         name_ref = SUStringRef()
@@ -641,6 +1099,12 @@ class SketchUpModel:
         )
         return entities
 
+    @property
+    def raw_ref(self) -> SUModelRef:
+        """SUModelRef cru -- usado por chamadas que operam no nivel do
+        Model, nao de Entities (ex.: SUModelAddLayers em create_tag())."""
+        return self._model
+
     def save(self, file_path: str) -> None:
         """Grava o modelo em disco via SUModelSaveToFile. Pode sobrescrever
         o arquivo original (mesmo path usado em open_model) ou salvar em
@@ -650,6 +1114,23 @@ class SketchUpModel:
             self._dll.SUModelSaveToFile(self._model, path_bytes),
             "SUModelSaveToFile",
         )
+
+    def get_units(self) -> int:
+        """Retorna o SUModelUnits (int) do modelo via SUModelGetUnits.
+
+        Valores confirmados por assembly real (ver _bind_prototypes):
+        0=Polegadas, 1=Pes, 2=Milimetros, 3=Centimetros, 4=Metros -- essa
+        ordem segue o SDK publico (model.h) e os dois primeiros valores
+        (0 e 1) foram confirmados empiricamente pelo override de
+        LengthFormat observado no pseudocodigo real. Usado para
+        identificar a unidade real de cada template .skp (ver
+        REVERSE_ENGINEERING_NOTES.md secao 24)."""
+        units = ctypes.c_int(-1)
+        su_check(
+            self._dll.SUModelGetUnits(self._model, ctypes.byref(units)),
+            "SUModelGetUnits",
+        )
+        return units.value
 
     def count_summary(self) -> dict:
         """Retorna contagens básicas (faces/arestas/instâncias) do modelo raiz."""

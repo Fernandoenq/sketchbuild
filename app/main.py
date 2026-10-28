@@ -29,7 +29,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.exception_handlers import register_exception_handlers
-from app.routes import health_router, model_router, scene_router
+from app.routes import health_router, model_router, recent_files_router, scene_router
 
 app = FastAPI(title=settings.api_title)
 
@@ -38,6 +38,15 @@ register_exception_handlers(app)
 app.include_router(health_router.router)
 app.include_router(model_router.router, prefix=settings.api_prefix)
 app.include_router(scene_router.router, prefix=settings.api_prefix)
+app.include_router(recent_files_router.router, prefix=settings.api_prefix)
+
+# Thumbnails reais (PNG) dos arquivos recentes -- ver
+# app/repositories/recent_files_repository.py. Pasta criada sob demanda
+# pelo repository; garantimos que existe aqui tambem pro StaticFiles
+# nao reclamar num start limpo (sem nenhum arquivo aberto ainda).
+_THUMBNAILS_DIR = Path(__file__).resolve().parent / "data" / "thumbnails"
+_THUMBNAILS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/thumbnails", StaticFiles(directory=_THUMBNAILS_DIR), name="thumbnails")
 
 # Frontend Three.js estatico. Montado por ULTIMO: qualquer rota de API
 # acima e casada primeiro; isso so serve o que mais ninguem pegou

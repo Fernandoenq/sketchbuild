@@ -65,6 +65,64 @@ SUComponentInstanceRef = make_ref_struct("SUComponentInstanceRef")
 SUMeshHelperRef = make_ref_struct("SUMeshHelperRef")
 SUStringRef = make_ref_struct("SUStringRef")
 
+# SUEntityRef -- handle "base" generico (model/entity.h). Todo "Ref"
+# especifico (SUComponentInstanceRef, SUFaceRef, ...) pode virar um
+# SUEntityRef via uma funcao `SU<Tipo>ToEntity` -- confirmado via REA/
+# Ghidra (27/10/2026, catalogacao do menu Editar, ver REVERSE_ENGINEERING_
+# NOTES.md secao 26) que SUComponentInstanceToEntity (0x180008616) e um
+# passthrough puro (`return param_1;`), ou seja, so reinterpreta o mesmo
+# ponteiro -- os dois Refs tem byte-a-byte o mesmo layout, como todos os
+# outros. Usado por SUEntitiesErase (exclusao real de instancia/entidade).
+SUEntityRef = make_ref_struct("SUEntityRef")
+
+# SUGeometryInputRef/SULoopInputRef -- handles de CRIACAO de geometria nova
+# (model/geometry_input.h), diferentes dos Refs de leitura acima: sao
+# "builders" temporarios (preenchidos em memoria, depois consumidos por
+# SUEntitiesFill) -- nao apontam pra entidades ja existentes no modelo.
+# Confirmado via REA/Ghidra (27/10/2026, menu Desenho > Formas > Retangulo,
+# ver REVERSE_ENGINEERING_NOTES.md secao 28) que SUGeometryInputCreate/
+# SUGeometryInputAddVertex/SULoopInputCreate/SULoopInputAddVertexIndex/
+# SUGeometryInputAddFace/SUEntitiesFill sao exports publicos reais da DLL,
+# com corpo nao-trivial (nao stubs) -- mesma familia documentada
+# publicamente pelo SDK da Trimble.
+SUGeometryInputRef = make_ref_struct("SUGeometryInputRef")
+SULoopInputRef = make_ref_struct("SULoopInputRef")
+
+# SUMaterialRef/SUDrawingElementRef -- material.h/drawing_element.h.
+# Confirmado via REA/Ghidra (28/10/2026, Ferramentas > Pintura, ver
+# REVERSE_ENGINEERING_NOTES.md secao 28) que SUMaterialCreate/
+# SUMaterialSetColor/SUMaterialRelease/SUComponentInstanceToDrawingElement/
+# SUDrawingElementSetMaterial sao exports publicos reais (pseudocodigo
+# real batendo com o SDK publico documentado pela Trimble) -- permitem
+# criar um material novo com cor RGBA customizada e aplica-lo numa
+# instancia real do modelo. SUDrawingElementRef e outro "Ref generico"
+# como SUEntityRef (mesmo layout binario, so reinterpretacao).
+SUMaterialRef = make_ref_struct("SUMaterialRef")
+SUDrawingElementRef = make_ref_struct("SUDrawingElementRef")
+
+# SUGroupRef/SULayerRef -- model/group.h e model/layer.h. Confirmados via
+# REA/Ghidra (28/10/2026, Grupos/Etiqueta, ver REVERSE_ENGINEERING_NOTES.md
+# secao 28.17) como exports publicos reais da SketchUpAPI.dll (pseudocodigo
+# real batendo com o SDK documentado pela Trimble) -- a UI chama "Etiqueta"
+# o que a API interna ainda chama de "Layer" (nome legado da Trimble).
+# SUGroupRef e um "ComponentInstance especial" por baixo (confirmado via
+# RTTI dynamic_cast real no corpo de SUGroupCreate) -- SUGroupToComponentInstance
+# converte (mesmo padrao passthrough de SUComponentInstanceToEntity/
+# ToDrawingElement).
+SUGroupRef = make_ref_struct("SUGroupRef")
+SULayerRef = make_ref_struct("SULayerRef")
+
+
+class SUColor(ctypes.Structure):
+    """model/color.h -- RGBA, 1 byte por canal (0-255)."""
+
+    _fields_ = [
+        ("red", ctypes.c_ubyte),
+        ("green", ctypes.c_ubyte),
+        ("blue", ctypes.c_ubyte),
+        ("alpha", ctypes.c_ubyte),
+    ]
+
 
 class SUPoint3D(ctypes.Structure):
     """model/geometry.h -- ponto 3D em coordenadas do modelo (metros, double)."""
@@ -83,3 +141,26 @@ class SUTransformation(ctypes.Structure):
     Three.js `Matrix4.fromArray`, sem transposicao necessaria)."""
 
     _fields_ = [("values", ctypes.c_double * 16)]
+
+
+class SUComponentBehavior(ctypes.Structure):
+    """model/behavior.h -- layout de 16 bytes. offset 0 (component_type) e
+    os 8 bytes finais (offset 8..15, NAO documentados no SDK publico)
+    confirmados via REA/Ghidra (SUComponentDefinitionGetBehavior,
+    27/10/2026). A ORDEM dos 3 bools (offset 4/5/6) foi inicialmente
+    deduzida errado a partir so do pseudocodigo (component_cuts_opening e
+    calculado via chamada de funcao, nao lido direto do objeto, o que
+    sugeria erradamente ser o primeiro) -- CORRIGIDA e confirmada
+    empiricamente comparando com `ComponentDefinition#behavior` via
+    Console Ruby do SketchUp 2026 rodando de verdade (`[always_face_
+    camera?, shadows_face_sun?, cuts_opening?] == [true, true, false]`
+    pro componente "Sree" do template Simples/Metros)."""
+
+    _fields_ = [
+        ("component_type", ctypes.c_int32),  # enum SUComponentType (glue-to)
+        ("component_cuts_opening", ctypes.c_bool),
+        ("component_always_face_camera", ctypes.c_bool),
+        ("component_shadows_face_sun", ctypes.c_bool),
+        ("_padding", ctypes.c_uint8),
+        ("_reserved", ctypes.c_int64),  # nao documentado no SDK publico
+    ]

@@ -1,0 +1,11 @@
+# Dados gerados em runtime pela Pagina Inicial (recent_files.json guarda
+# caminhos absolutos reais do seu disco; thumbnails/ guarda PNGs reais dos
+# seus modelos -- nenhum dos dois deveria ir pro repositorio).
+app/data/
+
+# Bytecode compilado do Python -- nunca deveria ter sido versionado.
+__pycache__/
+*.pyc
+
+# Indice local do graft (regenerado a cada sessao, nao e codigo-fonte).
+graft/

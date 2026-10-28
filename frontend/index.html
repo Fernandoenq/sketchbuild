@@ -6,57 +6,745 @@
   <title>SketchBuild -- Visualizador 3D</title>
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #14161a;
-      --panel: #1d2026;
-      --border: #2c3038;
-      --text: #e6e8eb;
-      --muted: #9aa1ab;
-      --accent: #4f8cff;
-      --error: #ff5c5c;
+      color-scheme: light;
+      /* Paleta "SketchUp Classic" -- cinzas corporativos, sem dark mode */
+      --bg: #ECECEC;
+      --panel: #F2F2F2;
+      --toolbar: #E8E8E8;
+      --border: #C8C8C8;
+      --text: #2B2B2B;
+      --muted: #6B6B6B;
+      --accent: #3C7FB1;
+      --error: #C0392B;
+      --su-font: "Segoe UI", Tahoma, Arial, sans-serif;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
-      font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
-    #viewport { position: fixed; inset: 0; }
-    #panel {
-      position: absolute; top: 16px; left: 16px; z-index: 10;
-      background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
-      padding: 14px 16px; width: min(420px, calc(100vw - 32px));
-      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+      font-family: var(--su-font); }
+    #viewport { position: fixed; inset: 60px 0 0 0; }
+
+    /* Barra de menu real (texto), igual a barra do SketchUp Desktop --
+       ver REVERSE_ENGINEERING_NOTES.md secao 26 (catalogada via clique
+       real no SketchUp 2026 rodando na maquina, nao suposicao). So
+       "Arquivo" e "Editar" tem itens ligados de verdade nesta rodada;
+       os outros 7 menus (e a maioria dos itens dentro de Arquivo/Editar)
+       ficam desabilitados -- igual o SketchUp real faz com itens
+       indisponiveis no contexto atual, nunca escondidos. */
+    #menu-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 24px; z-index: 31;
+      background: var(--toolbar); border-bottom: 1px solid var(--border);
+      display: flex; align-items: stretch; font-size: 12px;
     }
-    #panel h1 { font-size: 14px; margin: 0 0 10px; font-weight: 600; color: var(--text); }
-    #panel .row { display: flex; gap: 8px; }
-    #path-input {
-      flex: 1; background: #111316; border: 1px solid var(--border); color: var(--text);
-      border-radius: 6px; padding: 8px 10px; font-size: 13px; min-width: 0;
+    .menu-top-item {
+      position: relative; padding: 0 10px; display: flex; align-items: center;
+      cursor: pointer; color: var(--text); user-select: none;
+    }
+    .menu-top-item:hover, .menu-top-item.open { background: #DCDCDC; }
+    .menu-top-item.disabled { color: var(--muted); cursor: default; }
+    .menu-top-item.disabled:hover { background: transparent; }
+    .menu-dropdown {
+      position: absolute; top: 24px; left: 0; min-width: 240px; z-index: 32;
+      background: #FFFFFF; border: 1px solid var(--border); border-radius: 2px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.2); padding: 4px 0; display: none;
+    }
+    .menu-top-item.open .menu-dropdown { display: block; }
+    .menu-dropdown-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding: 5px 14px; cursor: pointer; color: var(--text); white-space: nowrap;
+    }
+    .menu-dropdown-item:hover { background: var(--accent); color: white; }
+    .menu-dropdown-item.disabled { color: #B6B6B6; cursor: default; }
+    .menu-dropdown-item.disabled:hover { background: transparent; color: #B6B6B6; }
+    .menu-dropdown-shortcut { font-size: 10px; color: inherit; opacity: .75; }
+    .menu-dropdown-sep { border-top: 1px solid var(--border); margin: 4px 0; }
+    .menu-check { display: inline-block; width: 14px; opacity: 0; }
+    .menu-dropdown-item.is-checked .menu-check { opacity: 1; }
+    /* Submenu aninhado (flyout), ex.: "Estilo de face >" dentro de "Visualizar" --
+       mesma ideia do menu de topo, so que aberto no hover em vez de clique. */
+    .menu-dropdown-item.has-submenu { position: relative; }
+    .menu-dropdown-item.has-submenu > .menu-dropdown {
+      top: -5px; left: 100%; display: none;
+    }
+    .menu-dropdown-item.has-submenu:hover > .menu-dropdown { display: block; }
+
+    #top-toolbar {
+      position: fixed; top: 24px; left: 0; right: 0; height: 36px; z-index: 30;
+      background: var(--toolbar); border-bottom: 1px solid var(--border);
+      display: flex; align-items: stretch;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .toolbar-group {
+      display: flex; align-items: center; gap: 2px; padding: 0 6px;
+      border-right: 1px solid var(--border);
+    }
+    .toolbar-group:last-child { border-right: none; }
+    .toolbar-btn {
+      width: 30px; height: 28px; background: transparent; border: 1px solid transparent;
+      border-radius: 3px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text); padding: 0;
+    }
+    .toolbar-btn:hover { background: #DCDCDC; border-color: var(--border); }
+    .toolbar-btn:active { background: #CFCFCF; }
+    .toolbar-btn svg { width: 16px; height: 16px; stroke: var(--text); fill: none; stroke-width: 1.4; }
+
+    #panel {
+      position: absolute; top: 76px; left: 16px; z-index: 10;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 2px;
+      padding: 12px 14px; width: min(420px, calc(100vw - 32px));
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+    #panel h1 {
+      font-size: 11px; margin: 0 0 10px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    #panel .row { display: flex; gap: 6px; }
+    #path-input, #save-path-input {
+      flex: 1; background: #FFFFFF; border: 1px solid var(--border); color: var(--text);
+      border-radius: 2px; padding: 6px 8px; font-size: 12px; min-width: 0;
+      font-family: var(--su-font);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.06);
+    }
+    #path-input:focus, #save-path-input:focus {
+      outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(60,127,177,.25);
     }
     #open-btn {
-      background: var(--accent); color: white; border: none; border-radius: 6px;
-      padding: 8px 14px; font-size: 13px; cursor: pointer; white-space: nowrap;
+      background: var(--accent); color: white; border: 1px solid #336f9c; border-radius: 2px;
+      padding: 6px 12px; font-size: 12px; cursor: pointer; white-space: nowrap;
     }
+    #open-btn:hover:not(:disabled) { background: #3570a0; }
     #open-btn:disabled { opacity: .5; cursor: default; }
-    #status { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    #status { margin-top: 10px; font-size: 11px; color: var(--muted); line-height: 1.5; }
     #status.error { color: var(--error); }
-    hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     #edit-panel.hidden { display: none; }
-    #edit-panel .row { margin-bottom: 8px; }
-    #edit-panel label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; }
+    #edit-panel .row { margin-bottom: 8px; gap: 6px; }
+    #edit-panel label {
+      font-size: 10px; color: var(--muted); display: block; margin-bottom: 4px;
+      text-transform: uppercase; letter-spacing: .03em;
+    }
     .mode-btn {
-      background: #111316; border: 1px solid var(--border); color: var(--text);
-      border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer;
+      background: #FFFFFF; border: 1px solid var(--border); color: var(--text);
+      border-radius: 2px; padding: 6px 10px; font-size: 11px; cursor: pointer; height: 28px;
     }
-    .mode-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+    .mode-btn:hover { background: #F5F5F5; }
+    .mode-btn.active { background: var(--accent); border-color: #336f9c; color: white; }
+    .panel-btn {
+      background: #FFFFFF; border: 1px solid var(--border); color: var(--text);
+      border-radius: 2px; padding: 6px 10px; font-size: 11px; cursor: pointer; height: 28px;
+    }
+    .panel-btn:hover { background: #F5F5F5; }
+    #delete-btn { color: var(--error); border-color: #e0b4ae; }
+    #delete-btn:hover { background: #FBEAE8; }
+    .dim-input {
+      background: #FFFFFF; border: 1px solid var(--border); color: var(--text);
+      border-radius: 2px; padding: 6px 8px; font-size: 12px; font-family: var(--su-font);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.06);
+    }
+    .dim-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(60,127,177,.25); }
     #save-btn {
-      background: #2e7d32; color: white; border: none; border-radius: 6px;
-      padding: 8px 14px; font-size: 13px; cursor: pointer; white-space: nowrap;
+      background: #3C7FB1; color: white; border: 1px solid #336f9c; border-radius: 2px;
+      padding: 6px 12px; font-size: 12px; cursor: pointer; white-space: nowrap;
     }
+    #save-btn:hover:not(:disabled) { background: #3570a0; }
     #save-btn:disabled { opacity: .5; cursor: default; }
-    #selected-label { font-size: 12px; color: var(--text); margin-bottom: 8px; }
+    #selected-label { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+
+    /* Default Tray -- painel direito unificado, abas sanfonadas (accordion) */
+    #default-tray {
+      position: absolute; top: 76px; right: 16px; z-index: 10;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 2px;
+      width: min(280px, calc(100vw - 32px)); max-height: calc(100vh - 92px);
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    #default-tray.hidden { display: none; }
+    .tray-section { display: flex; flex-direction: column; min-height: 0; }
+    .tray-section + .tray-section { border-top: 1px solid var(--border); }
+    .tray-section.collapsed .tray-body { display: none; }
+    .tray-section:not(.collapsed) { flex: 1; min-height: 0; }
+    .tray-header {
+      display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;
+      font-size: 11px; font-weight: 600; color: var(--text);
+      text-transform: uppercase; letter-spacing: .03em;
+      padding: 7px 14px; background: var(--toolbar); border-bottom: 1px solid var(--border);
+      flex: none;
+    }
+    .tray-header:hover { background: #DEDEDE; }
+    .tray-arrow {
+      width: 8px; height: 8px; flex: none;
+      border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted);
+      transform: rotate(45deg); transition: transform .1s;
+    }
+    .tray-section.collapsed .tray-arrow { transform: rotate(-45deg); }
+    .tray-body { overflow-y: auto; min-height: 0; }
+
+    #outliner-tree { padding: 8px; font-size: 12px; }
+    .outliner-node { user-select: none; }
+    .outliner-row {
+      display: flex; align-items: center; gap: 4px; padding: 3px 6px;
+      border-radius: 2px; cursor: pointer; color: var(--text); white-space: nowrap;
+    }
+    .outliner-row:hover { background: #E0E0E0; }
+    .outliner-row.selected { background: var(--accent); color: white; }
+    .outliner-toggle {
+      width: 14px; flex: none; text-align: center; color: var(--muted); font-size: 10px;
+    }
+    .outliner-label { overflow: hidden; text-overflow: ellipsis; }
+    .outliner-children { margin-left: 14px; }
+    .outliner-children.collapsed { display: none; }
+
+    #entity-info-empty { padding: 14px; font-size: 11px; color: var(--muted); font-style: italic; }
+    #entity-info-empty.hidden { display: none; }
+    #entity-info { padding: 10px 14px; }
+    #entity-info.hidden { display: none; }
+    .entity-info-row { margin-bottom: 10px; }
+    .entity-info-row label {
+      font-size: 10px; color: var(--muted); display: block; margin-bottom: 4px;
+      text-transform: uppercase; letter-spacing: .03em;
+    }
+    .entity-info-inputs { display: flex; gap: 4px; }
+    .entity-info-inputs input {
+      width: 0; flex: 1; background: #FFFFFF; border: 1px solid var(--border); color: var(--text);
+      border-radius: 2px; padding: 5px 6px; font-size: 12px; min-width: 0;
+      font-family: "Consolas", monospace; text-align: right;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.06);
+    }
+    .entity-info-inputs input:focus {
+      outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(60,127,177,.25);
+    }
+
+    /* Pagina Inicial -- tela de boas-vindas, modelada no dialogo real do
+       SketchUp Desktop Classic (ver REVERSE_ENGINEERING_NOTES.md). */
+    #welcome-screen {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,.35);
+      display: flex; align-items: center; justify-content: center;
+    }
+    #welcome-screen.hidden { display: none; }
+    #welcome-dialog {
+      width: min(900px, calc(100vw - 48px)); height: min(640px, calc(100vh - 48px));
+      background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.3);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .welcome-titlebar {
+      display: flex; align-items: center; gap: 8px; flex: none;
+      background: var(--toolbar); border-bottom: 1px solid var(--border);
+      padding: 8px 10px; font-size: 12px; color: var(--text);
+    }
+    .welcome-titlebar-icon { width: 16px; height: 16px; color: var(--accent); flex: none; }
+    .welcome-titlebar-icon svg { width: 100%; height: 100%; }
+    .welcome-titlebar span:nth-child(2) { flex: 1; }
+    #welcome-close-btn {
+      background: none; border: none; color: var(--muted); font-size: 16px;
+      line-height: 1; cursor: pointer; padding: 2px 6px; border-radius: 2px;
+    }
+    #welcome-close-btn:hover { background: #DCDCDC; color: var(--text); }
+    .welcome-body { flex: 1; display: flex; min-height: 0; }
+
+    .welcome-sidebar {
+      width: 160px; flex: none; background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: 14px 0;
+    }
+    .welcome-nav-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+      font-size: 12px; color: var(--text); cursor: pointer;
+      border-left: 3px solid transparent;
+    }
+    .welcome-nav-item svg { width: 15px; height: 15px; flex: none; }
+    .welcome-nav-item.active {
+      color: var(--accent); font-weight: 600; border-left-color: var(--accent);
+      background: #E2ECF3;
+    }
+    .welcome-nav-item.disabled { color: var(--muted); cursor: default; }
+    .welcome-nav-footer {
+      display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+      font-size: 12px; color: var(--muted); cursor: default;
+    }
+    .welcome-nav-footer svg { width: 15px; height: 15px; flex: none; }
+
+    .welcome-main { flex: 1; min-width: 0; overflow-y: auto; padding: 18px 22px; }
+    .welcome-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .welcome-header h1 {
+      font-size: 18px; font-weight: 700; color: var(--accent); margin: 0;
+      letter-spacing: .02em;
+    }
+
+    .welcome-section { margin-bottom: 20px; }
+    .welcome-section-header {
+      display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px;
+    }
+    .welcome-section-header h2 { font-size: 13px; font-weight: 600; color: var(--text); margin: 0; }
+    .welcome-link { font-size: 11px; color: var(--accent); cursor: pointer; }
+    .welcome-link.disabled { color: var(--muted); cursor: default; }
+
+    .welcome-template-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px;
+    }
+    .welcome-template-card {
+      position: relative; border: 1px solid var(--border); border-radius: 3px;
+      background: #FFFFFF; overflow: hidden; cursor: pointer;
+    }
+    .welcome-template-card:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .welcome-template-thumb {
+      height: 70px; display: flex; align-items: center; justify-content: center;
+      background: #E4E7EA; color: var(--muted);
+    }
+    .welcome-template-thumb svg { width: 26px; height: 26px; }
+    .welcome-template-label {
+      padding: 5px 7px 6px; font-size: 11px; color: var(--text); font-weight: 600;
+    }
+    .welcome-template-label small { display: block; font-weight: 400; color: var(--muted); }
+
+    .welcome-open-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #FFFFFF; border: 1px solid var(--border); color: var(--text);
+      border-radius: 2px; padding: 7px 12px; font-size: 12px; cursor: pointer;
+      margin-bottom: 18px;
+    }
+    .welcome-open-btn:hover { background: #F5F5F5; }
+    .welcome-open-btn .caret { font-size: 9px; color: var(--muted); }
+
+    #welcome-open-row { display: none; gap: 6px; margin: -10px 0 18px; }
+    #welcome-open-row.visible { display: flex; }
+    #welcome-path-input {
+      flex: 1; background: #FFFFFF; border: 1px solid var(--border); color: var(--text);
+      border-radius: 2px; padding: 6px 8px; font-size: 12px; min-width: 0;
+      font-family: var(--su-font); box-shadow: inset 0 1px 2px rgba(0,0,0,.06);
+    }
+    #welcome-open-row button {
+      background: var(--accent); color: white; border: 1px solid #336f9c; border-radius: 2px;
+      padding: 6px 12px; font-size: 12px; cursor: pointer; white-space: nowrap;
+    }
+
+    .welcome-recent-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
+    }
+    .welcome-recent-empty { font-size: 12px; color: var(--muted); font-style: italic; }
+    .recent-card {
+      border: 1px solid var(--border); border-radius: 3px; background: #FFFFFF;
+      overflow: hidden; cursor: pointer;
+    }
+    .recent-card:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .recent-card-thumb {
+      height: 90px; display: flex; align-items: center; justify-content: center;
+      background: #E4E7EA; overflow: hidden;
+    }
+    .recent-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .recent-card-placeholder-icon { width: 28px; height: 28px; stroke: var(--muted); fill: none; stroke-width: 1.4; }
+    .recent-card-name {
+      padding: 6px 8px 0; font-size: 12px; color: var(--text); font-weight: 600;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .recent-card-date { padding: 2px 8px 8px; font-size: 10px; color: var(--muted); }
   </style>
 </head>
 <body>
+  <div id="welcome-screen">
+    <div id="welcome-dialog">
+      <div class="welcome-titlebar">
+        <span class="welcome-titlebar-icon">
+          <svg viewBox="0 0 24 24"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5" /><line x1="12" y1="3" x2="12" y2="12" /><line x1="4" y1="7.5" x2="12" y2="12" /><line x1="20" y1="7.5" x2="12" y2="12" /></svg>
+        </span>
+        <span>Bem-vindo(a) ao SketchBuild</span>
+        <button id="welcome-close-btn" title="Fechar" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="welcome-body">
+        <nav class="welcome-sidebar">
+          <div>
+            <div class="welcome-nav-item active">
+              <svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7" /><path d="M6 10v9h12v-9" /></svg>
+              <span>Pagina Inicial</span>
+            </div>
+            <div class="welcome-nav-item disabled" title="Em breve">
+              <svg viewBox="0 0 24 24"><path d="M3 6c3-1.3 6-1.3 9 0c3-1.3 6-1.3 9 0v12c-3-1.3-6-1.3-9 0c-3-1.3-6-1.3-9 0z" /><line x1="12" y1="6" x2="12" y2="18" /></svg>
+              <span>Aprender</span>
+            </div>
+          </div>
+          <div class="welcome-nav-footer" title="Em breve">
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1" /><circle cx="8" cy="12" r="2" /><line x1="13" y1="10" x2="18" y2="10" /><line x1="13" y1="14" x2="18" y2="14" /></svg>
+            <span>Licenca</span>
+          </div>
+        </nav>
+
+        <div class="welcome-main">
+          <div class="welcome-header">
+            <h1>PAGINA INICIAL</h1>
+          </div>
+
+          <div class="welcome-section">
+            <div class="welcome-section-header">
+              <h2>Criar novo modelo</h2>
+              <span class="welcome-link disabled" title="Em breve">Mais modelos</span>
+            </div>
+            <div class="welcome-template-grid" id="welcome-template-grid">
+              <div class="welcome-template-card" data-template-id="simple_meters">
+                <div class="welcome-template-thumb"><svg viewBox="0 0 24 24"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5" /><line x1="12" y1="3" x2="12" y2="12" /><line x1="4" y1="7.5" x2="12" y2="12" /><line x1="20" y1="7.5" x2="12" y2="12" /></svg></div>
+                <div class="welcome-template-label">Simples<small>Metros</small></div>
+              </div>
+              <div class="welcome-template-card" data-template-id="simple_inches">
+                <div class="welcome-template-thumb"><svg viewBox="0 0 24 24"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5" /><line x1="12" y1="3" x2="12" y2="12" /><line x1="4" y1="7.5" x2="12" y2="12" /><line x1="20" y1="7.5" x2="12" y2="12" /></svg></div>
+                <div class="welcome-template-label">Simples<small>Polegadas</small></div>
+              </div>
+              <div class="welcome-template-card" data-template-id="visualization_inches">
+                <div class="welcome-template-thumb"><svg viewBox="0 0 24 24"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5" /><line x1="12" y1="3" x2="12" y2="12" /><line x1="4" y1="7.5" x2="12" y2="12" /><line x1="20" y1="7.5" x2="12" y2="12" /></svg></div>
+                <div class="welcome-template-label">Visualizacao<small>Polegadas</small></div>
+              </div>
+              <div class="welcome-template-card" data-template-id="visualization_millimeters">
+                <div class="welcome-template-thumb"><svg viewBox="0 0 24 24"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5" /><line x1="12" y1="3" x2="12" y2="12" /><line x1="4" y1="7.5" x2="12" y2="12" /><line x1="20" y1="7.5" x2="12" y2="12" /></svg></div>
+                <div class="welcome-template-label">Visualizacao<small>Milimetros</small></div>
+              </div>
+              <div class="welcome-template-card" data-template-id="architectural_inches">
+                <div class="welcome-template-thumb"><svg viewBox="0 0 24 24"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5" /><line x1="12" y1="3" x2="12" y2="12" /><line x1="4" y1="7.5" x2="12" y2="12" /><line x1="20" y1="7.5" x2="12" y2="12" /></svg></div>
+                <div class="welcome-template-label">Arquitetura<small>Polegadas</small></div>
+              </div>
+              <div class="welcome-template-card" data-template-id="architectural_millimeters">
+                <div class="welcome-template-thumb"><svg viewBox="0 0 24 24"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5" /><line x1="12" y1="3" x2="12" y2="12" /><line x1="4" y1="7.5" x2="12" y2="12" /><line x1="20" y1="7.5" x2="12" y2="12" /></svg></div>
+                <div class="welcome-template-label">Arquitetura<small>Milimetros</small></div>
+              </div>
+            </div>
+          </div>
+
+          <button class="welcome-open-btn" id="welcome-open-btn">
+            Abrir arquivo <span class="caret">&#9662;</span>
+          </button>
+          <div id="welcome-open-row">
+            <input id="welcome-path-input" type="text" placeholder="C:\caminho\para\arquivo.skp" />
+            <button id="welcome-open-confirm-btn">Abrir</button>
+          </div>
+
+          <div class="welcome-section">
+            <div class="welcome-section-header">
+              <h2>Arquivos recentes</h2>
+            </div>
+            <div class="welcome-recent-grid" id="welcome-recent-grid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="viewport"></div>
+
+  <div id="menu-bar">
+    <div class="menu-top-item" data-menu="arquivo">
+      Arquivo
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item" data-action="new"><span>Novo</span><span class="menu-dropdown-shortcut">Ctrl+N</span></div>
+        <div class="menu-dropdown-item disabled"><span>Novo a partir de um modelo...</span></div>
+        <div class="menu-dropdown-item" data-action="open"><span>Abrir...</span><span class="menu-dropdown-shortcut">Ctrl+O</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item" data-action="save"><span>Salvar</span><span class="menu-dropdown-shortcut">Ctrl+S</span></div>
+        <div class="menu-dropdown-item" data-action="save-as"><span>Salvar como...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Salvar uma cópia como...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Salvar como modelo...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Reverter</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled" title="Depende de conta/API na nuvem da Trimble -- fora de escopo"><span>Trimble Connect</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-item disabled" title="Depende de conta/API na nuvem da Trimble -- fora de escopo"><span>3D Warehouse</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-item disabled"><span>Importar...</span></div>
+        <div class="menu-dropdown-item" data-action="export-obj"><span>Exportar &gt; Modelo 3D (.obj)...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Exportar &gt; Gráfico 2D...</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Enviar para o LayOut...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Imprimir...</span><span class="menu-dropdown-shortcut">Ctrl+P</span></div>
+      </div>
+    </div>
+    <div class="menu-top-item" data-menu="editar">
+      Editar
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item disabled"><span>Desfazer</span><span class="menu-dropdown-shortcut">Ctrl+Z</span></div>
+        <div class="menu-dropdown-item disabled"><span>Refazer</span><span class="menu-dropdown-shortcut">Ctrl+Y</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Recortar</span><span class="menu-dropdown-shortcut">Ctrl+X</span></div>
+        <div class="menu-dropdown-item disabled"><span>Copiar</span><span class="menu-dropdown-shortcut">Ctrl+C</span></div>
+        <div class="menu-dropdown-item disabled"><span>Colar</span><span class="menu-dropdown-shortcut">Ctrl+V</span></div>
+        <div class="menu-dropdown-item" data-action="delete"><span>Excluir</span><span class="menu-dropdown-shortcut">Del</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Selecionar tudo</span><span class="menu-dropdown-shortcut">Ctrl+A</span></div>
+        <div class="menu-dropdown-item disabled"><span>Selecionar nenhum</span><span class="menu-dropdown-shortcut">Ctrl+T</span></div>
+        <div class="menu-dropdown-item disabled"><span>Inverter Seleção</span><span class="menu-dropdown-shortcut">Ctrl+Shift+I</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Criar componente...</span><span class="menu-dropdown-shortcut">G</span></div>
+        <div class="menu-dropdown-item" data-action="rect-as-group" title="Marca a opcao 'Criar como grupo' do painel de Retângulo -- SUGroupCreate/SUEntitiesAddGroup reais"><span>Criar grupo</span></div>
+      </div>
+    </div>
+    <div class="menu-top-item" data-menu="visualizar">
+      Visualizar
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item disabled"><span>Barras de ferramentas...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Guias de cena</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Geometria oculta</span></div>
+        <div class="menu-dropdown-item disabled"><span>Objetos ocultos</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Planos de seção</span></div>
+        <div class="menu-dropdown-item disabled"><span>Cortes de seção</span></div>
+        <div class="menu-dropdown-item disabled"><span>Preenchimento de seção</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item is-checked" id="menu-item-axes" data-action="toggle-axes"><span><span class="menu-check">&#10003;</span>Eixos</span></div>
+        <div class="menu-dropdown-item disabled"><span>Guias</span></div>
+        <div class="menu-dropdown-item disabled"><span>Comentários</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item" id="menu-item-shadows" data-action="toggle-shadows"><span><span class="menu-check">&#10003;</span>Sombras</span></div>
+        <div class="menu-dropdown-item" id="menu-item-fog" data-action="toggle-fog"><span><span class="menu-check">&#10003;</span>Névoa</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item has-submenu"><span>Estilo de aresta</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" id="menu-item-edges" data-action="toggle-edges"><span><span class="menu-check">&#10003;</span>Bordas</span></div>
+            <div class="menu-dropdown-item disabled"><span>Bordas traseiras</span><span class="menu-dropdown-shortcut">K</span></div>
+            <div class="menu-dropdown-item disabled"><span>Perfis</span></div>
+            <div class="menu-dropdown-item disabled"><span>Profundidade</span></div>
+            <div class="menu-dropdown-item disabled"><span>Extensão</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-item has-submenu"><span>Estilo de face</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" id="menu-item-face-xray" data-action="face-style-xray"><span><span class="menu-check">&#10003;</span>Raios X</span></div>
+            <div class="menu-dropdown-item disabled"><span>Oclusão ambiental</span></div>
+            <div class="menu-dropdown-item" id="menu-item-face-wireframe" data-action="face-style-wireframe"><span><span class="menu-check">&#10003;</span>Grade de linhas</span></div>
+            <div class="menu-dropdown-item disabled"><span>Linha oculta</span></div>
+            <div class="menu-dropdown-item" id="menu-item-face-flat" data-action="face-style-flat"><span><span class="menu-check">&#10003;</span>Sombreado</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-face-textured" data-action="face-style-textured"><span><span class="menu-check">&#10003;</span>Sombreado com texturas</span></div>
+            <div class="menu-dropdown-item" id="menu-item-face-monochrome" data-action="face-style-monochrome"><span><span class="menu-check">&#10003;</span>Monocromático</span></div>
+            <div class="menu-dropdown-item disabled"><span>Materiais fotorrealistas</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Editar componente</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-item disabled"><span>Animação</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Norte verdadeiro</span></div>
+        <div class="menu-dropdown-item disabled"><span>Alfinete de localização</span></div>
+      </div>
+    </div>
+    <div class="menu-top-item" data-menu="camera">
+      Câmera
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item disabled"><span>Anterior</span></div>
+        <div class="menu-dropdown-item disabled"><span>Próximo</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item has-submenu"><span>Exibições padrão</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="view-alto"><span>Alto</span></div>
+            <div class="menu-dropdown-item" data-action="view-inferior"><span>Inferior</span></div>
+            <div class="menu-dropdown-item" data-action="view-frontal"><span>Frontal</span></div>
+            <div class="menu-dropdown-item" data-action="view-posterior"><span>Posterior</span></div>
+            <div class="menu-dropdown-item" data-action="view-esquerda"><span>Esquerda</span></div>
+            <div class="menu-dropdown-item" data-action="view-direita"><span>Direita</span></div>
+            <div class="menu-dropdown-item" data-action="view-iso"><span>Iso</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item" id="menu-item-proj-parallel" data-action="projection-parallel"><span><span class="menu-check">&#10003;</span>Projeção paralela</span></div>
+        <div class="menu-dropdown-item is-checked" id="menu-item-proj-perspective" data-action="projection-perspective"><span><span class="menu-check">&#10003;</span>Perspectiva</span></div>
+        <div class="menu-dropdown-item disabled"><span>Perspectiva de dois pontos</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Adaptar à nova foto...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Editar Foto adaptada</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled" title="Equivalente ja disponivel via mouse: arrastar com botao esquerdo"><span>Orbitar</span><span class="menu-dropdown-shortcut">O</span></div>
+        <div class="menu-dropdown-item disabled" title="Equivalente ja disponivel via mouse: arrastar com botao direito"><span>Panorâmica</span><span class="menu-dropdown-shortcut">H</span></div>
+        <div class="menu-dropdown-item disabled" title="Equivalente ja disponivel via mouse: roda do mouse"><span>Zoom</span><span class="menu-dropdown-shortcut">Z</span></div>
+        <div class="menu-dropdown-item" data-action="field-of-view"><span>Campo de visão...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Janela de zoom</span><span class="menu-dropdown-shortcut">Ctrl+Shift+W</span></div>
+        <div class="menu-dropdown-item disabled"><span>Modelo centralizado</span><span class="menu-dropdown-shortcut">Ctrl+Shift+E</span></div>
+        <div class="menu-dropdown-item disabled"><span>Zoom na foto</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Posicionar a câmera</span></div>
+        <div class="menu-dropdown-item disabled"><span>Percorrer</span></div>
+        <div class="menu-dropdown-item disabled"><span>Girar</span></div>
+        <div class="menu-dropdown-item disabled"><span>Iglu de imagens</span><span class="menu-dropdown-shortcut">I</span></div>
+      </div>
+    </div>
+    <div class="menu-top-item" data-menu="desenho">
+      Desenho
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item has-submenu disabled" title="Ferramenta de clique-a-clique pra desenhar segmentos -- exigiria um subsistema de autoria interativa, ver REVERSE_ENGINEERING_NOTES.md secao 28.6"><span>Linhas</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-item has-submenu disabled"><span>Arcos</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-item has-submenu"><span>Formas</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="draw-rectangle" title="Cria uma face retangular real no chao via SUEntitiesFill (SDK publico) -- ver REVERSE_ENGINEERING_NOTES.md secao 28"><span>Retângulo</span><span class="menu-dropdown-shortcut">R</span></div>
+            <div class="menu-dropdown-item disabled"><span>Retângulo Giratório</span></div>
+            <div class="menu-dropdown-item disabled"><span>Círculo</span></div>
+            <div class="menu-dropdown-item disabled"><span>Polígono</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-item has-submenu disabled"><span>Sandbox</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+      </div>
+    </div>
+    <div class="menu-top-item" data-menu="ferramentas">
+      Ferramentas
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item" data-action="tool-select" title="Modo padrao: clique numa peca pra selecionar (gizmo de edicao)"><span>Selecionar</span><span class="menu-dropdown-shortcut">Espaço</span></div>
+        <div class="menu-dropdown-item" data-action="tool-lasso" title="Va clicando em varias pecas pra selecionar em lote (destacadas com caixa laranja); Excluir (Del) exclui todas de verdade"><span>Laço</span><span class="menu-dropdown-shortcut">Shift+Espaço</span></div>
+        <div class="menu-dropdown-item" data-action="tool-erase" title="Clique numa peca pra excluir na hora -- mesmo caminho real de Editar > Excluir (SUEntitiesErase), so sem precisar selecionar primeiro"><span>Apagar</span><span class="menu-dropdown-shortcut">E</span></div>
+        <div class="menu-dropdown-item" data-action="tool-paint" title="Clique numa peca pra aplicar a cor escolhida no painel -- material real via SUMaterialCreate/SUDrawingElementSetMaterial"><span>Pintura</span><span class="menu-dropdown-shortcut">B</span></div>
+        <div class="menu-dropdown-item" data-action="tool-paint-face" title="Clique numa FACE (nao a peca inteira) pra aplicar a cor escolhida no painel -- SUFaceSetFrontMaterial, muda a definicao e afeta todas as instancias dela no arquivo"><span>Pintura por face</span></div>
+        <div class="menu-dropdown-item" data-action="tool-tag" title="Clique numa peca pra aplicar a etiqueta digitada no painel -- Tag real via SULayerCreate/SUDrawingElementSetLayer"><span>Etiqueta</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item" data-action="tool-translate" title="Equivalente ao botao/atalho W ja existente no painel de edicao"><span>Mover</span><span class="menu-dropdown-shortcut">M</span></div>
+        <div class="menu-dropdown-item" data-action="tool-rotate" title="Equivalente ao botao/atalho E ja existente no painel de edicao"><span>Rotar</span><span class="menu-dropdown-shortcut">Q</span></div>
+        <div class="menu-dropdown-item" data-action="tool-scale" title="Equivalente ao botao/atalho R ja existente no painel de edicao"><span>Escala</span><span class="menu-dropdown-shortcut">S</span></div>
+        <div class="menu-dropdown-item has-submenu" title="Espelha a peca selecionada no eixo escolhido -- aplica via o mesmo PATCH /scene/instances/{id}/transform ja existente"><span>Virar ao longo de</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="flip-red"><span>Eixo Vermelho</span></div>
+            <div class="menu-dropdown-item" data-action="flip-green"><span>Eixo Verde</span></div>
+            <div class="menu-dropdown-item" data-action="flip-blue"><span>Eixo Azul</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Empurrar/Puxar</span><span class="menu-dropdown-shortcut">P</span></div>
+        <div class="menu-dropdown-item disabled"><span>Siga-me</span></div>
+        <div class="menu-dropdown-item disabled"><span>Equidistância</span><span class="menu-dropdown-shortcut">F</span></div>
+        <div class="menu-dropdown-item disabled"><span>Carapaça externa</span></div>
+        <div class="menu-dropdown-item disabled"><span>Ferramentas de sólidos</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item" data-action="tool-measure" title="Dois cliques na cena medem a distancia real (metros) entre os dois pontos, mostrada na barra de status"><span>Fita métrica</span><span class="menu-dropdown-shortcut">T</span></div>
+        <div class="menu-dropdown-item" data-action="tool-protractor" title="Tres cliques (vertice + 2 lados) medem o angulo real entre eles, mostrado na barra de status"><span>Transferidor</span></div>
+        <div class="menu-dropdown-item disabled"><span>Eixos</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item" data-action="tool-dimension" title="Dois cliques criam uma cota 3D real e persistente (linha + rotulo com a distancia) na cena"><span>Dimensões</span></div>
+        <div class="menu-dropdown-item" data-action="text" title="Foca o campo de texto -- escreva o conteudo e clique em Criar texto"><span>Texto</span></div>
+        <div class="menu-dropdown-item" data-action="tool-text3d" title="Extrusao real de fonte em malha (THREE.TextGeometry) -- escreva no campo de Texto e clique no botao, depois no viewport"><span>Texto 3D</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item has-submenu" title="Corta de verdade a geometria usando THREE.Plane/clipping nativo do WebGL"><span>Plano de seção</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="tool-section"><span>Criar plano (clique na altura)</span></div>
+            <div class="menu-dropdown-item" data-action="section-clear"><span>Remover plano de seção</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-item disabled"><span>Interagir</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item has-submenu disabled"><span>Sandbox</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+      </div>
+    </div>
+    <div class="menu-top-item" data-menu="janela">
+      Janela
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item has-submenu"><span>Bandeja padrão</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item disabled"><span>Ocultar bandeja</span></div>
+            <div class="menu-dropdown-item disabled"><span>Renomear bandeja</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-tray-entity-info" data-action="toggle-tray-entity-info" title="Equivalente ao painel Entity Info ja existente na Bandeja padrao"><span><span class="menu-check">&#10003;</span>Informações da entidade</span></div>
+            <div class="menu-dropdown-item disabled"><span>Materiais</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-tray-outliner" data-action="toggle-tray-outliner" title="Equivalente ao painel Outliner ja existente na Bandeja padrao"><span><span class="menu-check">&#10003;</span>Componentes</span></div>
+            <div class="menu-dropdown-item disabled"><span>Estilos</span></div>
+            <div class="menu-dropdown-item disabled"><span>Ambientes</span></div>
+            <div class="menu-dropdown-item disabled"><span>Etiquetas</span></div>
+            <div class="menu-dropdown-item disabled"><span>Cenas</span></div>
+            <div class="menu-dropdown-item" id="menu-item-tray-shadows" data-action="toggle-shadows" title="Mesmo toggle real de Visualizar > Sombras"><span><span class="menu-check">&#10003;</span>Sombras</span></div>
+            <div class="menu-dropdown-item" id="menu-item-tray-fog" data-action="toggle-fog" title="Mesmo toggle real de Visualizar > Névoa"><span><span class="menu-check">&#10003;</span>Névoa</span></div>
+            <div class="menu-dropdown-item disabled"><span>Adaptar à foto</span></div>
+            <div class="menu-dropdown-item disabled"><span>Suavizar arestas</span></div>
+            <div class="menu-dropdown-item disabled"><span>Sobreposições</span></div>
+            <div class="menu-dropdown-item disabled"><span>Instrutor</span></div>
+            <div class="menu-dropdown-item disabled"><span>Estrutura</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-item disabled"><span>Gerenciar bandejas...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Nova bandeja...</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item" data-action="model-info" title="Mostra as contagens reais do modelo aberto (definicoes/instancias/vertices/triangulos)"><span>Informações do modelo</span></div>
+        <div class="menu-dropdown-item disabled"><span>Preferências</span><span class="menu-dropdown-shortcut">Ctrl+,</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled" title="Depende de conta/API na nuvem da Trimble -- fora de escopo"><span>3D Warehouse...</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled"><span>Barra de colaboração</span></div>
+        <div class="menu-dropdown-item disabled"><span>Opções de componente</span></div>
+        <div class="menu-dropdown-item disabled"><span>Atributos de componente</span></div>
+      </div>
+    </div>
+    <div class="menu-top-item" data-menu="extensoes">
+      Extensões
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item disabled"><span>Extension Warehouse</span></div>
+        <div class="menu-dropdown-item disabled"><span>Gerenciador de extensões</span></div>
+        <div class="menu-dropdown-item disabled"><span>Migrar extensões...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Desenvolvedor</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item disabled" title="Plugins de terceiros instalados no SketchUp real desta maquina -- nao fazem parte do SketchBuild"><span>(plugins instalados no SketchUp real -- fora de escopo)</span></div>
+      </div>
+    </div>
+    <div class="menu-top-item" data-menu="ajuda">
+      Ajuda
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item" data-action="welcome" title="Reabre a Pagina Inicial real (mesma tela da Fase 6)"><span>Bem-vindo ao SketchUp...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Central de Ajuda</span></div>
+        <div class="menu-dropdown-item disabled"><span>Entre em contato conosco</span></div>
+        <div class="menu-dropdown-item disabled"><span>Gerenciar licença</span></div>
+        <div class="menu-dropdown-item disabled"><span>Verificar se há atualização</span></div>
+        <div class="menu-dropdown-item" data-action="about"><span>Sobre o SketchBuild...</span></div>
+        <div class="menu-dropdown-item disabled"><span>Buscar no SketchUp</span><span class="menu-dropdown-shortcut">Shift+S</span></div>
+        <div class="menu-dropdown-item disabled"><span>Fazer login</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="top-toolbar">
+    <div class="toolbar-group">
+      <button class="toolbar-btn view-btn" data-view="alto" title="Vista de Topo" aria-label="Vista de Topo">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /></svg>
+      </button>
+      <button class="toolbar-btn view-btn" data-view="frontal" title="Vista de Frente" aria-label="Vista de Frente">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" /><line x1="4" y1="16" x2="20" y2="16" /></svg>
+      </button>
+      <button class="toolbar-btn view-btn" data-view="direita" title="Vista Lateral" aria-label="Vista Lateral">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" /><line x1="8" y1="4" x2="8" y2="20" /></svg>
+      </button>
+      <button class="toolbar-btn view-btn" data-view="iso" title="Vista Isometrica" aria-label="Vista Isometrica">
+        <svg viewBox="0 0 24 24"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5" /><line x1="12" y1="3" x2="12" y2="12" /><line x1="4" y1="7.5" x2="12" y2="12" /><line x1="20" y1="7.5" x2="12" y2="12" /></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-btn" id="toolbar-save-btn" title="Salvar" aria-label="Salvar">
+        <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z" /><rect x="8" y="4" width="7" height="5" /><rect x="7" y="14" width="10" height="6" /></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="default-tray" class="hidden">
+    <div class="tray-section" id="tray-outliner">
+      <div class="tray-header" data-section="tray-outliner">
+        <span class="tray-arrow"></span>
+        <span>Outliner</span>
+      </div>
+      <div class="tray-body">
+        <div id="outliner-tree"></div>
+      </div>
+    </div>
+    <div class="tray-section" id="tray-entity-info">
+      <div class="tray-header" data-section="tray-entity-info">
+        <span class="tray-arrow"></span>
+        <span>Entity Info</span>
+      </div>
+      <div class="tray-body">
+        <div id="entity-info-empty">Nenhuma instancia selecionada.</div>
+        <div id="entity-info" class="hidden">
+          <div class="entity-info-row">
+            <label>Posicao (m) -- X, Y, Z</label>
+            <div class="entity-info-inputs">
+              <input id="pos-x" type="number" step="0.01" />
+              <input id="pos-y" type="number" step="0.01" />
+              <input id="pos-z" type="number" step="0.01" />
+            </div>
+          </div>
+          <div class="entity-info-row">
+            <label>Rotacao (graus) -- X, Y, Z</label>
+            <div class="entity-info-inputs">
+              <input id="rot-x" type="number" step="1" />
+              <input id="rot-y" type="number" step="1" />
+              <input id="rot-z" type="number" step="1" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="panel">
     <h1>SketchBuild -- Visualizador 3D standalone</h1>
@@ -73,11 +761,43 @@
         <button class="mode-btn" data-mode="translate">Mover (W)</button>
         <button class="mode-btn" data-mode="rotate">Girar (E)</button>
         <button class="mode-btn" data-mode="scale">Escalar (R)</button>
+        <button id="delete-btn" class="panel-btn" title="Editar &gt; Excluir (Del)">Excluir (Del)</button>
       </div>
       <hr />
       <div class="row">
         <input id="save-path-input" type="text" placeholder="(vazio = sobrescreve o arquivo aberto)" />
         <button id="save-btn">Salvar</button>
+      </div>
+      <div class="row" style="margin-top: 6px;">
+        <input id="export-obj-path-input" type="text" placeholder="C:\caminho\para\modelo.obj" />
+        <button id="export-obj-btn" class="panel-btn" title="Arquivo &gt; Exportar &gt; Modelo 3D (.obj)">Exportar .obj</button>
+      </div>
+      <hr />
+      <div class="row" style="align-items: center;">
+        <input id="rect-width-input" class="dim-input" type="number" step="0.1" min="0.01" value="1" style="width: 70px;" title="Largura (m)" />
+        <span style="font-size: 11px; color: var(--muted);">&times;</span>
+        <input id="rect-height-input" class="dim-input" type="number" step="0.1" min="0.01" value="1" style="width: 70px;" title="Profundidade (m)" />
+        <button id="rect-create-btn" class="panel-btn" title="Desenho &gt; Formas &gt; Retângulo">Criar retângulo (m)</button>
+      </div>
+      <div class="row" style="margin-top: 4px; align-items: center;">
+        <label style="font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px;">
+          <input id="rect-as-group-checkbox" type="checkbox" title="Editar &gt; Criar grupo -- a face nasce dentro de um Grupo novo real (SUGroupCreate/SUEntitiesAddGroup)" />
+          Criar como grupo
+        </label>
+      </div>
+      <div class="row" style="margin-top: 6px;">
+        <input id="text-content-input" type="text" placeholder="Texto do rotulo" style="width: 140px;" />
+        <button id="text-create-btn" class="panel-btn" title="Ferramentas &gt; Texto -- clique no botao, depois no viewport pra posicionar">Criar texto (clique no viewport)</button>
+        <button id="text3d-create-btn" class="panel-btn" title="Ferramentas &gt; Texto 3D -- extrusao real de fonte, clique no botao e depois no viewport">Criar texto 3D</button>
+      </div>
+      <div class="row" style="margin-top: 6px; align-items: center;">
+        <input id="paint-color-input" type="color" value="#3c7fb1" title="Cor da pintura" style="width: 40px; height: 28px; padding: 0; border: none; cursor: pointer;" />
+        <button id="paint-arm-btn" class="panel-btn" title="Ferramentas &gt; Pintura -- clique no botao, depois numa peca no viewport">Pintar (clique na peça)</button>
+        <button id="paint-face-arm-btn" class="panel-btn" title="Ferramentas &gt; Pintura por face -- SUFaceSetFrontMaterial, muda so a face clicada (afeta todas as instancias da mesma definicao no arquivo)">Pintar face (clique na face)</button>
+      </div>
+      <div class="row" style="margin-top: 6px; align-items: center;">
+        <input id="tag-name-input" type="text" placeholder="Nome da etiqueta" style="width: 140px;" />
+        <button id="tag-arm-btn" class="panel-btn" title="Ferramentas &gt; Etiqueta -- clique no botao, depois numa peca no viewport">Etiquetar (clique na peça)</button>
       </div>
     </div>
   </div>

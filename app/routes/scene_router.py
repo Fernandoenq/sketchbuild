@@ -9,10 +9,22 @@ from fastapi import APIRouter, Depends
 
 from app.controllers.scene_controller import SceneController
 from app.schemas.scene import (
+    AddRectangleRequest,
+    AddRectangleResponse,
+    DeleteInstanceResponse,
+    ExportModelRequest,
+    ExportModelResponse,
+    NewSceneFromTemplateRequest,
     OpenSceneRequest,
+    PaintFaceRequest,
+    PaintFaceResponse,
+    PaintInstanceRequest,
+    PaintInstanceResponse,
     SaveSceneRequest,
     SaveSceneResponse,
     SceneResponse,
+    TagInstanceRequest,
+    TagInstanceResponse,
     UpdateTransformRequest,
     UpdateTransformResponse,
 )
@@ -33,6 +45,18 @@ async def open_scene(
     body: OpenSceneRequest, controller: SceneController = Depends(get_controller)
 ) -> SceneResponse:
     return await controller.open_scene(body.path)
+
+
+@router.post(
+    "/new",
+    response_model=SceneResponse,
+    summary="Cria um modelo novo a partir de um template real da Trimble (sem arquivo no disco ate o 1o save)",
+)
+async def new_scene_from_template(
+    body: NewSceneFromTemplateRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SceneResponse:
+    return await controller.new_scene_from_template(body.template_id)
 
 
 @router.patch(
@@ -57,3 +81,75 @@ async def save_scene(
     body: SaveSceneRequest, controller: SceneController = Depends(get_controller)
 ) -> SaveSceneResponse:
     return await controller.save_scene(body.path)
+
+
+@router.delete(
+    "/instances/{instance_id}",
+    response_model=DeleteInstanceResponse,
+    summary="Exclui de verdade uma instancia da sessao aberta (equivalente a Editar > Excluir / Del)",
+)
+async def delete_instance(
+    instance_id: str, controller: SceneController = Depends(get_controller)
+) -> DeleteInstanceResponse:
+    return await controller.delete_instance(instance_id)
+
+
+@router.post(
+    "/export/obj",
+    response_model=ExportModelResponse,
+    summary="Exporta a sessao aberta pra um arquivo .obj (equivalente parcial de Arquivo > Exportar > Modelo 3D)",
+)
+async def export_model_obj(
+    body: ExportModelRequest, controller: SceneController = Depends(get_controller)
+) -> ExportModelResponse:
+    return await controller.export_model_obj(body.path)
+
+
+@router.post(
+    "/instances/{instance_id}/material",
+    response_model=PaintInstanceResponse,
+    summary="Aplica uma cor RGBA nova numa instancia da sessao aberta (equivalente a Ferramentas > Pintura)",
+)
+async def paint_instance(
+    instance_id: str,
+    body: PaintInstanceRequest,
+    controller: SceneController = Depends(get_controller),
+) -> PaintInstanceResponse:
+    return await controller.paint_instance(instance_id, body.r, body.g, body.b)
+
+
+@router.post(
+    "/geometry/rectangle",
+    response_model=AddRectangleResponse,
+    summary="Cria uma face retangular nova no chao da sessao aberta (equivalente a Desenho > Formas > Retângulo), opcionalmente dentro de um Grupo novo",
+)
+async def add_rectangle(
+    body: AddRectangleRequest, controller: SceneController = Depends(get_controller)
+) -> AddRectangleResponse:
+    return await controller.add_rectangle(body.width_m, body.height_m, body.as_group)
+
+
+@router.post(
+    "/instances/{instance_id}/tag",
+    response_model=TagInstanceResponse,
+    summary="Aplica uma Etiqueta (Tag) real numa instancia da sessao aberta (equivalente a Ferramentas > Etiqueta)",
+)
+async def tag_instance(
+    instance_id: str,
+    body: TagInstanceRequest,
+    controller: SceneController = Depends(get_controller),
+) -> TagInstanceResponse:
+    return await controller.tag_instance(instance_id, body.name)
+
+
+@router.post(
+    "/faces/{face_id}/material",
+    response_model=PaintFaceResponse,
+    summary="Aplica uma cor RGBA nova numa FACE especifica da sessao aberta (pintura por face, nao a instancia inteira)",
+)
+async def paint_face(
+    face_id: str,
+    body: PaintFaceRequest,
+    controller: SceneController = Depends(get_controller),
+) -> PaintFaceResponse:
+    return await controller.paint_face(face_id, body.r, body.g, body.b)

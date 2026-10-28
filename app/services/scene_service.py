@@ -21,6 +21,23 @@ from app.repositories.skp_engine_repository import SkpEngineRepository
 
 VALID_MODEL_EXTENSION = ".skp"
 
+TEMPLATES_DIR = (
+    r"C:\Program Files\SketchUp\SketchUp 2026\SketchUp\resources\pt-br\Templates"
+)
+
+# Templates reais da Trimble usados pela secao "Criar novo modelo" da
+# Pagina Inicial (ver frontend/index.html). A unidade de cada arquivo foi
+# confirmada EMPIRICAMENTE via SUModelGetUnits (nao adivinhada pelo nome
+# do arquivo) -- ver REVERSE_ENGINEERING_NOTES.md secao 24.
+TEMPLATES: dict[str, str] = {
+    "simple_meters": "Temp01b - Simple.skp",
+    "simple_inches": "Temp01a - Simple.skp",
+    "visualization_inches": "Temp02a - Vis.skp",
+    "visualization_millimeters": "Temp02b - Vis.skp",
+    "architectural_inches": "Temp03a - Arch.skp",
+    "architectural_millimeters": "Temp03b - Arch.skp",
+}
+
 
 class SceneService:
     def __init__(self, repository: SkpEngineRepository | None = None):
@@ -29,6 +46,21 @@ class SceneService:
     async def open_scene(self, file_path: str) -> dict:
         self._validate_model_path(file_path)
         return await run_in_threadpool(self._repository.open, file_path)
+
+    async def new_scene_from_template(self, template_id: str) -> dict:
+        filename = TEMPLATES.get(template_id)
+        if filename is None:
+            raise InvalidModelPathError(f"template desconhecido: {template_id!r}")
+
+        template_path = os.path.join(TEMPLATES_DIR, filename)
+        if not os.path.exists(template_path):
+            raise ModelFileNotFoundError(
+                f"arquivo de template nao encontrado: {template_path}"
+            )
+
+        return await run_in_threadpool(
+            self._repository.open_new_from_template, template_path
+        )
 
     async def update_instance_transform(
         self, instance_id: str, transform: list[float]
@@ -39,6 +71,33 @@ class SceneService:
 
     async def save_scene(self, path: str | None) -> str:
         return await run_in_threadpool(self._repository.save, path)
+
+    async def delete_instance(self, instance_id: str) -> None:
+        await run_in_threadpool(self._repository.delete_instance, instance_id)
+
+    async def export_model_obj(self, path: str) -> str:
+        self._validate_export_path(path)
+        return await run_in_threadpool(self._repository.export_obj, path)
+
+    async def add_rectangle(
+        self, width_m: float, height_m: float, as_group: bool = False
+    ) -> dict:
+        self._validate_rectangle_dimensions(width_m, height_m)
+        return await run_in_threadpool(
+            self._repository.add_rectangle, width_m, height_m, as_group
+        )
+
+    async def paint_instance(self, instance_id: str, r: int, g: int, b: int) -> None:
+        self._validate_rgb(r, g, b)
+        await run_in_threadpool(self._repository.paint_instance, instance_id, r, g, b)
+
+    async def tag_instance(self, instance_id: str, tag_name: str) -> None:
+        self._validate_tag_name(tag_name)
+        await run_in_threadpool(self._repository.tag_instance, instance_id, tag_name)
+
+    async def paint_face(self, face_id: str, r: int, g: int, b: int) -> None:
+        self._validate_rgb(r, g, b)
+        await run_in_threadpool(self._repository.paint_face, face_id, r, g, b)
 
     # -- validacoes de dominio ------------------------------------------------
 
@@ -54,3 +113,27 @@ class SceneService:
 
         if not os.path.exists(file_path):
             raise ModelFileNotFoundError(f"arquivo nao encontrado: {file_path}")
+
+    def _validate_export_path(self, file_path: str) -> None:
+        if not file_path or not file_path.strip():
+            raise InvalidModelPathError("caminho de exportacao nao pode ser vazio")
+        if not file_path.lower().endswith(".obj"):
+            raise InvalidModelPathError(
+                f"caminho deve apontar para um arquivo .obj (recebido: {file_path!r})"
+            )
+
+    def _validate_rectangle_dimensions(self, width_m: float, height_m: float) -> None:
+        if width_m <= 0 or height_m <= 0:
+            raise InvalidModelPathError(
+                f"largura/profundidade do retângulo devem ser positivas (recebido: {width_m}x{height_m})"
+            )
+
+    def _validate_rgb(self, r: int, g: int, b: int) -> None:
+        if not all(0 <= c <= 255 for c in (r, g, b)):
+            raise InvalidModelPathError(
+                f"componentes de cor devem estar entre 0 e 255 (recebido: {r},{g},{b})"
+            )
+
+    def _validate_tag_name(self, tag_name: str) -> None:
+        if not tag_name or not tag_name.strip():
+            raise InvalidModelPathError("nome da etiqueta nao pode ser vazio")
