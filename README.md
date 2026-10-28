@@ -313,7 +313,7 @@ corporativos, ícones lineares, sem dark mode):
 - **Top Toolbar** (`#top-toolbar`) fixa no topo, com separadores verticais
   de 1px entre grupos de botões -- ícones SVG inline (sem lib de ícones
   externa) pras 4 vistas padrão + salvar.
-- **Default Tray** (`#default-tray`) -- painel direito único com
+- **Default Tray** (`#default-tray`) -- painel direito único com Arquivo/
   Informações da entidade/Etiquetas/Estrutura/Cenas como seções sanfonadas
   (accordion) independentes, cada uma recolhível pelo próprio cabeçalho,
   igual ao comportamento real do Default Tray do SketchUp. **Sempre
@@ -324,6 +324,23 @@ corporativos, ícones lineares, sem dark mode):
   próprio estado vazio real ("Nenhuma instância selecionada."/"Nenhum
   modelo aberto.") em vez de a bandeja inteira sumir; o campo e o botão
   "+ Criar cena" ficam desabilitados até um modelo existir.
+- **Seção "Arquivo"** (`#tray-file`, primeira seção da bandeja, correção
+  de 28/10/2026) -- o painel flutuante solto `#panel` (Fase 1, anterior à
+  barra de menu/toolbar/Default Tray) foi removido e seu conteúdo inteiro
+  (Escolher arquivo.../caminho completo/Abrir, e o `#edit-panel` com
+  rótulo da instância selecionada + Salvar + Exportar .obj) passou a
+  viver dentro da bandeja padrão, como mais uma seção sanfonada igual às
+  outras -- hoje todos os campos de arquivo/edição ficam no mesmo lugar
+  visual que o menu "Arquivo" já duplicava, em vez de um painel solto à
+  parte. `#edit-panel` foi movido inteiro, sem alterar sua lógica interna
+  (mesmo toggle `.hidden`, mesmos IDs) -- só o local no DOM mudou, nenhum
+  `main.js` precisou mexer nos bindings por `getElementById`. A barra de
+  status (`#status`, usada por ~95 pontos do `main.js` para mensagens de
+  todas as features, não só arquivo) foi tirada de dentro do painel e
+  virou uma **barra fixa no rodapé** (mesma posição da barra de status
+  real do SketchUp Desktop) -- precisa ficar sempre visível independente
+  de qual seção da bandeja está expandida/recolhida, o que não seria
+  possível se continuasse dentro de uma seção sanfonada.
 - Paleta de tokens em `:root` (`--bg`, `--panel`, `--toolbar`, `--border`,
   `--accent`, etc.) -- trocar aqui já re-tema o app inteiro.
 - Inputs numéricos do Entity Info alinhados à direita, fonte monoespaçada,
@@ -897,7 +914,13 @@ with api:  # SUInitialize()/SUTerminate() automáticos
   a edição só existe via API/frontend por enquanto.
 - Sessão de edição é um singleton em nível de módulo (sem suporte a
   múltiplos usuários/sessões concorrentes) -- aceitável porque é uma
-  ferramenta desktop de usuário único.
+  ferramenta desktop de usuário único, mas exige disciplina ao testar: em
+  28/10/2026, uma aba de teste chamando `POST /scene/new` substituiu
+  momentaneamente a sessão compartilhada enquanto uma aba real tinha um
+  rascunho aberto -- sem perda de dado (o autosave em disco não depende da
+  sessão em memória, e a sessão foi restaurada via "Recuperar" sem
+  problema), mas confirma que este app nunca deve receber chamadas
+  automatizadas sem antes checar se o usuário não está com ele aberto.
 - Outliner mostra só o nome da **definição**, não um nome de instância
   individual (`SUComponentInstanceGetName` ainda não foi verificado via
   assembly) -- e não tem busca/filtro.

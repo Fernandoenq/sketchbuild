@@ -108,7 +108,7 @@
        enquanto a ferramenta correspondente esta ativa, em vez de ficar
        sempre visivel num painel lateral fixo. */
     #vcb {
-      position: fixed; right: 16px; bottom: 16px; z-index: 20;
+      position: fixed; right: 16px; bottom: 32px; z-index: 20;
       background: var(--panel); border: 1px solid var(--border); border-radius: 2px;
       padding: 8px 10px; box-shadow: 0 2px 8px rgba(0,0,0,.15);
       display: none; align-items: center; gap: 8px; font-size: 11px;
@@ -117,24 +117,14 @@
     .vcb-field { display: none; align-items: center; gap: 6px; }
     .vcb-field.visible { display: flex; }
 
-    #panel {
-      position: absolute; top: 110px; left: 16px; z-index: 10;
-      background: var(--panel); border: 1px solid var(--border); border-radius: 2px;
-      padding: 12px 14px; width: min(420px, calc(100vw - 32px));
-      box-shadow: 0 2px 8px rgba(0,0,0,.15);
-    }
-    #panel h1 {
-      font-size: 11px; margin: 0 0 10px; font-weight: 600; color: var(--muted);
-      text-transform: uppercase; letter-spacing: .04em;
-    }
-    #panel .row { display: flex; gap: 6px; }
-    #path-input, #save-path-input {
+    #default-tray .row { display: flex; gap: 6px; }
+    #path-input, #save-path-input, #export-obj-path-input {
       flex: 1; background: #FFFFFF; border: 1px solid var(--border); color: var(--text);
       border-radius: 2px; padding: 6px 8px; font-size: 12px; min-width: 0;
       font-family: var(--su-font);
       box-shadow: inset 0 1px 2px rgba(0,0,0,.06);
     }
-    #path-input:focus, #save-path-input:focus {
+    #path-input:focus, #save-path-input:focus, #export-obj-path-input:focus {
       outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(60,127,177,.25);
     }
     #open-btn {
@@ -143,7 +133,15 @@
     }
     #open-btn:hover:not(:disabled) { background: #3570a0; }
     #open-btn:disabled { opacity: .5; cursor: default; }
-    #status { margin-top: 10px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+    /* Barra de status -- sempre visivel, independente de qual secao da
+       bandeja padrao esta aberta/fechada (95 pontos do main.js escrevem
+       aqui; nao pode ficar escondida dentro de um accordion). Mesma
+       posicao da barra de status real do SketchUp Desktop. */
+    #status {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 15;
+      background: var(--toolbar); border-top: 1px solid var(--border);
+      padding: 5px 12px; font-size: 11px; color: var(--muted); line-height: 1.4;
+    }
     #status.error { color: var(--error); }
     hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     #edit-panel.hidden { display: none; }
@@ -183,7 +181,7 @@
     #default-tray {
       position: absolute; top: 110px; right: 16px; z-index: 10;
       background: var(--panel); border: 1px solid var(--border); border-radius: 2px;
-      width: min(280px, calc(100vw - 32px)); max-height: calc(100vh - 126px);
+      width: min(280px, calc(100vw - 32px)); max-height: calc(100vh - 152px);
       box-shadow: 0 2px 8px rgba(0,0,0,.15);
       display: flex; flex-direction: column; overflow: hidden;
     }
@@ -878,6 +876,36 @@
   </div>
 
   <div id="default-tray">
+    <div class="tray-section" id="tray-file">
+      <div class="tray-header" data-section="tray-file">
+        <span class="tray-arrow"></span>
+        <span>Arquivo</span>
+      </div>
+      <div class="tray-body">
+        <div class="row">
+          <button id="choose-file-btn" title="Abre o seletor nativo de arquivos do Windows. O navegador nao informa o caminho original por seguranca, entao 'Salvar' vai pedir um caminho (Salvar Como) na primeira vez.">Escolher arquivo... (seletor do Windows)</button>
+        </div>
+        <div class="row">
+          <input id="path-input" type="text" placeholder="ou cole o caminho completo: C:\caminho\para\arquivo.skp" />
+          <button id="open-btn">Abrir</button>
+        </div>
+        <input type="file" id="file-picker-input" accept=".skp" hidden />
+
+        <div id="edit-panel" class="hidden">
+          <hr />
+          <div id="selected-label">Nenhuma instancia selecionada.</div>
+          <hr />
+          <div class="row">
+            <input id="save-path-input" type="text" placeholder="(vazio = sobrescreve o arquivo aberto)" />
+            <button id="save-btn">Salvar</button>
+          </div>
+          <div class="row" style="margin-top: 6px;">
+            <input id="export-obj-path-input" type="text" placeholder="C:\caminho\para\modelo.obj" />
+            <button id="export-obj-btn" class="panel-btn" title="Arquivo &gt; Exportar &gt; Modelo 3D (.obj)">Exportar .obj</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="tray-section" id="tray-entity-info">
       <div class="tray-header" data-section="tray-entity-info">
         <span class="tray-arrow"></span>
@@ -940,32 +968,7 @@
     </div>
   </div>
 
-  <div id="panel">
-    <h1>SketchBuild -- Visualizador 3D standalone</h1>
-    <div class="row">
-      <button id="choose-file-btn" title="Abre o seletor nativo de arquivos do Windows. O navegador nao informa o caminho original por seguranca, entao 'Salvar' vai pedir um caminho (Salvar Como) na primeira vez.">Escolher arquivo... (seletor do Windows)</button>
-    </div>
-    <div class="row">
-      <input id="path-input" type="text" placeholder="ou cole o caminho completo: C:\caminho\para\arquivo.skp" />
-      <button id="open-btn">Abrir</button>
-    </div>
-    <input type="file" id="file-picker-input" accept=".skp" hidden />
-    <div id="status">Clique em "Escolher arquivo..." pra abrir pelo seletor do Windows, ou cole o caminho completo e clique em Abrir.</div>
-
-    <div id="edit-panel" class="hidden">
-      <hr />
-      <div id="selected-label">Nenhuma instancia selecionada.</div>
-      <hr />
-      <div class="row">
-        <input id="save-path-input" type="text" placeholder="(vazio = sobrescreve o arquivo aberto)" />
-        <button id="save-btn">Salvar</button>
-      </div>
-      <div class="row" style="margin-top: 6px;">
-        <input id="export-obj-path-input" type="text" placeholder="C:\caminho\para\modelo.obj" />
-        <button id="export-obj-btn" class="panel-btn" title="Arquivo &gt; Exportar &gt; Modelo 3D (.obj)">Exportar .obj</button>
-      </div>
-    </div>
-  </div>
+  <div id="status">Clique em "Escolher arquivo..." pra abrir pelo seletor do Windows, ou cole o caminho completo e clique em Abrir.</div>
 
   <script type="importmap">
   {
