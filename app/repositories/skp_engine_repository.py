@@ -378,6 +378,45 @@ class SkpEngineRepository:
             )
         return result
 
+    def list_tags(self) -> list[dict]:
+        """Equivalente real de "Janela > Bandeja padrao > Etiquetas" --
+        lista TODAS as Etiquetas reais do modelo aberto (inclusive as
+        que ja vinham salvas no .skp antes desta sessao, nao so as
+        criadas/atribuidas agora) via SUModelGetLayers/SULayerGetName/
+        SULayerGetVisibility (ver core/su_api.py e
+        REVERSE_ENGINEERING_NOTES.md secao 28.22). `is_default` marca a
+        Etiqueta padrao real ("Sem etiquetas")."""
+        session = self._require_session()
+        api = session.api
+        layers = api.list_layers(session.model.raw_ref)
+        default_layer = api.get_default_layer(session.model.raw_ref)
+        result = []
+        for layer in layers:
+            result.append(
+                {
+                    "name": api.get_layer_name(layer),
+                    "visible": api.get_layer_visibility(layer),
+                    "is_default": layer.ptr == default_layer.ptr,
+                }
+            )
+        return result
+
+    def set_tag_visibility(self, tag_name: str, visible: bool) -> dict:
+        """Equivalente real do icone de olho ao lado de cada Etiqueta na
+        Bandeja padrao real (SULayerSetVisibility) -- muda estado REAL
+        na DLL (nao e so um filtro client-side), persistido se "Salvar"
+        for chamado depois. Precisa achar a SULayerRef pelo nome entre
+        as etiquetas reais do modelo (nao so no cache session.tags, que
+        so tem as criadas NESTA sessao via Ferramentas > Etiqueta)."""
+        session = self._require_session()
+        api = session.api
+        for layer in api.list_layers(session.model.raw_ref):
+            if api.get_layer_name(layer) == tag_name:
+                api.set_layer_visibility(layer, visible)
+                self._autosave()
+                return {"name": tag_name, "visible": visible}
+        raise SceneSessionError(f"etiqueta {tag_name!r} nao encontrada no modelo atual")
+
     def create_scene(self, name: str) -> dict:
         """Cria uma Cena real nova a partir do estado atual -- equivalente
         real de "Janela > Bandeja padrao > Cenas > +". NAO captura

@@ -76,6 +76,13 @@ class InstanceDTO(BaseModel):
     definition_id: str
     transform: list[float]
     parent_instance_id: str | None = None
+    tag: str | None = Field(
+        default=None,
+        description="Nome real da Etiqueta (Tag/Layer) desta instancia "
+        "(SUDrawingElementGetLayer/SULayerGetName) -- 'Sem etiquetas' "
+        "quando nenhuma foi atribuida explicitamente. `null` so pra "
+        "'inst_root' (pseudo-instancia sintetica, nunca tem Etiqueta).",
+    )
 
 
 class SceneResponse(BaseModel):
@@ -204,6 +211,41 @@ class TagInstanceResponse(BaseModel):
 
     instance_id: str
     tag_name: str
+
+
+class TagDTO(BaseModel):
+    """Uma Etiqueta (Tag/Layer) real do modelo -- ver
+    REVERSE_ENGINEERING_NOTES.md seção 28.22 (SUModelGetLayers/
+    SULayerGetName/SULayerGetVisibility). `is_default` marca a Etiqueta
+    padrão real do modelo ("Sem etiquetas"), que nenhuma instância
+    atribuída explicitamente usa mas toda instância sem Etiqueta
+    pertence a ela."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    visible: bool
+    is_default: bool = False
+
+
+class ListTagsResponse(BaseModel):
+    """Saída de GET /scene/tags."""
+
+    tags: list[TagDTO]
+
+
+class SetTagVisibilityRequest(BaseModel):
+    """Entrada de PATCH /scene/tags/{name}/visibility -- equivalente real
+    do ícone de olho ao lado de cada Etiqueta na Bandeja padrão real."""
+
+    visible: bool
+
+
+class SetTagVisibilityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    visible: bool
 
 
 class ScenePageDTO(BaseModel):

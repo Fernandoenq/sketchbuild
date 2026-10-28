@@ -102,6 +102,12 @@ class SceneService:
     async def list_scenes(self) -> list[dict]:
         return await run_in_threadpool(self._repository.list_scenes)
 
+    async def list_tags(self) -> list[dict]:
+        return await run_in_threadpool(self._repository.list_tags)
+
+    async def set_tag_visibility(self, tag_name: str, visible: bool) -> dict:
+        return await run_in_threadpool(self._repository.set_tag_visibility, tag_name, visible)
+
     async def create_scene(self, name: str) -> dict:
         self._validate_scene_name(name)
         return await run_in_threadpool(self._repository.create_scene, name)

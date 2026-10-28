@@ -32,7 +32,10 @@ from app.schemas.scene import (
     SceneResponse,
     ScenePageDTO,
     SetInstanceAxesResponse,
+    SetTagVisibilityResponse,
+    TagDTO,
     TagInstanceResponse,
+    ListTagsResponse,
     UpdateTransformResponse,
 )
 from app.services.recent_files_service import RecentFilesService
@@ -248,6 +251,26 @@ class SceneController:
                 status_code=status.HTTP_409_CONFLICT, detail=str(e)
             ) from e
         return ActivateScenePageResponse(scene_id=scene_id, activated=True)
+
+    async def list_tags(self) -> ListTagsResponse:
+        """Equivalente real de "Janela > Bandeja padrao > Etiquetas" --
+        ver REVERSE_ENGINEERING_NOTES.md secao 28.22."""
+        try:
+            tags = await self._service.list_tags()
+        except SceneSessionError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=str(e)
+            ) from e
+        return ListTagsResponse(tags=[TagDTO.model_validate(t) for t in tags])
+
+    async def set_tag_visibility(self, tag_name: str, visible: bool) -> SetTagVisibilityResponse:
+        try:
+            result = await self._service.set_tag_visibility(tag_name, visible)
+        except SceneSessionError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=str(e)
+            ) from e
+        return SetTagVisibilityResponse.model_validate(result)
 
     async def set_instance_axes(
         self,

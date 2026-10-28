@@ -18,6 +18,8 @@ import {
   listScenePages,
   createScenePage,
   activateScenePage,
+  listTags,
+  setTagVisibility,
   setInstanceAxes,
   listRecentFiles,
   uploadThumbnail,
@@ -59,6 +61,8 @@ const vcbTextEl = document.getElementById("vcb-text");
 const sceneNameInputEl = document.getElementById("scene-name-input");
 const sceneCreateBtnEl = document.getElementById("scene-create-btn");
 const scenePagesListEl = document.getElementById("scene-pages-list");
+const tagsListEl = document.getElementById("tags-list");
+const tagsEmptyEl = document.getElementById("tags-empty");
 const menuTopItemEls = document.querySelectorAll(".menu-top-item[data-menu]");
 const defaultTrayEl = document.getElementById("default-tray");
 const outlinerTreeEl = document.getElementById("outliner-tree");
@@ -792,6 +796,7 @@ function applySceneDTO(sceneDTO) {
   outlinerTreeEl.appendChild(currentOutliner.element);
   defaultTrayEl.classList.remove("hidden");
   refreshScenePages();
+  refreshTags();
 
   return {
     totalDefinitions: sceneDTO.definitions.length,
@@ -1160,11 +1165,10 @@ async function handlePaintFaceClick(hit) {
  * etiqueta no backend se o mesmo nome for digitado de novo (cache por
  * sessao em session.tags, ver skp_engine_repository.py). */
 function handleArmTag() {
-  const name = tagNameInputEl.value.trim();
-  if (!name) {
-    setStatus("Escreva o nome da etiqueta antes de clicar numa peça.", true);
-    return;
-  }
+  // Nao valida o nome aqui de proposito -- o campo "Etiqueta" so fica
+  // visivel na VCB DEPOIS de armar o modo (ver syncToolUI()), entao
+  // exigir nome antes impediria o usuario de digitar. handleTagClick()
+  // ja valida no momento do clique na peca.
   setToolMode("tag");
 }
 
@@ -1176,6 +1180,12 @@ async function handleTagClick(mesh) {
   }
   try {
     await tagInstance(mesh.name, name);
+    // reflete o novo `tag` no DTO em memoria (sem reabrir o modelo) pra
+    // "Janela > Bandeja padrao > Etiquetas" ja reconhecer esta instancia
+    // na proxima vez que a visibilidade dessa etiqueta for alternada.
+    const inst = currentSceneDTO?.instances.find((i) => i.instance_id === mesh.name);
+    if (inst) inst.tag = name;
+    await refreshTags();
     setStatus(`${mesh.name} etiquetado como "${name}". Modo Etiqueta continua ativo.`);
   } catch (err) {
     const detail = err instanceof ApiError ? err.message : String(err);
@@ -1272,6 +1282,70 @@ async function refreshScenePages() {
     renderScenePages(pages);
   } catch {
     // painel de Cenas e cosmetico -- nao interrompe a abertura do modelo
+  }
+}
+
+/** "Janela > Bandeja padrao > Etiquetas" -- lista real (nao so as criadas
+ * nesta sessao via Ferramentas > Etiqueta), com checkbox de visibilidade
+ * real (SULayerSetVisibility, ver REVERSE_ENGINEERING_NOTES.md secao
+ * 28.22). Mesmo padrao de renderScenePages() (lista fina inline, sem
+ * modulo separado -- so Outliner/Welcome justificam um arquivo proprio,
+ * por terem arvore/cards mais complexos). */
+function renderTags(tags) {
+  tagsListEl.innerHTML = "";
+  tagsEmptyEl.classList.toggle("hidden", tags.length > 0);
+  for (const tag of tags) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.style.cssText = "margin-top: 4px; align-items: center; gap: 6px;";
+
+    const visibilityCheckbox = document.createElement("input");
+    visibilityCheckbox.type = "checkbox";
+    visibilityCheckbox.checked = tag.visible;
+    visibilityCheckbox.title = "Visibilidade real da Etiqueta (SULayerSetVisibility)";
+    visibilityCheckbox.addEventListener("change", () =>
+      handleToggleTagVisibility(tag.name, visibilityCheckbox.checked)
+    );
+    row.appendChild(visibilityCheckbox);
+
+    const label = document.createElement("span");
+    label.style.cssText = "font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;";
+    label.textContent = tag.is_default ? `${tag.name} (padrão)` : tag.name;
+    row.appendChild(label);
+
+    tagsListEl.appendChild(row);
+  }
+}
+
+async function refreshTags() {
+  try {
+    const tags = await listTags();
+    renderTags(tags);
+  } catch {
+    // painel de Etiquetas e cosmetico -- nao interrompe a abertura do modelo
+  }
+}
+
+/** Aplica a visibilidade real na DLL (persiste se "Salvar" rodar depois)
+ * E reflete na cena 3D client-side -- toda instancia cujo `tag` real
+ * (campo novo do DTO, ver core/mesh_extractor.py) bate com a etiqueta
+ * alternada tem o mesh escondido/reexibido, sem precisar reabrir o
+ * modelo nem reextrair a malha inteira. */
+async function handleToggleTagVisibility(tagName, visible) {
+  try {
+    await setTagVisibility(tagName, visible);
+    if (currentGroup && currentSceneDTO) {
+      for (const inst of currentSceneDTO.instances) {
+        if (inst.tag !== tagName) continue;
+        const mesh = currentGroup.getObjectByName(inst.instance_id);
+        if (mesh) mesh.visible = visible;
+      }
+    }
+    setStatus(`Etiqueta "${tagName}" ${visible ? "exibida" : "ocultada"}.`);
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro ao alternar a etiqueta: ${detail}`, true);
+    await refreshTags(); // reverte o checkbox pro estado real
   }
 }
 
@@ -1471,6 +1545,7 @@ const MENU_ACTIONS = {
   "tool-tag": () => handleArmTag(),
   "tool-axes": () => setToolMode("axes"),
   "toggle-tray-scenes": () => toggleTraySection("tray-scenes", "menu-item-tray-scenes"),
+  "toggle-tray-tags": () => toggleTraySection("tray-tags", "menu-item-tray-tags"),
   "rect-as-group": () => {
     rectAsGroupCheckboxEl.checked = true;
     setToolMode("rect");

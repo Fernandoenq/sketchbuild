@@ -688,6 +688,73 @@ class SketchUpAPI:
         ]
         dll.SUModelGetActiveScene.restype = ctypes.c_int
 
+        # -- Etiquetas reais (Janela > Bandeja padrao > Etiquetas)
+        # [Confirmado via REA/Ghidra, 28/10/2026 -- ver
+        # REVERSE_ENGINEERING_NOTES.md secao 28.22]. Antes deste projeto so
+        # sabia CRIAR/ATRIBUIR uma Etiqueta (SULayerCreate/SetLayer, secao
+        # 28.18) -- nunca LISTAR as reais do modelo nem ler/alterar
+        # visibilidade. Pseudocodigo real confirmado pra todas as funcoes
+        # abaixo (nenhuma e thin wrapper nem passthrough).
+
+        # SU_RESULT SUModelGetNumLayers(SUModelRef model, size_t* count);
+        # model==NULL -> 2; count==NULL -> 3; se a colecao interna de
+        # layers do modelo nao existir -> 6 (tratado como lista vazia aqui).
+        dll.SUModelGetNumLayers.argtypes = [
+            SUModelRef,
+            ctypes.POINTER(ctypes.c_size_t),
+        ]
+        dll.SUModelGetNumLayers.restype = ctypes.c_int
+
+        # SU_RESULT SUModelGetLayers(SUModelRef model, size_t len,
+        #     SULayerRef layers[], size_t* count); -- mesmo padrao de
+        # SUModelGetScenes (len clampado ao total real, *count = escrito).
+        dll.SUModelGetLayers.argtypes = [
+            SUModelRef,
+            ctypes.c_size_t,
+            ctypes.POINTER(SULayerRef),
+            ctypes.POINTER(ctypes.c_size_t),
+        ]
+        dll.SUModelGetLayers.restype = ctypes.c_int
+
+        # SU_RESULT SULayerGetName(SULayerRef layer, SUStringRef* name);
+        # Achado especifico (pseudocodigo real): existe um branch interno
+        # que devolve uma string CONSTANTE fixa em vez do nome real quando
+        # um bool-check interno da true -- bate com o comportamento visto
+        # na Bandeja padrao real (a Etiqueta padrao/sem-etiqueta aparece
+        # como "Sem etiquetas", nunca com nome vazio).
+        dll.SULayerGetName.argtypes = [SULayerRef, ctypes.POINTER(SUStringRef)]
+        dll.SULayerGetName.restype = ctypes.c_int
+
+        # SU_RESULT SULayerGetVisibility(SULayerRef layer, bool* visible);
+        # SU_RESULT SULayerSetVisibility(SULayerRef layer, bool visible);
+        # Achado especifico (pseudocodigo real): a DLL guarda internamente
+        # uma flag "hidden" (invertida) e inverte na leitura/escrita pra
+        # expor "visible" -- transparente pro binding ctypes, documentado
+        # aqui so pra explicar a semantica caso o comportamento pareca
+        # "ao contrario" num teste isolado futuro.
+        dll.SULayerGetVisibility.argtypes = [SULayerRef, ctypes.POINTER(ctypes.c_bool)]
+        dll.SULayerGetVisibility.restype = ctypes.c_int
+        dll.SULayerSetVisibility.argtypes = [SULayerRef, ctypes.c_bool]
+        dll.SULayerSetVisibility.restype = ctypes.c_int
+
+        # SU_RESULT SUDrawingElementGetLayer(SUDrawingElementRef drawing_elem,
+        #     SULayerRef* layer); -- Achado especifico (pseudocodigo real):
+        # se o elemento nao tiver layer associado, devolve 9=NO_DATA (nao
+        # sucesso com *layer vazio) -- tratado como None aqui, mesmo padrao
+        # ja usado em get_active_scene().
+        dll.SUDrawingElementGetLayer.argtypes = [
+            SUDrawingElementRef,
+            ctypes.POINTER(SULayerRef),
+        ]
+        dll.SUDrawingElementGetLayer.restype = ctypes.c_int
+
+        # SU_RESULT SUModelGetDefaultLayer(SUModelRef model, SULayerRef* layer);
+        dll.SUModelGetDefaultLayer.argtypes = [
+            SUModelRef,
+            ctypes.POINTER(SULayerRef),
+        ]
+        dll.SUModelGetDefaultLayer.restype = ctypes.c_int
+
         # -- Eixos customizados (menu Ferramentas > Eixos) [Confirmado via
         # REA/Ghidra, 28/10/2026 -- ver REVERSE_ENGINEERING_NOTES.md secao
         # 28.21]. model/axes.h.
@@ -1099,6 +1166,112 @@ class SketchUpAPI:
             return None
         su_check(result, "SUModelGetActiveScene")
         return scene
+
+    def list_layers(self, model: SUModelRef) -> list[SULayerRef]:
+        """Lista TODAS as Etiquetas (Tags/Layers) reais ja existentes no
+        modelo (SUModelGetNumLayers + SUModelGetLayers) -- diferente de
+        create_tag() (28.18), que so CRIA uma nova. Se a colecao interna
+        de layers nao existir (SU_ERROR_GENERIC=6, achado de pseudocodigo
+        real), trata como lista vazia em vez de lancar excecao."""
+        dll = self._dll
+        n = ctypes.c_size_t()
+        result = dll.SUModelGetNumLayers(model, ctypes.byref(n))
+        if result == 6:  # SU_ERROR_GENERIC (colecao de layers ausente)
+            return []
+        su_check(result, "SUModelGetNumLayers")
+        if n.value == 0:
+            return []
+        arr = (SULayerRef * n.value)()
+        actual = ctypes.c_size_t()
+        su_check(
+            dll.SUModelGetLayers(model, n.value, arr, ctypes.byref(actual)),
+            "SUModelGetLayers",
+        )
+        return list(arr)[: actual.value]
+
+    def get_layer_name(self, layer: SULayerRef) -> str:
+        """Mesmo padrao de leitura de SUStringRef ja usado em
+        get_scene_name()/get_definition_name(). A propria DLL devolve
+        "Sem etiquetas" (nome fixo interno) pra Etiqueta padrao -- nao
+        precisa de fallback manual aqui (achado de pseudocodigo real)."""
+        dll = self._dll
+        name_ref = SUStringRef()
+        su_check(dll.SUStringCreate(ctypes.byref(name_ref)), "SUStringCreate")
+        try:
+            su_check(dll.SULayerGetName(layer, ctypes.byref(name_ref)), "SULayerGetName")
+            length = ctypes.c_size_t()
+            su_check(
+                dll.SUStringGetUTF8Length(name_ref, ctypes.byref(length)),
+                "SUStringGetUTF8Length",
+            )
+            buf = ctypes.create_string_buffer(length.value + 1)
+            actual = ctypes.c_size_t()
+            su_check(
+                dll.SUStringGetUTF8(name_ref, length.value + 1, buf, ctypes.byref(actual)),
+                "SUStringGetUTF8",
+            )
+            return buf.value.decode("utf-8")
+        finally:
+            dll.SUStringRelease(ctypes.byref(name_ref))
+
+    def get_layer_visibility(self, layer: SULayerRef) -> bool:
+        """SULayerGetVisibility -- a DLL inverte uma flag "hidden" interna
+        antes de devolver (achado de pseudocodigo real), ja transparente
+        aqui: devolve visibilidade real, nao a flag crua."""
+        visible = ctypes.c_bool()
+        su_check(
+            self._dll.SULayerGetVisibility(layer, ctypes.byref(visible)),
+            "SULayerGetVisibility",
+        )
+        return bool(visible.value)
+
+    def set_layer_visibility(self, layer: SULayerRef, visible: bool) -> None:
+        """SULayerSetVisibility -- equivalente real do olho (toggle de
+        visibilidade) ao lado de cada Etiqueta na Bandeja padrao real."""
+        su_check(
+            self._dll.SULayerSetVisibility(layer, ctypes.c_bool(visible)),
+            "SULayerSetVisibility",
+        )
+
+    def get_drawing_element_layer(
+        self, drawing_elem: SUDrawingElementRef
+    ) -> SULayerRef | None:
+        """SUDrawingElementGetLayer devolve SU_ERROR_NO_DATA (9) quando o
+        elemento nao tem layer associado (achado de pseudocodigo real) --
+        tratado como None, mesmo padrao de get_active_scene()."""
+        layer = SULayerRef()
+        result = self._dll.SUDrawingElementGetLayer(drawing_elem, ctypes.byref(layer))
+        if result == 9:  # SU_ERROR_NO_DATA
+            return None
+        su_check(result, "SUDrawingElementGetLayer")
+        return layer
+
+    def get_default_layer(self, model: SUModelRef) -> SULayerRef:
+        """SUModelGetDefaultLayer -- a Etiqueta padrao/"Sem etiquetas" real
+        do modelo (toda instancia sem Etiqueta explicita pertence a ela)."""
+        layer = SULayerRef()
+        su_check(
+            self._dll.SUModelGetDefaultLayer(model, ctypes.byref(layer)),
+            "SUModelGetDefaultLayer",
+        )
+        return layer
+
+    def get_instance_tag_name(
+        self, model: SUModelRef, instance: SUComponentInstanceRef
+    ) -> str:
+        """Nome real da Etiqueta da instancia (ComponentInstanceToDrawingElement
+        -> SUDrawingElementGetLayer -> SULayerGetName) -- usado pra expor o
+        campo `tag` no InstanceDTO (core/mesh_extractor.py), ate entao
+        write-only (dava pra atribuir via Ferramentas > Etiqueta mas nunca
+        aparecia em lugar nenhum da UI). Instancia sem layer associado
+        (None, achado de pseudocodigo real) usa a Etiqueta padrao do
+        `model` passado (mesmo padrao de create_tag(model, name))."""
+        dll = self._dll
+        drawing_elem = dll.SUComponentInstanceToDrawingElement(instance)
+        layer = self.get_drawing_element_layer(drawing_elem)
+        if layer is None:
+            layer = self.get_default_layer(model)
+        return self.get_layer_name(layer)
 
     def create_custom_axes(
         self,

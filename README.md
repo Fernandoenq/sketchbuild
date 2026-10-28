@@ -75,7 +75,10 @@ Sidecar Pattern em três camadas desacopladas:
   toolbar de ícones; as 7 vistas reais -- incluindo Inferior/Posterior/
   Esquerda -- no menu Câmera) reposicionam a câmera instantaneamente com
   base na bounding box do modelo carregado (`setStandardView()` em
-  `main.js`).
+  `main.js`). Painel **Etiquetas** (`#tags-list`) lista as etiquetas
+  reais do modelo (nome + checkbox de visibilidade), cada instância do
+  Outliner carrega o nome real da sua etiqueta -- ver seção "Janela >
+  Bandeja padrão" abaixo.
 
 ### Barra de menu real (Arquivo/Editar/Visualizar/Câmera)
 
@@ -171,18 +174,36 @@ itens funcionais cada (ver `REVERSE_ENGINEERING_NOTES.md` seção 28):
   de chamar a DLL (que exige ortogonalidade estrita). Só funciona em
   definição de Grupo/Componente (não na raiz do modelo), mesma
   restrição do SketchUp real.
-- **Janela > Bandeja padrão**: Informações da entidade/Componentes
-  ligados ao colapso das seções do Default Tray já existentes;
-  Sombras/Névoa ligados ao MESMO toggle real de "Visualizar >
-  Sombras/Névoa" (duplicação de caminho de UI, igual o SketchUp real);
-  "Informações do modelo" mostra as contagens reais da cena aberta;
-  "Cenas" lista/cria/ativa Cenas reais do modelo via
-  `SUSceneCreate`/`SUModelAddScenes`/`SUModelSetActiveScene` (família
-  de exports públicos confirmada via engenharia reversa, ver
-  `REVERSE_ENGINEERING_NOTES.md` seção 28.20 -- a API Ruby chama o
-  mesmo objeto de "Page"). Limitação documentada: não captura nem
-  restaura câmera/estilo visual (este projeto não tem binding de
-  `SUCameraRef`).
+- **Janela > Bandeja padrão**: catalogada via screenshots reais do
+  SketchUp 2026 (ver `REVERSE_ENGINEERING_NOTES.md` seção 28.22),
+  ordem real das seções: Informações da entidade, Materiais,
+  Componentes, Estilos, Ambientes, Etiquetas, Sombras, Cenas,
+  Instrutor. **Correção de nomenclatura**: o painel de árvore de
+  instâncias deste app chamava-se "Componentes" por engano -- no
+  SketchUp real "Componentes" é o navegador de biblioteca de inserção
+  (fora de escopo, sem biblioteca pra empacotar); o nome real do
+  painel de hierarquia é **"Estrutura"** (Outliner), corrigido no menu
+  e no cabeçalho do painel. "Materiais"/"Estilos"/"Ambientes"/
+  "Instrutor" catalogados como itens desabilitados (bibliotecas/ajuda
+  contextual, fora de escopo -- a ferramenta "Pintura" já existente é
+  o equivalente real de aplicar um material, só sem biblioteca
+  navegável). "Informações da entidade" (Entity Info) ligado ao
+  colapso da seção já existente; Sombras/Névoa ligados ao MESMO toggle
+  real de "Visualizar > Sombras/Névoa" (duplicação de caminho de UI,
+  igual o SketchUp real); "Informações do modelo" mostra as contagens
+  reais da cena aberta; "Cenas" lista/cria/ativa Cenas reais do modelo
+  via `SUSceneCreate`/`SUModelAddScenes`/`SUModelSetActiveScene`
+  (família de exports públicos confirmada via engenharia reversa, ver
+  seção 28.20 -- a API Ruby chama o mesmo objeto de "Page").
+  Limitação documentada: não captura nem restaura câmera/estilo visual
+  (este projeto não tem binding de `SUCameraRef`). **"Etiquetas"**
+  (Tags) lista/alterna visibilidade das etiquetas reais do modelo via
+  `SUModelGetLayers`/`SULayerGetName`/`SULayerSetVisibility` (família
+  confirmada via engenharia reversa, ver seção 28.22 -- API interna
+  ainda chama isso de "Layer", nome legado da Trimble); cada instância
+  do DTO carrega seu nome de etiqueta real (`InstanceDTO.tag`), e a
+  visibilidade é filtrada client-side por instância (não é um toggle
+  global do modelo inteiro).
 - **Ajuda**: "Sobre o SketchBuild..." mostra uma mensagem informativa
   na barra de status; "Bem-vindo ao SketchUp..." reabre a Página
   Inicial real (mesma tela da Fase 6).
@@ -466,6 +487,8 @@ Malha extraida: 2 definicoes, 2 instancias, 9138 vertices, 3046 triangulos
 | POST | `/api/v1/scene/geometry/rectangle` | Cria uma face retangular nova no chão da sessão aberta (equivalente real de "Desenho > Formas > Retângulo" -- geometria nova de verdade via `SUGeometryInputCreate`/`SUEntitiesFill`, ver `REVERSE_ENGINEERING_NOTES.md` seção 28.6), opcionalmente dentro de um Grupo novo (`as_group`, equivalente a "Editar > Criar grupo", ver seção 28.18). |
 | POST | `/api/v1/scene/instances/{instance_id}/material` | Aplica uma cor RGBA nova de verdade numa instância (equivalente real de "Ferramentas > Pintura" -- `SUMaterialCreate`/`SUMaterialSetColor`/`SUDrawingElementSetMaterial`, ver `REVERSE_ENGINEERING_NOTES.md` seção 28.15). |
 | POST | `/api/v1/scene/instances/{instance_id}/tag` | Aplica uma Etiqueta (Tag) real numa instância (equivalente real de "Ferramentas > Etiqueta" -- `SULayerCreate`/`SULayerSetName`/`SUModelAddLayers`/`SUDrawingElementSetLayer`, ver `REVERSE_ENGINEERING_NOTES.md` seção 28.18). |
+| GET | `/api/v1/scene/tags` | Lista todas as Etiquetas reais do modelo aberto (equivalente a "Janela > Bandeja padrão > Etiquetas" -- `SUModelGetLayers`/`SULayerGetName`/`SULayerGetVisibility`, ver `REVERSE_ENGINEERING_NOTES.md` seção 28.22). Inclui a etiqueta padrão/sem-etiqueta real ("Layer0"). |
+| PATCH | `/api/v1/scene/tags/{tag_name}/visibility` | Alterna a visibilidade real de uma Etiqueta (`SULayerSetVisibility`, equivalente ao ícone de olho da Bandeja padrão real). Persiste na sessão (e no arquivo, se "Salvar" for chamado depois) -- não é um filtro cosmético client-side. |
 | POST | `/api/v1/scene/faces/{face_id}/material` | Aplica uma cor RGBA nova numa FACE específica (não a instância inteira) -- `SUFaceToDrawingElement`/`SUDrawingElementSetMaterial`, afeta todas as instâncias que compartilham a mesma definição (ver `REVERSE_ENGINEERING_NOTES.md` seção 28.19). |
 | GET | `/api/v1/scene/pages` | Lista todas as Cenas reais do modelo aberto (equivalente a "Janela > Bandeja padrão > Cenas"), com a flag `active` de qual está ativa agora. |
 | POST | `/api/v1/scene/pages` | Cria uma Cena real nova a partir do estado atual (`SUSceneCreate`/`SUModelAddScenes`). Não captura câmera/estilo visual. |

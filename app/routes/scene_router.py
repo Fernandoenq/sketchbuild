@@ -31,8 +31,11 @@ from app.schemas.scene import (
     SceneResponse,
     SetInstanceAxesRequest,
     SetInstanceAxesResponse,
+    SetTagVisibilityRequest,
+    SetTagVisibilityResponse,
     TagInstanceRequest,
     TagInstanceResponse,
+    ListTagsResponse,
     UpdateTransformRequest,
     UpdateTransformResponse,
 )
@@ -205,6 +208,30 @@ async def paint_face(
     controller: SceneController = Depends(get_controller),
 ) -> PaintFaceResponse:
     return await controller.paint_face(face_id, body.r, body.g, body.b)
+
+
+@router.get(
+    "/tags",
+    response_model=ListTagsResponse,
+    summary="Lista todas as Etiquetas reais do modelo aberto (equivalente a Janela > Bandeja padrao > Etiquetas)",
+)
+async def list_tags(
+    controller: SceneController = Depends(get_controller),
+) -> ListTagsResponse:
+    return await controller.list_tags()
+
+
+@router.patch(
+    "/tags/{tag_name}/visibility",
+    response_model=SetTagVisibilityResponse,
+    summary="Alterna a visibilidade real de uma Etiqueta (SULayerSetVisibility, equivalente ao icone de olho da Bandeja padrao)",
+)
+async def set_tag_visibility(
+    tag_name: str,
+    body: SetTagVisibilityRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SetTagVisibilityResponse:
+    return await controller.set_tag_visibility(tag_name, body.visible)
 
 
 @router.get(

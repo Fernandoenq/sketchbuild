@@ -165,6 +165,29 @@ export function activateScenePage(sceneId) {
   );
 }
 
+/** Lista TODAS as Etiquetas reais do modelo aberto (equivalente real de
+ * "Janela > Bandeja padrão > Etiquetas" -- ver core/su_api.py list_layers()
+ * e REVERSE_ENGINEERING_NOTES.md seção 28.22). Inclui etiquetas que já
+ * vinham salvas no .skp antes desta sessão, com visibilidade real. */
+export async function listTags() {
+  const res = await fetch("/api/v1/scene/tags");
+  if (!res.ok) throw new ApiError(res.statusText, res.status);
+  const body = await res.json();
+  return body.tags;
+}
+
+/** Alterna a visibilidade real de uma Etiqueta (SULayerSetVisibility --
+ * equivalente ao ícone de olho da Bandeja padrão real). Estado persiste
+ * na sessão (e no arquivo, se "Salvar" for chamado depois) -- não é só
+ * um filtro cosmético client-side. */
+export function setTagVisibility(tagName, visible) {
+  return postJson(
+    `/api/v1/scene/tags/${encodeURIComponent(tagName)}/visibility`,
+    "PATCH",
+    { visible }
+  );
+}
+
 /** Redefine os eixos customizados (locais) da definicao por tras da
  * instancia/Grupo clicado -- equivalente real de "Ferramentas > Eixos"
  * (ver core/su_api.py create_custom_axes()/set_definition_axes() e

@@ -213,6 +213,7 @@ def _walk_instances(
     seen_defs: set,
     registry: dict,
     faces_registry: dict,
+    model_ref,
     parent_instance_id: str | None = None,
 ) -> None:
     # Grupos sao uma colecao SEPARADA de ComponentInstances no SDK
@@ -239,6 +240,11 @@ def _walk_instances(
                 "definition_id": def_id,
                 "transform": world,
                 "parent_instance_id": parent_instance_id,
+                # Nome real da Etiqueta (Tag/Layer) desta instancia -- ver
+                # REVERSE_ENGINEERING_NOTES.md secao 28.22. Campo novo:
+                # ate entao a atribuicao de Etiqueta (28.18) era write-only,
+                # nunca refletida de volta no DTO/UI.
+                "tag": api.get_instance_tag_name(model_ref, instance),
             }
         )
         # `entities` aqui e o Entities DIRETO (pai) onde essa instancia
@@ -269,6 +275,7 @@ def _walk_instances(
             seen_defs,
             registry,
             faces_registry,
+            model_ref,
             instance_id,
         )
 
@@ -294,6 +301,7 @@ def extract_scene_with_registry(api, model) -> tuple[dict, dict, dict]:
             "definition_id": "root",
             "transform": list(IDENTITY_4X4),
             "parent_instance_id": None,
+            "tag": None,
         }
     )
     registry["inst_root"] = {
@@ -311,6 +319,7 @@ def extract_scene_with_registry(api, model) -> tuple[dict, dict, dict]:
         {"root"},
         registry,
         faces_registry,
+        model.raw_ref,
         parent_instance_id="inst_root",
     )
 

@@ -224,6 +224,9 @@
     .outliner-children.collapsed { display: none; }
 
     #entity-info-empty { padding: 14px; font-size: 11px; color: var(--muted); font-style: italic; }
+    #tags-empty { padding: 14px; font-size: 11px; color: var(--muted); font-style: italic; }
+    #tags-empty.hidden { display: none; }
+    #tags-list { padding: 8px 14px; }
     #entity-info-empty.hidden { display: none; }
     #entity-info { padding: 10px 14px; }
     #entity-info.hidden { display: none; }
@@ -679,20 +682,20 @@
           <div class="menu-dropdown">
             <div class="menu-dropdown-item disabled"><span>Ocultar bandeja</span></div>
             <div class="menu-dropdown-item disabled"><span>Renomear bandeja</span></div>
-            <div class="menu-dropdown-item is-checked" id="menu-item-tray-entity-info" data-action="toggle-tray-entity-info" title="Equivalente ao painel Entity Info ja existente na Bandeja padrao"><span><span class="menu-check">&#10003;</span>Informações da entidade</span></div>
-            <div class="menu-dropdown-item disabled"><span>Materiais</span></div>
-            <div class="menu-dropdown-item is-checked" id="menu-item-tray-outliner" data-action="toggle-tray-outliner" title="Equivalente ao painel Outliner ja existente na Bandeja padrao"><span><span class="menu-check">&#10003;</span>Componentes</span></div>
-            <div class="menu-dropdown-item disabled"><span>Estilos</span></div>
-            <div class="menu-dropdown-item disabled"><span>Ambientes</span></div>
-            <div class="menu-dropdown-item disabled"><span>Etiquetas</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-tray-entity-info" data-action="toggle-tray-entity-info" title="Equivalente ao painel Informações da entidade ja existente na Bandeja padrao real"><span><span class="menu-check">&#10003;</span>Informações da entidade</span></div>
+            <div class="menu-dropdown-item disabled" title="Catalogado via Bandeja padrao real (SketchUp 2026) -- biblioteca de materiais prontos por categoria (Argamassa/Asfalto/Azulejos/Cores solidas/...), fora de escopo (exigiria bundlar assets de textura reais da Trimble; aplicar UM material numa peca/face ja e real via Ferramentas > Pintura/Pintura por face)"><span>Materiais</span></div>
+            <div class="menu-dropdown-item disabled" title="Catalogado via Bandeja padrao real (SketchUp 2026) -- biblioteca de componentes pra INSERIR no modelo (abas Selecionar/Editar/Estatisticas, pastas 'Amostra de componentes'/'SMLC'), painel DIFERENTE da arvore de instancias do modelo (essa e 'Estrutura', ja implementada abaixo) -- fora de escopo, exigiria bundlar uma biblioteca de componentes real"><span>Componentes</span></div>
+            <div class="menu-dropdown-item disabled" title="Catalogado via Bandeja padrao real -- biblioteca de estilos visuais predefinidos, fora de escopo (os 5 estilos de face/arestas reais deste app ja ficam em Visualizar > Estilo de face/aresta)"><span>Estilos</span></div>
+            <div class="menu-dropdown-item disabled" title="Catalogado via Bandeja padrao real -- biblioteca de ambientes/fundos predefinidos, fora de escopo"><span>Ambientes</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-tray-tags" data-action="toggle-tray-tags" title="Lista as Etiquetas (Tags/Layers) reais do modelo via SUModelGetLayers/SULayerGetName, com visibilidade real via SULayerGetVisibility/SULayerSetVisibility -- ver REVERSE_ENGINEERING_NOTES.md secao 28.22"><span><span class="menu-check">&#10003;</span>Etiquetas</span></div>
             <div class="menu-dropdown-item is-checked" id="menu-item-tray-scenes" data-action="toggle-tray-scenes" title="SUModelAddScenes/SUSceneActivate reais -- ver REVERSE_ENGINEERING_NOTES.md secao 28.20"><span><span class="menu-check">&#10003;</span>Cenas</span></div>
             <div class="menu-dropdown-item" id="menu-item-tray-shadows" data-action="toggle-shadows" title="Mesmo toggle real de Visualizar > Sombras"><span><span class="menu-check">&#10003;</span>Sombras</span></div>
             <div class="menu-dropdown-item" id="menu-item-tray-fog" data-action="toggle-fog" title="Mesmo toggle real de Visualizar > Névoa"><span><span class="menu-check">&#10003;</span>Névoa</span></div>
             <div class="menu-dropdown-item disabled"><span>Adaptar à foto</span></div>
             <div class="menu-dropdown-item disabled"><span>Suavizar arestas</span></div>
             <div class="menu-dropdown-item disabled"><span>Sobreposições</span></div>
-            <div class="menu-dropdown-item disabled"><span>Instrutor</span></div>
-            <div class="menu-dropdown-item disabled"><span>Estrutura</span></div>
+            <div class="menu-dropdown-item disabled" title="Catalogado via Bandeja padrao real -- painel de ajuda contextual (dicas de uso da ferramenta ativa), nao expoe dado do modelo, fora de escopo"><span>Instrutor</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-tray-outliner" data-action="toggle-tray-outliner" title="CORRIGIDO via engenharia reversa (28.22): o painel real chamado 'Componentes' na Bandeja padrao e a biblioteca de insercao (ver item acima) -- a arvore de instancias do modelo e o painel real 'Estrutura' (Outliner), que e este"><span><span class="menu-check">&#10003;</span>Estrutura</span></div>
           </div>
         </div>
         <div class="menu-dropdown-item disabled"><span>Gerenciar bandejas...</span></div>
@@ -872,19 +875,10 @@
   </div>
 
   <div id="default-tray" class="hidden">
-    <div class="tray-section" id="tray-outliner">
-      <div class="tray-header" data-section="tray-outliner">
-        <span class="tray-arrow"></span>
-        <span>Outliner</span>
-      </div>
-      <div class="tray-body">
-        <div id="outliner-tree"></div>
-      </div>
-    </div>
     <div class="tray-section" id="tray-entity-info">
       <div class="tray-header" data-section="tray-entity-info">
         <span class="tray-arrow"></span>
-        <span>Entity Info</span>
+        <span>Informações da entidade</span>
       </div>
       <div class="tray-body">
         <div id="entity-info-empty">Nenhuma instancia selecionada.</div>
@@ -906,6 +900,25 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+    <div class="tray-section" id="tray-tags">
+      <div class="tray-header" data-section="tray-tags">
+        <span class="tray-arrow"></span>
+        <span>Etiquetas</span>
+      </div>
+      <div class="tray-body">
+        <div id="tags-empty">Nenhum modelo aberto.</div>
+        <div id="tags-list"></div>
+      </div>
+    </div>
+    <div class="tray-section" id="tray-outliner">
+      <div class="tray-header" data-section="tray-outliner">
+        <span class="tray-arrow"></span>
+        <span>Estrutura</span>
+      </div>
+      <div class="tray-body">
+        <div id="outliner-tree"></div>
       </div>
     </div>
     <div class="tray-section" id="tray-scenes">
