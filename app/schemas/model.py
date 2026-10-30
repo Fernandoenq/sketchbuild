@@ -67,10 +67,25 @@ class InspectBinaryResponse(BaseModel):
     is_empty: bool
 
 
+class MaterialInfoResponse(BaseModel):
+    name: str
+    color: list[int]
+    opacity: float
+    hasTexture: bool
+    texturePath: str | None = None
+    xScale: float
+    yScale: float
+    metalness: float
+    roughness: float
+
+
 class ExtractMeshBinaryResponse(BaseModel):
     vertices: list[float]
     normals: list[float]
+    uvs: list[float] = Field(default_factory=list)
     indices: list[int]
+    materials: dict[str, MaterialInfoResponse] = Field(default_factory=dict)
+    face_materials: list[str] = Field(default_factory=list)
     num_faces: int
     num_vertices: int
     bounds: InspectBinaryResponse

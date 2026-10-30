@@ -78,7 +78,7 @@ async def inspect_binary_skp(body: InspectBinaryRequest) -> InspectBinaryRespons
 @router.post(
     "/extract-mesh-binary",
     response_model=ExtractMeshBinaryResponse,
-    summary="Reconstrói a malha 3D completa (Vértices, Normais, Triângulos) direto do model.dat sem DLL",
+    summary="Reconstrói a malha 3D completa (Vértices, Normais, UVs, Triângulos, Materiais) direto do container .skp",
 )
 async def extract_mesh_binary_skp(body: InspectBinaryRequest) -> ExtractMeshBinaryResponse:
     mesh = SkpBinaryReader.extract_mesh(body.path)
@@ -87,7 +87,10 @@ async def extract_mesh_binary_skp(body: InspectBinaryRequest) -> ExtractMeshBina
     return ExtractMeshBinaryResponse(
         vertices=mesh["vertices"],
         normals=mesh["normals"],
+        uvs=mesh["uvs"],
         indices=mesh["indices"],
+        materials=mesh["materials"],
+        face_materials=mesh["face_materials"],
         num_faces=mesh["num_faces"],
         num_vertices=mesh["num_vertices"],
         bounds=InspectBinaryResponse(

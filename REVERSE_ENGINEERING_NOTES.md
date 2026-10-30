@@ -61,6 +61,27 @@ Cada vértice do modelo é empacotado em exatamente 46 bytes:
   - Percorrendo o loop em ordem, obtém-se o polígono planar ordenado `[V0, V1, V2, V3, ...]`.
   - A triangulação é feita via Fan Triangulation (`(0, 1, 2), (0, 2, 3), ...`) ou Earcut, gerando triângulos com orientação anti-horária coerente com a normal $Ax + By + Cz + D = 0$.
 
+### D. Mapeamento de Materiais e Texturas UV (Frente 2)
+- **Registro de Material no `model.dat` (Tag `0x32c8`):**
+  - Mapeia o `EntityID` do material (Tag `0x05de`) para o nome legível em string UTF-8 (Tag `0x32cc`).
+- **Associação Face-Material:**
+  - Tag `0x0daf` imediatamente antes do plano define o **Front Material ID**.
+  - Tag `0x0db0` define o **Back Material ID** (quando houver).
+  - Em faces monocromáticas de modelos sem Tag `0x0daf`, o material herda do grupo/layer via Tag `0x07d1`.
+- **Matriz de Projeção UV Analítica (Tag `0x2715` | 72 bytes):**
+  - Contém 9 `doubles` de 64 bits em little-endian representando a matriz afim $3 \times 3$ de projeção sobre a face:
+    $$\begin{bmatrix} m_0 & m_1 & m_2 \\ m_3 & m_4 & m_5 \\ m_6 & m_7 & m_8 \end{bmatrix}$$
+  - Para cada vértice $(x, y, z)$ da face (em polegadas):
+    $$u_{\text{raw}} = m_0 x + m_3 y + m_6$$
+    $$v_{\text{raw}} = m_1 x + m_4 y + m_7$$
+  - As coordenadas UV normalizadas $[0..1]$ para Three.js / WebGL são:
+    $$u = \frac{u_{\text{raw}}}{\text{xScale}}, \quad v = \frac{v_{\text{raw}}}{\text{yScale}}$$
+    onde $\text{xScale}$ e $\text{yScale}$ são as dimensões físicas da textura em polegadas definidas no `material.xml`.
+- **Metadados XML de Materiais e PBR (`materials/*/material.xml`):**
+  - `<mat:material colorRed="..." colorGreen="..." colorBlue="..." trans="..." hasTexture="...">`
+  - `<mat:pbrMR>` com `metallicFactor`, `roughnessFactor`, `normalScale` e `occlusionStrength`.
+  - Imagem física embutida no ZIP (`materials/<Nome>/<Arquivo>.jpg/png`).
+
 ---
 
 ## 3. O Motor C++ de Carga (`definitions.load`)
