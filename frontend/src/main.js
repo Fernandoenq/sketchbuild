@@ -40,6 +40,10 @@ import {
   exportModelIfc,
   addLineGeometry,
   addFaceGeometry,
+  exportCutlistXlsx,
+  addCircleGeometry,
+  addCylinderGeometry,
+  extrudeFaceGeometry,
   ApiError,
 } from "./api.js";
 import {
@@ -109,6 +113,14 @@ const tagNameInputEl = document.getElementById("tag-name-input");
 const toolsToolbarEl = document.getElementById("tools-toolbar");
 const toolIconBtnEls = document.querySelectorAll(".tool-icon-btn");
 const vcbEl = document.getElementById("vcb");
+const vcbPushpullEl = document.getElementById("vcb-pushpull");
+const pushpullDistInputEl = document.getElementById("pushpull-dist-input");
+const pushpullApplyBtnEl = document.getElementById("pushpull-apply-btn");
+const vcbCircleEl = document.getElementById("vcb-circle");
+const circleRadiusInputEl = document.getElementById("circle-radius-input");
+const circleHeightInputEl = document.getElementById("circle-height-input");
+const circleCreateBtnEl = document.getElementById("circle-create-btn");
+const btnExportCutlistEl = document.getElementById("btn-export-cutlist");
 const vcbLineEl = document.getElementById("vcb-line");
 const lineLengthInputEl = document.getElementById("line-length-input");
 const lineSnapInfoEl = document.getElementById("line-snap-info");
@@ -357,6 +369,8 @@ function syncToolUI(activeKey) {
     [vcbBoxEl, activeKey === "box"],
     [vcbDxfEl, activeKey === "dxf"],
     [vcbLineEl, activeKey === "line"],
+    [vcbPushpullEl, activeKey === "pushpull"],
+    [vcbCircleEl, activeKey === "circle"],
   ];
   let any = false;
   fields.forEach(([el, visible]) => {
@@ -395,6 +409,8 @@ function setToolMode(mode) {
   else if (mode === "paintFace") setStatus("Modo Pintura por face: escolha a cor na caixa no canto inferior direito e clique numa FACE (afeta todas as instancias da mesma peca no arquivo).");
   else if (mode === "tag") setStatus("Modo Etiqueta: escreva o nome na caixa no canto inferior direito e clique numa peca.");
   else if (mode === "axes") setStatus("Modo Eixos: clique na peca pra definir a ORIGEM dos eixos novos.");
+  else if (mode === "pushpull") setStatus("Modo Empurrar/Puxar (P): clique numa face para selecionar e digite a distância no VCB ou clique para extrudar.");
+  else if (mode === "circle") setStatus("Modo Círculo / Cilindro (C): defina raio e altura no canto inferior direito e clique em Criar.");
   else if (mode === "line") setStatus("Modo Linha (L): clique para fixar o 1o ponto. Setas travam eixos (Direita=X/Vermelho, Esquerda=Y/Verde, Cima=Z/Azul).");
   else if (mode === "rect") setStatus("Modo Retangulo: informe largura/profundidade na caixa no canto inferior direito e clique em Criar.");
   else if (mode === "box") setStatus("Modo Bloco 3D (Push-Pull): informe largura, comprimento e altura na caixa no canto inferior direito e clique em Criar Bloco.");
@@ -580,6 +596,10 @@ renderer.domElement.addEventListener("click", (event) => {
 
   const hits = raycaster.intersectObjects(currentGroup.children, false);
 
+  if (toolMode === "pushpull") {
+    handlePushPullClick(event);
+    return;
+  }
   if (toolMode === "line") {
     handleLineClick(event);
     return;
@@ -741,6 +761,12 @@ window.addEventListener("keydown", (event) => {
   }
   else if (event.key === "l" || event.key === "L") {
     setToolMode("line");
+  }
+  else if (event.key === "p" || event.key === "P") {
+    setToolMode("pushpull");
+  }
+  else if (event.key === "c" || event.key === "C") {
+    setToolMode("circle");
   }
   else if (toolMode === "line" && inferenceEngine) {
     if (event.key === "ArrowRight") {
@@ -1953,10 +1979,17 @@ const MENU_ACTIONS = {
     setToolMode("box");
     boxWInputEl?.focus();
   },
-  "tool-pushpull": () => {
-    setToolMode("box");
-    boxWInputEl?.focus();
+  "tool-pushpull": () => setToolMode("pushpull"),
+  "draw-circle": () => {
+    setToolMode("circle");
+    circleRadiusInputEl?.focus();
   },
+  "draw-cylinder": () => {
+    setToolMode("circle");
+    if (circleHeightInputEl) circleHeightInputEl.value = "2.0";
+    circleHeightInputEl?.focus();
+  },
+  "export-cutlist": () => handleExportCutlist(),
   "import-dxf": () => {
     setToolMode("dxf");
     dxfPathInputEl?.focus();
@@ -2642,4 +2675,159 @@ function createVisualPolygonFace(points) {
   const lineMat = new THREE.LineBasicMaterial({ color: 0x111111, linewidth: 2 });
   const edgeLine = new THREE.Line(lineGeom, lineMat);
   userDrawingsGroup.add(edgeLine);
+}
+
+
+// ============================================================================
+// Frente 23: Exportação de Lista de Corte e Orçamento Parkelô em Excel (.xlsx)
+// ============================================================================
+
+async function handleExportCutlist() {
+  const currentPath = savePathInputEl ? savePathInputEl.value.trim() : "";
+  const defaultTarget = currentPath
+    ? currentPath.replace(/\.skp$/i, "_lista_corte_parkelo.xlsx")
+    : "C:\\Users\\Fernando\\Desktop\\lista_corte_parkelo.xlsx";
+
+  const targetPath = prompt("Informe o caminho de destino para a planilha Excel (.xlsx):", defaultTarget);
+  if (!targetPath || !targetPath.trim()) return;
+
+  setStatus(`Exportando lista de corte e orçamento para ${targetPath}...`);
+  try {
+    const res = await exportCutlistXlsx(targetPath.trim());
+    setStatus(`Planilha Excel exportada com sucesso: ${res.path} (${res.total_pecas} peças, Total: R$ ${res.total_custo_brl.toFixed(2)})`);
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Falha ao exportar planilha Excel: ${detail}`, true);
+  }
+}
+
+if (btnExportCutlistEl) {
+  btnExportCutlistEl.addEventListener("click", handleExportCutlist);
+}
+
+// ============================================================================
+// Frente 14: Criação Paramétrica de Círculo e Cilindro 3D Manifold
+// ============================================================================
+
+async function handleCreateCircleOrCylinder() {
+  const r = parseFloat(circleRadiusInputEl?.value || "0.5");
+  const h = parseFloat(circleHeightInputEl?.value || "0.0");
+  if (!Number.isFinite(r) || r <= 0) {
+    setStatus("Informe um raio válido maior que zero (metros).", true);
+    return;
+  }
+
+  try {
+    if (h > 0.001) {
+      setStatus(`Criando cilindro 3D manifold (R=${r}m, H=${h}m)...`);
+      const res = await addCylinderGeometry(r, h, [0.0, 0.0, 0.0], 16);
+      setStatus(`Cilindro 3D criado com sucesso! (Volume: ${res.entity?.volume_m3} m³, Área: ${res.entity?.surface_area_m2} m²)`);
+    } else {
+      setStatus(`Criando círculo plano B-Rep (R=${r}m)...`);
+      const res = await addCircleGeometry(r, [0.0, 0.0, 0.0], 24);
+      setStatus(`Círculo plano criado com sucesso! (Área: ${res.entity?.area_m2} m²)`);
+    }
+    // Reabre/sincroniza a cena para refletir a nova geometria nativa
+    if (currentSceneDTO?.model_path) {
+      await handleOpen(currentSceneDTO.model_path);
+    }
+    setToolMode("select");
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Falha ao criar círculo/cilindro: ${detail}`, true);
+  }
+}
+
+if (circleCreateBtnEl) {
+  circleCreateBtnEl.addEventListener("click", handleCreateCircleOrCylinder);
+}
+
+// ============================================================================
+// Frente 24: Ferramenta Push/Pull Interativa no Canvas WebGL
+// ============================================================================
+
+let pushpullActiveFace = null;
+
+async function handlePushPullClick(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+
+  const targets = currentGroup ? currentGroup.children : [];
+  const hits = raycaster.intersectObjects(targets, false);
+
+  if (!hits.length || !hits[0].face) {
+    setStatus("Clique diretamente sobre uma face para usar a ferramenta Empurrar/Puxar.", true);
+    return;
+  }
+
+  const hit = hits[0];
+  const mesh = hit.object;
+  const geom = mesh.geometry;
+  const posAttr = geom.getAttribute("position");
+  if (!posAttr) return;
+
+  // Extrai os 3 vértices do triângulo atingido em coordenadas de mundo
+  mesh.updateWorldMatrix(true, false);
+  const vA = new THREE.Vector3().fromBufferAttribute(posAttr, hit.face.a).applyMatrix4(mesh.matrixWorld);
+  const vB = new THREE.Vector3().fromBufferAttribute(posAttr, hit.face.b).applyMatrix4(mesh.matrixWorld);
+  const vC = new THREE.Vector3().fromBufferAttribute(posAttr, hit.face.c).applyMatrix4(mesh.matrixWorld);
+
+  // Normal em mundo
+  const normal = hit.face.normal.clone().transformDirection(mesh.matrixWorld).normalize();
+
+  // Converte para coordenadas nativas do SketchUp (Z-up em metros: skp_x = three_x, skp_y = -three_z, skp_z = three_y)
+  const ptsSkp = [
+    [vA.x, -vA.z, vA.y],
+    [vB.x, -vB.z, vB.y],
+    [vC.x, -vC.z, vC.y],
+  ];
+  const normalSkp = [normal.x, -normal.z, normal.y];
+
+  pushpullActiveFace = {
+    points_skp: ptsSkp,
+    normal_skp: normalSkp,
+    three_pts: [vA, vB, vC],
+    three_normal: normal,
+  };
+
+  const distM = parseFloat(pushpullDistInputEl?.value || "1.0");
+  setStatus(`Face selecionada! Pressione 'Extrudar' no VCB ou digite uma distância para extruir ${distM.toFixed(2)}m.`);
+  if (pushpullDistInputEl) pushpullDistInputEl.focus();
+}
+
+async function handleApplyPushPull() {
+  if (!pushpullActiveFace) {
+    setStatus("Clique primeiro numa face 3D na viewport para selecionar a face a ser extrudada.", true);
+    return;
+  }
+
+  const distM = parseFloat(pushpullDistInputEl?.value || "1.0");
+  if (!Number.isFinite(distM) || Math.abs(distM) < 0.01) {
+    setStatus("Informe uma distância de extrusão válida não-nula.", true);
+    return;
+  }
+
+  setStatus(`Extrudando face por ${distM.toFixed(2)}m (Push/Pull)...`);
+  try {
+    const res = await extrudeFaceGeometry(
+      pushpullActiveFace.points_skp,
+      distM,
+      pushpullActiveFace.normal_skp
+    );
+    setStatus(`Extrusão Push/Pull concluída com sucesso! (${res.entity?.face_count} faces, ${res.entity?.edge_count} arestas)`);
+    pushpullActiveFace = null;
+    if (currentSceneDTO?.model_path) {
+      await handleOpen(currentSceneDTO.model_path);
+    }
+    setToolMode("select");
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Falha na extrusão Push/Pull: ${detail}`, true);
+  }
+}
+
+if (pushpullApplyBtnEl) {
+  pushpullApplyBtnEl.addEventListener("click", handleApplyPushPull);
 }

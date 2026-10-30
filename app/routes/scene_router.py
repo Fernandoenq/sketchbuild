@@ -27,6 +27,11 @@ from app.schemas.scene import (
     AddLineGeometryRequest,
     AddFaceGeometryRequest,
     AddGeometryEntityResponse,
+    ExportCutlistRequest,
+    ExportCutlistResponse,
+    AddCircleGeometryRequest,
+    AddCylinderGeometryRequest,
+    ExtrudeFaceGeometryRequest,
     ListAutosaveDraftsResponse,
     ListScenePagesResponse,
     NewSceneFromTemplateRequest,
@@ -509,3 +514,51 @@ async def add_face_geometry(
     controller: SceneController = Depends(get_controller),
 ) -> AddGeometryEntityResponse:
     return await controller.add_face_geometry(body)
+
+
+@router.post(
+    "/export/cutlist-xlsx",
+    response_model=ExportCutlistResponse,
+    summary="Exporta lista de corte e orçamento industrial em Excel .xlsx (Frente 23 - Zero DLL)",
+)
+async def export_cutlist_xlsx(
+    body: ExportCutlistRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ExportCutlistResponse:
+    return await controller.export_cutlist_xlsx(body)
+
+
+@router.post(
+    "/geometry/circle",
+    response_model=AddGeometryEntityResponse,
+    summary="Cria um círculo plano B-Rep paramétrico (Frente 14 - Zero DLL)",
+)
+async def add_circle_geometry(
+    body: AddCircleGeometryRequest,
+    controller: SceneController = Depends(get_controller),
+) -> AddGeometryEntityResponse:
+    return await controller.add_circle_geometry(body)
+
+
+@router.post(
+    "/geometry/cylinder",
+    response_model=AddGeometryEntityResponse,
+    summary="Cria um cilindro 3D manifold paramétrico (Frente 14 - Zero DLL)",
+)
+async def add_cylinder_geometry(
+    body: AddCylinderGeometryRequest,
+    controller: SceneController = Depends(get_controller),
+) -> AddGeometryEntityResponse:
+    return await controller.add_cylinder_geometry(body)
+
+
+@router.post(
+    "/geometry/pushpull",
+    response_model=AddGeometryEntityResponse,
+    summary="Extrude uma face coplanar para sólido 3D Push/Pull (Frente 24 - Zero DLL)",
+)
+async def extrude_face_geometry(
+    body: ExtrudeFaceGeometryRequest,
+    controller: SceneController = Depends(get_controller),
+) -> AddGeometryEntityResponse:
+    return await controller.extrude_face_geometry(body)

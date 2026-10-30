@@ -1245,3 +1245,42 @@ class SkpEngineRepository:
             self._autosave()
             return {"success": True, "entity": res}
         raise SceneSessionError("nenhuma sessão binária ativa")
+
+    def export_cutlist_xlsx(self, file_path: str) -> dict:
+        """Exporta Lista de Corte e Orçamento industrial Parkelô em planilha Excel .xlsx (Frente 23 - Zero DLL)."""
+        from core.cutlist_exporter import CutlistExporter
+        bim_report = self.calculate_bim_bom()
+        res = CutlistExporter.export_xlsx(bim_report, file_path)
+        return res
+
+    def add_circle_geometry(self, radius_m: float, center_xyz_m: list, num_segments: int = 24) -> dict:
+        """Cria um círculo plano B-Rep paramétrico no modelo aberto (Frente 14 - Zero DLL)."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_s = SkpBinaryWriter.get_session()
+        if bin_s is not None:
+            res = SkpBinaryWriter.add_circle(radius_m, tuple(center_xyz_m), num_segments=num_segments)
+            self._autosave()
+            return {"success": True, "entity": res}
+        raise SceneSessionError("nenhuma sessão binária ativa")
+
+    def add_cylinder_geometry(self, radius_m: float, height_m: float, center_xyz_m: list, num_segments: int = 16) -> dict:
+        """Cria um Cilindro 3D Manifold paramétrico (Postes/Tubos Parkelô) no modelo aberto (Frente 14 - Zero DLL)."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_s = SkpBinaryWriter.get_session()
+        if bin_s is not None:
+            res = SkpBinaryWriter.add_cylinder(radius_m, height_m, tuple(center_xyz_m), num_segments=num_segments)
+            self._autosave()
+            return {"success": True, "entity": res}
+        raise SceneSessionError("nenhuma sessão binária ativa")
+
+    def extrude_face_geometry(self, points_m: list, distance_m: float, normal: list | None = None) -> dict:
+        """Extrude uma face coplanar para sólido 3D (Push/Pull) no modelo aberto (Frente 24 - Zero DLL)."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_s = SkpBinaryWriter.get_session()
+        if bin_s is not None:
+            pts_tuple = [tuple(p) for p in points_m]
+            norm_tuple = tuple(normal) if normal else None
+            res = SkpBinaryWriter.extrude_face(pts_tuple, distance_m, norm_tuple)
+            self._autosave()
+            return {"success": True, "entity": res}
+        raise SceneSessionError("nenhuma sessão binária ativa")

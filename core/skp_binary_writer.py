@@ -1817,3 +1817,387 @@ class SkpBinaryWriter:
             "normal": [round(nx, 4), round(ny, 4), round(nz, 4)],
             "plane_d": round(plane_d, 4),
         }
+
+
+    @classmethod
+    def _build_and_inject_brep_mesh(
+        cls,
+        pts_in: List[Tuple[float, float, float]],
+        edge_defs: List[Tuple[int, int]],
+        face_defs: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Injeta um conjunto arbitrário de vértices, arestas e faces B-Rep no model.dat (Zero DLL)."""
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        mb = session.model_bytes
+
+        n_v = len(pts_in)
+        n_e = len(edge_defs)
+        n_f = len(face_defs)
+
+        # Coleta entity IDs existentes
+        all_eids = set()
+        p = 0
+        mb_len = len(mb)
+        while p + 6 <= mb_len:
+            p_de = mb.find(b"\xde\x05", p)
+            if p_de == -1:
+                break
+            l = struct.unpack_from("<I", mb, p_de + 2)[0]
+            if 1 <= l <= 8 and p_de + 6 + l <= mb_len:
+                all_eids.add(int.from_bytes(mb[p_de + 6 : p_de + 6 + l], "little"))
+            p = p_de + 1
+
+        cur_eid = max(all_eids, default=60000)
+        def alloc_eid() -> int:
+            nonlocal cur_eid
+            cur_eid += 1
+            while cur_eid in all_eids:
+                cur_eid += 1
+            all_eids.add(cur_eid)
+            return cur_eid
+
+        v_ids = [alloc_eid() for _ in range(n_v)]
+        e_ids = [alloc_eid() for _ in range(n_e)]
+        f_ids = [alloc_eid() for _ in range(n_f)]
+
+        # 1. Vértices (Tag 0x09c4 em 0x1389)
+        v_payload = bytearray()
+        for i in range(n_v):
+            eid_bytes = v_ids[i].to_bytes(4, "little")
+            eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+            dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+            pt_tag = b"\xc5\t\x18\x00\x00\x00" + struct.pack("<3d", *pts_in[i])
+            c4_payload = dc_tag + pt_tag
+            c4_tag = b"\xc4\t" + struct.pack("<I", len(c4_payload)) + c4_payload
+            v_payload.extend(c4_tag)
+        tag_1389 = b"\x89\x13" + struct.pack("<I", len(v_payload)) + v_payload
+
+        # 2. Arestas (Tag 0x0bb8 em 0x138a)
+        e_payload = bytearray()
+        for i, (va, vb) in enumerate(edge_defs):
+            eid_bytes = e_ids[i].to_bytes(4, "little")
+            eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+            dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+            d0_payload = dc_tag + b"\xd3\x07\x01\x00\x00\x00\x06"
+            d0_tag = b"\xd0\x07" + struct.pack("<I", len(d0_payload)) + d0_payload
+            b9_tag = b"\xb9\x0b\x04\x00\x00\x00" + v_ids[va].to_bytes(4, "little")
+            ba_tag = b"\xba\x0b\x04\x00\x00\x00" + v_ids[vb].to_bytes(4, "little")
+            b8_payload = d0_tag + b9_tag + ba_tag
+            b8_tag = b"\xb8\x0b" + struct.pack("<I", len(b8_payload)) + b8_payload
+            e_payload.extend(b8_tag)
+        tag_138a = b"\x8a\x13" + struct.pack("<I", len(e_payload)) + e_payload
+
+        # 3. Faces B-Rep (Tag 0x0dad / 0x0dae / 0x0dac em 0x138b)
+        f_payload = bytearray()
+        for i, fdef in enumerate(face_defs):
+            fid_bytes = f_ids[i].to_bytes(4, "little")
+            eid_tag = b"\xde\x05\x04\x00\x00\x00" + fid_bytes
+            dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+            d0_payload = dc_tag + b"\xd3\x07\x01\x00\x00\x00\x06"
+            d0_tag = b"\xd0\x07" + struct.pack("<I", len(d0_payload)) + d0_payload
+
+            nx, ny, nz = fdef["normal"]
+            pd = fdef["plane_d"]
+            dad_tag = b"\xad\x0d\x20\x00\x00\x00" + struct.pack("<4d", nx, ny, nz, pd)
+
+            edge_uses = bytearray()
+            for edge_idx, is_rev in fdef["edges"]:
+                fa1 = b"\xa1\x0f\x04\x00\x00\x00" + e_ids[edge_idx].to_bytes(4, "little")
+                fa2 = b"\xa2\x0f\x01\x00\x00\x00" + (b"\x01" if is_rev else b"\x00")
+                fa0_payload = fa1 + fa2
+                fa0_tag = b"\xa0\x0f" + struct.pack("<I", len(fa0_payload)) + fa0_payload
+                edge_uses.extend(fa0_tag)
+
+            tag_1195 = b"\x95\x11" + struct.pack("<I", len(edge_uses)) + edge_uses
+            tag_1194 = b"\x94\x11" + struct.pack("<I", len(tag_1195)) + tag_1195
+            dae_tag = b"\xae\x0d" + struct.pack("<I", len(tag_1194)) + tag_1194
+
+            ac0d_payload = d0_tag + dad_tag + dae_tag
+            ac0d_tag = b"\xac\r" + struct.pack("<I", len(ac0d_payload)) + ac0d_payload
+            f_payload.extend(ac0d_tag)
+
+        tag_138b = b"\x8b\x13" + struct.pack("<I", len(f_payload)) + f_payload
+
+        geom_block = tag_1389 + tag_138a + tag_138b
+        geom_delta = len(geom_block)
+
+        p_138c = mb.find(b"\x8c\x13")
+        if p_138c == -1:
+            raise SceneSessionError("contêiner de instâncias Tag 0x138c não localizado")
+
+        ins_pos = p_138c
+        mb[ins_pos:ins_pos] = geom_block
+
+        p_8e = mb.find(b"\x8e\x13", ins_pos + geom_delta)
+        tag_8e_delta = 0
+        if p_8e != -1:
+            old_8e_len = struct.unpack_from("<I", mb, p_8e + 2)[0]
+            old_8e_data = mb[p_8e + 6 : p_8e + 6 + old_8e_len]
+            new_entries = bytearray()
+            for eid in e_ids + f_ids:
+                new_entries.append(4)
+                new_entries.extend(eid.to_bytes(4, "little"))
+            new_8e_data = old_8e_data + new_entries
+            tag_8e_delta = len(new_entries)
+            mb[p_8e + 6 : p_8e + 6 + old_8e_len] = new_8e_data
+            struct.pack_into("<I", mb, p_8e + 2, len(new_8e_data))
+
+        total_delta = geom_delta + tag_8e_delta
+
+        p_1388 = mb.rfind(b"\x88\x13", 0, ins_pos)
+        if p_1388 != -1:
+            old_1388_len = struct.unpack_from("<I", mb, p_1388 + 2)[0]
+            struct.pack_into("<I", mb, p_1388 + 2, old_1388_len + total_delta)
+
+        p_01f6 = mb.rfind(b"\xf6\x01", 0, p_1388 if p_1388 != -1 else ins_pos)
+        if p_01f6 != -1:
+            old_f6_len = struct.unpack_from("<I", mb, p_01f6 + 2)[0]
+            struct.pack_into("<I", mb, p_01f6 + 2, old_f6_len + total_delta)
+
+        old_f4_len = struct.unpack_from("<I", mb, 2)[0]
+        struct.pack_into("<I", mb, 2, old_f4_len + total_delta)
+
+        session.is_dirty = True
+        return {
+            "vertex_ids": v_ids,
+            "edge_ids": e_ids,
+            "face_ids": f_ids,
+            "vertex_count": n_v,
+            "edge_count": n_e,
+            "face_count": n_f,
+        }
+
+    @classmethod
+    def add_circle(
+        cls,
+        radius_m: float,
+        center_xyz_m: Tuple[float, float, float] = (0.0, 0.0, 0.0),
+        num_segments: int = 24,
+    ) -> Dict[str, Any]:
+        """Cria um círculo plano B-Rep com K segmentos no plano horizontal (Frente 14 - Zero DLL)."""
+        if radius_m <= 0:
+            raise SceneSessionError("Raio do círculo deve ser positivo.")
+        k = max(int(num_segments), 3)
+        cx, cy, cz = center_xyz_m
+        pts = []
+        for i in range(k):
+            theta = 2.0 * math.pi * i / k
+            x = cx + radius_m * math.cos(theta)
+            y = cy + radius_m * math.sin(theta)
+            pts.append((x, y, cz))
+        res = cls.add_polygon_face(pts)
+        res["radius_m"] = radius_m
+        res["center_m"] = list(center_xyz_m)
+        res["segments"] = k
+        res["area_m2"] = round(math.pi * (radius_m ** 2), 4)
+        return res
+
+    @classmethod
+    def add_cylinder(
+        cls,
+        radius_m: float,
+        height_m: float,
+        center_xyz_m: Tuple[float, float, float] = (0.0, 0.0, 0.0),
+        num_segments: int = 16,
+    ) -> Dict[str, Any]:
+        """Cria um Cilindro 3D Manifold paramétrico (Postes/Tubos Parkelô - Frente 14 - Zero DLL)."""
+        if radius_m <= 0 or height_m <= 0:
+            raise SceneSessionError("Raio e altura do cilindro devem ser positivos.")
+
+        k = max(int(num_segments), 4)
+        cx, cy, cz = center_xyz_m
+        r_in = (float(radius_m) * 100.0) / 2.54
+        h_in = (float(height_m) * 100.0) / 2.54
+        cx_in = (float(cx) * 100.0) / 2.54
+        cy_in = (float(cy) * 100.0) / 2.54
+        cz_in = (float(cz) * 100.0) / 2.54
+
+        # Vértices da base (0 .. k-1) e do topo (k .. 2k-1)
+        pts_in = []
+        for i in range(k):
+            theta = 2.0 * math.pi * i / k
+            pts_in.append((cx_in + r_in * math.cos(theta), cy_in + r_in * math.sin(theta), cz_in))
+        for i in range(k):
+            theta = 2.0 * math.pi * i / k
+            pts_in.append((cx_in + r_in * math.cos(theta), cy_in + r_in * math.sin(theta), cz_in + h_in))
+
+        # Arestas:
+        # 0 .. k-1: arestas da base
+        # k .. 2k-1: arestas do topo
+        # 2k .. 3k-1: arestas verticais conectando V_i a T_i
+        edge_defs = []
+        for i in range(k):
+            edge_defs.append((i, (i + 1) % k))
+        for i in range(k):
+            edge_defs.append((k + i, k + ((i + 1) % k)))
+        for i in range(k):
+            edge_defs.append((i, k + i))
+
+        # Faces:
+        # 1. Base inferior (normal -Z): loop reverso
+        base_edges = [(i, True) for i in reversed(range(k))]
+        face_defs = [{
+            "edges": base_edges,
+            "normal": (0.0, 0.0, -1.0),
+            "plane_d": cz_in,
+        }]
+
+        # 2. Topo superior (normal +Z): loop direto
+        top_edges = [(k + i, False) for i in range(k)]
+        face_defs.append({
+            "edges": top_edges,
+            "normal": (0.0, 0.0, 1.0),
+            "plane_d": -(cz_in + h_in),
+        })
+
+        # 3. K Faces laterais (retângulos com normais radiais unitárias)
+        for i in range(k):
+            next_i = (i + 1) % k
+            # Arestas do retângulo: base[i], vert[next_i], topo[i] (rev), vert[i] (rev)
+            lat_edges = [
+                (i, False),
+                (2 * k + next_i, False),
+                (k + i, True),
+                (2 * k + i, True),
+            ]
+            # Normal radial externa no ponto médio
+            mid_theta = 2.0 * math.pi * (i + 0.5) / k
+            nx = math.cos(mid_theta)
+            ny = math.sin(mid_theta)
+            nz = 0.0
+            # Ponto sobre a face
+            px = cx_in + r_in * nx
+            py = cy_in + r_in * ny
+            pd = -(nx * px + ny * py)
+            face_defs.append({
+                "edges": lat_edges,
+                "normal": (nx, ny, nz),
+                "plane_d": pd,
+            })
+
+        res = cls._build_and_inject_brep_mesh(pts_in, edge_defs, face_defs)
+        res["entity_type"] = "Cylinder"
+        res["radius_m"] = radius_m
+        res["height_m"] = height_m
+        res["center_m"] = list(center_xyz_m)
+        res["segments"] = k
+        res["volume_m3"] = round(math.pi * (radius_m ** 2) * height_m, 4)
+        res["surface_area_m2"] = round(2.0 * math.pi * radius_m * (radius_m + height_m), 4)
+        return res
+
+    @classmethod
+    def extrude_face(
+        cls,
+        points_xyz_m: List[Tuple[float, float, float]],
+        distance_m: float,
+        normal_xyz: Optional[Tuple[float, float, float]] = None,
+    ) -> Dict[str, Any]:
+        """Extrude uma face coplanar existente ao longo de sua normal (Push/Pull - Frente 24 - Zero DLL)."""
+        n_pts = len(points_xyz_m)
+        if n_pts < 3:
+            raise SceneSessionError("A extrusão de face requer pelo menos 3 vértices coplanares.")
+        if abs(distance_m) < 0.001:
+            raise SceneSessionError("Distância de extrusão deve ser não-nula.")
+
+        # Converte para polegadas
+        pts_in = [tuple((float(c) * 100.0) / 2.54 for c in p) for p in points_xyz_m]
+        dist_in = (float(distance_m) * 100.0) / 2.54
+
+        # Se normal não informada, calcula analiticamente (P1 - P0) x (P2 - P0)
+        if not normal_xyz:
+            p0, p1, p2 = pts_in[0], pts_in[1], pts_in[2]
+            v1 = (p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2])
+            v2 = (p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2])
+            nx = v1[1] * v2[2] - v1[2] * v2[1]
+            ny = v1[2] * v2[0] - v1[0] * v2[2]
+            nz = v1[0] * v2[1] - v1[1] * v2[0]
+            norm_len = math.sqrt(nx * nx + ny * ny + nz * nz)
+            if norm_len < 1e-9:
+                raise SceneSessionError("Vértices colineares ou normais degeneradas.")
+            nx /= norm_len
+            ny /= norm_len
+            nz /= norm_len
+        else:
+            nx, ny, nz = normal_xyz
+            norm_len = math.sqrt(nx * nx + ny * ny + nz * nz)
+            nx /= norm_len
+            ny /= norm_len
+            nz /= norm_len
+
+        # Vetor de deslocamento
+        dx = nx * dist_in
+        dy = ny * dist_in
+        dz = nz * dist_in
+
+        # Vértices de base (0 .. n-1) e topo (n .. 2n-1)
+        all_pts_in = list(pts_in)
+        for p in pts_in:
+            all_pts_in.append((p[0] + dx, p[1] + dy, p[2] + dz))
+
+        # Arestas: base (0..n-1), topo (n..2n-1), verticais (2n..3n-1)
+        edge_defs = []
+        for i in range(n_pts):
+            edge_defs.append((i, (i + 1) % n_pts))
+        for i in range(n_pts):
+            edge_defs.append((n_pts + i, n_pts + ((i + 1) % n_pts)))
+        for i in range(n_pts):
+            edge_defs.append((i, n_pts + i))
+
+        # Faces:
+        # 1. Base (normal invertida -N)
+        base_pd = nx * pts_in[0][0] + ny * pts_in[0][1] + nz * pts_in[0][2]
+        base_edges = [(i, True) for i in reversed(range(n_pts))]
+        face_defs = [{
+            "edges": base_edges,
+            "normal": (-nx, -ny, -nz),
+            "plane_d": base_pd,
+        }]
+
+        # 2. Topo (normal +N)
+        top_p0 = all_pts_in[n_pts]
+        top_pd = -(nx * top_p0[0] + ny * top_p0[1] + nz * top_p0[2])
+        top_edges = [(n_pts + i, False) for i in range(n_pts)]
+        face_defs.append({
+            "edges": top_edges,
+            "normal": (nx, ny, nz),
+            "plane_d": top_pd,
+        })
+
+        # 3. N Faces laterais
+        for i in range(n_pts):
+            next_i = (i + 1) % n_pts
+            lat_edges = [
+                (i, False),
+                (2 * n_pts + next_i, False),
+                (n_pts + i, True),
+                (2 * n_pts + i, True),
+            ]
+            # Normal lateral = (P_{i+1} - P_i) x Normal_Face
+            p_curr = all_pts_in[i]
+            p_next = all_pts_in[next_i]
+            edge_v = (p_next[0] - p_curr[0], p_next[1] - p_curr[1], p_next[2] - p_curr[2])
+            lat_nx = edge_v[1] * nz - edge_v[2] * ny
+            lat_ny = edge_v[2] * nx - edge_v[0] * nz
+            lat_nz = edge_v[0] * ny - edge_v[1] * nx
+            lat_len = math.sqrt(lat_nx * lat_nx + lat_ny * lat_ny + lat_nz * lat_nz)
+            if lat_len > 1e-9:
+                lat_nx /= lat_len
+                lat_ny /= lat_len
+                lat_nz /= lat_len
+            lat_pd = -(lat_nx * p_curr[0] + lat_ny * p_curr[1] + lat_nz * p_curr[2])
+            face_defs.append({
+                "edges": lat_edges,
+                "normal": (lat_nx, lat_ny, lat_nz),
+                "plane_d": lat_pd,
+            })
+
+        res = cls._build_and_inject_brep_mesh(all_pts_in, edge_defs, face_defs)
+        res["entity_type"] = "Extrusion"
+        res["distance_m"] = distance_m
+        res["vertex_count"] = 2 * n_pts
+        res["face_count"] = n_pts + 2
+        res["edge_count"] = 3 * n_pts
+        return res

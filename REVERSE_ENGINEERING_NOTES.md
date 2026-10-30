@@ -682,3 +682,68 @@ A Frente 22 implementa a primeira ferramenta de desenho interativo do SketchBuil
 ### C. Endpoints FastAPI
 - `POST /api/v1/scene/geometry/line`: Adiciona aresta conectada a partir de coordenadas $(x, y, z)$ em metros.
 - `POST /api/v1/scene/geometry/face`: Adiciona face coplanar fechada a partir de $N$ vértices em metros.
+
+---
+
+## 47. Frente 23: Integração Industrial com Catálogo Parkelô & Exportador de Lista de Corte e Orçamento (.xlsx - Zero DLL)
+
+A Frente 23 conecta o motor analítico de Orçamento BIM/BOM do SketchBuild à cadeia de suprimentos e fabricação da Parkelô, gerando planilhas Microsoft Excel OpenXML (.xlsx - ECMA-376) nativas em Pure Python, sem dependências externas (`openpyxl` dispensado).
+
+### A. Estrutura do Pacote OpenXML Monolítico (.xlsx)
+1. **Container ZIP:** O arquivo `.xlsx` é construído com compressão Deflate contendo os XMLs obrigatórios:
+   - `[Content_Types].xml`: Mapeamento de tipos MIME para planilhas, estilos e relacionamentos.
+   - `xl/workbook.xml`: Definição de abas (`Lista de Corte`, `Ferragens e Fixadores`, `Orçamento e Compras`).
+   - `xl/styles.xml`: Paleta visual corporativa Parkelô (cabeçalhos azul marinho `#1B365D`, texto branco em negrito, bordas finas `#D9D9D9`, formato numérico monetário `R$ #,##0.00`).
+   - `xl/worksheets/sheet1.xml`, `sheet2.xml`, `sheet3.xml`: Dados de corte, hardware e orçamento.
+2. **Abas Geradas:**
+   - **Aba 1 (Lista de Corte de Madeira e Chapas):** Item, Código KR, Descrição, Comprimento (mm), Largura (mm), Espessura (mm), Quantidade, Área Total ($m^2$), Volume Total ($m^3$), Material e Status de Corte.
+   - **Aba 2 (Ferragens e Fixadores):** Parafusos sextavados de inox com porca travante, barras roscadas, flanges e cantoneiras quantificadas por junta estrutural.
+   - **Aba 3 (Orçamento Comercial):** Cruzamento automático com o banco de dados oficial de fábrica ([catalog_db.rb](file:///C:/Users/Fernando/Documents/GitHub/parkelo-3d-dev/src/parkelo_dev/catalog_db.rb) com 155 itens catalogados), preços de tabela para fixação parafusada/chumbada e linha de Total Geral em BRL.
+3. **Módulo:** `core/cutlist_exporter.py` com classe `CutlistExporter`.
+4. **Endpoint FastAPI:** `POST /api/v1/scene/export/cutlist-xlsx`.
+
+---
+
+## 48. Frente 14: Curvas, Círculos e Cilindros 3D Manifold (Zero DLL)
+
+A Frente 14 implementa entidades circulares e sólidos cilíndricos paramétricos B-Rep (postes, tubos de escorregador e colunas Parkelô) no formato nativo `.skp`.
+
+### A. Topologia B-Rep do Círculo e Cilindro
+1. **Círculo Plano Paramétrico (`add_circle`):**
+   - Gera $K$ vértices coplanares no plano horizontal:
+     $$V_i = (C_x + R \cos(2\pi i / K), C_y + R \sin(2\pi i / K), C_z)$$
+   - Constrói face fechada `Tag 0x0dad` com loop de $K$ arestas (`Tag 0x0dae`) e normal unitária $(0, 0, 1)$.
+2. **Cilindro 3D Manifold Fechado (`add_cylinder`):**
+   - $2K$ Vértices: $K$ na base inferior $Z_0$ e $K$ no topo $Z_0 + H$.
+   - $3K$ Arestas: $K$ arestas da base, $K$ arestas do topo e $K$ arestas verticais conectando $V_i 	o T_i$.
+   - $K + 2$ Faces B-Rep perfeitamente orientadas:
+     - 1 Face inferior (loop reverso com normal $-ec{Z}$).
+     - 1 Face superior (loop direto com normal $+ec{Z}$).
+     - $K$ Faces laterais retangulares com normais radiais analíticas unitárias $ec{N}_i = (\cos	heta_i, \sin	heta_i, 0)$ e loops com 4 `EdgeUse`.
+3. **Módulo:** `core/skp_binary_writer.py` métodos `add_circle`, `add_cylinder` e helper `_build_and_inject_brep_mesh`.
+4. **Validação Ground Truth:** Testado via `test_frentes_23_24_14.py` e validado na `SketchUpAPI.dll` oficial com 15 faces e 52 arestas e status `SU_ERROR_NONE`.
+5. **Endpoints FastAPI:** `POST /api/v1/scene/geometry/circle` e `POST /api/v1/scene/geometry/cylinder`.
+
+---
+
+## 49. Frente 24: Ferramenta Push/Pull Interativa no Canvas WebGL com Extrusão B-Rep
+
+A Frente 24 entrega a ferramenta clássica de modelagem do SketchUp: **Empurrar/Puxar (Push/Pull / Atalho `P`)**, permitindo transformar qualquer face plana desenhada ou existente em um sólido 3D volumétrico diretamente pelo navegador.
+
+### A. Mecânica Interativa no Canvas Three.js (`frontend/src/main.js`)
+1. **Detecção e Seleção de Face:**
+   - Ao ativar o modo `pushpull`, o cursor do mouse interage com as faces das malhas do `currentGroup`.
+   - Ao clicar, o sistema extrai os vértices da face clicada e calcula a normal analítica de mundo $ec{N}$.
+2. **Extrusão Paramétrica:**
+   - O campo VCB (`#vcb-pushpull`) exibe a distância e permite digitação métrica ou confirmação no botão *Extrudar*.
+   - Ao confirmar, dispara a requisição para o backend com as coordenadas remapeadas para o sistema nativo Z-up do SketchUp ($X_{skp} = X, Y_{skp} = -Z, Z_{skp} = Y$).
+
+### B. Injeção de Sólido Extrudado no Binário (`SkpBinaryWriter.extrude_face`)
+1. **Topologia B-Rep do Prisma Extrudado:**
+   - Para um polígono de $N$ lados e deslocamento $ec{D} = h \cdot ec{N}$:
+     - Base inferior: $N$ vértices com normal invertida $-ec{N}$.
+     - Topo superior: $N$ vértices transladados por $ec{D}$ com normal $+ec{N}$.
+     - $N$ Faces laterais conectando arestas correspondentes com normais coplanares calculadas pelo produto vetorial das arestas pela normal da face.
+   - Injeção das Tags `0x1389`, `0x138a`, `0x138b`, contêiner `0x138e` e contadores pais `0x1388`, `0x01f6`, `0x00f4`.
+2. **Validação Ground Truth:** Testado via `test_frentes_23_24_14.py` e validado na `SketchUpAPI.dll` oficial com 5 faces e 9 arestas para face triangular extrudada e status `SU_ERROR_NONE`.
+3. **Endpoint FastAPI:** `POST /api/v1/scene/geometry/pushpull`.

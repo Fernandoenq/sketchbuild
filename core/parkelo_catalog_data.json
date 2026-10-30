@@ -1,0 +1,1087 @@
+{
+  "200416": {
+    "codigo": "KR 200416-P",
+    "nome": "BRINQUEDO ESCORREGADOR TUBO H1200/1400MM AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200417": {
+    "codigo": "KR 200417-P",
+    "nome": "BRINQUEDO ESCORREGADOR TUBO H1800MM AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200418": {
+    "codigo": "KR 200418-P",
+    "nome": "BRINQUEDO ESCORREGADOR TUBO H0800MM AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "203273": {
+    "codigo": "KR 203273-P",
+    "nome": "BRINQUEDO ESCORREGADOR TUBO H1400M AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200700": {
+    "codigo": "KR 200700-P",
+    "nome": "ESCORREGADOR DE TUBO LITTLE PLAY H0800MM AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200407": {
+    "codigo": "KR 200407-P",
+    "nome": "BRINQUEDO PASSARELA TUBO RETO L2000MM AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200338": {
+    "codigo": "KR 200338-P",
+    "nome": "BRINQUEDO PASSARELA TUBO RETO L1600MM AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 3855.21,
+    "preco_chumbado": 3778.11
+  },
+  "200406": {
+    "codigo": "KR 200406-P",
+    "nome": "BRINQUEDO PASSARELA TUBO DESNIVEL L1600MM AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200339": {
+    "codigo": "KR 200339-P",
+    "nome": "BRINQUEDO PASSARELA TUBO 1000MM AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200684": {
+    "codigo": "KR 200684-P",
+    "nome": "BRINQUEDO PASSARELA TUBO 1000 MM C/",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200340": {
+    "codigo": "KR 200340-P",
+    "nome": "BRINQUEDO PASSARELA TUBO CURVADO 90 GRAUS AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 3910.51,
+    "preco_chumbado": 3832.3
+  },
+  "200341": {
+    "codigo": "KR 200341-P",
+    "nome": "BRINQUEDO AVULSO PASSARELA TUBO T 1600MM C/ ACRILICO",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200342": {
+    "codigo": "KR 200342-P",
+    "nome": "BRINQUEDO PASSARELA TUBO T 1600MM C/ 3 FLANGES AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202933": {
+    "codigo": "KR 202933-P",
+    "nome": "PASSARELA TUBO RETO LITTLE PLAY 1000MM AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200834": {
+    "codigo": "KR 200834-P",
+    "nome": "CURVA 34 C/ ENCAIXE COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 1722.81,
+    "preco_chumbado": 1688.35
+  },
+  "200846": {
+    "codigo": "KR 200846-P",
+    "nome": "CURVA 34 S/ ENCAIXE COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200847": {
+    "codigo": "KR 200847-P",
+    "nome": "CURVA 45 C/ ENCAIXE COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 1435.68,
+    "preco_chumbado": 1406.97
+  },
+  "200848": {
+    "codigo": "KR 200848-P",
+    "nome": "CURVA 45 S/ ENCAIXE COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200849": {
+    "codigo": "KR 200849-P",
+    "nome": "CURVA 60 C/ ENCAIXE LITTLE PLAY COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200850": {
+    "codigo": "KR 200850-P",
+    "nome": "CURVA 60 S/ ENCAIXE LITTLE PLAY COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200851": {
+    "codigo": "KR 200851-P",
+    "nome": "CURVA 90 C/ ENCAIXE COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 2105.65,
+    "preco_chumbado": 2063.54
+  },
+  "200853": {
+    "codigo": "KR 200853-P",
+    "nome": "CURVA 90 S/ ENCAIXE COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200898": {
+    "codigo": "KR 200898-P",
+    "nome": "PONTEIRA KRENKE COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 1435.68,
+    "preco_chumbado": 1406.97
+  },
+  "200899": {
+    "codigo": "KR 200899-P",
+    "nome": "PONTEIRA LITTLE PLAY COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200352": {
+    "codigo": "KR 200352-P",
+    "nome": "BRINQUEDO ESCADA 3 DEGRAUS H0800MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200337": {
+    "codigo": "KR 200337-P",
+    "nome": "BRINQUEDO ESCADA 5 DEGRAUS H1200MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 2932.98,
+    "preco_chumbado": 2874.32
+  },
+  "200351": {
+    "codigo": "KR 200351-P",
+    "nome": "BRINQUEDO ESCADA 6 DEGRAUS H1400MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200356": {
+    "codigo": "KR 200356-P",
+    "nome": "BRINQUEDO ESCALADA 4 APOIOS ROTO H0800MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200357": {
+    "codigo": "KR 200357-P",
+    "nome": "BRINQUEDO ESCALADA 6 APOIOS ROTO H1400MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200360": {
+    "codigo": "KR 200360-P",
+    "nome": "BRINQUEDO ESCALADA 3 DEGRAUS ROTO L850MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 2329.65,
+    "preco_chumbado": 2283.06
+  },
+  "200358": {
+    "codigo": "KR 200358-P",
+    "nome": "BRINQUEDO ESCALADA 8 APOIOS ROTO H1200MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "203347": {
+    "codigo": "KR 203347-P",
+    "nome": "BRINQUEDO ESCALADA 5 DEGRAUS ROTO L850MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200362": {
+    "codigo": "KR 200362-P",
+    "nome": "BRINQUEDO ESCORREGADOR ONDULADO L2350MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 3077.35,
+    "preco_chumbado": 3015.8
+  },
+  "200394": {
+    "codigo": "KR 200394-P",
+    "nome": "ONDULADO L2730MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200397": {
+    "codigo": "KR 200397-P",
+    "nome": "BRINQUEDO ESCORREGADOR DUPLO L2200MM H1200MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200396": {
+    "codigo": "KR 200396-P",
+    "nome": "BRINQUEDO ESCORREGADOR DUPLO L2600MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200393": {
+    "codigo": "KR 200393-P",
+    "nome": "BRINQUEDO ESCORREGADOR CURVO L2500MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200395": {
+    "codigo": "KR 200395-P",
+    "nome": "BRINQUEDO ESCORREGADOR RETO L1600MM AVULSO (0,80 m)",
+    "categoria": "outros",
+    "preco_parafusado": 2116.85,
+    "preco_chumbado": 2074.51
+  },
+  "201282": {
+    "codigo": "KR 201282-P",
+    "nome": "BRINQUEDO ESCORREGADOR KINDER L1700MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202145": {
+    "codigo": "KR 202145-P",
+    "nome": "BRINQUEDO ESCORREGADOR ESPIRAL H1200/1400MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 9862.27,
+    "preco_chumbado": 9665.02
+  },
+  "201509": {
+    "codigo": "KR 201509-P",
+    "nome": "BRINQUEDO AVULSO ESCALADA CORDA H800MM",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200409": {
+    "codigo": "KR 200409-P",
+    "nome": "BRINQUEDO AVULSO ESCALADA CORDA H1200MM",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200408": {
+    "codigo": "KR 200408-P",
+    "nome": "BRINQUEDO AVULSO ESCALADA CORDA H1400MM",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "203380": {
+    "codigo": "KR 203380-P",
+    "nome": "BRINQUEDO ESCALADA TACO H1200/1400MM CHUMBADO AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200410": {
+    "codigo": "KR 200410-P",
+    "nome": "BRINQUEDO ESCALADA TACO H1200/1400MM PARAFUSADO AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 3228.55,
+    "preco_chumbado": 3163.98
+  },
+  "201329": {
+    "codigo": "KR 201329-P",
+    "nome": "BRINQUEDO ESCALADA TACO PET H1200/1400MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 5817.41,
+    "preco_chumbado": 5701.06
+  },
+  "200412": {
+    "codigo": "KR 200412-P",
+    "nome": "BRINQUEDO ESCALADA TACO H 800MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200695": {
+    "codigo": "KR 200695-P",
+    "nome": "BRINQUEDO ESCALADA PAREDE COM AGARRAS MP H2000MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200753": {
+    "codigo": "KR 200753-P",
+    "nome": "BRINQUEDO ESCALADA DE AGARRAS H0800MM LITTLE PLAY AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 1800.56,
+    "preco_chumbado": 1764.55
+  },
+  "202788": {
+    "codigo": "KR 202788-P",
+    "nome": "BRINQUEDO PASSARELA RETA ROTO L1500MM AVULSO - ASSOALHO ROTO",
+    "categoria": "outros",
+    "preco_parafusado": 3704.24,
+    "preco_chumbado": 3630.16
+  },
+  "200783": {
+    "codigo": "KR 200783-P",
+    "nome": "BRINQUEDO PASSARELA RETA ROTO L1500MM AVULSO - ASSOALHO MP",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200784": {
+    "codigo": "KR 200784-P",
+    "nome": "BRINQUEDO PASSARELA NEGATIVA ROTO L1600MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 4378.95,
+    "preco_chumbado": 4291.37
+  },
+  "200785": {
+    "codigo": "KR 200785-P",
+    "nome": "BRINQUEDO PASSARELA POSITIVA ROTO L1600MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200400": {
+    "codigo": "KR 200400-P",
+    "nome": "BRINQUEDO PASSARELA RETA L2000MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200401": {
+    "codigo": "KR 200401-P",
+    "nome": "BRINQUEDO PASSARELA INCLINADA L2000MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200402": {
+    "codigo": "KR 200402-P",
+    "nome": "BRINQUEDO PASSARELA NEGATIVA L2000MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200403": {
+    "codigo": "KR 200403-P",
+    "nome": "BRINQUEDO PASSARELA POSITIVA L2000MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200404": {
+    "codigo": "KR 200404-P",
+    "nome": "BRINQUEDO PASSARELA DE CORDAS L2000MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 3892.58,
+    "preco_chumbado": 3814.73
+  },
+  "200405": {
+    "codigo": "KR 200405-P",
+    "nome": "BRINQUEDO PASSARELA CIRCUITO DE DISCO L2000MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201849": {
+    "codigo": "KR 201849-P",
+    "nome": "PLATAFORMA RAMPA ACESSIVEL CADEIRANTE 930X3000MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200389": {
+    "codigo": "KR 200389-P",
+    "nome": "PEGA MAO AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200428": {
+    "codigo": "KR 200428-P",
+    "nome": "BRINQUEDO ESCALADA 4 DEGRAUS DE FERRO H1400MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200355": {
+    "codigo": "KR 200355-P",
+    "nome": "BRINQUEDO CANO DE BOMBEIRO H1200/1400MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200462": {
+    "codigo": "KR 200462-P",
+    "nome": "BRINQUEDO ESCALADA 5 DISCOS H1400MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200461": {
+    "codigo": "KR 200461-P",
+    "nome": "BRINQUEDO ESCALADA 4 DISCOS H1200MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200442": {
+    "codigo": "KR 200442-P",
+    "nome": "BRINQUEDO ESCADA 1 DEGRAU ROTO DESN 400MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 983.82,
+    "preco_chumbado": 964.14
+  },
+  "200441": {
+    "codigo": "KR 200441-P",
+    "nome": "BRINQUEDO ESCADA HORIZONTAL H0400MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200429": {
+    "codigo": "KR 200429-P",
+    "nome": "BRINQUEDO ESCALADA 7 ARCOS DE FERRO H1400MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200443": {
+    "codigo": "KR 200443-P",
+    "nome": "BRINQUEDO ESCADA TORCIDA 9 DEGRAUS DE FERRO H1400MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200444": {
+    "codigo": "KR 200444-P",
+    "nome": "BRINQUEDO ESCADA MARINHEIRO 6 DEGRAUS H1400MM AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202859": {
+    "codigo": "KR 202859-P",
+    "nome": "BRINQUEDO ESCADA MARINHEIRO 4 H1200MM",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202836": {
+    "codigo": "KR 202836-P",
+    "nome": "BRINQUEDO ESCADA MARINHEIRO 3 H0800 E H1000MM",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200943": {
+    "codigo": "KR 200943-P",
+    "nome": "GUARNDoAm CeO dRoPO P rSoEXdTuAtVoADO COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201581": {
+    "codigo": "KR 201581-P",
+    "nome": "MODULO CERCA AVULSO PA",
+    "categoria": "cercas",
+    "preco_parafusado": 1353.28,
+    "preco_chumbado": 1326.21
+  },
+  "203357": {
+    "codigo": "KR 203357-P",
+    "nome": "KIT JOGO DA MEMORIA AVULSO",
+    "categoria": "cercas",
+    "preco_parafusado": 1522.09,
+    "preco_chumbado": 1491.65
+  },
+  "200430": {
+    "codigo": "KR 200430-P",
+    "nome": "GUARDA CORPO CERCA AVULSO KRENKE 830X770X40MM COMERCIAL",
+    "categoria": "cercas",
+    "preco_parafusado": 670.08,
+    "preco_chumbado": 656.68
+  },
+  "200445": {
+    "codigo": "KR 200445-P",
+    "nome": "GUARDA CORPO JOGO DA VELHA AVULSO COMERCIAL",
+    "categoria": "cercas",
+    "preco_parafusado": 1165.39,
+    "preco_chumbado": 1142.08
+  },
+  "200755": {
+    "codigo": "KR 200755-P",
+    "nome": "GUARDA CORPO ABACO 830X770X40MM AVULSO COMERCIAL",
+    "categoria": "cercas",
+    "preco_parafusado": 1162.09,
+    "preco_chumbado": 1138.85
+  },
+  "200466": {
+    "codigo": "KR 200466-P",
+    "nome": "BRINQUEDO GUARDA CORPO FLANGE C/ BOLHA AVULSO",
+    "categoria": "tubos",
+    "preco_parafusado": 2098.07,
+    "preco_chumbado": 2056.11
+  },
+  "201877": {
+    "codigo": "KR 201877-P",
+    "nome": "BRINQUEDO MESA DE MOLA AVULSO",
+    "categoria": "brinquedos_solo",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202390": {
+    "codigo": "KR 202390-P",
+    "nome": "GUARDA COR METALOFONE AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 2928.77,
+    "preco_chumbado": 2870.19
+  },
+  "203154": {
+    "codigo": "KR 203154-P",
+    "nome": "GUARDA CORPO LP JANELA PEAD 735X735X15MM COMERCIAL",
+    "categoria": "cercas",
+    "preco_parafusado": 1923.88,
+    "preco_chumbado": 1885.4
+  },
+  "202368": {
+    "codigo": "KR 202368-P",
+    "nome": "GUARDA CORPO TENIS FLANGE LITTLE PLAY COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 1984.25,
+    "preco_chumbado": 1944.57
+  },
+  "200431": {
+    "codigo": "KR 200431-P",
+    "nome": "ACABAMENTO DE COLUNA GIRASSOL AVULSO",
+    "categoria": "estruturas",
+    "preco_parafusado": 1001.04,
+    "preco_chumbado": 981.02
+  },
+  "200460": {
+    "codigo": "KR 200460-P",
+    "nome": "ACABAMENTO DE COLUNA COQUEIRO VERDE AVULSO",
+    "categoria": "estruturas",
+    "preco_parafusado": 1028.05,
+    "preco_chumbado": 1007.49
+  },
+  "200565": {
+    "codigo": "KR 200565-P",
+    "nome": "BRINQUEDO AVULSO TELHADO ROTO REDONDO CONE",
+    "categoria": "telhados",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202916": {
+    "codigo": "KR 202916-P",
+    "nome": "COBERTURA BALDE AQUATICO AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202241": {
+    "codigo": "KR 202241-P",
+    "nome": "TELHADO EM PEAD COMERCIAL",
+    "categoria": "telhados",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201945": {
+    "codigo": "KR 201945-P",
+    "nome": "REVENDA COLUNA MP 110X110X1500MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 273.91,
+    "preco_chumbado": 268.43
+  },
+  "200905": {
+    "codigo": "KR 200905-P",
+    "nome": "REVENDA COLUNA MP 110X110X2000MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 365.21,
+    "preco_chumbado": 357.91
+  },
+  "200906": {
+    "codigo": "KR 200906-P",
+    "nome": "REVENDA COLUNA MP 110X110X2500MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200904": {
+    "codigo": "KR 200904-P",
+    "nome": "REVENDA COLUNA MP 110X110X2800MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 511.3,
+    "preco_chumbado": 501.07
+  },
+  "200907": {
+    "codigo": "KR 200907-P",
+    "nome": "REVENDA COLUNA MP 110X110X3000MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200908": {
+    "codigo": "KR 200908-P",
+    "nome": "REVENDA COLUNA MP 110X110X3150MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200909": {
+    "codigo": "KR 200909-P",
+    "nome": "REVENDA COLUNA MP 110X110X 3500MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 639.13,
+    "preco_chumbado": 626.35
+  },
+  "200910": {
+    "codigo": "KR 200910-P",
+    "nome": "REVENDA COLUNA MP 110X110X3800MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 693.91,
+    "preco_chumbado": 680.03
+  },
+  "200911": {
+    "codigo": "KR 200911-P",
+    "nome": "REVENDA COLUNA MP 110X110X4200MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 766.95,
+    "preco_chumbado": 751.61
+  },
+  "200912": {
+    "codigo": "KR 200912-P",
+    "nome": "REVENDACOLUNA MP 110X110X 4500MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200913": {
+    "codigo": "KR 200913-P",
+    "nome": "REVENDA COLUNA MP 110X110X4800MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 876.52,
+    "preco_chumbado": 858.99
+  },
+  "200914": {
+    "codigo": "KR 200914-P",
+    "nome": "REVENDA COLUNA MP 110X110X5000MM COMERCIAL",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201029": {
+    "codigo": "KR 201029-P",
+    "nome": "PERFIL QUADRADO ALUMINIO 2300MM PA COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201032": {
+    "codigo": "KR 201032-P",
+    "nome": "PERFIL QUADRADO ALUMINIO 2700MM COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201027": {
+    "codigo": "KR 201027-P",
+    "nome": "PERFIL QUADRADO ALUMINIO 3000MM PINTADO COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200438": {
+    "codigo": "KR 200438-P",
+    "nome": "PLATAFORMA AVULSA MP 1030X1030MM 110X110",
+    "categoria": "estruturas",
+    "preco_parafusado": 1774.74,
+    "preco_chumbado": 1739.25
+  },
+  "202357": {
+    "codigo": "KR 202357-P",
+    "nome": "PLATAFORMA ROTOMOLDADA AVULSO",
+    "categoria": "estruturas",
+    "preco_parafusado": 1548.61,
+    "preco_chumbado": 1517.64
+  },
+  "200446": {
+    "codigo": "KR 200446-P",
+    "nome": "PLATAFORMA AVULSA 1030X1030 ALUMINIO",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200449": {
+    "codigo": "KR 200449-P",
+    "nome": "PLATAFORMA AVULSA LITTLE PLAY 830X830MM",
+    "categoria": "estruturas",
+    "preco_parafusado": 1010.52,
+    "preco_chumbado": 990.31
+  },
+  "200448": {
+    "codigo": "KR 200448-P",
+    "nome": "PLATAFORMA AVULSA 1680X1880 SEXTAVADO",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "203388": {
+    "codigo": "KR 203388-P",
+    "nome": "PLATAFORMA CADEIRANTE BIPARTIDO AVULSO",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201846": {
+    "codigo": "KR 201846-P",
+    "nome": "PLATAFORMA AVULSA CADEIRANTE",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200453": {
+    "codigo": "KR 200453-P",
+    "nome": "PLATAFORMA AVULSA TRINGULO MP",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200455": {
+    "codigo": "KR 200455-P",
+    "nome": "ACABAMENTO COLUNA 110X110 LARANJA",
+    "categoria": "estruturas",
+    "preco_parafusado": 43.47,
+    "preco_chumbado": 42.6
+  },
+  "201912": {
+    "codigo": "KR 201912-P",
+    "nome": "ACABAMENTO COLUNA PISO AVULSO 110x110",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200556": {
+    "codigo": "KR 200556-P",
+    "nome": "BRINQUEDO BALANCO ANEXO A TORRE AVULSO",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "203389": {
+    "codigo": "KR 203389-P",
+    "nome": "BRINQUEDO BALANCO ANEXO A TORRE COM GUARDA CORPO - AVULSO",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "203399": {
+    "codigo": "KR 203399-P",
+    "nome": "BRINQUEDO BALANCO ANEXO A TORRE AVULSO",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "203392": {
+    "codigo": "KR 203392-P",
+    "nome": "BRINQUEDO BALANCO ALUMINIO ANEXO A TORRE COM GUARDA CORPO - AVULSO",
+    "categoria": "estruturas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200304": {
+    "codigo": "KR 200304-P",
+    "nome": "BALANÇO AÇO P-60-A",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "203391": {
+    "codigo": "KR 203391-P",
+    "nome": "BRINQUEDO BALANCO ALUMINIO AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200439": {
+    "codigo": "KR 200439-P",
+    "nome": "BRINQUEDO BALANCO NINHO AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201507": {
+    "codigo": "KR 201507-P",
+    "nome": "BRINQUEDO BALANCO CADEIRANTE AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "203393": {
+    "codigo": "KR 203393-P",
+    "nome": "ASSENTO TODDLER COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "203305": {
+    "codigo": "KR 203305-P",
+    "nome": "KIT CORRENTE ASSENTO TODDLER COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202478": {
+    "codigo": "KR 202478-P",
+    "nome": "ASSENTO INFANTIL COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "203396": {
+    "codigo": "KR 203396-P",
+    "nome": "KIT CORRENTE ASSENTO INFANTIL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201109": {
+    "codigo": "KR 201109-P",
+    "nome": "PORTAL AVULSO",
+    "categoria": "telhados",
+    "preco_parafusado": 553.24,
+    "preco_chumbado": 542.18
+  },
+  "200877": {
+    "codigo": "KR 200877-P",
+    "nome": "FLANGE P/ ESCORREGADOR 1050X930X50 750MM COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 785.84,
+    "preco_chumbado": 770.12
+  },
+  "200878": {
+    "codigo": "KR 200878-P",
+    "nome": "FLANGE P/ PASSARELA 1050X930X50 750MM COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 785.84,
+    "preco_chumbado": 770.12
+  },
+  "200876": {
+    "codigo": "KR 200876-P",
+    "nome": "FLANGE ARCO LITTLE PLAY 950X950X50 650MM COMERCIAL",
+    "categoria": "tubos",
+    "preco_parafusado": 628.68,
+    "preco_chumbado": 616.11
+  },
+  "203410": {
+    "codigo": "KR 203410-P",
+    "nome": "KIT PORTAL LITTLE PLAY 1560X820X80MM AVULSO",
+    "categoria": "telhados",
+    "preco_parafusado": 2110.5,
+    "preco_chumbado": 2068.29
+  },
+  "200437": {
+    "codigo": "KR 200437-P",
+    "nome": "BRINQUEDO GANGORRA DE METAL AVULSO",
+    "categoria": "brinquedos_solo",
+    "preco_parafusado": 4704.05,
+    "preco_chumbado": 4609.97
+  },
+  "201553": {
+    "codigo": "KR 201553-P",
+    "nome": "LATERAL P/ CAIXA DE AREIA COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202117": {
+    "codigo": "KR 202117-P",
+    "nome": "BRINQUEDO CARROSSEL ASSENTO ROTO AVULSO",
+    "categoria": "brinquedos_solo",
+    "preco_parafusado": 6184.5,
+    "preco_chumbado": 6060.81
+  },
+  "201566": {
+    "codigo": "KR 201566-P",
+    "nome": "JOGO XADREZ GIGANTE COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201869": {
+    "codigo": "KR 201869-P",
+    "nome": "BRINQUEDO CAVALO DE MOLA AVULSO",
+    "categoria": "brinquedos_solo",
+    "preco_parafusado": 3675.81,
+    "preco_chumbado": 3602.29
+  },
+  "201891": {
+    "codigo": "KR 201891-P",
+    "nome": "BRINQUEDO MOTO DE MOLA AVULSO",
+    "categoria": "brinquedos_solo",
+    "preco_parafusado": 3675.81,
+    "preco_chumbado": 3602.29
+  },
+  "200206": {
+    "codigo": "KR 200206-P",
+    "nome": "BRINQUEDO DE MOLA GOLFINHO AVULSO",
+    "categoria": "brinquedos_solo",
+    "preco_parafusado": 3981.07,
+    "preco_chumbado": 3901.45
+  },
+  "201121": {
+    "codigo": "KR 201121-P",
+    "nome": "GANGORRA BALEIA 2 ASSENTOS 960MM COMERCIAL",
+    "categoria": "brinquedos_solo",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201169": {
+    "codigo": "KR 201169-P",
+    "nome": "GANGORRA DOG 1 ASSENTO 800MM COMERCIAL",
+    "categoria": "brinquedos_solo",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201156": {
+    "codigo": "KR 201156-P",
+    "nome": "GANGORRA JACARE 3 ASSENTOS 1380MM COMERCIAL",
+    "categoria": "brinquedos_solo",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201206": {
+    "codigo": "KR 201206-P",
+    "nome": "BRINQUEDO ARVORE COM TEIA DE CORDAS H 4400MM AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201508": {
+    "codigo": "KR 201508-P",
+    "nome": "BRINQUEDO SCANDERE DOMOS AVULSO",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202996": {
+    "codigo": "KR 202996-P",
+    "nome": "BRINQUEDO PLAY BOLA COMERCIAL (SOMENTE CHUMBADO)",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200701": {
+    "codigo": "KR 200701-P",
+    "nome": "BRINQUEDO ESCADA LITTLE PLAY AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200425": {
+    "codigo": "KR 200425-P",
+    "nome": "BRINQUEDO ESCALADA HORIZONTAL SUSPENSA AVULSO",
+    "categoria": "escadas",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "200568": {
+    "codigo": "KR 200568-P",
+    "nome": "BRINQUEDO AVULSO TELHADO COQUEIRO FOLHA",
+    "categoria": "telhados",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "201110": {
+    "codigo": "KR 201110-P",
+    "nome": "PORTAL COMERCIAL GUARDA CORPO ESCALADA",
+    "categoria": "telhados",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202951": {
+    "codigo": "KR 202951-P",
+    "nome": "RODA TRASEIRA TRATOR ROTO COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202952": {
+    "codigo": "KR 202952-P",
+    "nome": "RODA DIANTEIRA TRATOR ROTO COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202953": {
+    "codigo": "KR 202953-P",
+    "nome": "VOLANTE TRATOR COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202960": {
+    "codigo": "KR 202960-P",
+    "nome": "RODA TREM COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202961": {
+    "codigo": "KR 202961-P",
+    "nome": "PAINEL FRONTAL TREM PEAD COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202962": {
+    "codigo": "KR 202962-P",
+    "nome": "PLACA FRONTAL TREM COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202963": {
+    "codigo": "KR 202963-P",
+    "nome": "MOLDURA JANELA TREM PEAD COMERCIAL",
+    "categoria": "outros",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  },
+  "202964": {
+    "codigo": "KR 202964-P",
+    "nome": "TELHADO VAGAO TREM COMERCIAL",
+    "categoria": "telhados",
+    "preco_parafusado": 0.0,
+    "preco_chumbado": 0.0
+  }
+}

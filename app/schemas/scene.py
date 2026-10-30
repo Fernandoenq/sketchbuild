@@ -777,3 +777,58 @@ class AddGeometryEntityResponse(BaseModel):
 
 
 
+
+# ============================================================================
+# Frente 23: Integracao Industrial Parkelo e Lista de Corte Excel (.xlsx)
+# ============================================================================
+
+class ExportCutlistRequest(BaseModel):
+    """Entrada para exportacao da lista de corte e orcamento em Excel."""
+
+    path: str = Field(..., min_length=1, description="Caminho de destino do arquivo .xlsx")
+
+
+class ExportCutlistResponse(BaseModel):
+    """Resposta da exportacao da lista de corte e orcamento."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    saved: bool = True
+    path: str
+    file_size_bytes: int
+    total_pecas: int
+    total_custo_brl: float
+    sheets: list[str]
+
+
+# ============================================================================
+# Frente 14: Curvas, Circulos e Cilindros Parametricos
+# ============================================================================
+
+class AddCircleGeometryRequest(BaseModel):
+    """Entrada para criacao de circulo plano B-Rep."""
+
+    radius_m: float = Field(..., gt=0, description="Raio do circulo em metros")
+    center_xyz_m: list[float] = Field(default=[0.0, 0.0, 0.0], min_length=3, max_length=3)
+    num_segments: int = Field(default=24, ge=3, le=128)
+
+
+class AddCylinderGeometryRequest(BaseModel):
+    """Entrada para criacao de Cilindro Sólido Manifold."""
+
+    radius_m: float = Field(..., gt=0, description="Raio da base em metros")
+    height_m: float = Field(..., gt=0, description="Altura do cilindro em metros")
+    center_xyz_m: list[float] = Field(default=[0.0, 0.0, 0.0], min_length=3, max_length=3)
+    num_segments: int = Field(default=16, ge=4, le=128)
+
+
+# ============================================================================
+# Frente 24: Ferramenta Push/Pull Interativa no Canvas WebGL
+# ============================================================================
+
+class ExtrudeFaceGeometryRequest(BaseModel):
+    """Entrada para extrusao de face coplanar existente (Push/Pull)."""
+
+    points_m: list[list[float]] = Field(..., min_length=3, description="Vertices da face a ser extrudada")
+    distance_m: float = Field(..., description="Distancia de extrusao ao longo da normal em metros")
+    normal: list[float] | None = Field(default=None, min_length=3, max_length=3, description="Vetor normal")

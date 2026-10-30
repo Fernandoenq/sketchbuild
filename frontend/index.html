@@ -505,6 +505,7 @@
         <div class="menu-dropdown-item" data-action="export-obj"><span>Exportar &gt; Modelo 3D (.obj)...</span></div>
         <div class="menu-dropdown-item" data-action="export-glb"><span>Exportar &gt; Modelo glTF 2.0 (.glb)...</span></div>
         <div class="menu-dropdown-item" data-action="export-ifc"><span>Exportar &gt; Modelo BIM IFC4 (.ifc)...</span></div>
+        <div class="menu-dropdown-item" data-action="export-cutlist"><span>Exportar &gt; Lista de Corte Parkelô (.xlsx)...</span></div>
         <div class="menu-dropdown-item disabled"><span>Exportar &gt; Gráfico 2D...</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Enviar para o LayOut...</span></div>
@@ -628,8 +629,9 @@
             <div class="menu-dropdown-item" data-action="draw-rectangle" title="Cria uma face retangular real no chao"><span>Retângulo</span><span class="menu-dropdown-shortcut">R</span></div>
             <div class="menu-dropdown-item" data-action="draw-box" title="Cria um Sólido 3D Manifold (Frente 13)"><span>Bloco 3D (Push-Pull)</span><span class="menu-dropdown-shortcut">P</span></div>
             <div class="menu-dropdown-item" data-action="import-dxf" title="Converte e importa planta DXF para o modelo (Frente 20)"><span>Importar DXF...</span></div>
+            <div class="menu-dropdown-item" data-action="draw-circle" title="Cria um Círculo B-Rep (Frente 14)"><span>Círculo</span><span class="menu-dropdown-shortcut">C</span></div>
+            <div class="menu-dropdown-item" data-action="draw-cylinder" title="Cria um Cilindro/Poste 3D (Frente 14)"><span>Cilindro 3D</span></div>
             <div class="menu-dropdown-item disabled"><span>Retângulo Giratório</span></div>
-            <div class="menu-dropdown-item disabled"><span>Círculo</span></div>
             <div class="menu-dropdown-item disabled"><span>Polígono</span></div>
           </div>
         </div>
@@ -657,7 +659,7 @@
           </div>
         </div>
         <div class="menu-dropdown-sep"></div>
-        <div class="menu-dropdown-item disabled"><span>Empurrar/Puxar</span><span class="menu-dropdown-shortcut">P</span></div>
+        <div class="menu-dropdown-item" data-action="tool-pushpull" title="Extrude uma face para sólido 3D (Push/Pull - Frente 24)"><span>Empurrar/Puxar</span><span class="menu-dropdown-shortcut">P</span></div>
         <div class="menu-dropdown-item disabled"><span>Siga-me</span></div>
         <div class="menu-dropdown-item disabled"><span>Equidistância</span><span class="menu-dropdown-shortcut">F</span></div>
         <div class="menu-dropdown-item disabled"><span>Carapaça externa</span></div>
@@ -790,6 +792,12 @@
       </button>
     </div>
     <div class="toolbar-group">
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="pushpull" data-action="tool-pushpull" title="Empurrar/Puxar Face (P)" aria-label="Push/Pull">
+        <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" /><path d="M12 2v8M9 5l3-3 3 3" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-tool-mode="circle" data-action="draw-circle" title="Círculo / Cilindro (C)" aria-label="Círculo">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="rgba(60,127,177,0.15)" stroke="currentColor" /></svg>
+      </button>
       <button class="toolbar-btn tool-icon-btn" data-action="draw-box" title="Criar Bloco 3D / Push-Pull (Frente 13)" aria-label="Bloco 3D">
         <svg viewBox="0 0 24 24"><path d="M7 9h10v10H7z" fill="rgba(60,127,177,0.2)" /><path d="M7 9l3-4h4l3 4" /><line x1="12" y1="2" x2="12" y2="6" /><path d="M12 2l-2 2M12 2l2 2" /></svg>
       </button>
@@ -891,6 +899,20 @@
       <span style="color: var(--muted);">&times;</span>
       <input id="box-h-input" class="dim-input" type="number" step="0.1" min="0.05" value="1.0" style="width: 50px;" title="Altura Z (m)" />
       <button id="box-create-btn" class="panel-btn" title="Cria Bloco 3D Manifold">Criar Bloco</button>
+    </div>
+    <!-- Frente 24: VCB Push/Pull -->
+    <div class="vcb-field" id="vcb-pushpull">
+      <span style="color: var(--muted);">Push/Pull:</span>
+      <input id="pushpull-dist-input" class="dim-input" type="number" step="0.05" value="1.0" style="width: 60px;" title="Distância (m)" />
+      <button id="pushpull-apply-btn" class="panel-btn" title="Aplica extrusão">Extrudar</button>
+    </div>
+    <!-- Frente 14: VCB Círculo / Cilindro -->
+    <div class="vcb-field" id="vcb-circle">
+      <span style="color: var(--muted);">Raio:</span>
+      <input id="circle-radius-input" class="dim-input" type="number" step="0.05" min="0.05" value="0.5" style="width: 50px;" title="Raio (m)" />
+      <span style="color: var(--muted);">Altura:</span>
+      <input id="circle-height-input" class="dim-input" type="number" step="0.1" min="0.0" value="0.0" style="width: 50px;" title="0 = plano, >0 = cilindro 3D" />
+      <button id="circle-create-btn" class="panel-btn">Criar</button>
     </div>
     <!-- Frente 22: VCB Ferramenta Linha (Lápis com Inferência) -->
     <div class="vcb-field" id="vcb-line">
@@ -1073,6 +1095,7 @@
       </div>
       <div class="tray-body">
         <button id="btn-calc-bim" class="panel-btn" style="width: 100%; margin-bottom: 8px;">Atualizar Orçamento BIM</button>
+        <button id="btn-export-cutlist" class="panel-btn" style="width: 100%; margin-bottom: 8px; background: #217346; color: white; border-color: #1e6b40;">Exportar Lista de Corte e Orçamento (.xlsx)</button>
         <div id="bim-summary-panel" style="background: #F8F9FA; border: 1px solid var(--border); border-radius: 3px; padding: 6px; font-size: 11px; margin-bottom: 8px; display: none;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
             <span>Total Peças:</span>

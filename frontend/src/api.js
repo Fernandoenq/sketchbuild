@@ -403,3 +403,48 @@ export function addFaceGeometry(pointsM) {
 }
 
 
+
+// ============================================================================
+// Frente 23: Integração Industrial Parkelô & Exportador Lista de Corte (.xlsx)
+// ============================================================================
+
+/** Exporta a lista de corte e orçamento para planilha Excel .xlsx (Frente 23). */
+export function exportCutlistXlsx(path) {
+  return postJson("/api/v1/scene/export/cutlist-xlsx", "POST", { path });
+}
+
+// ============================================================================
+// Frente 14: Curvas, Círculos e Cilindros Paramétricos
+// ============================================================================
+
+/** Cria um círculo plano B-Rep paramétrico no modelo (Frente 14). */
+export function addCircleGeometry(radiusM, centerM = [0.0, 0.0, 0.0], numSegments = 24) {
+  return postJson("/api/v1/scene/geometry/circle", "POST", {
+    radius_m: radiusM,
+    center_xyz_m: centerM,
+    num_segments: numSegments,
+  });
+}
+
+/** Cria um cilindro 3D manifold paramétrico (Frente 14). */
+export function addCylinderGeometry(radiusM, heightM, centerM = [0.0, 0.0, 0.0], numSegments = 16) {
+  return postJson("/api/v1/scene/geometry/cylinder", "POST", {
+    radius_m: radiusM,
+    height_m: heightM,
+    center_xyz_m: centerM,
+    num_segments: numSegments,
+  });
+}
+
+// ============================================================================
+// Frente 24: Ferramenta Push/Pull Interativa no Canvas WebGL
+// ============================================================================
+
+/** Extrude uma face coplanar para sólido 3D Push/Pull (Frente 24). */
+export function extrudeFaceGeometry(pointsM, distanceM, normal = null) {
+  return postJson("/api/v1/scene/geometry/pushpull", "POST", {
+    points_m: pointsM,
+    distance_m: distanceM,
+    normal: normal,
+  });
+}

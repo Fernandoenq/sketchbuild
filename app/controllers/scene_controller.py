@@ -33,6 +33,11 @@ from app.schemas.scene import (
     AddLineGeometryRequest,
     AddFaceGeometryRequest,
     AddGeometryEntityResponse,
+    ExportCutlistRequest,
+    ExportCutlistResponse,
+    AddCircleGeometryRequest,
+    AddCylinderGeometryRequest,
+    ExtrudeFaceGeometryRequest,
     ListAutosaveDraftsResponse,
     ListScenePagesResponse,
     PaintFaceResponse,
@@ -533,3 +538,44 @@ class SceneController:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
         except SceneSessionError as e:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+
+    async def export_cutlist_xlsx(self, body: ExportCutlistRequest) -> ExportCutlistResponse:
+        """Exporta lista de corte e orçamento para Excel .xlsx (Frente 23)."""
+        try:
+            res = await self._service.export_cutlist_xlsx(body.path)
+            return ExportCutlistResponse(**res)
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def add_circle_geometry(self, body: AddCircleGeometryRequest) -> AddGeometryEntityResponse:
+        """Cria um círculo plano B-Rep paramétrico (Frente 14)."""
+        try:
+            res = await self._service.add_circle_geometry(body.radius_m, body.center_xyz_m, body.num_segments)
+            return AddGeometryEntityResponse(**res)
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def add_cylinder_geometry(self, body: AddCylinderGeometryRequest) -> AddGeometryEntityResponse:
+        """Cria um cilindro sólido manifold paramétrico (Frente 14)."""
+        try:
+            res = await self._service.add_cylinder_geometry(body.radius_m, body.height_m, body.center_xyz_m, body.num_segments)
+            return AddGeometryEntityResponse(**res)
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def extrude_face_geometry(self, body: ExtrudeFaceGeometryRequest) -> AddGeometryEntityResponse:
+        """Extrude face coplanar para sólido 3D Push/Pull (Frente 24)."""
+        try:
+            res = await self._service.extrude_face_geometry(body.points_m, body.distance_m, body.normal)
+            return AddGeometryEntityResponse(**res)
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
