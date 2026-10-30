@@ -143,3 +143,19 @@ Integração direta entre o decodificador binário e o frontend WebGL do SketchB
 - **Interface do Usuário:**
   - Botão de abertura rápida **⚡ Zero DLL** no painel de Arquivo, no menu Arquivo e na tela de boas-vindas.
   - Telemetria de carga em tempo real com contagem de definições, instâncias, vértices, triângulos e materiais PBR.
+
+---
+
+## 7. Gravador Binário Nativo (`SkpBinaryWriter` - Zero DLL)
+
+O SketchBuild agora não apenas lê, mas também **edita e salva arquivos `.skp` nativos sem depender de `SketchUpAPI.dll`**:
+- **Serialização In-Place de Instâncias (Tag 0x1966):**
+  - Mapeamento exato dos offsets de bytes das instâncias no `model.dat`.
+  - Atualização atômica do bloco de 104 bytes (13 doubles little-endian) com novas matrizes de rotação, escala e translação ($tx, ty, tz$ em polegadas) geradas pelo gizmo do Three.js.
+  - Preservação integral de todos os offsets topológicos de arestas, faces, normais e loops do modelo original.
+- **Serialização de Materiais e Cores:**
+  - Atualização dos atributos `colorRed`, `colorGreen`, `colorBlue` e `trans` nos arquivos `materials/<nome>/material.xml` embutidos no arquivo `.skp`.
+- **Reconstrução Atômica de Containers ZIP:**
+  - Empacotamento do novo `model.dat` comprimido via Deflate (zlib) e substituição atômica via arquivo temporário (`.tmp`), prevenindo corrupção de arquivos em caso de falha de energia ou disco.
+- **Roteamento Unificado:**
+  - Os endpoints existentes `PATCH /scene/instances/{id}/transform`, `POST /scene/instances/{id}/material` e `POST /scene/save` detectam automaticamente sessões abertas pelo modo nativo e executam a gravação pura Zero DLL.

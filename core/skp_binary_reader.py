@@ -340,6 +340,7 @@ class SkpBinaryReader:
                 "translation_cm": [round(tx, 2), round(ty, 2), round(tz, 2)],
                 "matrix_4x4": mat_4x4,
                 "matrix_4x4_inches": mat_4x4_inches,
+                "offset": pos,
             })
             idx = pos + 1
 

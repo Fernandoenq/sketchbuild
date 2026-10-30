@@ -55,8 +55,11 @@ class SceneService:
 
     async def open_binary_scene(self, file_path: str) -> dict:
         """Abre um arquivo .skp diretamente via SkpBinaryReader (Pure Python / Zero DLL),
-        extraindo topologia, normais, UVs analíticas, materiais PBR e hierarquia de instâncias."""
+        extraindo topologia, normais, UVs analíticas, materiais PBR e hierarquia de instâncias,
+        e inicializa a sessão de gravação nativa (SkpBinaryWriter)."""
         self._validate_model_path(file_path)
+        from core.skp_binary_writer import SkpBinaryWriter
+        await run_in_threadpool(SkpBinaryWriter.open_session, file_path)
         return await run_in_threadpool(self._extract_binary_scene, file_path)
 
     def _extract_binary_scene(self, file_path: str) -> dict:

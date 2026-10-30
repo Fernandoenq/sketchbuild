@@ -202,6 +202,12 @@ class SkpEngineRepository:
             logger.warning("Falha ao gravar autosave de %s", _SESSION.model_path, exc_info=True)
 
     def set_instance_transform(self, instance_id: str, new_world_transform: list[float]) -> None:
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None:
+            SkpBinaryWriter.set_instance_transform(instance_id, new_world_transform)
+            return
+
         session = self._require_session()
         entry = session.registry.get(instance_id)
         if entry is None or entry["ref"] is None:
@@ -228,6 +234,12 @@ class SkpEngineRepository:
         self._autosave()
 
     def save(self, path: str | None, overwrite_confirmed: bool = False) -> str:
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None:
+            target_path = path or bin_session.model_path
+            return SkpBinaryWriter.save_session(target_path, overwrite_confirmed)
+
         session = self._require_session()
         target_path = path or session.model_path
         if not target_path:
@@ -291,6 +303,12 @@ class SkpEngineRepository:
         reextrair a cena inteira -- so afeta a aparencia da instancia,
         nao a topologia/malha, entao o frontend aplica a cor direto no
         seu proprio mesh sem round-trip de dados."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None:
+            SkpBinaryWriter.paint_material(f"Material_{instance_id}", r, g, b)
+            return
+
         session = self._require_session()
         entry = session.registry.get(instance_id)
         if entry is None or entry["ref"] is None:
@@ -311,6 +329,12 @@ class SkpEngineRepository:
         geometria da DEFINICAO, entao a mudanca fica gravada pra TODAS
         as instancias que compartilham essa definicao (mesmo
         comportamento real do SketchUp)."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None:
+            SkpBinaryWriter.paint_material(f"Mat_{face_id}", r, g, b)
+            return
+
         session = self._require_session()
         face = session.faces.get(face_id)
         if face is None:
