@@ -24,6 +24,9 @@ from app.schemas.scene import (
     ExportGlbResponse,
     ExportIfcRequest,
     ExportIfcResponse,
+    AddLineGeometryRequest,
+    AddFaceGeometryRequest,
+    AddGeometryEntityResponse,
     ListAutosaveDraftsResponse,
     ListScenePagesResponse,
     NewSceneFromTemplateRequest,
@@ -482,3 +485,27 @@ async def export_model_ifc(
     controller: SceneController = Depends(get_controller),
 ) -> ExportIfcResponse:
     return await controller.export_model_ifc(body.path, project_name=body.project_name)
+
+
+@router.post(
+    "/geometry/line",
+    response_model=AddGeometryEntityResponse,
+    summary="Cria uma aresta/linha 3D livre na cena (Frente 22)",
+)
+async def add_line_geometry(
+    body: AddLineGeometryRequest,
+    controller: SceneController = Depends(get_controller),
+) -> AddGeometryEntityResponse:
+    return await controller.add_line_geometry(body)
+
+
+@router.post(
+    "/geometry/face",
+    response_model=AddGeometryEntityResponse,
+    summary="Cria uma face coplanar fechada poligonal na cena (Frente 22)",
+)
+async def add_face_geometry(
+    body: AddFaceGeometryRequest,
+    controller: SceneController = Depends(get_controller),
+) -> AddGeometryEntityResponse:
+    return await controller.add_face_geometry(body)

@@ -383,4 +383,23 @@ export function exportModelIfc(path, projectName = "Projeto SketchBuild") {
   return postJson("/api/v1/scene/export/ifc", "POST", { path, project_name: projectName });
 }
 
+// ============================================================================
+// Frente 22: Autoria Interativa de Desenho (Linhas e Faces B-Rep)
+// ============================================================================
+
+/** Adiciona uma aresta/linha nativa no modelo .skp aberto (Zero DLL). */
+export function addLineGeometry(startM, endM) {
+  return postJson("/api/v1/scene/geometry/line", "POST", {
+    start_m: startM,
+    end_m: endM,
+  });
+}
+
+/** Adiciona uma face poligonal nativa B-Rep no modelo .skp aberto (Zero DLL). */
+export function addFaceGeometry(pointsM) {
+  return postJson("/api/v1/scene/geometry/face", "POST", {
+    points_m: pointsM,
+  });
+}
+
 

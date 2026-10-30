@@ -38,6 +38,8 @@ import {
   calculateExplodedView,
   exportModelGlb,
   exportModelIfc,
+  addLineGeometry,
+  addFaceGeometry,
   ApiError,
 } from "./api.js";
 import {
@@ -49,6 +51,7 @@ import {
 } from "./sceneBuilder.js";
 import { buildOutlinerTree } from "./outliner.js";
 import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
+import { InferenceEngine } from "./inferenceEngine.js";
 
 const viewportEl = document.getElementById("viewport");
 const pathInputEl = document.getElementById("path-input");
@@ -106,6 +109,9 @@ const tagNameInputEl = document.getElementById("tag-name-input");
 const toolsToolbarEl = document.getElementById("tools-toolbar");
 const toolIconBtnEls = document.querySelectorAll(".tool-icon-btn");
 const vcbEl = document.getElementById("vcb");
+const vcbLineEl = document.getElementById("vcb-line");
+const lineLengthInputEl = document.getElementById("line-length-input");
+const lineSnapInfoEl = document.getElementById("line-snap-info");
 const vcbRectEl = document.getElementById("vcb-rect");
 const vcbTagEl = document.getElementById("vcb-tag");
 const vcbPaintEl = document.getElementById("vcb-paint");
@@ -243,6 +249,16 @@ addAxisLine(0xCC3333, new THREE.Vector3(1, 0, 0)); // vermelho = X
 addAxisLine(0x3333CC, new THREE.Vector3(0, 1, 0)); // azul = Y (up)
 addAxisLine(0x339933, new THREE.Vector3(0, 0, 1)); // verde = Z
 
+// Frente 22: Motor de Inferência e Autoria Interativa
+const userDrawingsGroup = new THREE.Group();
+userDrawingsGroup.name = "user_drawings";
+scene.add(userDrawingsGroup);
+
+let inferenceEngine = new InferenceEngine(camera, scene, renderer.domElement);
+let lineStartPoint = null;
+let currentLinePoints = [];
+let rubberbandLine = null;
+
 let currentGroup = null;
 let selectedMesh = null;
 let suppressNextClick = false;
@@ -340,6 +356,7 @@ function syncToolUI(activeKey) {
     [vcbTextEl, activeKey === "text" || activeKey === "text3d"],
     [vcbBoxEl, activeKey === "box"],
     [vcbDxfEl, activeKey === "dxf"],
+    [vcbLineEl, activeKey === "line"],
   ];
   let any = false;
   fields.forEach(([el, visible]) => {
@@ -357,6 +374,15 @@ function setToolMode(mode) {
   axesPoints = [];
   axesTargetMesh = null;
   if (mode !== "lasso") setLassoSelection([]);
+  if (mode !== "line") {
+    lineStartPoint = null;
+    currentLinePoints = [];
+    if (rubberbandLine) rubberbandLine.visible = false;
+    if (inferenceEngine) {
+      inferenceEngine.hideHelpers();
+      inferenceEngine.setLockedAxis(null);
+    }
+  }
   if (mode === "erase") setStatus("Modo Apagar: clique numa peca pra excluir na hora.");
   else if (mode === "measure") setStatus("Modo Fita metrica: clique no primeiro ponto.");
   else if (mode === "protractor") setStatus("Modo Transferidor: clique no vertice do angulo.");
@@ -369,6 +395,7 @@ function setToolMode(mode) {
   else if (mode === "paintFace") setStatus("Modo Pintura por face: escolha a cor na caixa no canto inferior direito e clique numa FACE (afeta todas as instancias da mesma peca no arquivo).");
   else if (mode === "tag") setStatus("Modo Etiqueta: escreva o nome na caixa no canto inferior direito e clique numa peca.");
   else if (mode === "axes") setStatus("Modo Eixos: clique na peca pra definir a ORIGEM dos eixos novos.");
+  else if (mode === "line") setStatus("Modo Linha (L): clique para fixar o 1o ponto. Setas travam eixos (Direita=X/Vermelho, Esquerda=Y/Verde, Cima=Z/Azul).");
   else if (mode === "rect") setStatus("Modo Retangulo: informe largura/profundidade na caixa no canto inferior direito e clique em Criar.");
   else if (mode === "box") setStatus("Modo Bloco 3D (Push-Pull): informe largura, comprimento e altura na caixa no canto inferior direito e clique em Criar Bloco.");
   else if (mode === "dxf") setStatus("Modo Importar DXF: informe o caminho do arquivo CAD DXF e clique em Converter DXF.");
@@ -553,6 +580,10 @@ renderer.domElement.addEventListener("click", (event) => {
 
   const hits = raycaster.intersectObjects(currentGroup.children, false);
 
+  if (toolMode === "line") {
+    handleLineClick(event);
+    return;
+  }
   if (toolMode === "erase") {
     if (hits.length) handleEraseClick(hits[0].object);
     return;
@@ -697,6 +728,38 @@ window.addEventListener("keydown", (event) => {
   else if (event.key === "Escape") {
     deselectMesh();
     if (toolMode === "lasso") setLassoSelection([]);
+    if (toolMode === "line") {
+      lineStartPoint = null;
+      currentLinePoints = [];
+      if (rubberbandLine) rubberbandLine.visible = false;
+      if (inferenceEngine) {
+        inferenceEngine.hideHelpers();
+        inferenceEngine.setLockedAxis(null);
+      }
+      setStatus("Desenho de linha cancelado.");
+    }
+  }
+  else if (event.key === "l" || event.key === "L") {
+    setToolMode("line");
+  }
+  else if (toolMode === "line" && inferenceEngine) {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      inferenceEngine.setLockedAxis("red");
+      setStatus("Eixo travado: Vermelho (X)");
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      inferenceEngine.setLockedAxis("green");
+      setStatus("Eixo travado: Verde (Y SketchUp)");
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      inferenceEngine.setLockedAxis("blue");
+      setStatus("Eixo travado: Azul (Z SketchUp)");
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      inferenceEngine.setLockedAxis(null);
+      setStatus("Trava de eixo desativada.");
+    }
   }
   else if (event.key === "Delete" || event.key === "Backspace") handleDeleteSelected();
   else if ((event.ctrlKey || event.metaKey) && (event.key === "d" || event.key === "D")) {
@@ -975,6 +1038,7 @@ function applySceneDTO(sceneDTO) {
   setLassoSelection([]);
   currentGroup = buildSceneGroup(sceneDTO);
   scene.add(currentGroup);
+  if (inferenceEngine) inferenceEngine.updateGeometryIndex(currentGroup);
   // componentes "sempre de frente pra camera" (ex.: a figura de escala dos
   // templates) so recebem a rotacao correta de pitch/roll dentro do loop
   // de animacao (updateBillboards(), chamado a cada frame) -- sem rodar
@@ -1862,6 +1926,7 @@ const MENU_ACTIONS = {
   "tool-dimension": () => setToolMode("dimension"),
   "tool-text": () => setToolMode("text"),
   "tool-rect": () => setToolMode("rect"),
+  "tool-line": () => setToolMode("line"),
   "tool-lasso": () => setToolMode("lasso"),
   "tool-text3d": () => handleArmText3D(),
   "tool-paint": () => handleArmPaint(),
@@ -2441,4 +2506,140 @@ async function handleExportIfc() {
     const detail = err instanceof ApiError ? err.message : String(err);
     setStatus(`Falha ao exportar IFC: ${detail}`, true);
   }
+}
+
+// ============================================================================
+// Frente 22: Autoria Interativa de Desenho (Snapping, Inferência, Linhas e Faces)
+// ============================================================================
+
+renderer.domElement.addEventListener("pointermove", (event) => {
+  if (toolMode !== "line" || !inferenceEngine) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+
+  const inf = inferenceEngine.computeInference(raycaster, lineStartPoint, event);
+  if (lineStartPoint) {
+    const dist = lineStartPoint.distanceTo(inf.point);
+    if (lineLengthInputEl) lineLengthInputEl.value = `${dist.toFixed(3)} m`;
+    if (lineSnapInfoEl) lineSnapInfoEl.textContent = inf.label || "";
+
+    if (!rubberbandLine) {
+      const geom = new THREE.BufferGeometry().setFromPoints([lineStartPoint, inf.point]);
+      const mat = new THREE.LineBasicMaterial({ color: inf.color || 0x222222, linewidth: 2 });
+      rubberbandLine = new THREE.Line(geom, mat);
+      scene.add(rubberbandLine);
+    } else {
+      rubberbandLine.geometry.setFromPoints([lineStartPoint, inf.point]);
+      rubberbandLine.material.color.setHex(inf.color || 0x222222);
+      rubberbandLine.visible = true;
+    }
+  } else {
+    if (lineLengthInputEl) lineLengthInputEl.value = "0.000 m";
+    if (lineSnapInfoEl) lineSnapInfoEl.textContent = inf.label || "Ponto inicial";
+    if (rubberbandLine) rubberbandLine.visible = false;
+  }
+});
+
+async function handleLineClick(event) {
+  if (!inferenceEngine) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+
+  const inf = inferenceEngine.computeInference(raycaster, lineStartPoint, event);
+  const clickPoint = inf.point.clone();
+
+  if (!lineStartPoint) {
+    lineStartPoint = clickPoint;
+    currentLinePoints = [clickPoint];
+    setStatus(`Ponto inicial fixado em (${clickPoint.x.toFixed(2)}, ${clickPoint.y.toFixed(2)}, ${clickPoint.z.toFixed(2)}). Clique no próximo ponto.`);
+    return;
+  }
+
+  // Verifica se fecha polígono com o primeiro ponto
+  const firstPt = currentLinePoints[0];
+  const distToFirst = clickPoint.distanceTo(firstPt);
+  if (currentLinePoints.length >= 3 && distToFirst < 0.08) {
+    setStatus("Polígono fechado detectado! Gerando Face B-Rep nativa no arquivo .skp...");
+    // Conversão Three.js (Y-up) -> SketchUp nativo (Z-up, metros)
+    // skp_x = three_x, skp_y = -three_z, skp_z = three_y
+    const skpPoints = currentLinePoints.map((p) => [p.x, -p.z, p.y]);
+    try {
+      const res = await addFaceGeometry(skpPoints);
+      createVisualPolygonFace(currentLinePoints);
+      setStatus(`Face nativa B-Rep criada com sucesso! (ID: ${res.entity?.face_id || 'face'}, ${currentLinePoints.length} vértices)`);
+      if (currentGroup) inferenceEngine.updateGeometryIndex(currentGroup);
+    } catch (err) {
+      const detail = err instanceof ApiError ? err.message : String(err);
+      setStatus(`Erro ao criar face B-Rep: ${detail}`, true);
+    }
+    lineStartPoint = null;
+    currentLinePoints = [];
+    if (rubberbandLine) rubberbandLine.visible = false;
+    inferenceEngine.hideHelpers();
+    return;
+  }
+
+  // Adiciona aresta conectada
+  const p1 = lineStartPoint.clone();
+  const p2 = clickPoint.clone();
+  currentLinePoints.push(p2);
+  lineStartPoint = p2;
+
+  const skpP1 = [p1.x, -p1.z, p1.y];
+  const skpP2 = [p2.x, -p2.z, p2.y];
+  try {
+    const res = await addLineGeometry(skpP1, skpP2);
+    createVisualLineSegment(p1, p2);
+    setStatus(`Aresta adicionada (${p1.distanceTo(p2).toFixed(3)} m). Próximo ponto ou feche no início.`);
+    if (currentGroup) inferenceEngine.updateGeometryIndex(currentGroup);
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro ao salvar aresta: ${detail}`, true);
+  }
+}
+
+function createVisualLineSegment(p1, p2) {
+  const geom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+  const mat = new THREE.LineBasicMaterial({ color: 0x111111, linewidth: 2 });
+  const line = new THREE.Line(geom, mat);
+  userDrawingsGroup.add(line);
+}
+
+function createVisualPolygonFace(points) {
+  if (points.length < 3) return;
+  // Triangular polígono coplanar (leque a partir do ponto 0)
+  const vertices = [];
+  const p0 = points[0];
+  for (let i = 1; i < points.length - 1; i++) {
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    vertices.push(p0.x, p0.y, p0.z);
+    vertices.push(p1.x, p1.y, p1.z);
+    vertices.push(p2.x, p2.y, p2.z);
+  }
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+  geom.computeVertexNormals();
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xdfdfdb,
+    roughness: 0.8,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1,
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+  userDrawingsGroup.add(mesh);
+
+  // Contorno visível das arestas do polígono
+  const ptsClosed = [...points, points[0]];
+  const lineGeom = new THREE.BufferGeometry().setFromPoints(ptsClosed);
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x111111, linewidth: 2 });
+  const edgeLine = new THREE.Line(lineGeom, lineMat);
+  userDrawingsGroup.add(edgeLine);
 }
