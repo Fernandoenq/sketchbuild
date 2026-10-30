@@ -332,3 +332,40 @@ A preservação estrita desse prefixo na serialização permite que o arquivo ge
 - `POST /api/v1/scene/instances/{instance_id}/duplicate`: Clona nativamente uma instância existente com nova matriz 4x4 ou deslocamento relativo em cm.
 - **Frontend:** Suporte a atalho `Ctrl+D` (ou `Cmd+D`) para duplicar a instância selecionada no visualizador Three.js e inseri-la instantaneamente na árvore e na cena.
 - **Testes Automatizados:** Teste de ponta a ponta em `test_duplicate_instance.py` com validação cruzada entre SkpBinaryReader e SketchUpAPI.dll (100% de sucesso).
+
+---
+
+## 34. Frente 8C: Exclusão Nativa de Instâncias no `model.dat` (Pure Python / Zero DLL)
+
+A Frente 8C implementa a exclusão cirúrgica de instâncias (`ComponentInstance`) diretamente no stream binário do `model.dat`, sem depender do SketchUp Desktop nem da `SketchUpAPI.dll`.
+
+### A. Fluxo de Remoção Binária e Encolhimento de Contêineres
+1. **Identificação e Remoção do Bloco da Instância (`Tag 0x1964`):**
+   - Localiza a `Tag 0x1964` a partir do offset mapeado na sessão (`p_c64`).
+   - Extrai o comprimento total: `inst_delta = 6 + c64_len`.
+   - Extrai o `target_eid` da instância (`Tag 0x05de`).
+   - Remove fisicamente os `inst_delta` bytes de `session.model_bytes`.
+2. **Atualização do Contêiner de Instâncias (`Tag 0x138c`):**
+   - Subtrai `inst_delta` do comprimento declarado no cabeçalho da `Tag 0x138c`.
+3. **Remoção do EntityID no Vetor de Referências (`Tag 0x138e`):**
+   - Localiza a `Tag 0x138e` subsequente.
+   - Percorre a sequência de elementos `[1 byte eid_len] + [eid_len bytes little-endian]` e localiza o item cujo valor corresponde ao `target_eid`.
+   - Remove os `tag_8e_delta = 1 + eid_len` bytes do payload da tag e atualiza seu comprimento declarado.
+4. **Encolhimento em Cascata dos Contêineres Pais:**
+   - Calcula o decremento total: `total_delta = inst_delta + tag_8e_delta`.
+   - Atualiza subtraindo `total_delta` de:
+     - `Tag 0x1388` (Entities mestre).
+     - `Tag 0x01f6` (Contêiner pai de 0x1388).
+     - `Tag 0x01f4` (Contêiner raiz do `model.dat` no offset 0).
+5. **Reajuste Cirúrgico de Offsets em Memória:**
+   - Remove a chave da instância excluída de `session.instances_offsets`.
+   - Desloca offsets de todas as entidades posteriores:
+     - Se `pos > p_8e`: `pos -= total_delta`.
+     - Se `pos > p_c64`: `pos -= inst_delta`.
+   - Reajusta `instances_offsets`, `camera_offset`, `tags_offsets`, `active_scene_offset` e `scenes`.
+   - Marca `session.is_dirty = True`.
+
+### B. Integração e Validação Cruzada
+- **API Backend:** `DELETE /api/v1/scene/instances/{instance_id}` roteia diretamente para `SkpBinaryWriter.delete_instance(instance_id)`.
+- **Frontend Three.js:** Atalhos `Delete`/`Backspace` e ferramenta **Apagar** removem a malha imediatamente da cena WebGL e sincronizam via API.
+- **Validação Cruzada Trimble C++ API:** Testes automatizados em `test_delete_instance.py` validam que arquivos gerados após exclusão são abertos pela `SketchUpAPI.dll` oficial com código `SU_ERROR_NONE (0)` e integridade estrutural total de 100%.
