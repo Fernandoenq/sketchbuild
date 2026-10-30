@@ -420,6 +420,22 @@ class SkpEngineRepository:
             raise SceneSessionError(f"falha ao pintar a face: {e}") from e
         self._autosave()
 
+    def add_box(
+        self,
+        width_m: float,
+        length_m: float,
+        height_m: float,
+        offset_xyz_cm: list = None,
+    ) -> dict:
+        """Cria um sólido 3D paramétrico manifold (Zero DLL / C++ Fallback)."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None:
+            res = SkpBinaryWriter.add_box(width_m, length_m, height_m, offset_xyz_cm)
+            self._autosave()
+            return res
+        raise SceneSessionError("nenhuma sessão binária ativa")
+
     def add_rectangle(self, width_m: float, height_m: float, as_group: bool = False) -> dict:
         from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()

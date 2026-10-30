@@ -473,3 +473,98 @@ Cada dicionário é composto por:
 - Leitura Zero DLL: `SkpBinaryReader.read_attribute_dictionaries(file_path)`.
 - Validação Cruzada Trimble C++ API: `test_attribute_injection.py` validou leitura e escrita com `SUModelGetAttributeDictionary`, `SUAttributeDictionaryGetNumKeys` e `SUTypedValue` com 100% de conformidade (`SU_ERROR_NONE`).
 
+---
+
+## 39. Frente 13: Push/Pull Nativo e Sólidos 3D Manifold (Zero DLL)
+
+A Frente 13 viabiliza a criação de caixas, paralelepípedos e sólidos 3D fechados (2-manifold) do zero em Pure Python, estendendo a lógica da Frente 9 para 3 dimensões volumétricas.
+
+### A. Topologia B-Rep Fechada (6 Faces, 12 Arestas, 8 Vértices)
+1. **8 Vértices (Tag 0x1389):** Vértices de base $V_0..V_3$ e vértices de topo $V_4..V_7$.
+2. **12 Arestas (Tag 0x138a):** 4 arestas de base, 4 arestas de topo e 4 pilares verticais conectando base e topo.
+3. **Compartilhamento de Arestas e Orientação Mútua (EdgeUses):**
+   - Para garantir que o sólido seja fechado (2-manifold), cada uma das 12 arestas é compartilhada por exatamente duas faces vizinhas com direções opostas:
+     - Sentido direto: `Tag 0x0fa2 = 0x00`.
+     - Sentido reverso: `Tag 0x0fa2 = 0x01`.
+4. **Planos Analíticos Normais das 6 Faces:**
+   - Topo: normal $(0, 0, 1)$, $D = -(z_0 + h)$.
+   - Base: normal $(0, 0, -1)$, $D = z_0$.
+   - Frente: normal $(0, -1, 0)$, $D = y_0$.
+   - Fundo: normal $(0, 1, 0)$, $D = -(y_0 + l)$.
+   - Esquerda: normal $(-1, 0, 0)$, $D = x_0$.
+   - Direita: normal $(1, 0, 0)$, $D = -(x_0 + w)$.
+
+### B. Implementação e Validação Cruzada
+- Método `SkpBinaryWriter.add_box(width_m, length_m, height_m, offset_xyz_cm)`.
+- Validado em `test_box_native.py` com cálculo de 13.0 m² de área e reconhecimento oficial de 6 faces e 12 arestas pela `SketchUpAPI.dll` (`SU_ERROR_NONE`).
+
+---
+
+## 40. Frente 15: Grupos e Hierarquias Aninhadas (Assembly Tree & Tag 0x1965)
+
+A Frente 15 desmistifica a representação de Grupos e Montagens no formato `.skp`.
+
+### A. Anatomia Binária de um Grupo no `model.dat`
+1. **Inexistência de Tag "Group" Dedicada:** No SketchUp, um Grupo é estruturalmente uma `ComponentInstance` (`Tag 0x1964`) referenciando uma `ComponentDefinition` (`Tag 0x157c`) anônima ou nomeada.
+2. **Nome do Grupo / Instância (`Tag 0x1965`):** Fica alocado dentro da `Tag 0x1964`, antes da matriz 4x4 (`Tag 0x1966`), contendo a string UTF-8 do nome do grupo (ex: `Grupo_Pai_Estrutura`).
+3. **Subcomponentes e Hierarquias Recursivas:** A `ComponentDefinition` pai possui seu próprio contêiner de entidades (`Tag 0x1388`), que por sua vez contém instâncias filhas (`Tag 0x1964`), permitindo recursão infinita na árvore do Outliner.
+
+### B. Implementação e Validação Cruzada
+- Método `SkpBinaryReader.build_assembly_tree(file_path)` que constrói o grafo de montagem pai-filho e extrai nomes da `Tag 0x1965`.
+- Testado e homologado em `test_nested_hierarchy.py` contra a C++ API oficial (`SUGroupGetName`, `SUEntitiesGetNumGroups`).
+
+---
+
+## 41. Frente 16: Cotas Lineares Técnicas (`DimensionLinear` & Tag 0x5fb4)
+
+A Frente 16 mapeia as entidades de dimensionamento técnico e anotação métrica no binário.
+
+### A. Estrutura da Cota no `model.dat`
+1. **Contêiner Mestre de Dimensões (`Tag 0x01ff`):** Alocado no fluxo de anotações do modelo.
+2. **Entidade de Cota Linear (`Tag 0x5fb4`):**
+   - Sub-tags `Tag 0x5fb5..0x5fc6` controlando propriedades tipográficas, estilo de seta, alinhamento horizontal/vertical e cor do texto.
+   - Ponto de suspensão / offset (`Tag 0x5fc3` com double IEEE-754 em polegadas).
+
+### B. Implementação e Validação
+- Método `SkpBinaryReader.extract_dimensions(file_path)` retornando offsets em polegadas e centímetros.
+- Testado em `test_dimensions_native.py` com 100% de conformidade.
+
+---
+
+## 42. Frente 19: Estilos de Renderização e Exibição (`Styles` & `style.xml`)
+
+A Frente 19 permite controlar os estilos visuais de apresentação do SketchUp sem interface gráfica.
+
+### A. Mapeamento de Itens no `style.xml`
+- **Série 1000 (Arestas):**
+  - Item 1000: Exibição de arestas (0/1).
+  - Item 1002: Perfis de contorno (0/1).
+  - Item 1005: Espessura do traço em pixels (1 a 5).
+  - Item 1014: Cor das arestas (ARGB signed).
+- **Série 2000 (Faces & Modos de Renderização):**
+  - Item 2001: Modo da face (`0` Wireframe, `1` Hidden Line, `2` Shaded, `3` Textured, `4` Monochrome).
+  - Item 2004: Modo Raio-X (`0` Desativado, `1` Ativado).
+- **Série 4000 (Fundo e Céu):**
+  - Item 4000: Cor de fundo (Background ARGB).
+  - Item 4001: Cor do céu (Sky ARGB).
+  - Item 4002: Céu ativado (0/1).
+
+### B. Implementação e Validação
+- Método `SkpBinaryWriter.set_rendering_style(mode, xray, profiles_width, background_rgb, sky_rgb)`.
+- Testado em `test_rendering_styles.py` com validação cruzada pela `SketchUpAPI.dll` (`SU_ERROR_NONE / 0`).
+
+---
+
+## 43. Frente 20: Conversor Direto CAD/DXF $	o$ `.skp` Nativo (Zero DLL)
+
+A Frente 20 integra a capacidade de converter arquivos CAD vetoriais (.dxf) para modelos `.skp` tridimensionais sem necessidade de licenças do SketchUp Pro ou AutoCAD.
+
+### A. Arquitetura do Conversor
+1. **Parser Analítico DXF:** Extrai entidades `LINE` (coordenadas 10/20/30 e 11/21/31) e `3DFACE` (quatro vértices no espaço 3D).
+2. **Compilador B-Rep:** Traduz as faces do DXF para a topologia B-Rep do SketchUp (vértices `Tag 0x09c4`, arestas `Tag 0x0bb8`, faces e planos `Tag 0x07d0`/`Tag 0x0dad`), gerando planos analíticos e ordenação de loops.
+3. **Escrita Atômica:** Serializa diretamente para o contêiner ZIP `.skp`.
+
+### B. Implementação e Validação
+- Módulo `core/dxf_to_skp_converter.py` com classe `DxfToSkpConverter`.
+- Testado em `test_dxf_converter.py` com conversão de DXF sintético para SKP, extração de 6.0 m² de área e homologação na Trimble C++ API oficial.
+
