@@ -12,6 +12,7 @@ import {
   updateInstanceTransform,
   saveScene,
   deleteInstance,
+  duplicateInstance,
   exportModelObj,
   addRectangle,
   paintInstance,
@@ -575,7 +576,34 @@ async function handleEraseClick(mesh) {
     setStatus(`${mesh.name} excluido (ainda nao salvo em disco). Modo Apagar continua ativo.`);
   } catch (err) {
     const detail = err instanceof ApiError ? err.message : String(err);
-    setStatus(`Erro ao excluir: ${detail}`, true);
+    setStatus(`Erro ao excluir ${mesh.name}: ${detail}`, true);
+  }
+}
+
+/** Editar > Duplicar: clona nativamente a instância selecionada no .skp
+ * (Pure Python SkpBinaryWriter / Zero DLL) e insere uma nova malha na cena do Three.js. */
+async function handleDuplicateSelected() {
+  if (!selectedMesh) {
+    setStatus("Nenhuma instância selecionada para duplicar.", true);
+    return;
+  }
+  const mesh = selectedMesh;
+  const instanceId = mesh.name;
+  try {
+    setStatus(`Duplicando ${instanceId}...`);
+    // Desloca 50cm em X (0.5m)
+    const res = await duplicateInstance(instanceId, { offsetDeltaCm: [50.0, 0.0, 0.0] });
+    if (res?.duplicated && res.instance) {
+      const newMesh = mesh.clone();
+      newMesh.name = res.instance.instance_id;
+      newMesh.position.x += 0.5;
+      currentGroup.add(newMesh);
+      selectMesh(newMesh);
+      setStatus(`${res.instance.instance_id} duplicada com sucesso nativamente (Ctrl+D)!`);
+    }
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro ao duplicar instância: ${detail}`, true);
   }
 }
 
@@ -627,6 +655,10 @@ window.addEventListener("keydown", (event) => {
     if (toolMode === "lasso") setLassoSelection([]);
   }
   else if (event.key === "Delete" || event.key === "Backspace") handleDeleteSelected();
+  else if ((event.ctrlKey || event.metaKey) && (event.key === "d" || event.key === "D")) {
+    event.preventDefault();
+    handleDuplicateSelected();
+  }
 });
 
 setMode("translate");
@@ -1134,7 +1166,34 @@ async function handleDeleteSelected() {
     setStatus(`${mesh.name} excluido (ainda nao salvo em disco).`);
   } catch (err) {
     const detail = err instanceof ApiError ? err.message : String(err);
-    setStatus(`Erro ao excluir: ${detail}`, true);
+    setStatus(`Erro ao excluir ${mesh.name}: ${detail}`, true);
+  }
+}
+
+/** Editar > Duplicar: clona nativamente a instância selecionada no .skp
+ * (Pure Python SkpBinaryWriter / Zero DLL) e insere uma nova malha na cena do Three.js. */
+async function handleDuplicateSelected() {
+  if (!selectedMesh) {
+    setStatus("Nenhuma instância selecionada para duplicar.", true);
+    return;
+  }
+  const mesh = selectedMesh;
+  const instanceId = mesh.name;
+  try {
+    setStatus(`Duplicando ${instanceId}...`);
+    // Desloca 50cm em X (0.5m)
+    const res = await duplicateInstance(instanceId, { offsetDeltaCm: [50.0, 0.0, 0.0] });
+    if (res?.duplicated && res.instance) {
+      const newMesh = mesh.clone();
+      newMesh.name = res.instance.instance_id;
+      newMesh.position.x += 0.5;
+      currentGroup.add(newMesh);
+      selectMesh(newMesh);
+      setStatus(`${res.instance.instance_id} duplicada com sucesso nativamente (Ctrl+D)!`);
+    }
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro ao duplicar instância: ${detail}`, true);
   }
 }
 

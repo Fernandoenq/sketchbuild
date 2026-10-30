@@ -216,6 +216,16 @@ class SceneService:
     async def save_scene(self, path: str | None, overwrite_confirmed: bool = False) -> str:
         return await run_in_threadpool(self._repository.save, path, overwrite_confirmed)
 
+    async def duplicate_instance(
+        self,
+        instance_id: str,
+        transform: list[float] | None = None,
+        offset_delta_cm: list[float] | None = None,
+    ) -> dict:
+        return await run_in_threadpool(
+            self._repository.duplicate_instance, instance_id, transform, offset_delta_cm
+        )
+
     async def delete_instance(self, instance_id: str) -> None:
         await run_in_threadpool(self._repository.delete_instance, instance_id)
 

@@ -500,3 +500,25 @@ class AddRectangleResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     scene: SceneResponse
+
+
+class DuplicateInstanceRequest(BaseModel):
+    """Entrada de POST /scene/instances/{instance_id}/duplicate."""
+
+    transform: list[float] | None = Field(
+        default=None,
+        description="Matriz 4x4 column-major opcional para a nova instância duplicada.",
+    )
+    offset_delta_cm: list[float] | None = Field(
+        default=None,
+        description="Deslocamento relativo [dx, dy, dz] em centímetros em relação à instância original.",
+    )
+
+
+class DuplicateInstanceResponse(BaseModel):
+    """Saída de POST /scene/instances/{instance_id}/duplicate."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    instance: InstanceDTO
+    duplicated: bool = True

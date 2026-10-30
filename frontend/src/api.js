@@ -87,6 +87,15 @@ export function updateInstanceTransform(instanceId, transform) {
   );
 }
 
+/** Duplica nativamente uma instância na sessão aberta (Zero DLL / Pure Python SkpBinaryWriter). */
+export function duplicateInstance(instanceId, { transform = null, offsetDeltaCm = null } = {}) {
+  return postJson(
+    `/api/v1/scene/instances/${encodeURIComponent(instanceId)}/duplicate`,
+    "POST",
+    { transform, offset_delta_cm: offsetDeltaCm }
+  );
+}
+
 /** `path` vazio/undefined sobrescreve o arquivo que foi aberto.
  * `overwriteConfirmed`: so precisa ser `true` quando uma chamada anterior
  * devolveu 409 com `detail.code === "overwrite_confirmation_required"` e
