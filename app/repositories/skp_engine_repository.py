@@ -421,20 +421,39 @@ class SkpEngineRepository:
         self._autosave()
 
     def add_rectangle(self, width_m: float, height_m: float, as_group: bool = False) -> dict:
-        """Equivalente real de "Desenho > Formas > Retângulo": cria uma
-        face retangular nova no chao (plano XY, Z=0 -- mesma convencao
-        Z-up do .skp, ver core/sceneBuilder.js SKP_TO_THREE_UP),
-        centrada na origem. Por padrao vai direto na Entities raiz do
-        modelo aberto; com `as_group=True` (equivalente real de "Editar >
-        Criar grupo", ver REVERSE_ENGINEERING_NOTES.md secao 28.17) a
-        face nasce DENTRO de um Grupo novo real (SUGroupCreate +
-        SUEntitiesAddGroup) em vez de solta na raiz -- demonstra criacao
-        de geometria agrupada com o mesmo fluxo ja validado de add_face().
-        Reextrai e devolve o DTO inteiro -- diferente de excluir/mover
-        uma instancia, geometria nova nao tem como ser aplicada
-        incrementalmente no frontend, o Three.js precisa da malha "root"
-        inteira de novo (a face nova entra ali, ver core/mesh_extractor.py
-        _collect_definition pro "root")."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None:
+            res = SkpBinaryWriter.add_rectangle(width_m, height_m)
+            half_w_in = (width_m * 100.0 / 2.54) / 2
+            half_h_in = (height_m * 100.0 / 2.54) / 2
+            pts_in = [
+                -half_w_in, -half_h_in, 0.0,
+                half_w_in, -half_h_in, 0.0,
+                half_w_in, half_h_in, 0.0,
+                -half_w_in, half_h_in, 0.0,
+            ]
+            root_def = {
+                "definition_id": "def_root",
+                "name": "Model Root",
+                "vertices": pts_in,
+                "normals": [0.0, 0.0, 1.0] * 4,
+                "indices": [0, 1, 2, 0, 2, 3],
+                "uvs": [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0],
+                "face_materials": ["Default"],
+                "face_ranges": [],
+                "always_faces_camera": False,
+            }
+            return {
+                "model_path": bin_session.model_path,
+                "definitions": [root_def],
+                "instances": [],
+                "materials": {},
+                "tags": [],
+                "scenes": bin_session.scenes,
+                "camera": None,
+                "reader_mode": "binary_native",
+            }
         session = self._require_session()
         INCHES_PER_METER = 1 / 0.0254
         half_w = (width_m * INCHES_PER_METER) / 2
@@ -656,3 +675,59 @@ class SkpEngineRepository:
                 "nenhum modelo aberto nesta sessao -- chame POST /api/v1/scene/open primeiro"
             )
         return _SESSION
+
+    def set_attribute_dictionary(self, dict_name: str, attributes: dict) -> dict:
+        """Injeta ou atualiza um Attribute Dictionary de metadados BIM (Zero DLL / C++ Fallback)."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None:
+            res = SkpBinaryWriter.set_attribute_dictionary(dict_name, attributes)
+            self._autosave()
+            return res
+        raise SceneSessionError("nenhuma sessão binária ativa")
+
+    def get_attribute_dictionaries(self) -> dict:
+        """Lê todos os Attribute Dictionaries do modelo aberto (Zero DLL / Pure Python)."""
+        from core.skp_binary_reader import SkpBinaryReader
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None and bin_session.model_path:
+            return SkpBinaryReader.read_attribute_dictionaries(bin_session.model_path)
+        session = self._require_session()
+        return SkpBinaryReader.read_attribute_dictionaries(session.file_path)
+
+    def extract_faces_and_triangles(self) -> list:
+        """Extrai faces, contornos e triangulação analítica (Zero DLL / Pure Python)."""
+        from core.skp_binary_reader import SkpBinaryReader
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None and bin_session.model_path:
+            return SkpBinaryReader.extract_faces_and_triangles(bin_session.model_path)
+        session = self._require_session()
+        return SkpBinaryReader.extract_faces_and_triangles(session.file_path)
+
+    def create_textured_material(
+        self,
+        material_name: str,
+        image_filename: str,
+        image_bytes: bytes,
+        scale_u_cm: float = 100.0,
+        scale_v_cm: float = 100.0,
+        color_rgb: tuple = (200, 200, 200),
+    ) -> dict:
+        """Cria e injeta um material texturizado PBR nativo no .skp (Zero DLL)."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None:
+            res = SkpBinaryWriter.create_textured_material(
+                material_name=material_name,
+                image_filename=image_filename,
+                image_bytes=image_bytes,
+                scale_u_cm=scale_u_cm,
+                scale_v_cm=scale_v_cm,
+                color_rgb=color_rgb,
+            )
+            self._autosave()
+            return res
+        raise SceneSessionError("nenhuma sessão binária ativa")
+

@@ -369,3 +369,107 @@ A Frente 8C implementa a exclusão cirúrgica de instâncias (`ComponentInstance
 - **API Backend:** `DELETE /api/v1/scene/instances/{instance_id}` roteia diretamente para `SkpBinaryWriter.delete_instance(instance_id)`.
 - **Frontend Three.js:** Atalhos `Delete`/`Backspace` e ferramenta **Apagar** removem a malha imediatamente da cena WebGL e sincronizam via API.
 - **Validação Cruzada Trimble C++ API:** Testes automatizados em `test_delete_instance.py` validam que arquivos gerados após exclusão são abertos pela `SketchUpAPI.dll` oficial com código `SU_ERROR_NONE (0)` e integridade estrutural total de 100%.
+
+---
+
+## 35. Frente 9: Criação de Geometria e Faces do Zero no `model.dat` (Pure Python / Zero DLL)
+
+A Frente 9 introduz a capacidade pioneira de criar e injetar geometrias 3D poligonais (vértices, arestas, loops orientados e faces com planos analíticos) do zero diretamente no arquivo binário `model.dat`, sem uso de nenhuma DLL ou runtime da Trimble.
+
+### A. Topologia Binária de uma Face no SketchUp
+No modelo interno do SketchUp, uma face poligonal não é armazenada como uma lista solta de triângulos, mas como uma estrutura topológica B-Rep completa:
+1. **Vértices (`Tag 0x1389`):** Contêiner de vértices sob `Tag 0x09c4`. Cada vértice possui:
+   - EntityID (`Tag 0x05de`): Identificador único em 2, 4 ou 8 bytes.
+   - Ponto 3D (`Tag 0x09c5`): Coordenadas (X, Y, Z) em 3 doubles (24 bytes) little-endian em polegadas.
+2. **Arestas (`Tag 0x138a`):** Contêiner de arestas sob `Tag 0x0bb8`. Cada aresta vincula:
+   - EntityID (`Tag 0x05de`).
+   - Vértice Inicial (`Tag 0x0bb9`): Referência de EntityID ao vértice inicial.
+   - Vértice Final (`Tag 0x0bba`): Referência de EntityID ao vértice final.
+3. **Face Poligonal (`Tag 0x138b`):** Contêiner de faces sob `Tag 0x07d0`:
+   - EntityID (`Tag 0x05de`).
+   - Equação do Plano (`Tag 0x0dad`): 4 doubles (32 bytes) Ax + By + Cz + D = 0, onde (A, B, C) é o vetor normal unitário e D = -(N . P).
+   - Loop de EdgeUses (`Tag 0x0dae` / `Tag 0x0fa0`): Referências orientadas às arestas de contorno da face (sentido horário ou anti-horário).
+4. **Vetor de Referências Mestre (`Tag 0x138e`):** Registra os EntityIDs gerados para que o motor do SketchUp indexe as novas entidades.
+5. **Atualização em Cascata de Contêineres:** Atualização dos comprimentos das tags `Tag 0x1388` (Entities), `Tag 0x01f6` e raiz `Tag 0x01f4`.
+
+### B. Implementação e Validação Cruzada
+- Método `SkpBinaryWriter.add_rectangle(width_m, height_m, offset_xyz_cm)` no backend.
+- Hook direto em `SkpEngineRepository.add_rectangle()`.
+- Teste automatizado `test_add_geometry_native.py` validado com 100% de sucesso pela `SketchUpAPI.dll` oficial (`SU_ERROR_NONE / 0`).
+
+---
+
+## 36. Frente 10: Injeção de Texturas de Imagem PBR e UVs no Container ZIP (Zero DLL)
+
+A Frente 10 implementa a injeção nativa de materiais com imagens de textura reais (PBR Roughness/Metallic, UV scaling e mapeamento difuso) no pacote `.skp`.
+
+### A. Anatomia do Formato Híbrido ZIP / `model.dat`
+Para que um material texturizado seja reconhecido pela Trimble C++ API e pelo SketchUp Desktop:
+1. **Registro no `model.dat` (`Tag 0x32c8`):**
+   - Contêiner de Materiais: `Tag 0x30d5` (encapsulado por `Tag 0x30d4`, `Tag 0x01f7` e raiz `Tag 0x01f4`).
+   - Payload do Material: EntityID (`Tag 0x05de`), nome do material (`Tag 0x32cc`) e flags de cor/renderização (`Tag 0x32ca`, `Tag 0x32cb`, `Tag 0x32cd`).
+2. **Definição XML no Pacote ZIP (`materials/<nome>/material.xml`):**
+   - Declara `<mat:material hasTexture="1" type="1" workflow="0" ...>`.
+   - Bloco `<mat:texture textureFilename="..." xScale="..." yScale="...">` contendo as escalas U e V em polegadas.
+   - Bloco `<mat:pbrMR>` com fatores de rugosidade, metalicidade e estilo de normal map.
+3. **Arquivo de Imagem no ZIP (`materials/<nome>/<imagem.png>`):** Gravação binária direta do stream PNG/JPEG.
+
+### B. Implementação e Validação Cruzada
+- Suporte a `custom_zip_files` no `SkpBinaryWriter.save_session()` para inserção atômica de arquivos no ZIP.
+- Método `SkpBinaryWriter.create_textured_material()`.
+- Teste `test_texture_injection.py` validado com 100% de sucesso pela `SketchUpAPI.dll` oficial, confirmando reconhecimento de nome, textura e dimensões.
+
+---
+
+## 37. Frente 11: Decodificação Analítica de Faces, Triangulação e Cálculo de Área 3D (Zero DLL)
+
+A Frente 11 implementa o pipeline analítico de extração de geometria poligonal em Pure Python, sem necessidade de triangulação por software externo ou bibliotecas C++.
+
+### A. Algoritmo de Extração e Cálculo Analítico
+1. **Descompressão Local de Streams:** Localiza o cabeçalho local ZIP e descomprime o `model.dat` usando `zlib.decompress(raw, -15)`.
+2. **Reconstrução de Faces Poligonais:** Mapeia `face_ranges` e índices de triângulos associados a cada face.
+3. **Deduplicação Topológica de Vértices:** Preserva a ordem de percurso e isola os vértices de contorno de cada face.
+4. **Vetor Normal Médio de Superfície:** Extrai o vetor unitário (Nx, Ny, Nz) perpendicular ao plano da face.
+5. **Cálculo de Área Analítica por Produto Vetorial:**
+   Calcula a soma das metades dos módulos dos produtos vetoriais de cada triângulo, convertendo dinamicamente de cm² para m² com precisão de 4 casas decimais.
+
+### B. Implementação e Validação
+- Implementado em `SkpBinaryReader.extract_faces_and_triangles(file_path)`.
+- Testado em `test_binary_mesh_extraction.py` com retorno de 3.0 m² exatos para um retângulo de 2m x 1.5m.
+
+---
+
+## 38. Frente 12: Injeção e Leitura de Dicionários de Atributos BIM (Zero DLL)
+
+A Frente 12 conclui o suporte total a metadados BIM (Building Information Modeling) no SketchUp sem dependência de DLLs, cobrindo escrita e leitura in-place de Attribute Dictionaries.
+
+### A. Hierarquia Estrutural do Contêiner de Atributos do Modelo
+Descobriu-se a cadeia exata de contêineres pais onde residem os Attribute Dictionaries do Modelo (`SUModelRef`):
+- `Tag 0x01f4` (offset 0 - contêiner raiz do modelo)
+  - `Tag 0x01f6` (offset 330073)
+    - `Tag 0x1388` (offset 330079)
+      - `Tag 0x07d0` (offset 330085)
+        - `Tag 0x05dc` (offset 330091)
+          - `Tag 0x05dd` (offset 330097)
+            - `Tag 0x36b1` (offset 330103 - contêiner mestre de dicionários)
+              - `Tag 0x36b2` (offset 330109 - agrupador de instâncias de dicionário)
+                - `Tag 0x36b3` (dicionário individual, ex: `GeoReference`, `GSU_ContributorsInfo`, `DadosOrcamento`)
+
+### B. Estrutura Binária de um Dicionário (`Tag 0x36b3`)
+Cada dicionário é composto por:
+- Marcador de Início: `Tag 0x36b0` (tamanho 0).
+- Nome do Dicionário: `Tag 0x36b4` + uint32 len + bytes do nome UTF-8.
+- Contêiner de Itens: `Tag 0x36b5` + uint32 len + pares de chave/valor:
+  - Chave: `Tag 0x36b6` + uint32 len + bytes da chave UTF-8.
+  - Valor Tipado: `Tag 0x38a4` + uint32 len + encapsulamento do tipo:
+    - Booleano: `Tag 0x38aa` (`\xaa8\x01\x00\x00\x00`) + 1 byte (`0x00` ou `0x01`).
+    - Inteiro 32-bit: `Tag 0x38a7` (`\xa78\x04\x00\x00\x00`) + 4 bytes int32 little-endian.
+    - Double Float 64-bit: `Tag 0x38a9` (`\xa98\x08\x00\x00\x00`) + 8 bytes float64 little-endian.
+    - String UTF-8: `Tag 0x38ad` (`\xad8`) + uint32 len + bytes da string UTF-8.
+- Marcador de Encerramento: `Tag 0x36b7` (tamanho 4, valor `0x00000000`).
+
+### C. Implementação e Validação Cruzada
+- Injeção: `SkpBinaryWriter.set_attribute_dictionary(dict_name, attributes)`.
+- Leitura Zero DLL: `SkpBinaryReader.read_attribute_dictionaries(file_path)`.
+- Validação Cruzada Trimble C++ API: `test_attribute_injection.py` validou leitura e escrita com `SUModelGetAttributeDictionary`, `SUAttributeDictionaryGetNumKeys` e `SUTypedValue` com 100% de conformidade (`SU_ERROR_NONE`).
+

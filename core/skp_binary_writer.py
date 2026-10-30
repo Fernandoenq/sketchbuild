@@ -60,6 +60,7 @@ class SkpBinarySession:
         self.skp_prefix: bytes = skp_prefix
         self.modified_materials: Dict[str, Dict[str, Any]] = {}
         self.is_dirty: bool = False
+        self.custom_zip_files: Dict[str, bytes] = {}
 
     def close(self) -> None:
         self.raw_zip_data = b""
@@ -570,6 +571,198 @@ class SkpBinaryWriter:
         return True
 
     @classmethod
+    def add_rectangle(
+        cls,
+        width_m: float,
+        height_m: float,
+        offset_xyz_cm: Optional[List[float]] = None,
+    ) -> Dict[str, Any]:
+        """Cria nativamente uma Face retangular plana no model.dat (Pure Python / Zero DLL).
+
+        Gera os 4 vértices (Tag 0x09c4 dentro de Tag 0x1389), as 4 arestas (Tag 0x0bb8 dentro de
+        Tag 0x138a), e a Face com seu plano afim (Tag 0x0dad) e loop orientado (Tag 0x0dae dentro de
+        Tag 0x138b), atualizando a Tag 0x138e e contêineres superiores.
+        """
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        mb = session.model_bytes
+
+        # Dimensões e pontos em polegadas
+        w_in = (float(width_m) * 100.0) / 2.54
+        h_in = (float(height_m) * 100.0) / 2.54
+
+        ox_in = (float(offset_xyz_cm[0]) / 2.54) if offset_xyz_cm and len(offset_xyz_cm) >= 1 else 0.0
+        oy_in = (float(offset_xyz_cm[1]) / 2.54) if offset_xyz_cm and len(offset_xyz_cm) >= 2 else 0.0
+        oz_in = (float(offset_xyz_cm[2]) / 2.54) if offset_xyz_cm and len(offset_xyz_cm) >= 3 else 0.0
+
+        pts = [
+            (ox_in, oy_in, oz_in),
+            (ox_in + w_in, oy_in, oz_in),
+            (ox_in + w_in, oy_in + h_in, oz_in),
+            (ox_in, oy_in + h_in, oz_in),
+        ]
+
+        # Alocação de novos EntityIDs
+        all_eids = set()
+        p = 0
+        mb_len = len(mb)
+        while p + 6 <= mb_len:
+            p_de = mb.find(b"\xde\x05", p)
+            if p_de == -1:
+                break
+            l = struct.unpack_from("<I", mb, p_de + 2)[0]
+            if 1 <= l <= 8 and p_de + 6 + l <= mb_len:
+                all_eids.add(int.from_bytes(mb[p_de + 6 : p_de + 6 + l], "little"))
+            p = p_de + 1
+
+        cur_eid = max(all_eids, default=50000)
+
+        def alloc_eid() -> int:
+            nonlocal cur_eid
+            cur_eid += 1
+            while cur_eid in all_eids:
+                cur_eid += 1
+            all_eids.add(cur_eid)
+            return cur_eid
+
+        v_ids = [alloc_eid() for _ in range(4)]
+        e_ids = [alloc_eid() for _ in range(4)]
+        f_id = alloc_eid()
+
+        # 1. Bloco de Vértices (Tag 0x1389)
+        v_payload = bytearray()
+        for i in range(4):
+            eid_bytes = v_ids[i].to_bytes(4, "little")
+            eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+            dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+            pt_tag = b"\xc5\t\x18\x00\x00\x00" + struct.pack("<3d", *pts[i])
+            c4_payload = dc_tag + pt_tag
+            c4_tag = b"\xc4\t" + struct.pack("<I", len(c4_payload)) + c4_payload
+            v_payload.extend(c4_tag)
+        tag_1389 = b"\x89\x13" + struct.pack("<I", len(v_payload)) + v_payload
+
+        # 2. Bloco de Arestas (Tag 0x138a)
+        e_payload = bytearray()
+        for i in range(4):
+            v_start = v_ids[i]
+            v_end = v_ids[(i + 1) % 4]
+            eid_bytes = e_ids[i].to_bytes(4, "little")
+            eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+            dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+            d0_payload = dc_tag + b"\xd3\x07\x01\x00\x00\x00\x06"
+            d0_tag = b"\xd0\x07" + struct.pack("<I", len(d0_payload)) + d0_payload
+            b9_tag = b"\xb9\x0b\x04\x00\x00\x00" + v_start.to_bytes(4, "little")
+            ba_tag = b"\xba\x0b\x04\x00\x00\x00" + v_end.to_bytes(4, "little")
+            b8_payload = d0_tag + b9_tag + ba_tag
+            b8_tag = b"\xb8\x0b" + struct.pack("<I", len(b8_payload)) + b8_payload
+            e_payload.extend(b8_tag)
+        tag_138a = b"\x8a\x13" + struct.pack("<I", len(e_payload)) + e_payload
+
+        # 3. Bloco de Face (Tag 0x138b)
+        eid_bytes = f_id.to_bytes(4, "little")
+        eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+        dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+        d0_payload = dc_tag + b"\xd3\x07\x01\x00\x00\x00\x06"
+        d0_tag = b"\xd0\x07" + struct.pack("<I", len(d0_payload)) + d0_payload
+
+        # Equação do plano: normal (0, 0, 1), D = -oz_in
+        dad_tag = b"\xad\x0d\x20\x00\x00\x00" + struct.pack("<4d", 0.0, 0.0, 1.0, -oz_in)
+
+        edge_uses = bytearray()
+        for i in range(4):
+            fa1 = b"\xa1\x0f\x04\x00\x00\x00" + e_ids[i].to_bytes(4, "little")
+            fa2 = b"\xa2\x0f\x01\x00\x00\x00\x00"
+            fa0_payload = fa1 + fa2
+            fa0_tag = b"\xa0\x0f" + struct.pack("<I", len(fa0_payload)) + fa0_payload
+            edge_uses.extend(fa0_tag)
+
+        tag_1195_payload = edge_uses
+        tag_1195 = b"\x95\x11" + struct.pack("<I", len(tag_1195_payload)) + tag_1195_payload
+        tag_1194 = b"\x94\x11" + struct.pack("<I", len(tag_1195)) + tag_1195
+        dae_tag = b"\xae\x0d" + struct.pack("<I", len(tag_1194)) + tag_1194
+
+        ac0d_payload = d0_tag + dad_tag + dae_tag
+        ac0d_tag = b"\xac\r" + struct.pack("<I", len(ac0d_payload)) + ac0d_payload
+        tag_138b = b"\x8b\x13" + struct.pack("<I", len(ac0d_tag)) + ac0d_tag
+
+        geom_block = tag_1389 + tag_138a + tag_138b
+        geom_delta = len(geom_block)
+
+        # 4. Inserção antes da Tag 0x138c
+        p_138c = mb.find(b"\x8c\x13")
+        if p_138c == -1:
+            raise SceneSessionError("contêiner de instâncias Tag 0x138c não localizado")
+
+        ins_pos = p_138c
+        mb[ins_pos:ins_pos] = geom_block
+
+        # 5. Adiciona referências na Tag 0x138e (as 4 arestas e a face)
+        p_8e = mb.find(b"\x8e\x13", ins_pos + geom_delta)
+        tag_8e_delta = 0
+        if p_8e != -1:
+            old_8e_len = struct.unpack_from("<I", mb, p_8e + 2)[0]
+            old_8e_data = mb[p_8e + 6 : p_8e + 6 + old_8e_len]
+            new_entries = bytearray()
+            for eid in e_ids + [f_id]:
+                new_entries.append(4)
+                new_entries.extend(eid.to_bytes(4, "little"))
+            new_8e_data = old_8e_data + new_entries
+            tag_8e_delta = len(new_entries)
+            mb[p_8e + 6 : p_8e + 6 + old_8e_len] = new_8e_data
+            struct.pack_into("<I", mb, p_8e + 2, len(new_8e_data))
+
+        total_delta = geom_delta + tag_8e_delta
+
+        # 6. Atualiza os contêineres pais superiores
+        p_1388 = mb.rfind(b"\x88\x13", 0, ins_pos)
+        if p_1388 != -1:
+            old_1388_len = struct.unpack_from("<I", mb, p_1388 + 2)[0]
+            struct.pack_into("<I", mb, p_1388 + 2, old_1388_len + total_delta)
+
+        p_01f6 = mb.rfind(b"\xf6\x01", 0, p_1388 if p_1388 != -1 else ins_pos)
+        if p_01f6 != -1:
+            old_f6_len = struct.unpack_from("<I", mb, p_01f6 + 2)[0]
+            struct.pack_into("<I", mb, p_01f6 + 2, old_f6_len + total_delta)
+
+        old_f4_len = struct.unpack_from("<I", mb, 2)[0]
+        struct.pack_into("<I", mb, 2, old_f4_len + total_delta)
+
+        # 7. Reajusta offsets na sessão
+        for k, off in list(session.instances_offsets.items()):
+            if off > ins_pos:
+                session.instances_offsets[k] = off + total_delta
+
+        if session.camera_offset is not None and session.camera_offset > ins_pos:
+            session.camera_offset += total_delta
+
+        for t, toff in list(session.tags_offsets.items()):
+            if toff > ins_pos:
+                session.tags_offsets[t] = toff + total_delta
+
+        if session.active_scene_offset is not None and session.active_scene_offset > ins_pos:
+            session.active_scene_offset += total_delta
+
+        for s in session.scenes:
+            if "offset" in s and s["offset"] > ins_pos:
+                s["offset"] += total_delta
+
+        session.is_dirty = True
+
+        pts_cm = [[round(p[0] * 2.54, 2), round(p[1] * 2.54, 2), round(p[2] * 2.54, 2)] for p in pts]
+        return {
+            "face_id": f_id,
+            "vertex_ids": v_ids,
+            "edge_ids": e_ids,
+            "points_cm": pts_cm,
+            "width_m": float(width_m),
+            "height_m": float(height_m),
+            "area_m2": round(float(width_m) * float(height_m), 4),
+            "plane": [0.0, 0.0, 1.0, round(-oz_in, 4)],
+        }
+
+    @classmethod
     def paint_material(
         cls, material_name: str, r: int, g: int, b: int, opacity: float = 1.0
     ) -> None:
@@ -584,6 +777,238 @@ class SkpBinaryWriter:
             "opacity": max(0.0, min(1.0, float(opacity))),
         }
         cls._ACTIVE_SESSION.is_dirty = True
+
+
+    @classmethod
+    def create_textured_material(
+        cls,
+        material_name: str,
+        image_bytes: bytes,
+        image_filename: str = "texture.png",
+        scale_u_cm: float = 100.0,
+        scale_v_cm: float = 100.0,
+        color_rgb: Optional[Tuple[int, int, int]] = None,
+    ) -> Dict[str, Any]:
+        """Injeta nativamente um material com textura de imagem no model.dat e no container ZIP (Zero DLL)."""
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        mb = session.model_bytes
+
+        # 1. Aloca novo EntityID
+        all_eids = set()
+        p = 0
+        mb_len = len(mb)
+        while p + 6 <= mb_len:
+            p_de = mb.find(b"\xde\x05", p)
+            if p_de == -1:
+                break
+            l = struct.unpack_from("<I", mb, p_de + 2)[0]
+            if 1 <= l <= 8 and p_de + 6 + l <= mb_len:
+                all_eids.add(int.from_bytes(mb[p_de + 6 : p_de + 6 + l], "little"))
+            p = p_de + 1
+
+        new_mat_eid = max(all_eids, default=50000) + 1
+        while new_mat_eid in all_eids:
+            new_mat_eid += 1
+        all_eids.add(new_mat_eid)
+
+        name_bytes = material_name.encode("utf-8")
+
+        # 2. Constrói bloco Tag 0x32c8 no model.dat
+        eid_bytes = new_mat_eid.to_bytes(4, "little")
+        eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+        dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+
+        cc_tag = b"\xcc2" + struct.pack("<I", len(name_bytes)) + name_bytes
+        ca_tag = b"\xca2\x01\x00\x00\x00\x00"
+        cb_tag = b"\xcb2\x00\x00\x00\x00"
+        cd_tag = b"\xcd2\x04\x00\x00\x00\x5a\x00\x00\x00"
+
+        c8_payload = dc_tag + cc_tag + ca_tag + cb_tag + cd_tag
+        c8_tag = b"\xc82" + struct.pack("<I", len(c8_payload)) + c8_payload
+        mat_delta = len(c8_tag)
+
+        # 3. Localiza Tag 0x30d5
+        p_30d5 = mb.find(b"\xd5\x30")
+        if p_30d5 == -1:
+            raise SceneSessionError("contêiner de materiais Tag 0x30d5 não localizado")
+
+        old_d5_len = struct.unpack_from("<I", mb, p_30d5 + 2)[0]
+        ins_pos = p_30d5 + 6 + old_d5_len
+        mb[ins_pos:ins_pos] = c8_tag
+
+        struct.pack_into("<I", mb, p_30d5 + 2, old_d5_len + mat_delta)
+
+        p_30d4 = mb.rfind(b"\xd4\x30", 0, p_30d5)
+        if p_30d4 != -1:
+            old_d4_len = struct.unpack_from("<I", mb, p_30d4 + 2)[0]
+            struct.pack_into("<I", mb, p_30d4 + 2, old_d4_len + mat_delta)
+
+        p_01f7 = mb.rfind(b"\xf7\x01", 0, p_30d4 if p_30d4 != -1 else p_30d5)
+        if p_01f7 != -1:
+            old_f7_len = struct.unpack_from("<I", mb, p_01f7 + 2)[0]
+            struct.pack_into("<I", mb, p_01f7 + 2, old_f7_len + mat_delta)
+
+        old_f4_len = struct.unpack_from("<I", mb, 2)[0]
+        struct.pack_into("<I", mb, 2, old_f4_len + mat_delta)
+
+        # 4. Reajusta offsets na sessão
+        for k, off in list(session.instances_offsets.items()):
+            if off > ins_pos:
+                session.instances_offsets[k] = off + mat_delta
+
+        if session.camera_offset and session.camera_offset > ins_pos:
+            session.camera_offset += mat_delta
+
+        for t, toff in list(session.tags_offsets.items()):
+            if toff > ins_pos:
+                session.tags_offsets[t] = toff + mat_delta
+
+        if session.active_scene_offset and session.active_scene_offset > ins_pos:
+            session.active_scene_offset += mat_delta
+
+        for s in session.scenes:
+            if "offset" in s and s["offset"] > ins_pos:
+                s["offset"] += mat_delta
+
+        # 5. XML e imagens do material
+        cr, cg, cb = color_rgb if color_rgb else (200, 200, 200)
+        scale_x_in = float(scale_u_cm) / 2.54
+        scale_y_in = float(scale_v_cm) / 2.54
+
+        xml_text = f'''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<materialDocument xmlns="http://sketchup.google.com/schemas/sketchup/1.0/material" xmlns:mat="http://sketchup.google.com/schemas/sketchup/1.0/material">
+  <mat:material name="{material_name}" type="1" workflow="0" colorRed="{cr}" colorGreen="{cg}" colorBlue="{cb}" colorizeType="0" trans="1.0" useTrans="0" pbrPromoState="0" hasTexture="1">
+    <mat:texture textureFilename="{image_filename}" xScale="{scale_x_in}" yScale="{scale_y_in}" avgColor="4284782280">
+      <mat:images>
+        <mat:image id="1" path="./{image_filename}" file_name="{image_filename}"/>
+      </mat:images>
+    </mat:texture>
+    <mat:pbrMR xScale="{scale_x_in}" yScale="{scale_y_in}">
+      <mat:enable_metalness>0</mat:enable_metalness>
+      <mat:enable_roughness>0</mat:enable_roughness>
+      <mat:roughness_texture_invert>0</mat:roughness_texture_invert>
+      <mat:enable_normal>0</mat:enable_normal>
+      <mat:enable_occlusion>0</mat:enable_occlusion>
+      <mat:metallicFactor>1</mat:metallicFactor>
+      <mat:roughnessFactor>1</mat:roughnessFactor>
+      <mat:normalMapStyle>1</mat:normalMapStyle>
+      <mat:normalScale>1</mat:normalScale>
+      <mat:occlusionStrength>1</mat:occlusionStrength>
+      <mat:baseColorFactor>4294967295</mat:baseColorFactor>
+    </mat:pbrMR>
+  </mat:material>
+</materialDocument>
+'''
+        session.custom_zip_files[f"materials/{material_name}/material.xml"] = xml_text.encode("utf-8")
+        session.custom_zip_files[f"materials/{material_name}/{image_filename}"] = image_bytes
+        session.is_dirty = True
+
+        return {
+            "material_name": material_name,
+            "entity_id": new_mat_eid,
+            "has_texture": True,
+            "texture_file": image_filename,
+            "scale_cm": [float(scale_u_cm), float(scale_v_cm)],
+        }
+
+    @classmethod
+    def set_attribute_dictionary(
+        cls,
+        dict_name: str,
+        attributes: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Injeta ou atualiza um Attribute Dictionary com metadados BIM no contêiner do Modelo (Zero DLL)."""
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        mb = session.model_bytes
+
+        # 1. Serializa cada par chave/valor em TLV binário nativo
+        items_payload = bytearray()
+        for k, v in attributes.items():
+            k_bytes = str(k).encode("utf-8")
+            b6_tag = b"\xb66" + struct.pack("<I", len(k_bytes)) + k_bytes
+
+            if isinstance(v, bool):
+                val_tag = b"\xaa8\x01\x00\x00\x00" + (b"\x01" if v else b"\x00")
+            elif isinstance(v, int):
+                val_tag = b"\xa78\x04\x00\x00\x00" + struct.pack("<i", v)
+            elif isinstance(v, float):
+                val_tag = b"\xa98\x08\x00\x00\x00" + struct.pack("<d", v)
+            else:
+                s_bytes = str(v).encode("utf-8")
+                val_tag = b"\xad8" + struct.pack("<I", len(s_bytes)) + s_bytes
+
+            a4_tag = b"\xa48" + struct.pack("<I", len(val_tag)) + val_tag
+            items_payload.extend(b6_tag + a4_tag)
+
+        b5_tag = b"\xb56" + struct.pack("<I", len(items_payload)) + items_payload
+        d_name_bytes = str(dict_name).encode("utf-8")
+        b4_tag = b"\xb46" + struct.pack("<I", len(d_name_bytes)) + d_name_bytes
+
+        b3_payload = b"\xb06\x00\x00\x00\x00" + b4_tag + b5_tag + b"\xb76\x04\x00\x00\x00\x00\x00\x00\x00"
+        b3_tag = b"\xb36" + struct.pack("<I", len(b3_payload)) + b3_payload
+
+        # 2. Localiza o contêiner de atributos do modelo (que contém GeoReference)
+        p_geo = mb.find(b"GeoReference")
+        if p_geo == -1:
+            raise SceneSessionError("contêiner raiz de dicionários de atributos do modelo não encontrado")
+
+        p_b2 = mb.rfind(b"\xb26", 0, p_geo)
+        p_b1 = mb.rfind(b"\xb16", 0, p_b2)
+        p_5dd = mb.rfind(b"\xdd\x05", 0, p_b1)
+        p_5dc = mb.rfind(b"\xdc\x05", 0, p_5dd)
+        p_7d0 = mb.rfind(b"\xd0\x07", 0, p_5dc)
+        p_1388 = mb.rfind(b"\x88\x13", 0, p_7d0)
+        p_1f6 = mb.rfind(b"\xf6\x01", 0, p_1388)
+
+        old_b2_len = struct.unpack_from("<I", mb, p_b2 + 2)[0]
+        ins_pos = p_b2 + 6 + old_b2_len
+        dict_delta = len(b3_tag)
+
+        # Insere b3_tag no contêiner
+        mb[ins_pos:ins_pos] = b3_tag
+
+        # Atualiza comprimentos na cadeia ascendente
+        for p_tag in [p_b2, p_b1, p_5dd, p_5dc, p_7d0, p_1388, p_1f6]:
+            if p_tag != -1:
+                old_len = struct.unpack_from("<I", mb, p_tag + 2)[0]
+                struct.pack_into("<I", mb, p_tag + 2, old_len + dict_delta)
+
+        # Atualiza contêiner raiz offset 0 (Tag 0x01f4)
+        old_f4_len = struct.unpack_from("<I", mb, 2)[0]
+        struct.pack_into("<I", mb, 2, old_f4_len + dict_delta)
+
+        # Reajusta offsets na sessão
+        for k, off in list(session.instances_offsets.items()):
+            if off > ins_pos:
+                session.instances_offsets[k] = off + dict_delta
+
+        if session.camera_offset and session.camera_offset > ins_pos:
+            session.camera_offset += dict_delta
+
+        for t, toff in list(session.tags_offsets.items()):
+            if toff > ins_pos:
+                session.tags_offsets[t] = toff + dict_delta
+
+        if session.active_scene_offset and session.active_scene_offset > ins_pos:
+            session.active_scene_offset += dict_delta
+
+        for s in session.scenes:
+            if "offset" in s and s["offset"] > ins_pos:
+                s["offset"] += dict_delta
+
+        session.is_dirty = True
+        return {
+            "dictionary_name": dict_name,
+            "num_keys": len(attributes),
+            "keys": list(attributes.keys()),
+            "inserted_bytes": dict_delta,
+        }
 
     @classmethod
     def set_camera(
@@ -757,6 +1182,10 @@ class SkpBinaryWriter:
                             else:
                                 # Copia outros assets intactos (texturas, thumbnails, etc.)
                                 zout.writestr(item, zin.read(fname))
+
+                        # Grava arquivos customizados (novas texturas e materiais)
+                        for custom_path, custom_data in session.custom_zip_files.items():
+                            zout.writestr(custom_path, custom_data)
 
             final_zip_bytes = zip_buffer_out.getvalue()
             with open(tmp_target, "wb") as f_out:
