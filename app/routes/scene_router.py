@@ -37,6 +37,8 @@ from app.schemas.scene import (
     TagInstanceRequest,
     TagInstanceResponse,
     ListTagsResponse,
+    UpdateCameraRequest,
+    UpdateCameraResponse,
     UpdateTransformRequest,
     UpdateTransformResponse,
 )
@@ -173,6 +175,18 @@ async def discard_autosave_draft(
     draft_id: str, controller: SceneController = Depends(get_controller)
 ) -> DiscardAutosaveDraftResponse:
     return await controller.discard_autosave_draft(draft_id)
+
+
+@router.patch(
+    "/camera",
+    response_model=UpdateCameraResponse,
+    summary="Grava a orientação e posição da Câmera 3D in-place no .skp nativo via SkpBinaryWriter",
+)
+async def update_camera(
+    body: UpdateCameraRequest,
+    controller: SceneController = Depends(get_controller),
+) -> UpdateCameraResponse:
+    return await controller.update_camera(body)
 
 
 @router.patch(

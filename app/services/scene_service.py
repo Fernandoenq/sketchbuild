@@ -133,23 +133,37 @@ class SceneService:
                 "attributes": mdata.get("attributes") or {},
             }
 
-        b = mesh["bounds"]
-        min_in = [p / 2.54 for p in b["min_pt_cm"]]
-        max_in = [p / 2.54 for p in b["max_pt_cm"]]
-        cx = (min_in[0] + max_in[0]) / 2.0
-        cy = (min_in[1] + max_in[1]) / 2.0
-        cz = (min_in[2] + max_in[2]) / 2.0
-        diag = ((max_in[0] - min_in[0])**2 + (max_in[1] - min_in[1])**2 + (max_in[2] - min_in[2])**2)**0.5
-        dist = max(diag * 1.5, 50.0)
+        # Câmera Real 3D (Frente 7): decodificada diretamente do model.dat via Tag 0x34bd..0x34c6
+        real_cam = mesh.get("camera")
+        if real_cam:
+            camera = {
+                "eye": real_cam["eye_inches"],
+                "target": real_cam["target_inches"],
+                "up": real_cam["up"],
+                "perspective": real_cam["is_perspective"],
+                "fov_deg": real_cam["fov_degrees"],
+                "fov_is_height": real_cam["fov_is_height"],
+            }
+        else:
+            b = mesh["bounds"]
+            min_in = [p / 2.54 for p in b["min_pt_cm"]]
+            max_in = [p / 2.54 for p in b["max_pt_cm"]]
+            cx = (min_in[0] + max_in[0]) / 2.0
+            cy = (min_in[1] + max_in[1]) / 2.0
+            cz = (min_in[2] + max_in[2]) / 2.0
+            diag = ((max_in[0] - min_in[0])**2 + (max_in[1] - min_in[1])**2 + (max_in[2] - min_in[2])**2)**0.5
+            dist = max(diag * 1.5, 50.0)
 
-        camera = {
-            "eye": [round(cx + dist * 0.7, 3), round(cy - dist * 0.7, 3), round(cz + dist * 0.5, 3)],
-            "target": [round(cx, 3), round(cy, 3), round(cz, 3)],
-            "up": [0.0, 0.0, 1.0],
-            "perspective": True,
-            "fov_deg": 35.0,
-            "fov_is_height": True,
-        }
+            camera = {
+                "eye": [round(cx + dist * 0.7, 3), round(cy - dist * 0.7, 3), round(cz + dist * 0.5, 3)],
+                "target": [round(cx, 3), round(cy, 3), round(cz, 3)],
+                "up": [0.0, 0.0, 1.0],
+                "perspective": True,
+                "fov_deg": 35.0,
+                "fov_is_height": True,
+            }
+
+        tags_dto = mesh.get("tags") or []
 
         return {
             "model_path": file_path,
@@ -157,6 +171,7 @@ class SceneService:
             "instances": instances,
             "materials": materials_dict,
             "camera": camera,
+            "tags": tags_dto,
             "reader_mode": "binary_native",
             "model_attributes": model_attrs,
         }
@@ -230,10 +245,39 @@ class SceneService:
         return await run_in_threadpool(self._repository.list_scenes)
 
     async def list_tags(self) -> list[dict]:
+        from core.skp_binary_writer import SkpBinaryWriter
+        session = SkpBinaryWriter.get_session()
+        if session and session.tags_offsets:
+            tags = []
+            for tname, vis_offset in session.tags_offsets.items():
+                vis = (session.model_bytes[vis_offset] == 0)
+                tags.append({
+                    "name": tname,
+                    "visible": vis,
+                    "is_default": (tname in ("Layer0", "Sem etiquetas")),
+                })
+            return tags
         return await run_in_threadpool(self._repository.list_tags)
 
     async def set_tag_visibility(self, tag_name: str, visible: bool) -> dict:
+        from core.skp_binary_writer import SkpBinaryWriter
+        session = SkpBinaryWriter.get_session()
+        if session and tag_name in session.tags_offsets:
+            SkpBinaryWriter.set_tag_visibility(tag_name, visible)
+            return {"name": tag_name, "visible": visible}
         return await run_in_threadpool(self._repository.set_tag_visibility, tag_name, visible)
+
+    async def update_camera(
+        self,
+        eye: list[float],
+        target: list[float],
+        up: list[float] | None = None,
+        fov_deg: float | None = None,
+    ) -> None:
+        from core.skp_binary_writer import SkpBinaryWriter
+        session = SkpBinaryWriter.get_session()
+        if session and session.camera_offset is not None:
+            SkpBinaryWriter.set_camera(eye, target, up, fov_deg, in_inches=True)
 
     async def create_scene(self, name: str) -> dict:
         self._validate_scene_name(name)
