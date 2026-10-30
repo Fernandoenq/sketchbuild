@@ -102,4 +102,5 @@ async def extract_mesh_binary_skp(body: InspectBinaryRequest) -> ExtractMeshBina
             max_pt_cm=list(mesh["bounds"]["max_pt_cm"]),
             is_empty=mesh["bounds"]["is_empty"],
         ),
+        hierarchy=mesh["hierarchy"],
     )

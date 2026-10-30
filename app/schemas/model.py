@@ -79,6 +79,26 @@ class MaterialInfoResponse(BaseModel):
     roughness: float
 
 
+class ComponentInstanceResponse(BaseModel):
+    definition_id: int | None = None
+    definition_name: str
+    translation_cm: list[float]
+    matrix_4x4: list[float]
+
+
+class ComponentDefinitionResponse(BaseModel):
+    id: int
+    name: str
+    instances_count: int
+
+
+class HierarchyResponse(BaseModel):
+    definitions: list[ComponentDefinitionResponse] = Field(default_factory=list)
+    instances: list[ComponentInstanceResponse] = Field(default_factory=list)
+    total_definitions: int = 0
+    total_instances: int = 0
+
+
 class ExtractMeshBinaryResponse(BaseModel):
     vertices: list[float]
     normals: list[float]
@@ -89,6 +109,7 @@ class ExtractMeshBinaryResponse(BaseModel):
     num_faces: int
     num_vertices: int
     bounds: InspectBinaryResponse
+    hierarchy: HierarchyResponse | None = None
 
 
 class HealthResponse(BaseModel):

@@ -77,10 +77,25 @@ Cada vértice do modelo é empacotado em exatamente 46 bytes:
   - As coordenadas UV normalizadas $[0..1]$ para Three.js / WebGL são:
     $$u = \frac{u_{\text{raw}}}{\text{xScale}}, \quad v = \frac{v_{\text{raw}}}{\text{yScale}}$$
     onde $\text{xScale}$ e $\text{yScale}$ são as dimensões físicas da textura em polegadas definidas no `material.xml`.
-- **Metadados XML de Materiais e PBR (`materials/*/material.xml`):**
-  - `<mat:material colorRed="..." colorGreen="..." colorBlue="..." trans="..." hasTexture="...">`
-  - `<mat:pbrMR>` com `metallicFactor`, `roughnessFactor`, `normalScale` e `occlusionStrength`.
-  - Imagem física embutida no ZIP (`materials/<Nome>/<Arquivo>.jpg/png`).
+### E. Instâncias e Hierarquia 3D do Outliner (Frente 3)
+- **ComponentDefinitions (Tag `0x157e` & Container `0x157c`):**
+  - Armazena o nome da definição (`Agrupar#110`, `Escada`, etc.) em string com prefixo de tamanho `uint32`.
+  - Tag `0x157d` (16 bytes): GUID único do componente.
+  - Tag `0x157f`: Descrição textual do componente.
+  - O contêiner de definição é introduzido pela Tag `0x157c`, sendo a primeira ocorrência o **Model Root Definition** que abriga toda a hierarquia principal.
+  - O `EntityID` único da definição é indexado pela Tag `0x05de`.
+- **ComponentInstances e Matriz de Transformação 4x4 (Tag `0x1966` | 104 bytes):**
+  - A matriz de transformação espacial $4 \times 4$ é empacotada em 13 `doubles` de 64 bits little-endian:
+    - Base X: $(m_0, m_1, m_2)$
+    - Base Y: $(m_3, m_4, m_5)$
+    - Base Z: $(m_6, m_7, m_8)$
+    - Translação no espaço: $(m_9, m_{10}, m_{11})$ em polegadas (convertido via $\times 2.54$ para cm).
+    - Escala / Homogêneo: $m_{12}$ (geralmente $1.0$).
+  - A matriz $4 \times 4$ é montada no formato column-major compatível com `THREE.Matrix4.fromArray()`:
+    $$\begin{bmatrix} m_0 & m_3 & m_6 & t_x \\ m_1 & m_4 & m_7 & t_y \\ m_2 & m_5 & m_8 & t_z \\ 0 & 0 & 0 & 1 \end{bmatrix}$$
+  - Tag `0x1967`: Imediatamente após a matriz, referencia o `DefinitionID` (`uint32`) do componente instanciado.
+  - Tag `0x1968`: GUID ou bounding box local da instância.
+  - Tag `0x1964`: Cabeçalho do registro de instância no grafo.
 
 ---
 

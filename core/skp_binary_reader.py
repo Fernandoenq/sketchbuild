@@ -5,15 +5,19 @@ Decodifica a topologia analítica do SketchUp diretamente do stream 'model.dat'
 e materiais XML embutidos no container ZIP (.skp). Não depende de SketchUpAPI.dll,
 ctypes ou SketchUp Desktop instalado.
 
-Descoberta de engenharia reversa:
+Descobertas de Engenharia Reversa (Frentes 1, 2 e 3):
 - Tag 0x09c4 / 0x09c5: Vértice com EntityID dinâmico (Tag 0x05de) e Point3D (3 doubles de 64 bits em polegadas).
 - Tag 0x0bb9 / 0x0bba: StartVertex e EndVertex da Aresta (Edge).
 - Tag 0x0dad (tamanho 32B): Equação cartesiana do plano 3D (Ax + By + Cz + D = 0).
+- Tag 0x0fa0: Loop de arestas com flag de direção (0 ou 1) que orienta o contorno Half-Edge.
 - Tag 0x0daf (Front Material) e 0x0db0 (Back Material) / 0x07d1: Associação com EntityID do Material.
 - Tag 0x32c8 / 0x32cc: Registro de Material no model.dat mapeando EntityID -> Nome do Material.
 - Tag 0x2715 (72B, 9 doubles): Matriz afim 3x3 de projeção UV para texturas mapeadas.
+- Tag 0x157e: Nome legível da ComponentDefinition (Outliner).
+- Tag 0x157c: Container da ComponentDefinition e Model Root Definition.
+- Tag 0x1966 (104B, 13 doubles): Matriz afim 4x4 de transformação espacial da ComponentInstance.
+- Tag 0x1967: Referência ao DefinitionID instanciado.
 - materials/*/material.xml: Definições completas de cor RGB, transparência, texturas e PBR Metallic-Roughness.
-- Tag 0x0fa0: Loop de arestas com flag de direção (0 ou 1) que orienta o contorno Half-Edge.
 """
 
 from __future__ import annotations
@@ -47,6 +51,26 @@ class SkpBoundsInfo(TypedDict):
     is_empty: bool
 
 
+class SkpComponentInstanceDTO(TypedDict):
+    definition_id: Optional[int]
+    definition_name: str
+    translation_cm: List[float]       # [x, y, z] em cm
+    matrix_4x4: List[float]           # 16 floats (column-major para Three.js)
+
+
+class SkpComponentDefinitionDTO(TypedDict):
+    id: int
+    name: str
+    instances_count: int
+
+
+class SkpHierarchyDTO(TypedDict):
+    definitions: List[SkpComponentDefinitionDTO]
+    instances: List[SkpComponentInstanceDTO]
+    total_definitions: int
+    total_instances: int
+
+
 class SkpMeshDTO(TypedDict):
     vertices: List[float]       # [x, y, z, ...] em cm
     normals: List[float]        # [nx, ny, nz, ...]
@@ -57,6 +81,7 @@ class SkpMeshDTO(TypedDict):
     num_faces: int
     num_vertices: int
     bounds: SkpBoundsInfo
+    hierarchy: Optional[SkpHierarchyDTO]
 
 
 class SkpBinaryReader:
@@ -68,6 +93,10 @@ class SkpBinaryReader:
     TAG_FRONT_MAT = b"\xaf\x0d"
     TAG_BACK_MAT = b"\xb0\x0d"
     TAG_UV_MATRIX = b"\x15\x27\x48\x00\x00\x00"
+    TAG_DEF_NAME = b"\x7e\x15"
+    TAG_DEF_ROOT = b"\x7c\x15"
+    TAG_INSTANCE_TRANSFORM = b"\x66\x19\x68\x00\x00\x00"
+    TAG_INSTANCE_DEF_REF = b"\x67\x19"
     ZIP_LOCAL_HEADER = b"PK\x03\x04"
 
     @classmethod
@@ -218,9 +247,9 @@ class SkpBinaryReader:
         return materials
 
     @classmethod
-    def extract_mesh(cls, file_path: str) -> Optional[SkpMeshDTO]:
-        """Reconstrói a malha poligonal 3D completa com UVs, Normais e Materiais
-        diretamente do container .skp para Three.js / WebGL BufferGeometry."""
+    def extract_hierarchy(cls, file_path: str) -> Optional[SkpHierarchyDTO]:
+        """Extrai a árvore do Outliner: ComponentDefinitions e ComponentInstances
+        com matrizes de transformação 4x4 diretamente do model.dat."""
         if not file_path or not os.path.exists(file_path):
             return None
 
@@ -234,8 +263,114 @@ class SkpBinaryReader:
         if not model_bytes:
             return None
 
-        # 0. Materiais XML do arquivo
+        return cls._parse_hierarchy(model_bytes)
+
+    @classmethod
+    def _parse_hierarchy(cls, model_bytes: bytes) -> SkpHierarchyDTO:
+        # 1. ComponentDefinitions (Tag 0x157e: Nome) + EntityID
+        defs_map: Dict[int, str] = {}
+        idx = 0
+        while True:
+            pos = model_bytes.find(cls.TAG_DEF_NAME, idx)
+            if pos == -1:
+                break
+            slen = struct.unpack_from("<I", model_bytes, pos + 2)[0]
+            if 1 <= slen <= 120:
+                name = model_bytes[pos + 6 : pos + 6 + slen].decode("latin1", errors="replace")
+                de_pos = model_bytes.find(b"\xde\x05", pos + 6 + slen, pos + 2500)
+                if de_pos != -1:
+                    id_len = struct.unpack_from("<I", model_bytes, de_pos + 2)[0]
+                    if 1 <= id_len <= 8:
+                        did = int.from_bytes(model_bytes[de_pos + 6 : de_pos + 6 + id_len], "little")
+                        defs_map[did] = name
+            idx = pos + 1
+
+        # Identifica a Model Definition (raiz)
+        p_root = model_bytes.find(cls.TAG_DEF_ROOT)
+        if p_root != -1:
+            de_pos = model_bytes.find(b"\xde\x05", p_root, p_root + 40)
+            if de_pos != -1:
+                id_len = struct.unpack_from("<I", model_bytes, de_pos + 2)[0]
+                if 1 <= id_len <= 8:
+                    root_did = int.from_bytes(model_bytes[de_pos + 6 : de_pos + 6 + id_len], "little")
+                    defs_map[root_did] = "Model Root"
+
+        # 2. ComponentInstances (Tag 0x1966: 13 doubles + Tag 0x1967: DefID)
+        instances: List[SkpComponentInstanceDTO] = []
+        inst_counts: Dict[int, int] = {}
+        idx = 0
+
+        while True:
+            pos = model_bytes.find(cls.TAG_INSTANCE_TRANSFORM, idx)
+            if pos == -1:
+                break
+            raw_m = struct.unpack_from("<13d", model_bytes, pos + 6)
+            tx = raw_m[9] * 2.54
+            ty = raw_m[10] * 2.54
+            tz = raw_m[11] * 2.54
+
+            p_def = model_bytes.find(cls.TAG_INSTANCE_DEF_REF, pos + 110, pos + 140)
+            def_id = None
+            def_name = "Componente"
+            if p_def != -1:
+                dlen = struct.unpack_from("<I", model_bytes, p_def + 2)[0]
+                if 1 <= dlen <= 8:
+                    def_id = int.from_bytes(model_bytes[p_def + 6 : p_def + 6 + dlen], "little")
+                    def_name = defs_map.get(def_id, f"Def_{def_id}")
+                    inst_counts[def_id] = inst_counts.get(def_id, 0) + 1
+
+            # Matriz 4x4 column-major para consumo direto em THREE.Matrix4.fromArray()
+            mat_4x4 = [
+                round(raw_m[0], 6), round(raw_m[1], 6), round(raw_m[2], 6), 0.0,
+                round(raw_m[3], 6), round(raw_m[4], 6), round(raw_m[5], 6), 0.0,
+                round(raw_m[6], 6), round(raw_m[7], 6), round(raw_m[8], 6), 0.0,
+                round(tx, 3), round(ty, 3), round(tz, 3), round(raw_m[12], 6)
+            ]
+
+            instances.append({
+                "definition_id": def_id,
+                "definition_name": def_name,
+                "translation_cm": [round(tx, 2), round(ty, 2), round(tz, 2)],
+                "matrix_4x4": mat_4x4
+            })
+            idx = pos + 1
+
+        defs_list: List[SkpComponentDefinitionDTO] = [
+            {
+                "id": did,
+                "name": dname,
+                "instances_count": inst_counts.get(did, 0)
+            }
+            for did, dname in defs_map.items()
+        ]
+
+        return {
+            "definitions": defs_list,
+            "instances": instances,
+            "total_definitions": len(defs_list),
+            "total_instances": len(instances)
+        }
+
+    @classmethod
+    def extract_mesh(cls, file_path: str) -> Optional[SkpMeshDTO]:
+        """Reconstrói a malha poligonal 3D completa com UVs, Normais, Materiais
+        e Árvore Hierárquica de Instâncias diretamente do .skp para Three.js / WebGL."""
+        if not file_path or not os.path.exists(file_path):
+            return None
+
+        try:
+            with open(file_path, "rb") as f:
+                data = f.read()
+        except Exception:
+            return None
+
+        model_bytes = cls._extract_model_dat(data)
+        if not model_bytes:
+            return None
+
+        # 0. Materiais XML e Hierarquia de Instâncias
         materials_dict = cls.extract_materials(file_path)
+        hierarchy_data = cls._parse_hierarchy(model_bytes)
 
         # Mapeamento interno: Material EntityID -> Material Name no model.dat
         mat_id_to_name: Dict[int, str] = {}
@@ -257,7 +392,6 @@ class SkpBinaryReader:
             idx = pos + 1
 
         # 1. Parse de Vértices: ID -> (X_cm, Y_cm, Z_cm, X_in, Y_in, Z_in)
-        # Mantemos em polegadas também para o cálculo exato da projeção UV da Trimble
         vertices_map: Dict[int, Tuple[float, float, float, float, float, float]] = {}
         idx = 0
         min_x, max_x = float("inf"), float("-inf")
@@ -347,7 +481,7 @@ class SkpBinaryReader:
                         m_eid = int.from_bytes(model_bytes[d1_pos + 6 : d1_pos + 6 + d1_len], "little")
                         face_mat_name = mat_id_to_name.get(m_eid, face_mat_name)
 
-            # Matriz UV da Face: procura Tag 0x2715 nos metadados da face
+            # Matriz UV da Face
             uv_matrix: Optional[Tuple[float, ...]] = None
             next_plane = model_bytes.find(cls.TAG_PLANE, pos + 1)
             search_limit = min(pos + 1000, next_plane if next_plane != -1 else len(model_bytes))
@@ -358,14 +492,13 @@ class SkpBinaryReader:
                 except Exception:
                     uv_matrix = None
 
-            # Escalas do material para UV normalizado
             x_scale = 1.0
             y_scale = 1.0
             if face_mat_name in materials_dict:
                 x_scale = materials_dict[face_mat_name]["xScale"] or 1.0
                 y_scale = materials_dict[face_mat_name]["yScale"] or 1.0
 
-            # Extrai os itens do Loop Half-Edge
+            # Loops Half-Edge
             scan_off = pos + 38
             loop_edges: List[Tuple[int, int]] = []
             while scan_off < min(len(model_bytes) - 15, pos + 500):
@@ -388,7 +521,6 @@ class SkpBinaryReader:
                     break
                 scan_off += 1
 
-            # Resolve contorno ordenado de vértices
             poly_coords: List[Tuple[float, float, float, float, float, float]] = []
             for e_id, direction in loop_edges:
                 if e_id in edges_map:
@@ -407,14 +539,12 @@ class SkpBinaryReader:
                     flat_vertices.extend([round(cx, 3), round(cy, 3), round(cz, 3)])
                     flat_normals.extend([round(nx, 3), round(ny, 3), round(nz, 3)])
 
-                    # Projeção UV analítica
                     if uv_matrix:
                         raw_u = uv_matrix[0] * ix + uv_matrix[3] * iy + uv_matrix[6]
                         raw_v = uv_matrix[1] * ix + uv_matrix[4] * iy + uv_matrix[7]
                         u = raw_u / x_scale
                         v = raw_v / y_scale
                     else:
-                        # Fallback planar simples baseado no eixo dominante da normal
                         if abs(nz) > 0.5:
                             u, v = cx / 100.0, cy / 100.0
                         elif abs(ny) > 0.5:
@@ -425,7 +555,6 @@ class SkpBinaryReader:
                     flat_uvs.extend([round(u, 4), round(v, 4)])
                     vert_counter += 1
 
-                # Triangulação Fan: (0, 1, 2), (0, 2, 3), ...
                 for k in range(1, len(poly_coords) - 1):
                     indices.extend([base_idx, base_idx + k, base_idx + k + 1])
 
@@ -451,6 +580,7 @@ class SkpBinaryReader:
             "num_faces": face_count,
             "num_vertices": vert_counter,
             "bounds": bounds,
+            "hierarchy": hierarchy_data,
         }
 
     @classmethod
