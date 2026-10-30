@@ -254,3 +254,38 @@ Como os blocos de Eye (`0x34bd`), Target (`0x34be`) e Up (`0x34bf`) têm tamanho
 - **Câmera:** Gravação via `struct.pack_into("<3d", ...)` sem reconstruir a topologia nem mover ponteiros.
 - **Etiquetas:** Alternância de visibilidade alterando um único byte `0x00 <-> 0x01`.
 - **Persistência Total:** O salvamento gera um arquivo `.skp` compatível que reflete as modificações instantaneamente tanto no Three.js quanto no SketchUp Desktop nativo.
+
+---
+
+## 36. Frente 8A: Decodificação e Ativação In-Place de Cenas e Páginas Salvas (Pages/Scenes)
+
+### A. Estrutura Binária de Cenas no Stream `model.dat`
+As Cenas salvas pelo usuário (chamadas de `Pages` no Ruby API e `Scenes` no C API) controlam ângulos de câmera, visibilidade de camadas, sombras e sequências de animação do projeto.
+
+As seguintes assinaturas TLV foram descobertas e mapeadas:
+1. **Contêiner da Cena (`Tag 0x7148`):**
+   - Assinatura: `\x48\x71` + `uint32 length`.
+   - Agrupa todos os descritores, flags e ponteiros da cena.
+2. **EntityID da Cena (`Tag 0x05de`):**
+   - Assinatura: `\xde\x05` + `uint32 length` + `uint32 EntityID`.
+   - Identificador numérico único da cena no modelo (ex.: `0x04a2c881`).
+3. **Nome da Cena (`Tag 0x6f55`):**
+   - Assinatura: `\x55\x6f` (`Uo`) + `uint32 length` + string UTF-8 (ex.: `Cena_Planta_Baixa`, `Fachada Norte`, `Corte AA`).
+4. **Descrição / Anotações (`Tag 0x6f56`):**
+   - Assinatura: `\x56\x6f` (`Vo`) + `uint32 length` + string UTF-8.
+5. **Flag Include in Animation (`Tag 0x7152`):**
+   - Assinatura: `\x52\x71` (`Rq`) + `uint32 length` (1) + byte:
+     - `0x01`: Incluída na animação / slideshow.
+     - `0x00`: Ignorada na transição de cenas.
+6. **Flag Use Camera (`Tag 0x7157`):**
+   - Assinatura: `\x57\x71` (`Wq`) + `uint32 length` (1) + byte (`0x01` = True).
+
+### B. Cena Ativa no Modelo (`Tag 0x6d62`)
+- **Assinatura:** `\x62\x6d\x04\x00\x00\x00` (`bm` + comprimento 4).
+- **Conteúdo:** 4 bytes little-endian (`<I`) contendo o `EntityID` da cena atualmente ativa no SketchUp.
+- **Ativação In-Place:** Alternar a cena ativa consiste em localizar o offset da `Tag 0x6d62` e sobrescrever os 4 bytes do `EntityID` com `struct.pack_into("<I", model_bytes, offset + 6, target_eid)`, persistindo imediatamente no arquivo `.skp` sem alterar offsets ou reescrever a malha geométrica.
+
+### C. Integração e Endpoints
+- **Leitor Nativo:** `SkpBinaryReader.extract_scenes(file_path)` decodifica a lista completa de cenas, flags e status ativo em milissegundos.
+- **API REST:** `GET /api/v1/scene/pages` e `POST /api/v1/scene/pages/{id}/activate` totalmente operacionais no modo `binary_native` (Zero DLL).
+- **Tríplice Sincronização:** Suporte idêntico implementado em Ruby puro no plugin `ParkeloDev::SkpReader.extrair_cenas(file_path)` e integrado ao Second Brain.

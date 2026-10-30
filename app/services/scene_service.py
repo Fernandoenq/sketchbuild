@@ -164,6 +164,7 @@ class SceneService:
             }
 
         tags_dto = mesh.get("tags") or []
+        scenes_dto = mesh.get("scenes") or []
 
         return {
             "model_path": file_path,
@@ -172,6 +173,7 @@ class SceneService:
             "materials": materials_dict,
             "camera": camera,
             "tags": tags_dto,
+            "scenes": scenes_dto,
             "reader_mode": "binary_native",
             "model_attributes": model_attrs,
         }
@@ -242,6 +244,10 @@ class SceneService:
         await run_in_threadpool(self._repository.paint_face, face_id, r, g, b)
 
     async def list_scenes(self) -> list[dict]:
+        from core.skp_binary_writer import SkpBinaryWriter
+        session = SkpBinaryWriter.get_session()
+        if session and session.scenes:
+            return session.scenes
         return await run_in_threadpool(self._repository.list_scenes)
 
     async def list_tags(self) -> list[dict]:
@@ -284,6 +290,11 @@ class SceneService:
         return await run_in_threadpool(self._repository.create_scene, name)
 
     async def activate_scene(self, scene_id: str) -> None:
+        from core.skp_binary_writer import SkpBinaryWriter
+        session = SkpBinaryWriter.get_session()
+        if session and session.scenes:
+            SkpBinaryWriter.activate_scene(scene_id)
+            return
         await run_in_threadpool(self._repository.activate_scene, scene_id)
 
     async def get_current_session(self) -> dict | None:

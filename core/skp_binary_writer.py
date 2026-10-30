@@ -44,6 +44,8 @@ class SkpBinarySession:
         instances_offsets: Dict[str, int],
         camera_offset: Optional[int] = None,
         tags_offsets: Optional[Dict[str, int]] = None,
+        scenes: Optional[List[Dict[str, Any]]] = None,
+        active_scene_offset: Optional[int] = None,
     ):
         self.model_path: Optional[str] = file_path
         self.raw_zip_data: bytes = raw_zip_data
@@ -51,6 +53,8 @@ class SkpBinarySession:
         self.instances_offsets: Dict[str, int] = instances_offsets
         self.camera_offset: Optional[int] = camera_offset
         self.tags_offsets: Dict[str, int] = tags_offsets or {}
+        self.scenes: List[Dict[str, Any]] = scenes or []
+        self.active_scene_offset: Optional[int] = active_scene_offset
         self.modified_materials: Dict[str, Dict[str, Any]] = {}
         self.is_dirty: bool = False
 
@@ -59,7 +63,9 @@ class SkpBinarySession:
         self.model_bytes = bytearray()
         self.instances_offsets.clear()
         self.tags_offsets.clear()
+        self.scenes.clear()
         self.camera_offset = None
+        self.active_scene_offset = None
         self.modified_materials.clear()
         self.is_dirty = False
 
@@ -119,6 +125,11 @@ class SkpBinaryWriter:
                     tags_offsets[tname] = p_vis + 6
             idx = p_name + 1
 
+        # Cenas e Cena Ativa (Tag 0x7148 e Tag 0x6d62)
+        scenes = SkpBinaryReader._parse_scenes(bytes(model_bytes))
+        p_act = model_bytes.find(SkpBinaryReader.TAG_SCENE_ACTIVE_EID)
+        active_scene_offset = p_act if p_act != -1 else None
+
         session = SkpBinarySession(
             file_path=file_path,
             raw_zip_data=raw_zip_data,
@@ -126,6 +137,8 @@ class SkpBinaryWriter:
             instances_offsets=instances_offsets,
             camera_offset=camera_offset,
             tags_offsets=tags_offsets,
+            scenes=scenes,
+            active_scene_offset=active_scene_offset,
         )
         cls._ACTIVE_SESSION = session
         return session
@@ -257,6 +270,49 @@ class SkpBinaryWriter:
 
         # 0x00 = Visível, 0x01 = Oculta
         session.model_bytes[vis_offset] = 0x00 if visible else 0x01
+        session.is_dirty = True
+        return True
+
+    @classmethod
+    def activate_scene(cls, scene_id_or_name: Union[str, int]) -> bool:
+        """Ativa uma Cena/Página gravando o EntityID da cena ativa in-place na Tag 0x6d62 (bm\\x04\\x00\\x00\\x00)."""
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        target_scene = None
+        for s in session.scenes:
+            if (
+                str(s.get("id")) == str(scene_id_or_name)
+                or s.get("name") == str(scene_id_or_name)
+                or s.get("scene_id") == str(scene_id_or_name)
+            ):
+                target_scene = s
+                break
+
+        if not target_scene:
+            return False
+
+        target_eid = target_scene.get("id")
+        if not target_eid:
+            return False
+
+        # Se active_scene_offset já existe (Tag 0x6d62), regrava in-place os 4 bytes do EntityID
+        if session.active_scene_offset is not None:
+            struct.pack_into("<I", session.model_bytes, session.active_scene_offset + 6, int(target_eid))
+        else:
+            last_scene_offset = max((s.get("offset", 0) for s in session.scenes), default=-1)
+            if last_scene_offset != -1:
+                slen = struct.unpack_from("<I", session.model_bytes, last_scene_offset + 2)[0]
+                ins_pos = last_scene_offset + 6 + slen
+                active_tag = b"\x62\x6d\x04\x00\x00\x00" + struct.pack("<I", int(target_eid))
+                session.model_bytes[ins_pos:ins_pos] = active_tag
+                session.active_scene_offset = ins_pos
+
+        # Atualiza a flag active nas cenas em memória
+        for s in session.scenes:
+            s["active"] = (s.get("id") == target_eid)
+
         session.is_dirty = True
         return True
 
