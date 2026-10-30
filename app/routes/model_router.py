@@ -11,11 +11,15 @@ from fastapi import APIRouter, Depends
 from app.controllers.model_controller import ModelController
 from app.schemas.model import (
     CloseModelResponse,
+    InspectBinaryRequest,
+    InspectBinaryResponse,
     ModelSummaryResponse,
     OpenModelRequest,
     OpenModelResponse,
     PingResponse,
 )
+from core.skp_binary_reader import SkpBinaryReader
+from fastapi import HTTPException
 
 router = APIRouter(prefix="/models", tags=["models"])
 
@@ -48,3 +52,23 @@ async def close_current_model(
     controller: ModelController = Depends(get_controller),
 ) -> CloseModelResponse:
     return await controller.close_model()
+
+
+@router.post(
+    "/inspect-binary",
+    response_model=InspectBinaryResponse,
+    summary="Inspeciona Bounding Box e contagem de vértices diretamente do model.dat sem DLL",
+)
+async def inspect_binary_skp(body: InspectBinaryRequest) -> InspectBinaryResponse:
+    info = SkpBinaryReader.extract_bounds(body.path)
+    if not info:
+        raise HTTPException(status_code=400, detail="Não foi possível ler o container ZIP ou model.dat do arquivo .skp")
+    return InspectBinaryResponse(
+        num_vertices=info["num_vertices"],
+        largura_cm=info["largura_cm"],
+        profundidade_cm=info["profundidade_cm"],
+        altura_cm=info["altura_cm"],
+        min_pt_cm=list(info["min_pt_cm"]),
+        max_pt_cm=list(info["max_pt_cm"]),
+        is_empty=info["is_empty"],
+    )

@@ -1,0 +1,88 @@
+# Caderno de Engenharia Reversa - SketchUp 2026 & Formato .SKP
+
+Documentação técnica dos achados de engenharia reversa realizados no binário oficial `SketchUp.exe` (PE x64, 51 MB, versão 2026) e no formato `.skp` nativo via REA (Reverse Engineering Assistant), Ghidra 12.1.4 e análise binária de baixo nível.
+
+---
+
+## 1. O Formato de Arquivo `.skp` (Container ZIP & `model.dat`)
+
+Diferente das versões muito antigas do SketchUp (anteriores ao SketchUp 2021) que utilizavam arquivos compostos OLE Structured Storage, os arquivos `.skp` modernos são **containers ZIP padrão** com compressão **Deflate (zlib 1.3.1)** contendo:
+
+```text
+[Arquivo .skp (Container ZIP)]
+   ├── meta/
+   │    ├── model_thumbnail.png   (Miniatura oficial renderizada)
+   │    └── meta.dat              (Dicionário binário de metadados)
+   ├── materials/
+   │    └── <MaterialName>/
+   │         ├── material.xml     (Cores RGB, transparência, roughness)
+   │         └── thumbnail.jpg    (Textura raster embutida)
+   ├── styles/
+   │    └── <StyleName>/
+   │         └── style.xml        (Configurações de visualização/render)
+   └── model.dat                  (Grafo de geometria e topologia analítica)
+```
+
+---
+
+## 2. Protocolo Binário do `model.dat`
+
+O `model.dat` é serializado no formato **TLV (Tag-Length-Value)** com inteiros e números de ponto flutuante em *little-endian*:
+
+### A. Vértices (`Tag 0x09c4` | Tamanho fixo: 46 bytes)
+Cada vértice do modelo é empacotado em exatamente 46 bytes:
+```text
+[Tag 2B: c4 09] [Tamanho 4B: 2e 00 00 00 (46 bytes)]
+    ├── Header interno [dc 05 0a 00 00 00]
+    ├── EntityID [de 05 04 00 00 00] [uint32: ID Único da Entidade]
+    └── Point3D [c5 09 18 00 00 00 (24 bytes)]
+            ├── Double 64-bit: Coordenada X (em polegadas)
+            ├── Double 64-bit: Coordenada Y (em polegadas)
+            └── Double 64-bit: Coordenada Z (em polegadas)
+```
+- A conversão para o sistema métrico é dada por: $\text{cm} = \text{polegadas} \times 2.54$.
+
+### B. Arestas (`Edges` | Tamanho fixo: 64 bytes)
+- Localizadas imediatamente após a sequência de vértices.
+- Cada aresta conecta dois vértices (`StartVertexID` e `EndVertexID`) com um gap de 10 bytes de flags entre eles:
+  - Flag de suavidade (`soft` / `smooth`)
+  - Flag de visibilidade (`hidden`)
+  - Índice de camada (`Layer/Tag`)
+
+### C. Faces e Loops Half-Edge
+- **Equação Cartesiana do Plano (Tag `0x0dad` | 32 bytes):**
+  Armazena 4 `doubles` ($A, B, C, D$) para a equação cartesiana $Ax + By + Cz + D = 0$.
+  - O vetor $(A, B, C)$ representa a normal normalizada da face.
+  - $D$ representa o deslocamento perpendicular a partir da origem.
+- **Loops Half-Edge (Tag `0x0fa0`):**
+  Lista encadeada de arestas com flag booleana de direção (`0x00` ou `0x01`) definindo o sentido horário/anti-horário para coerência topológica da normal.
+
+---
+
+## 3. O Motor C++ de Carga (`definitions.load`)
+
+Análise do binário `SketchUp.exe` (endereços de base `0x140000000`):
+- **IAT de `rb_define_method`:** `0x141c4d3d0`, importado de `x64-ucrt-ruby320.dll`.
+- **Thunk JMP de Despacho:** `0x1405e9244` (centraliza as 1.416 chamadas de registro da API Ruby).
+- **Registro de `Sketchup::DefinitionList`:** `0x140dc5171`.
+- **Callback C++ de `definitions.load`:** `0x140dc6e90` (`FUN_140dc6e90`).
+  - Cria transação atômica `"Load Component"`.
+  - Rejeita auto-inserção, operações concorrentes e arquivos de versões incompatíveis.
+  - Invoca o leitor em `0x14097f900..0x14097fb80` que faz o streaming do `L"model.dat"` (`0x1420b1790`) via `zlib 1.3.1` estático (`0x14071e000..0x140722000`).
+
+---
+
+## 4. O Sistema de Verificação `tools.susig`
+
+- Localizado em `<Instalação>/Tools/tools.susig` (176 bytes alinhados a blocos de 16B).
+- **Mecanismo:** Manifesto em Base64 cifrado via cifra de fluxo simétrica com chave estática embutida (`DAT_142d6c028`).
+- **Verificação:** Converte as linhas decodificadas no formato `caminho|N|digest` (onde $N \in [0..3]$ seleciona MD5, SHA-1, SHA-256 ou SHA-512) e compara o hash real dos arquivos em streaming de 1 MB. Arquivos divergentes são bloqueados e avisados na inicialização.
+
+---
+
+## 5. Implementação Standalone no SketchBuild
+
+Com a descoberta do `model.dat`, o SketchBuild agora possui o módulo [`core/skp_binary_reader.py`](./core/skp_binary_reader.py):
+- Extrai bounding boxes e contagem de vértices em ~0.005s a 0.200s.
+- Não depende de `ctypes` nem da `SketchUpAPI.dll`.
+- Totalmente imune à regressão de ctypes no Python 3.14+.

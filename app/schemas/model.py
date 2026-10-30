@@ -49,6 +49,24 @@ class PingResponse(BaseModel):
     bridge_port: int
 
 
+class InspectBinaryRequest(BaseModel):
+    path: str = Field(
+        ...,
+        min_length=1,
+        description="Caminho absoluto de um arquivo .skp para inspeção binária nativa.",
+    )
+
+
+class InspectBinaryResponse(BaseModel):
+    num_vertices: int
+    largura_cm: float
+    profundidade_cm: float
+    altura_cm: float
+    min_pt_cm: list[float]
+    max_pt_cm: list[float]
+    is_empty: bool
+
+
 class HealthResponse(BaseModel):
     status: str
     bridge: PingResponse | None = None
