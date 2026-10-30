@@ -87,6 +87,8 @@ const posZEl = document.getElementById("pos-z");
 const rotXEl = document.getElementById("rot-x");
 const rotYEl = document.getElementById("rot-y");
 const rotZEl = document.getElementById("rot-z");
+const entityAttrsBadgeEl = document.getElementById("entity-attrs-badge");
+const entityAttrsContainerEl = document.getElementById("entity-attrs-container");
 const welcomeScreenEl = document.getElementById("welcome-screen");
 const welcomeCloseBtnEl = document.getElementById("welcome-close-btn");
 const welcomeOpenBtnEl = document.getElementById("welcome-open-btn");
@@ -351,6 +353,54 @@ function updateEntityInfoDisplay(mesh) {
   rotXEl.value = THREE.MathUtils.radToDeg(mesh.rotation.x).toFixed(1);
   rotYEl.value = THREE.MathUtils.radToDeg(mesh.rotation.y).toFixed(1);
   rotZEl.value = THREE.MathUtils.radToDeg(mesh.rotation.z).toFixed(1);
+
+  // Render Atributos Dinâmicos (dynamic_attributes / SU_InstanceSet / SU_DefinitionSet)
+  if (entityAttrsContainerEl) {
+    const instAttrs = mesh.userData?.attributes || {};
+    const defAttrs = mesh.userData?.defAttributes || {};
+    const mergedDicts = {};
+    for (const [dname, vals] of Object.entries(defAttrs)) {
+      mergedDicts[dname] = Object.assign({}, vals);
+    }
+    for (const [dname, vals] of Object.entries(instAttrs)) {
+      mergedDicts[dname] = Object.assign(mergedDicts[dname] || {}, vals);
+    }
+
+    let totalAttrs = 0;
+    const entries = [];
+    for (const [dname, attrs] of Object.entries(mergedDicts)) {
+      const keys = Object.keys(attrs);
+      if (keys.length === 0) continue;
+      totalAttrs += keys.length;
+      entries.push({ dname, attrs });
+    }
+
+    if (entityAttrsBadgeEl) {
+      if (totalAttrs > 0) {
+        entityAttrsBadgeEl.textContent = totalAttrs;
+        entityAttrsBadgeEl.style.display = "inline-block";
+      } else {
+        entityAttrsBadgeEl.style.display = "none";
+      }
+    }
+
+    if (entries.length === 0) {
+      entityAttrsContainerEl.innerHTML = '<span style="color:var(--muted); font-style:italic;">Nenhum atributo dinâmico.</span>';
+    } else {
+      let html = "";
+      for (const { dname, attrs } of entries) {
+        html += `<div style="font-weight:600; color:var(--accent); margin-bottom:3px; padding-bottom:2px; border-bottom:1px solid #E2E8F0;">${dname}</div>`;
+        html += '<table style="width:100%; border-collapse:collapse; margin-bottom:8px; font-family:monospace; font-size:10px;">';
+        for (const [k, v] of Object.entries(attrs)) {
+          const valStr = v === null ? '<span style="color:#94A3B8;">null</span>' : String(v);
+          const isFormula = typeof v === "string" && (v.startsWith("=") || v.toLowerCase().includes("parent!") || v.toLowerCase().startsWith("if("));
+          html += `<tr><td style="color:#475569; padding:2px 4px 2px 0; vertical-align:top; word-break:break-all;">${k}:</td><td style="color:${isFormula ? "#0284C7" : "#0F172A"}; text-align:right; padding:2px 0; word-break:break-all; font-weight:${isFormula ? "600" : "normal"};">${valStr}</td></tr>`;
+        }
+        html += "</table>";
+      }
+      entityAttrsContainerEl.innerHTML = html;
+    }
+  }
 }
 
 function selectMesh(mesh) {

@@ -70,6 +70,9 @@ class SceneService:
         # Vértices em polegadas para que sceneBuilder.js (INCHES_TO_METERS = 0.0254) escale exatamente para metros
         verts_in = [v / 2.54 for v in mesh["vertices"]]
 
+        hierarchy = mesh.get("hierarchy") or {}
+        model_attrs = hierarchy.get("model_attributes") or {}
+
         root_def = {
             "definition_id": "def_root",
             "name": "Model Root",
@@ -80,13 +83,13 @@ class SceneService:
             "face_materials": mesh["face_materials"],
             "face_ranges": mesh.get("face_ranges", []),
             "always_faces_camera": False,
+            "attributes": model_attrs,
         }
 
         definitions = [root_def]
         instances = []
 
-        hierarchy = mesh.get("hierarchy")
-        if hierarchy and hierarchy.get("instances"):
+        if hierarchy.get("instances"):
             for idx, inst in enumerate(hierarchy["instances"]):
                 inst_id = f"inst_{idx}_{inst['definition_name']}"
                 m_in = inst.get("matrix_4x4_inches") or inst.get("matrix_4x4")
@@ -96,6 +99,7 @@ class SceneService:
                     "transform": m_in,
                     "parent_instance_id": "inst_root",
                     "tag": None,
+                    "attributes": inst.get("attributes") or {},
                 })
 
         instances.insert(0, {
@@ -109,6 +113,7 @@ class SceneService:
             ],
             "parent_instance_id": None,
             "tag": None,
+            "attributes": model_attrs,
         })
 
         materials_dict = {}
@@ -125,6 +130,7 @@ class SceneService:
                 "texture_url": tex_url,
                 "metalness": mdata["metalness"],
                 "roughness": mdata["roughness"],
+                "attributes": mdata.get("attributes") or {},
             }
 
         b = mesh["bounds"]
@@ -152,7 +158,16 @@ class SceneService:
             "materials": materials_dict,
             "camera": camera,
             "reader_mode": "binary_native",
+            "model_attributes": model_attrs,
         }
+
+    async def get_attributes(self, file_path: str) -> dict:
+        """Extrai todos os dicionários de atributos de um .skp em milissegundos via Pure Python."""
+        self._validate_model_path(file_path)
+        attrs = await run_in_threadpool(SkpBinaryReader.extract_attributes, file_path)
+        if not attrs:
+            raise SceneParseError(f"falha ao extrair atributos de {file_path}")
+        return attrs
 
     async def new_scene_from_template(self, template_id: str) -> dict:
         filename = TEMPLATES.get(template_id)

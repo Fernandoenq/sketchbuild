@@ -29,6 +29,7 @@ from app.schemas.scene import (
     SaveSceneRequest,
     SaveSceneResponse,
     SceneResponse,
+    SceneAttributesResponse,
     SetInstanceAxesRequest,
     SetInstanceAxesResponse,
     SetTagVisibilityRequest,
@@ -67,6 +68,17 @@ async def open_binary_scene(
     body: OpenSceneRequest, controller: SceneController = Depends(get_controller)
 ) -> SceneResponse:
     return await controller.open_binary_scene(body.path)
+
+
+@router.get(
+    "/attributes",
+    response_model=SceneAttributesResponse,
+    summary="Extrai dicionários de atributos e componentes dinâmicos (dynamic_attributes) do .skp via Pure Python",
+)
+async def get_scene_attributes(
+    path: str, controller: SceneController = Depends(get_controller)
+) -> SceneAttributesResponse:
+    return await controller.get_attributes(path)
 
 
 @router.get(

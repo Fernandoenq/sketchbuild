@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -51,6 +52,10 @@ class MaterialDTO(BaseModel):
     texture_url: str | None = None
     metalness: float = 0.05
     roughness: float = 0.85
+    attributes: dict[str, dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Dicionários de atributos do material (ex: VRayInfo)",
+    )
 
 
 class DefinitionDTO(BaseModel):
@@ -78,6 +83,10 @@ class DefinitionDTO(BaseModel):
         "(so o eixo vertical/yaw) em vez de usar a rotacao estatica da "
         "instancia.",
     )
+    attributes: dict[str, dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Dicionários de atributos e componentes dinâmicos (dynamic_attributes)",
+    )
 
 
 class InstanceDTO(BaseModel):
@@ -100,6 +109,10 @@ class InstanceDTO(BaseModel):
         "(SUDrawingElementGetLayer/SULayerGetName) -- 'Sem etiquetas' "
         "quando nenhuma foi atribuida explicitamente. `null` so pra "
         "'inst_root' (pseudo-instancia sintetica, nunca tem Etiqueta).",
+    )
+    attributes: dict[str, dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Dicionários de atributos da instância (dynamic_attributes / SU_InstanceSet)",
     )
 
 
@@ -150,6 +163,21 @@ class SceneResponse(BaseModel):
         default="ctypes",
         description="Indica o motor que gerou a cena ('ctypes' ou 'binary_native')",
     )
+    model_attributes: dict[str, dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Dicionários de atributos globais do modelo (ModelProperties, etc)",
+    )
+
+
+class SceneAttributesResponse(BaseModel):
+    """Resposta de GET /scene/attributes com dicionários de atributos e componentes dinâmicos."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    model: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    definitions: dict[str, dict[str, dict[str, Any]]] = Field(default_factory=dict)
+    instances: list[dict[str, Any]] = Field(default_factory=list)
+    materials: dict[str, dict[str, dict[str, Any]]] = Field(default_factory=dict)
 
 
 class UpdateTransformRequest(BaseModel):

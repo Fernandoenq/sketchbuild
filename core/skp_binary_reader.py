@@ -5,7 +5,7 @@ Decodifica a topologia analítica do SketchUp diretamente do stream 'model.dat'
 e materiais XML embutidos no container ZIP (.skp). Não depende de SketchUpAPI.dll,
 ctypes ou SketchUp Desktop instalado.
 
-Descobertas de Engenharia Reversa (Frentes 1, 2 e 3):
+Descobertas de Engenharia Reversa (Frentes 1, 2, 3 e 6):
 - Tag 0x09c4 / 0x09c5: Vértice com EntityID dinâmico (Tag 0x05de) e Point3D (3 doubles de 64 bits em polegadas).
 - Tag 0x0bb9 / 0x0bba: StartVertex e EndVertex da Aresta (Edge).
 - Tag 0x0dad (tamanho 32B): Equação cartesiana do plano 3D (Ax + By + Cz + D = 0).
@@ -18,6 +18,10 @@ Descobertas de Engenharia Reversa (Frentes 1, 2 e 3):
 - Tag 0x1966 (104B, 13 doubles): Matriz afim 4x4 de transformação espacial da ComponentInstance.
 - Tag 0x1967: Referência ao DefinitionID instanciado.
 - materials/*/material.xml: Definições completas de cor RGB, transparência, texturas e PBR Metallic-Roughness.
+- Tag 0x36b1 / 0x36b2: Contêiner de Dicionários de Atributos (AttributeDictionaries) associado a EntityID (0x05de).
+- Tag 0x36b3 / 0x36b4: Nome do AttributeDictionary (ex: 'dynamic_attributes', 'SU_DefinitionSet', 'SU_InstanceSet').
+- Tag 0x36b5 / 0x36b6: Chave de Atributo.
+- Tag 0x38a4: TypedValue (Double 0x38a9, String 0x38ad, Int32 0x38a7, Bool 0x38aa).
 """
 
 from __future__ import annotations
@@ -26,7 +30,11 @@ import struct
 import os
 import zipfile
 import xml.etree.ElementTree as ET
-from typing import TypedDict, Optional, Tuple, List, Dict, Any
+from typing import TypedDict, Optional, Tuple, List, Dict, Any, Union
+
+
+SkpAttributeDictionaryDTO = Dict[str, Any]
+SkpAttributeDictionariesDTO = Dict[str, SkpAttributeDictionaryDTO]
 
 
 class SkpMaterialDTO(TypedDict):
@@ -39,6 +47,7 @@ class SkpMaterialDTO(TypedDict):
     yScale: float
     metalness: float
     roughness: float
+    attributes: Optional[SkpAttributeDictionariesDTO]
 
 
 class SkpBoundsInfo(TypedDict):
@@ -52,16 +61,21 @@ class SkpBoundsInfo(TypedDict):
 
 
 class SkpComponentInstanceDTO(TypedDict):
+    id: Optional[int]
     definition_id: Optional[int]
     definition_name: str
     translation_cm: List[float]       # [x, y, z] em cm
     matrix_4x4: List[float]           # 16 floats (column-major para Three.js)
+    matrix_4x4_inches: Optional[List[float]]
+    offset: Optional[int]
+    attributes: Optional[SkpAttributeDictionariesDTO]
 
 
 class SkpComponentDefinitionDTO(TypedDict):
     id: int
     name: str
     instances_count: int
+    attributes: Optional[SkpAttributeDictionariesDTO]
 
 
 class SkpHierarchyDTO(TypedDict):
@@ -69,6 +83,7 @@ class SkpHierarchyDTO(TypedDict):
     instances: List[SkpComponentInstanceDTO]
     total_definitions: int
     total_instances: int
+    model_attributes: Optional[SkpAttributeDictionariesDTO]
 
 
 class SkpMeshDTO(TypedDict):
@@ -97,6 +112,12 @@ class SkpBinaryReader:
     TAG_DEF_ROOT = b"\x7c\x15"
     TAG_INSTANCE_TRANSFORM = b"\x66\x19\x68\x00\x00\x00"
     TAG_INSTANCE_DEF_REF = b"\x67\x19"
+    TAG_ATTR_DICTS = b"\xb1\x36"
+    TAG_ATTR_DICT = b"\xb3\x36"
+    TAG_ATTR_DICT_NAME = b"\xb4\x36"
+    TAG_ATTR_ITEMS = b"\xb5\x36"
+    TAG_ATTR_KEY = b"\xb6\x36"
+    TAG_ATTR_VALUE = b"\xa4\x38"
     ZIP_LOCAL_HEADER = b"PK\x03\x04"
 
     @classmethod
@@ -228,6 +249,8 @@ class SkpBinaryReader:
                                     if rf is not None and rf.text:
                                         rough = float(rf.text)
 
+                                attrs = cls._parse_xml_attributes(root)
+
                                 materials[mname] = {
                                     "name": mname,
                                     "color": [r, g, b],
@@ -238,6 +261,7 @@ class SkpBinaryReader:
                                     "yScale": y_scale,
                                     "metalness": metal,
                                     "roughness": rough,
+                                    "attributes": attrs,
                                 }
                         except Exception:
                             pass
@@ -245,6 +269,136 @@ class SkpBinaryReader:
             pass
 
         return materials
+
+    @classmethod
+    def _parse_typed_value(cls, model_bytes: bytes, curr: int, end_pos: int) -> Tuple[Any, int]:
+        if curr >= end_pos or model_bytes[curr : curr + 2] != cls.TAG_ATTR_VALUE:
+            return None, curr
+        vcontainer_len = struct.unpack_from("<I", model_bytes, curr + 2)[0]
+        vstart = curr + 6
+        vend = vstart + vcontainer_len
+        if vcontainer_len == 0:
+            return None, vend
+        subtag = model_bytes[vstart : vstart + 2]
+        val: Any = None
+        if subtag == b"\xa9\x38" and vcontainer_len >= 14:  # Double (IEEE 754)
+            val = round(struct.unpack_from("<d", model_bytes, vstart + 6)[0], 6)
+        elif subtag == b"\xad\x38":  # String
+            slen = struct.unpack_from("<I", model_bytes, vstart + 2)[0]
+            val = model_bytes[vstart + 6 : vstart + 6 + slen].decode("utf-8", errors="replace")
+        elif subtag == b"\xa7\x38" and vcontainer_len >= 10:  # Int32
+            val = struct.unpack_from("<i", model_bytes, vstart + 6)[0]
+        elif subtag == b"\xaa\x38" and vcontainer_len >= 7:  # Bool
+            val = bool(model_bytes[vstart + 6])
+        else:
+            val = model_bytes[vstart + 6 : vend].decode("utf-8", errors="replace")
+        return val, vend
+
+    @classmethod
+    def _parse_model_attributes(
+        cls, model_bytes: bytes
+    ) -> Tuple[SkpAttributeDictionariesDTO, Dict[int, SkpAttributeDictionariesDTO]]:
+        """Extrai todos os AttributeDictionaries do stream model.dat (Zero DLL),
+        separando os atributos globais do modelo e os indexados por EntityID."""
+        model_attrs: SkpAttributeDictionariesDTO = {}
+        entity_attrs: Dict[int, SkpAttributeDictionariesDTO] = {}
+        idx = 0
+        buf_len = len(model_bytes)
+
+        while True:
+            p_b1 = model_bytes.find(cls.TAG_ATTR_DICTS, idx)
+            if p_b1 == -1 or p_b1 + 8 > buf_len:
+                break
+
+            # Validação anti falso-positivo: o subtag imediato deve ser TAG_ATTR_INNER (0x36b2)
+            if model_bytes[p_b1 + 6 : p_b1 + 8] != b"\xb2\x36":
+                idx = p_b1 + 1
+                continue
+
+            b1_len = struct.unpack_from("<I", model_bytes, p_b1 + 2)[0]
+            b1_end = min(buf_len, p_b1 + 6 + b1_len)
+
+            # Procura o EntityID precedente (Tag 0x05de nos últimos 60 bytes)
+            p_de = model_bytes.rfind(b"\xde\x05", max(0, p_b1 - 60), p_b1)
+            eid = None
+            if p_de != -1:
+                eid_len = struct.unpack_from("<I", model_bytes, p_de + 2)[0]
+                if 1 <= eid_len <= 8:
+                    eid = int.from_bytes(model_bytes[p_de + 6 : p_de + 6 + eid_len], "little")
+
+            dicts: SkpAttributeDictionariesDTO = {}
+            curr_b3 = p_b1 + 6
+            while curr_b3 < b1_end:
+                p_b3 = model_bytes.find(cls.TAG_ATTR_DICT, curr_b3, b1_end)
+                if p_b3 == -1:
+                    break
+                b3_len = struct.unpack_from("<I", model_bytes, p_b3 + 2)[0]
+                b3_end = min(b1_end, p_b3 + 6 + b3_len)
+
+                p_b4 = model_bytes.find(cls.TAG_ATTR_DICT_NAME, p_b3, min(b3_end, p_b3 + 40))
+                if p_b4 != -1:
+                    nlen = struct.unpack_from("<I", model_bytes, p_b4 + 2)[0]
+                    dname = model_bytes[p_b4 + 6 : p_b4 + 6 + nlen].decode("utf-8", errors="replace")
+
+                    attrs: Dict[str, Any] = {}
+                    p_b5 = model_bytes.find(cls.TAG_ATTR_ITEMS, p_b4 + 6 + nlen, min(b3_end, p_b4 + 6 + nlen + 40))
+                    if p_b5 != -1:
+                        b5_len = struct.unpack_from("<I", model_bytes, p_b5 + 2)[0]
+                        b5_end = min(b3_end, p_b5 + 6 + b5_len)
+                        curr_k = p_b5 + 6
+                        while curr_k < b5_end:
+                            p_b6 = model_bytes.find(cls.TAG_ATTR_KEY, curr_k, b5_end)
+                            if p_b6 == -1:
+                                break
+                            klen = struct.unpack_from("<I", model_bytes, p_b6 + 2)[0]
+                            kname = model_bytes[p_b6 + 6 : p_b6 + 6 + klen].decode("utf-8", errors="replace")
+                            curr_v = p_b6 + 6 + klen
+                            v, next_pos = cls._parse_typed_value(model_bytes, curr_v, b5_end)
+                            attrs[kname] = v
+                            curr_k = next_pos
+                    dicts[dname] = attrs
+                curr_b3 = b3_end
+
+            if eid is not None:
+                entity_attrs[eid] = dicts
+            else:
+                model_attrs.update(dicts)
+            idx = b1_end
+
+        return model_attrs, entity_attrs
+
+    @classmethod
+    def _parse_xml_attributes(cls, root: ET.Element) -> SkpAttributeDictionariesDTO:
+        """Extrai os AttributeDictionaries definidos nos arquivos XML (ex: materials/*/material.xml)."""
+        dicts: SkpAttributeDictionariesDTO = {}
+        for dict_elem in root.iter():
+            if dict_elem.tag.endswith("AttributeDictionary"):
+                dname = dict_elem.attrib.get("name")
+                if not dname:
+                    continue
+                attrs: Dict[str, Any] = {}
+                for attr_elem in dict_elem:
+                    if attr_elem.tag.endswith("Attribute"):
+                        k = attr_elem.attrib.get("key")
+                        t = attr_elem.attrib.get("type", "10")
+                        val_text = attr_elem.text or ""
+                        val: Any = val_text
+                        if t == "4":  # Int32
+                            try:
+                                val = int(val_text)
+                            except Exception:
+                                pass
+                        elif t == "6":  # Double
+                            try:
+                                val = float(val_text)
+                            except Exception:
+                                pass
+                        elif t == "7":  # Bool
+                            val = val_text.lower() in ("1", "true")
+                        if k:
+                            attrs[k] = val
+                dicts[dname] = attrs
+        return dicts
 
     @classmethod
     def extract_hierarchy(cls, file_path: str) -> Optional[SkpHierarchyDTO]:
@@ -267,6 +421,9 @@ class SkpBinaryReader:
 
     @classmethod
     def _parse_hierarchy(cls, model_bytes: bytes) -> SkpHierarchyDTO:
+        # 0. Atributos do modelo e das entidades (Tag 0x36b1)
+        model_attrs, entity_attrs = cls._parse_model_attributes(model_bytes)
+
         # 1. ComponentDefinitions (Tag 0x157e: Nome) + EntityID
         defs_map: Dict[int, str] = {}
         idx = 0
@@ -309,6 +466,16 @@ class SkpBinaryReader:
             ty = raw_m[10] * 2.54
             tz = raw_m[11] * 2.54
 
+            # EntityID da instância (Tag 0x05de precedente)
+            p_de = model_bytes.rfind(b"\xde\x05", max(0, pos - 1000), pos)
+            inst_eid = None
+            if p_de != -1:
+                eid_len = struct.unpack_from("<I", model_bytes, p_de + 2)[0]
+                if 1 <= eid_len <= 8:
+                    inst_eid = int.from_bytes(model_bytes[p_de + 6 : p_de + 6 + eid_len], "little")
+
+            inst_attrs = entity_attrs.get(inst_eid, {}) if inst_eid else {}
+
             p_def = model_bytes.find(cls.TAG_INSTANCE_DEF_REF, pos + 110, pos + 140)
             def_id = None
             def_name = "Componente"
@@ -335,12 +502,14 @@ class SkpBinaryReader:
             ]
 
             instances.append({
+                "id": inst_eid,
                 "definition_id": def_id,
                 "definition_name": def_name,
                 "translation_cm": [round(tx, 2), round(ty, 2), round(tz, 2)],
                 "matrix_4x4": mat_4x4,
                 "matrix_4x4_inches": mat_4x4_inches,
                 "offset": pos,
+                "attributes": inst_attrs,
             })
             idx = pos + 1
 
@@ -348,7 +517,8 @@ class SkpBinaryReader:
             {
                 "id": did,
                 "name": dname,
-                "instances_count": inst_counts.get(did, 0)
+                "instances_count": inst_counts.get(did, 0),
+                "attributes": entity_attrs.get(did, {}),
             }
             for did, dname in defs_map.items()
         ]
@@ -357,7 +527,53 @@ class SkpBinaryReader:
             "definitions": defs_list,
             "instances": instances,
             "total_definitions": len(defs_list),
-            "total_instances": len(instances)
+            "total_instances": len(instances),
+            "model_attributes": model_attrs,
+        }
+
+    @classmethod
+    def extract_attributes(cls, file_path: str) -> Optional[Dict[str, Any]]:
+        """Extrai todos os dicionários de atributos e metadados de componentes dinâmicos
+        (dynamic_attributes, SU_DefinitionSet, SU_InstanceSet, ModelProperties, etc)
+        em milissegundos sem necessidade de carregar a malha geométrica."""
+        if not file_path or not os.path.exists(file_path):
+            return None
+
+        try:
+            with open(file_path, "rb") as f:
+                data = f.read()
+        except Exception:
+            return None
+
+        model_bytes = cls._extract_model_dat(data)
+        if not model_bytes:
+            return None
+
+        materials = cls.extract_materials(file_path)
+        hierarchy = cls._parse_hierarchy(model_bytes)
+
+        return {
+            "model": hierarchy.get("model_attributes") or {},
+            "definitions": {
+                d["name"]: d.get("attributes", {})
+                for d in hierarchy.get("definitions", [])
+                if d.get("attributes")
+            },
+            "instances": [
+                {
+                    "id": inst.get("id"),
+                    "definition_name": inst.get("definition_name"),
+                    "translation_cm": inst.get("translation_cm"),
+                    "attributes": inst.get("attributes", {}),
+                }
+                for inst in hierarchy.get("instances", [])
+                if inst.get("attributes")
+            ],
+            "materials": {
+                mname: mdata.get("attributes", {})
+                for mname, mdata in materials.items()
+                if mdata.get("attributes")
+            },
         }
 
     @classmethod

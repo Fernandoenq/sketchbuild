@@ -31,6 +31,7 @@ from app.schemas.scene import (
     PaintInstanceResponse,
     SaveSceneResponse,
     SceneResponse,
+    SceneAttributesResponse,
     ScenePageDTO,
     SetInstanceAxesResponse,
     SetTagVisibilityResponse,
@@ -94,6 +95,20 @@ class SceneController:
             logger.warning("Falha ao registrar arquivo recente: %s", file_path)
 
         return SceneResponse.model_validate(result)
+
+    async def get_attributes(self, file_path: str) -> SceneAttributesResponse:
+        try:
+            result = await self._service.get_attributes(file_path)
+        except (InvalidModelPathError, ModelFileNotFoundError) as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+            ) from e
+        except SceneParseError as e:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)
+            ) from e
+
+        return SceneAttributesResponse.model_validate(result)
 
     async def new_scene_from_template(self, template_id: str) -> SceneResponse:
         """Cria um modelo novo a partir de um template real da Trimble --
