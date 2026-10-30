@@ -76,6 +76,25 @@ class SceneController:
 
         return SceneResponse.model_validate(result)
 
+    async def open_binary_scene(self, file_path: str) -> SceneResponse:
+        try:
+            result = await self._service.open_binary_scene(file_path)
+        except (InvalidModelPathError, ModelFileNotFoundError) as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+            ) from e
+        except SceneParseError as e:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)
+            ) from e
+
+        try:
+            await self._recent_files_service.register_opened(file_path)
+        except OSError:
+            logger.warning("Falha ao registrar arquivo recente: %s", file_path)
+
+        return SceneResponse.model_validate(result)
+
     async def new_scene_from_template(self, template_id: str) -> SceneResponse:
         """Cria um modelo novo a partir de um template real da Trimble --
         NAO registra em "Arquivos recentes": como `model_path` fica None

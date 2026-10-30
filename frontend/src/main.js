@@ -6,6 +6,7 @@ import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
 
 import {
   openScene,
+  openBinaryScene,
   openUploadedScene,
   newSceneFromTemplate,
   updateInstanceTransform,
@@ -43,6 +44,7 @@ import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
 const viewportEl = document.getElementById("viewport");
 const pathInputEl = document.getElementById("path-input");
 const openBtnEl = document.getElementById("open-btn");
+const openBinaryBtnEl = document.getElementById("open-binary-btn");
 const chooseFileBtnEl = document.getElementById("choose-file-btn");
 const filePickerInputEl = document.getElementById("file-picker-input");
 const statusEl = document.getElementById("status");
@@ -91,6 +93,7 @@ const welcomeOpenBtnEl = document.getElementById("welcome-open-btn");
 const welcomeOpenRowEl = document.getElementById("welcome-open-row");
 const welcomePathInputEl = document.getElementById("welcome-path-input");
 const welcomeOpenConfirmBtnEl = document.getElementById("welcome-open-confirm-btn");
+const welcomeOpenBinaryBtnEl = document.getElementById("welcome-open-binary-btn");
 const welcomeChooseFileBtnEl = document.getElementById("welcome-choose-file-btn");
 const welcomeRecentGridEl = document.getElementById("welcome-recent-grid");
 const welcomeAutosaveSectionEl = document.getElementById("welcome-autosave-section");
@@ -910,6 +913,43 @@ async function handleOpen() {
   }
 }
 
+/** Abre um .skp via leitor nativo binario Pure Python (Zero DLL) --
+ * decodifica geometria, UVs analiticas, materiais PBR e instâncias Three.js
+ * direto do container ZIP sem depender da SketchUpAPI.dll.
+ * @returns {Promise<boolean>} true se o modelo abriu com sucesso. */
+async function handleOpenBinary() {
+  const path = (pathInputEl.value.trim() || welcomePathInputEl?.value?.trim() || "").trim();
+  if (!path) {
+    setStatus("Informe um caminho de arquivo .skp para o leitor nativo.", true);
+    return false;
+  }
+
+  openBtnEl.disabled = true;
+  if (openBinaryBtnEl) openBinaryBtnEl.disabled = true;
+  deselectMesh();
+  setStatus("Abrindo via leitor nativo binário (Pure Python / Zero DLL)...");
+
+  try {
+    const sceneDTO = await openBinaryScene(path);
+    const counts = applySceneDTO(sceneDTO);
+    const matCount = sceneDTO.materials ? Object.keys(sceneDTO.materials).length : 0;
+    hideWelcomeScreen();
+    setStatus(
+      `OK (Zero DLL) -- ${counts.totalDefinitions} defs, ${counts.totalInstances} ` +
+        `instâncias, ${counts.totalVertices} vértices, ${counts.totalTriangles} triângulos, ${matCount} materiais PBR.`
+    );
+    captureAndUploadThumbnail(path);
+    return true;
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro (Zero DLL): ${detail}`, true);
+    return false;
+  } finally {
+    openBtnEl.disabled = false;
+    if (openBinaryBtnEl) openBinaryBtnEl.disabled = false;
+  }
+}
+
 /** Abre um .skp escolhido pelo seletor NATIVO de arquivos do Windows
  * (`<input type="file">`, disparado por chooseFileBtnEl/
  * welcomeChooseFileBtnEl/menu "Arquivo > Abrir..."). Por seguranca padrao
@@ -1628,6 +1668,7 @@ sceneCreateBtnEl.addEventListener("click", handleCreateScene);
 const MENU_ACTIONS = {
   new: () => welcomeScreenEl.classList.remove("hidden"),
   open: () => filePickerInputEl.click(),
+  "open-binary": () => handleOpenBinary(),
   save: () => handleSave(),
   "save-as": () => savePathInputEl.focus(),
   "export-obj": () => exportObjPathInputEl.focus(),
@@ -1770,6 +1811,8 @@ toolsToolbarEl.querySelectorAll(".toolbar-btn[data-action]").forEach((btn) => {
 });
 
 openBtnEl.addEventListener("click", handleOpen);
+openBinaryBtnEl?.addEventListener("click", handleOpenBinary);
+welcomeOpenBinaryBtnEl?.addEventListener("click", handleOpenBinary);
 pathInputEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter") handleOpen();
 });

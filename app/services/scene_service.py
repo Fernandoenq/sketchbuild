@@ -16,8 +16,14 @@ import os
 
 from starlette.concurrency import run_in_threadpool
 
-from app.domain.exceptions import InvalidModelPathError, ModelFileNotFoundError
+from app.domain.exceptions import (
+    InvalidModelPathError,
+    ModelFileNotFoundError,
+    SceneParseError,
+)
 from app.repositories.skp_engine_repository import SkpEngineRepository
+from core.skp_binary_reader import SkpBinaryReader
+from urllib.parse import quote
 
 VALID_MODEL_EXTENSION = ".skp"
 
@@ -46,6 +52,104 @@ class SceneService:
     async def open_scene(self, file_path: str) -> dict:
         self._validate_model_path(file_path)
         return await run_in_threadpool(self._repository.open, file_path)
+
+    async def open_binary_scene(self, file_path: str) -> dict:
+        """Abre um arquivo .skp diretamente via SkpBinaryReader (Pure Python / Zero DLL),
+        extraindo topologia, normais, UVs analíticas, materiais PBR e hierarquia de instâncias."""
+        self._validate_model_path(file_path)
+        return await run_in_threadpool(self._extract_binary_scene, file_path)
+
+    def _extract_binary_scene(self, file_path: str) -> dict:
+        mesh = SkpBinaryReader.extract_mesh(file_path)
+        if not mesh:
+            raise SceneParseError(f"falha ao decodificar a malha nativa de {file_path}")
+
+        # Vértices em polegadas para que sceneBuilder.js (INCHES_TO_METERS = 0.0254) escale exatamente para metros
+        verts_in = [v / 2.54 for v in mesh["vertices"]]
+
+        root_def = {
+            "definition_id": "def_root",
+            "name": "Model Root",
+            "vertices": verts_in,
+            "normals": mesh["normals"],
+            "indices": mesh["indices"],
+            "uvs": mesh["uvs"],
+            "face_materials": mesh["face_materials"],
+            "face_ranges": mesh.get("face_ranges", []),
+            "always_faces_camera": False,
+        }
+
+        definitions = [root_def]
+        instances = []
+
+        hierarchy = mesh.get("hierarchy")
+        if hierarchy and hierarchy.get("instances"):
+            for idx, inst in enumerate(hierarchy["instances"]):
+                inst_id = f"inst_{idx}_{inst['definition_name']}"
+                m_in = inst.get("matrix_4x4_inches") or inst.get("matrix_4x4")
+                instances.append({
+                    "instance_id": inst_id,
+                    "definition_id": "def_root",
+                    "transform": m_in,
+                    "parent_instance_id": "inst_root",
+                    "tag": None,
+                })
+
+        instances.insert(0, {
+            "instance_id": "inst_root",
+            "definition_id": "def_root",
+            "transform": [
+                1.0, 0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                0.0, 0.0, 0.0, 1.0,
+            ],
+            "parent_instance_id": None,
+            "tag": None,
+        })
+
+        materials_dict = {}
+        for mname, mdata in mesh["materials"].items():
+            tex_url = None
+            if mdata["hasTexture"] and mdata["texturePath"]:
+                tex_url = f"/api/v1/scene/texture?path={quote(file_path)}&texture_path={quote(mdata['texturePath'])}"
+
+            materials_dict[mname] = {
+                "name": mname,
+                "color": mdata["color"],
+                "opacity": mdata["opacity"],
+                "has_texture": mdata["hasTexture"],
+                "texture_url": tex_url,
+                "metalness": mdata["metalness"],
+                "roughness": mdata["roughness"],
+            }
+
+        b = mesh["bounds"]
+        min_in = [p / 2.54 for p in b["min_pt_cm"]]
+        max_in = [p / 2.54 for p in b["max_pt_cm"]]
+        cx = (min_in[0] + max_in[0]) / 2.0
+        cy = (min_in[1] + max_in[1]) / 2.0
+        cz = (min_in[2] + max_in[2]) / 2.0
+        diag = ((max_in[0] - min_in[0])**2 + (max_in[1] - min_in[1])**2 + (max_in[2] - min_in[2])**2)**0.5
+        dist = max(diag * 1.5, 50.0)
+
+        camera = {
+            "eye": [round(cx + dist * 0.7, 3), round(cy - dist * 0.7, 3), round(cz + dist * 0.5, 3)],
+            "target": [round(cx, 3), round(cy, 3), round(cz, 3)],
+            "up": [0.0, 0.0, 1.0],
+            "perspective": True,
+            "fov_deg": 35.0,
+            "fov_is_height": True,
+        }
+
+        return {
+            "model_path": file_path,
+            "definitions": definitions,
+            "instances": instances,
+            "materials": materials_dict,
+            "camera": camera,
+            "reader_mode": "binary_native",
+        }
 
     async def new_scene_from_template(self, template_id: str) -> dict:
         filename = TEMPLATES.get(template_id)

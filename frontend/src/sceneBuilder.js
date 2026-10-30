@@ -27,7 +27,7 @@ const SKP_TO_THREE_UP = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
 // antes de mandar pro backend.
 const THREE_TO_SKP_UP = new THREE.Matrix4().makeRotationX(Math.PI / 2);
 
-function buildGeometry(definitionDTO) {
+function buildGeometry(definitionDTO, materialsMap = null) {
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array(definitionDTO.vertices.length);
   for (let i = 0; i < definitionDTO.vertices.length; i++) {
@@ -42,20 +42,42 @@ function buildGeometry(definitionDTO) {
     );
   }
 
+  // Suporte a Coordenadas UV analíticas (Frente 2)
+  if (definitionDTO.uvs && definitionDTO.uvs.length > 0) {
+    geometry.setAttribute(
+      "uv",
+      new THREE.BufferAttribute(new Float32Array(definitionDTO.uvs), 2)
+    );
+  }
+
   geometry.setIndex(definitionDTO.indices);
 
   if (!definitionDTO.normals || !definitionDTO.normals.length) {
     geometry.computeVertexNormals();
   }
 
-  // `face_ranges` (ver core/mesh_extractor.py / app/schemas/scene.py
-  // FaceRangeDTO) mapeia intervalos de TRIANGULO (indice do Raycaster,
-  // "faceIndex") de volta pro `face_id` real da SUFaceRef -- usado por
-  // "Ferramentas > Pintura por face" (ver main.js handlePaintFaceClick()
-  // e REVERSE_ENGINEERING_NOTES.md secao 28.19). Guardado na geometria
-  // (nao no mesh) porque e uma propriedade da malha da DEFINICAO,
-  // compartilhada entre todas as instancias dela.
   geometry.userData.faceRanges = definitionDTO.face_ranges || [];
+
+  // Configura groups da geometria para multi-materiais por face quando houver
+  if (materialsMap && definitionDTO.face_ranges && definitionDTO.face_ranges.length > 0) {
+    const usedMatNames = [];
+    for (const r of definitionDTO.face_ranges) {
+      const mName = r.material_name || "Default";
+      if (!usedMatNames.includes(mName)) {
+        usedMatNames.push(mName);
+      }
+    }
+
+    if (usedMatNames.length > 1) {
+      geometry.clearGroups();
+      for (const r of definitionDTO.face_ranges) {
+        const mName = r.material_name || "Default";
+        const matIdx = usedMatNames.indexOf(mName);
+        geometry.addGroup(r.triangle_start * 3, r.triangle_count * 3, matIdx);
+      }
+      geometry.userData.usedMatNames = usedMatNames;
+    }
+  }
 
   return geometry;
 }
@@ -96,20 +118,47 @@ export function buildSceneGroup(sceneDTO) {
   const group = new THREE.Group();
   group.name = sceneDTO.model_path;
 
-  const geometriesByDefinitionId = new Map();
-  const definitionsById = new Map();
-  for (const definitionDTO of sceneDTO.definitions) {
-    definitionsById.set(definitionDTO.definition_id, definitionDTO);
-    if (!definitionDTO.vertices.length) continue; // definicao sem geometria propria (ex.: "root")
-    geometriesByDefinitionId.set(definitionDTO.definition_id, buildGeometry(definitionDTO));
-  }
-
-  const material = new THREE.MeshStandardMaterial({
+  // Mapa de materiais PBR mapeados (Frente 2 & Frente 4)
+  const materialsMap = new Map();
+  const defaultMaterial = new THREE.MeshStandardMaterial({
     color: 0x8c99a6,
     side: THREE.DoubleSide,
     roughness: 0.85,
     metalness: 0.05,
   });
+
+  if (sceneDTO.materials && Object.keys(sceneDTO.materials).length > 0) {
+    const texLoader = new THREE.TextureLoader();
+    for (const [name, matDTO] of Object.entries(sceneDTO.materials)) {
+      const col = matDTO.color || [140, 153, 166];
+      const mat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(col[0] / 255, col[1] / 255, col[2] / 255),
+        roughness: matDTO.roughness !== undefined ? matDTO.roughness : 0.85,
+        metalness: matDTO.metalness !== undefined ? matDTO.metalness : 0.05,
+        transparent: matDTO.opacity < 1.0,
+        opacity: matDTO.opacity !== undefined ? matDTO.opacity : 1.0,
+        side: THREE.DoubleSide,
+      });
+
+      if (matDTO.has_texture && matDTO.texture_url) {
+        texLoader.load(matDTO.texture_url, (texture) => {
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapT = THREE.RepeatWrapping;
+          mat.map = texture;
+          mat.needsUpdate = true;
+        });
+      }
+      materialsMap.set(name, mat);
+    }
+  }
+
+  const geometriesByDefinitionId = new Map();
+  const definitionsById = new Map();
+  for (const definitionDTO of sceneDTO.definitions) {
+    definitionsById.set(definitionDTO.definition_id, definitionDTO);
+    if (!definitionDTO.vertices.length) continue; // definicao sem geometria propria (ex.: "root")
+    geometriesByDefinitionId.set(definitionDTO.definition_id, buildGeometry(definitionDTO, materialsMap));
+  }
 
   for (const instanceDTO of sceneDTO.instances) {
     const geometry = geometriesByDefinitionId.get(instanceDTO.definition_id);
@@ -127,7 +176,21 @@ export function buildSceneGroup(sceneDTO) {
     const world = new THREE.Matrix4().compose(position, quaternion, scale);
     world.premultiply(SKP_TO_THREE_UP);
 
-    const mesh = new THREE.Mesh(geometry, material);
+    // Determina o material da instância (multi-material ou material único PBR)
+    let instanceMaterial = defaultMaterial;
+    if (geometry.userData.usedMatNames && geometry.userData.usedMatNames.length > 1) {
+      instanceMaterial = geometry.userData.usedMatNames.map((mName) => materialsMap.get(mName) || defaultMaterial);
+    } else if (materialsMap.size > 0) {
+      const defDTO = definitionsById.get(instanceDTO.definition_id);
+      const faceMats = defDTO?.face_materials;
+      if (faceMats && faceMats.length > 0 && materialsMap.has(faceMats[0])) {
+        instanceMaterial = materialsMap.get(faceMats[0]);
+      } else {
+        instanceMaterial = Array.from(materialsMap.values())[0] || defaultMaterial;
+      }
+    }
+
+    const mesh = new THREE.Mesh(geometry, instanceMaterial);
     mesh.name = instanceDTO.instance_id;
     mesh.castShadow = true;
     mesh.receiveShadow = true;

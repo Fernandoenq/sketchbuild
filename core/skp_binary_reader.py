@@ -320,18 +320,26 @@ class SkpBinaryReader:
                     inst_counts[def_id] = inst_counts.get(def_id, 0) + 1
 
             # Matriz 4x4 column-major para consumo direto em THREE.Matrix4.fromArray()
+            # (versao cm para telemetria e versao inches para o pipeline nativo do Three.js)
             mat_4x4 = [
                 round(raw_m[0], 6), round(raw_m[1], 6), round(raw_m[2], 6), 0.0,
                 round(raw_m[3], 6), round(raw_m[4], 6), round(raw_m[5], 6), 0.0,
                 round(raw_m[6], 6), round(raw_m[7], 6), round(raw_m[8], 6), 0.0,
                 round(tx, 3), round(ty, 3), round(tz, 3), round(raw_m[12], 6)
             ]
+            mat_4x4_inches = [
+                round(raw_m[0], 6), round(raw_m[1], 6), round(raw_m[2], 6), 0.0,
+                round(raw_m[3], 6), round(raw_m[4], 6), round(raw_m[5], 6), 0.0,
+                round(raw_m[6], 6), round(raw_m[7], 6), round(raw_m[8], 6), 0.0,
+                round(raw_m[9], 4), round(raw_m[10], 4), round(raw_m[11], 4), round(raw_m[12], 6)
+            ]
 
             instances.append({
                 "definition_id": def_id,
                 "definition_name": def_name,
                 "translation_cm": [round(tx, 2), round(ty, 2), round(tz, 2)],
-                "matrix_4x4": mat_4x4
+                "matrix_4x4": mat_4x4,
+                "matrix_4x4_inches": mat_4x4_inches,
             })
             idx = pos + 1
 
@@ -456,6 +464,7 @@ class SkpBinaryReader:
         flat_uvs: List[float] = []
         indices: List[int] = []
         face_materials: List[str] = []
+        face_ranges: List[Dict[str, Any]] = []
         vert_counter = 0
         face_count = 0
 
@@ -498,28 +507,38 @@ class SkpBinaryReader:
                 x_scale = materials_dict[face_mat_name]["xScale"] or 1.0
                 y_scale = materials_dict[face_mat_name]["yScale"] or 1.0
 
-            # Loops Half-Edge
+            # Loops Half-Edge (busca acelerada via find())
             scan_off = pos + 38
             loop_edges: List[Tuple[int, int]] = []
-            while scan_off < min(len(model_bytes) - 15, pos + 500):
-                if model_bytes[scan_off : scan_off + 2] == b"\xa0\x0f":
-                    a1_pos = model_bytes.find(b"\xa1\x0f", scan_off, scan_off + 10)
-                    if a1_pos != -1:
-                        e_len = struct.unpack_from("<I", model_bytes, a1_pos + 2)[0]
-                        if 1 <= e_len <= 8:
-                            e_id = int.from_bytes(model_bytes[a1_pos + 6 : a1_pos + 6 + e_len], "little")
-                            a2_pos = a1_pos + 6 + e_len
-                            direction = 0
-                            if model_bytes[a2_pos : a2_pos + 2] == b"\xa2\x0f":
-                                direction = model_bytes[a2_pos + 6]
-                                scan_off = a2_pos + 7
-                            else:
-                                scan_off = a2_pos
-                            loop_edges.append((e_id, direction))
-                            continue
-                elif model_bytes[scan_off : scan_off + 2] in [b"\xad\x0d", b"\xd0\x07", b"\xac\x0d"]:
+            loop_limit = min(len(model_bytes) - 15, pos + 500)
+            while scan_off < loop_limit:
+                a0_pos = model_bytes.find(b"\xa0\x0f", scan_off, loop_limit)
+                if a0_pos == -1:
                     break
-                scan_off += 1
+
+                # Verifica delimitadores de fim de plano antes do proximo a0_pos
+                d_ad = model_bytes.find(b"\xad\x0d", scan_off, a0_pos)
+                d_d0 = model_bytes.find(b"\xd0\x07", scan_off, a0_pos)
+                d_ac = model_bytes.find(b"\xac\x0d", scan_off, a0_pos)
+                delims = [p for p in (d_ad, d_d0, d_ac) if p != -1]
+                if delims:
+                    break
+
+                a1_pos = model_bytes.find(b"\xa1\x0f", a0_pos, a0_pos + 10)
+                if a1_pos != -1:
+                    e_len = struct.unpack_from("<I", model_bytes, a1_pos + 2)[0]
+                    if 1 <= e_len <= 8:
+                        e_id = int.from_bytes(model_bytes[a1_pos + 6 : a1_pos + 6 + e_len], "little")
+                        a2_pos = a1_pos + 6 + e_len
+                        direction = 0
+                        if model_bytes[a2_pos : a2_pos + 2] == b"\xa2\x0f":
+                            direction = model_bytes[a2_pos + 6]
+                            scan_off = a2_pos + 7
+                        else:
+                            scan_off = a2_pos
+                        loop_edges.append((e_id, direction))
+                        continue
+                scan_off = a0_pos + 2
 
             poly_coords: List[Tuple[float, float, float, float, float, float]] = []
             for e_id, direction in loop_edges:
@@ -555,8 +574,17 @@ class SkpBinaryReader:
                     flat_uvs.extend([round(u, 4), round(v, 4)])
                     vert_counter += 1
 
+                tri_start = len(indices) // 3
+                num_triangles = len(poly_coords) - 2
                 for k in range(1, len(poly_coords) - 1):
                     indices.extend([base_idx, base_idx + k, base_idx + k + 1])
+
+                face_ranges.append({
+                    "face_id": f"face_{face_count}",
+                    "triangle_start": tri_start,
+                    "triangle_count": num_triangles,
+                    "material_name": face_mat_name,
+                })
 
             idx = pos + 1
 
@@ -577,6 +605,7 @@ class SkpBinaryReader:
             "indices": indices,
             "materials": materials_dict,
             "face_materials": face_materials,
+            "face_ranges": face_ranges,
             "num_faces": face_count,
             "num_vertices": vert_counter,
             "bounds": bounds,

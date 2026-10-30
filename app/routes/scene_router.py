@@ -59,6 +59,42 @@ async def open_scene(
 
 
 @router.post(
+    "/open-binary",
+    response_model=SceneResponse,
+    summary="Abre um .skp via motor nativo SkpBinaryReader (Pure Python / Zero DLL) com UVs analíticas, materiais PBR e instâncias",
+)
+async def open_binary_scene(
+    body: OpenSceneRequest, controller: SceneController = Depends(get_controller)
+) -> SceneResponse:
+    return await controller.open_binary_scene(body.path)
+
+
+@router.get(
+    "/texture",
+    summary="Serve texturas embutidas no container ZIP do .skp para renderização PBR no Three.js",
+)
+async def get_scene_texture(path: str, texture_path: str):
+    import os
+    import zipfile
+    import mimetypes
+    from fastapi import HTTPException
+    from fastapi.responses import Response
+
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Arquivo .skp não encontrado no disco")
+
+    try:
+        with zipfile.ZipFile(path, "r") as zf:
+            if texture_path not in zf.namelist():
+                raise HTTPException(status_code=404, detail="Textura não encontrada dentro do arquivo .skp")
+            img_bytes = zf.read(texture_path)
+            media_type, _ = mimetypes.guess_type(texture_path)
+            return Response(content=img_bytes, media_type=media_type or "image/jpeg")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao extrair textura: {e}")
+
+
+@router.post(
     "/open-upload",
     response_model=SceneResponse,
     summary="Abre um .skp enviado via upload do navegador (seletor nativo de arquivo do SO, sem precisar digitar o caminho)",

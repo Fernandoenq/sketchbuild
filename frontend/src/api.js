@@ -38,6 +38,12 @@ export function openScene(path) {
   return postJson("/api/v1/scene/open", "POST", { path });
 }
 
+/** Abre um .skp usando o leitor nativo binario Pure Python (Zero DLL),
+ * renderizando malha, UVs analiticas, materiais PBR e instâncias no Three.js. */
+export function openBinaryScene(path) {
+  return postJson("/api/v1/scene/open-binary", "POST", { path });
+}
+
 /** Abre um .skp enviado via upload real do navegador (`<input
  * type="file">`) -- o unico jeito de um app web usar o seletor NATIVO de
  * arquivos do SO sem o usuario digitar/colar o caminho a mao. Por

@@ -36,6 +36,21 @@ class FaceRangeDTO(BaseModel):
     face_id: str
     triangle_start: int
     triangle_count: int
+    material_name: str | None = None
+
+
+class MaterialDTO(BaseModel):
+    """Definição de Material PBR (Frente 2) consumível pelo Three.js."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    color: list[int] = Field(default_factory=lambda: [140, 153, 166])
+    opacity: float = 1.0
+    has_texture: bool = False
+    texture_url: str | None = None
+    metalness: float = 0.05
+    roughness: float = 0.85
 
 
 class DefinitionDTO(BaseModel):
@@ -51,6 +66,9 @@ class DefinitionDTO(BaseModel):
     normals: list[float]
     indices: list[int]
     face_ranges: list[FaceRangeDTO] = Field(default_factory=list)
+    uvs: list[float] = Field(default_factory=list, description="Coordenadas UV analíticas [u, v, ...]")
+    material_name: str | None = Field(default=None, description="Nome do material principal da definição")
+    face_materials: list[str] = Field(default_factory=list, description="Lista de materiais de cada face")
     always_faces_camera: bool = Field(
         default=False,
         description='Componente "sempre de frente para a camera" (ex.: o '
@@ -123,6 +141,14 @@ class SceneResponse(BaseModel):
         "frontend usa isso pra posicionar a camera inicial em vez de so "
         "enquadrar pela bounding box, ver REVERSE_ENGINEERING_NOTES.md "
         "secao 28.23.",
+    )
+    materials: dict[str, MaterialDTO] = Field(
+        default_factory=dict,
+        description="Dicionário de materiais PBR mapeados para Three.js",
+    )
+    reader_mode: str = Field(
+        default="ctypes",
+        description="Indica o motor que gerou a cena ('ctypes' ou 'binary_native')",
     )
 
 

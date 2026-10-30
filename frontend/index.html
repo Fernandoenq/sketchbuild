@@ -468,6 +468,7 @@
             <button id="welcome-choose-file-btn" type="button" title="Abre o seletor nativo de arquivos do Windows. O navegador nao informa o caminho original por seguranca, entao 'Salvar' vai pedir um caminho (Salvar Como) na primeira vez.">Escolher arquivo... (seletor do Windows)</button>
             <input id="welcome-path-input" type="text" placeholder="ou cole o caminho completo: C:\caminho\para\arquivo.skp" />
             <button id="welcome-open-confirm-btn">Abrir</button>
+            <button id="welcome-open-binary-btn" style="background: #2e7d32; border-color: #1b5e20;" title="Abre via Leitor Nativo (Pure Python / Zero DLL) com UVs e Materiais PBR">⚡ Zero DLL</button>
           </div>
 
           <div class="welcome-section">
@@ -490,6 +491,7 @@
         <div class="menu-dropdown-item" data-action="new"><span>Novo</span><span class="menu-dropdown-shortcut">Ctrl+N</span></div>
         <div class="menu-dropdown-item disabled"><span>Novo a partir de um modelo...</span></div>
         <div class="menu-dropdown-item" data-action="open"><span>Abrir...</span><span class="menu-dropdown-shortcut">Ctrl+O</span></div>
+        <div class="menu-dropdown-item" data-action="open-binary"><span>Abrir via Leitor Nativo (Zero DLL)...</span><span class="menu-dropdown-shortcut">⚡</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item" data-action="save"><span>Salvar</span><span class="menu-dropdown-shortcut">Ctrl+S</span></div>
         <div class="menu-dropdown-item" data-action="save-as"><span>Salvar como...</span></div>
@@ -887,7 +889,8 @@
         </div>
         <div class="row">
           <input id="path-input" type="text" placeholder="ou cole o caminho completo: C:\caminho\para\arquivo.skp" />
-          <button id="open-btn">Abrir</button>
+          <button id="open-btn" title="Abre via SketchUpAPI.dll (Ctypes)">Abrir</button>
+          <button id="open-binary-btn" style="background: #2e7d32; border-color: #1b5e20; color: white;" title="Abre via Leitor Nativo Binário (Pure Python / Zero DLL) com UVs e Materiais PBR">⚡ Zero DLL</button>
         </div>
         <input type="file" id="file-picker-input" accept=".skp" hidden />
 

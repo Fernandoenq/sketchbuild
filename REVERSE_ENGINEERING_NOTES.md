@@ -124,5 +124,22 @@ Análise do binário `SketchUp.exe` (endereços de base `0x140000000`):
 
 Com a descoberta do `model.dat`, o SketchBuild agora possui o módulo [`core/skp_binary_reader.py`](./core/skp_binary_reader.py):
 - Extrai bounding boxes e contagem de vértices em ~0.005s a 0.200s.
-- Não depende de `ctypes` nem da `SketchUpAPI.dll`.
+- Decodifica malha poligonal completa (vértices, normais, índices, UVs analíticas).
+- Extrai materiais XML com cores RGB, transparência e nós PBR Metallic-Roughness.
+- Reconstrói a árvore de `ComponentDefinitions` e `ComponentInstances` com matrizes 4x4.
 - Totalmente imune à regressão de ctypes no Python 3.14+.
+
+---
+
+## 6. Frente 4: Visualização 3D Interativa Completa no Three.js (Zero DLL)
+
+Integração direta entre o decodificador binário e o frontend WebGL do SketchBuild:
+- **Endpoints de Cena:**
+  - `POST /api/v1/scene/open-binary`: Devolve `SceneResponse` completo construído em Pure Python (Zero DLL), expondo geometrias, instâncias, materiais PBR e câmera calculada pela bounding box.
+  - `GET /api/v1/scene/texture`: Serve imagens de textura (JPEG/PNG) diretamente do container ZIP `.skp` para os shaders `MeshStandardMaterial` do Three.js.
+- **BufferGeometry & UVs:**
+  - Atributo `uv` (`THREE.BufferAttribute(Float32Array, 2)`) associado a cada vértice para mapeamento de texturas com repetição analítica afim (`xScale`/`yScale`).
+  - Suporte a multi-materiais via `BufferGeometry.groups` e `face_ranges`, permitindo que cada face ou polígono receba seu material PBR exato.
+- **Interface do Usuário:**
+  - Botão de abertura rápida **⚡ Zero DLL** no painel de Arquivo, no menu Arquivo e na tela de boas-vindas.
+  - Telemetria de carga em tempo real com contagem de definições, instâncias, vértices, triângulos e materiais PBR.
