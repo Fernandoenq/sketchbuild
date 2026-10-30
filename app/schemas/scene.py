@@ -152,6 +152,19 @@ class TagDTO(BaseModel):
     material_name: str | None = None
 
 
+class ScenePageDTO(BaseModel):
+    """Uma Cena real do modelo (model/scene.h -- a API Ruby chama o
+    mesmo objeto de "Page", mesmo dado)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    scene_id: str
+    name: str
+    active: bool
+    include_in_animation: bool = True
+    use_camera: bool = True
+
+
 class SceneResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -175,6 +188,10 @@ class SceneResponse(BaseModel):
     tags: list[TagDTO] = Field(
         default_factory=list,
         description="Lista de etiquetas / camadas (Tags / Layers) presentes no modelo",
+    )
+    scenes: list[ScenePageDTO] = Field(
+        default_factory=list,
+        description="Lista de cenas / abas reais do modelo (Pages)",
     )
     materials: dict[str, MaterialDTO] = Field(
         default_factory=dict,
@@ -351,19 +368,6 @@ class SetTagVisibilityResponse(BaseModel):
 
     name: str
     visible: bool
-
-
-class ScenePageDTO(BaseModel):
-    """Uma Cena real do modelo (model/scene.h -- a API Ruby chama o
-    mesmo objeto de "Page", mesmo dado). Nome prefixado "Page" aqui só
-    pra não colidir com `SceneResponse` (o DTO da cena 3D inteira, termo
-    já sobrecarregado neste arquivo)."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    scene_id: str
-    name: str
-    active: bool
 
 
 class ListScenePagesResponse(BaseModel):

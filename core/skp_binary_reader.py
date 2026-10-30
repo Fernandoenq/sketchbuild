@@ -106,6 +106,17 @@ class SkpTagDTO(TypedDict):
     material_name: Optional[str]
 
 
+class SkpSceneDTO(TypedDict):
+    id: int
+    scene_id: str
+    name: str
+    active: bool
+    include_in_animation: bool
+    use_camera: bool
+    camera: Optional[SkpCameraDTO]
+    offset: Optional[int]
+
+
 class SkpMeshDTO(TypedDict):
     vertices: List[float]       # [x, y, z, ...] em cm
     normals: List[float]        # [nx, ny, nz, ...]
@@ -120,6 +131,7 @@ class SkpMeshDTO(TypedDict):
     hierarchy: Optional[SkpHierarchyDTO]
     camera: Optional[SkpCameraDTO]
     tags: Optional[List[SkpTagDTO]]
+    scenes: Optional[List[SkpSceneDTO]]
 
 
 class SkpBinaryReader:
@@ -151,6 +163,12 @@ class SkpBinaryReader:
     TAG_LAYER_NAME = b"\x8d\x3c"
     TAG_LAYER_VISIBILITY = b"\x8e\x3c"
     TAG_LAYER_MAT_NAME = b"\xcc\x32"
+    TAG_SCENE_CONTAINER = b"\x48\x71"
+    TAG_SCENE_NAME = b"\x55\x6f"
+    TAG_SCENE_DESC = b"\x56\x6f"
+    TAG_SCENE_ANIM = b"\x52\x71"
+    TAG_SCENE_USE_CAMERA = b"\x57\x71"
+    TAG_SCENE_ACTIVE_EID = b"\x62\x6d\x04\x00\x00\x00"
     ZIP_LOCAL_HEADER = b"PK\x03\x04"
 
     @classmethod
@@ -755,6 +773,90 @@ class SkpBinaryReader:
         return tags
 
     @classmethod
+    def extract_scenes(cls, file_path: str) -> List[SkpSceneDTO]:
+        """Extrai todas as Cenas / Páginas salvas no .skp (Zero DLL)."""
+        if not file_path or not os.path.exists(file_path):
+            return []
+        try:
+            with open(file_path, "rb") as f:
+                data = f.read()
+        except Exception:
+            return []
+        model_bytes = cls._extract_model_dat(data)
+        if not model_bytes:
+            return []
+        return cls._parse_scenes(model_bytes)
+
+    @classmethod
+    def _parse_scenes(cls, model_bytes: bytes) -> List[SkpSceneDTO]:
+        """Decodifica as Cenas/Páginas salvas diretamente do stream model.dat (Tag 0x7148 / 0x6f55)."""
+        # Identifica a Cena Ativa via Tag 0x6d62 (bm\x04\x00\x00\x00)
+        active_eid: Optional[int] = None
+        p_act = model_bytes.find(cls.TAG_SCENE_ACTIVE_EID)
+        if p_act != -1:
+            active_eid = struct.unpack_from("<I", model_bytes, p_act + 6)[0]
+
+        scenes: List[SkpSceneDTO] = []
+        idx = 0
+        buf_len = len(model_bytes)
+
+        while True:
+            p = model_bytes.find(cls.TAG_SCENE_CONTAINER, idx)
+            if p == -1 or p + 6 > buf_len:
+                break
+
+            slen = struct.unpack_from("<I", model_bytes, p + 2)[0]
+            if 20 <= slen <= 2000 and p + 6 + slen <= buf_len:
+                sbytes = model_bytes[p + 6 : p + 6 + slen]
+
+                # EntityID (Tag 0x05de)
+                eid = 0
+                p_de = sbytes.find(b"\xde\x05")
+                if p_de != -1:
+                    elen = struct.unpack_from("<I", sbytes, p_de + 2)[0]
+                    if 1 <= elen <= 8:
+                        eid = int.from_bytes(sbytes[p_de + 6 : p_de + 6 + elen], "little")
+
+                # Nome da Cena (Tag 0x6f55)
+                p_name = sbytes.find(cls.TAG_SCENE_NAME)
+                if p_name != -1:
+                    nlen = struct.unpack_from("<I", sbytes, p_name + 2)[0]
+                    if 1 <= nlen <= 120 and p_name + 6 + nlen <= len(sbytes):
+                        name = sbytes[p_name + 6 : p_name + 6 + nlen].decode("utf-8", errors="replace").strip("\x00").strip()
+
+                        # Flags: Include in animation (Tag 0x7152), Use Camera (Tag 0x7157)
+                        p_anim = sbytes.find(cls.TAG_SCENE_ANIM)
+                        anim = bool(sbytes[p_anim + 6]) if p_anim != -1 and p_anim + 6 < len(sbytes) else True
+
+                        p_usecam = sbytes.find(cls.TAG_SCENE_USE_CAMERA)
+                        use_cam = bool(sbytes[p_usecam + 6]) if p_usecam != -1 and p_usecam + 6 < len(sbytes) else True
+
+                        # Câmera específica da cena (se embutida via Tag 0x34bd)
+                        cam_dto = None
+                        p_cam_scene = sbytes.find(cls.TAG_CAMERA_EYE)
+                        if p_cam_scene != -1:
+                            cam_dto = cls._parse_camera(sbytes[p_cam_scene:])
+
+                        is_active = (eid != 0 and eid == active_eid)
+
+                        if name:
+                            scene_id = f"scene_{eid}" if eid else f"scene_{len(scenes)}"
+                            scenes.append({
+                                "id": eid,
+                                "scene_id": scene_id,
+                                "name": name,
+                                "active": is_active,
+                                "include_in_animation": anim,
+                                "use_camera": use_cam,
+                                "camera": cam_dto,
+                                "offset": p,
+                            })
+
+            idx = p + 1
+
+        return scenes
+
+    @classmethod
     def extract_mesh(cls, file_path: str) -> Optional[SkpMeshDTO]:
         """Reconstrói a malha poligonal 3D completa com UVs, Normais, Materiais
         e Árvore Hierárquica de Instâncias diretamente do .skp para Three.js / WebGL."""
@@ -771,11 +873,12 @@ class SkpBinaryReader:
         if not model_bytes:
             return None
 
-        # 0. Materiais XML, Hierarquia de Instâncias, Câmera e Tags/Layers
+        # 0. Materiais XML, Hierarquia de Instâncias, Câmera, Tags/Layers e Cenas
         materials_dict = cls.extract_materials(file_path)
         hierarchy_data = cls._parse_hierarchy(model_bytes)
         camera_data = cls._parse_camera(model_bytes)
         tags_data = cls._parse_tags(model_bytes)
+        scenes_data = cls._parse_scenes(model_bytes)
 
         # Mapeamento interno: Material EntityID -> Material Name no model.dat
         mat_id_to_name: Dict[int, str] = {}
@@ -1009,6 +1112,7 @@ class SkpBinaryReader:
             "hierarchy": hierarchy_data,
             "camera": camera_data,
             "tags": tags_data,
+            "scenes": scenes_data,
         }
 
     @classmethod
