@@ -1115,6 +1115,69 @@ class SkpBinaryReader:
             "scenes": scenes_data,
         }
 
+
+    @classmethod
+    def extract_faces_and_triangles(cls, file_path: str) -> List[Dict[str, Any]]:
+        """Extrai todas as faces poligonais do .skp com normais, planos, contornos 3D,
+        triangulação analítica e cálculo de área (Zero DLL / Pure Python)."""
+        mesh = cls.extract_mesh(file_path)
+        if not mesh:
+            return []
+
+        faces = []
+        verts = mesh["vertices"]
+        norms = mesh["normals"]
+        uvs = mesh["uvs"]
+        indices = mesh["indices"]
+
+        for fr in mesh.get("face_ranges", []):
+            t_start = fr["triangle_start"] * 3
+            t_count = fr["triangle_count"]
+            t_end = t_start + t_count * 3
+            tri_indices = indices[t_start:t_end]
+
+            face_verts = []
+            seen_pts = set()
+            for idx in tri_indices:
+                pt = (verts[idx * 3], verts[idx * 3 + 1], verts[idx * 3 + 2])
+                if pt not in seen_pts:
+                    seen_pts.add(pt)
+                    face_verts.append(list(pt))
+
+            norm = [0.0, 0.0, 1.0]
+            if tri_indices:
+                first_i = tri_indices[0]
+                norm = [norms[first_i * 3], norms[first_i * 3 + 1], norms[first_i * 3 + 2]]
+
+            area_cm2 = 0.0
+            for k in range(0, len(tri_indices), 3):
+                i0, i1, i2 = tri_indices[k], tri_indices[k + 1], tri_indices[k + 2]
+                p0 = (verts[i0 * 3], verts[i0 * 3 + 1], verts[i0 * 3 + 2])
+                p1 = (verts[i1 * 3], verts[i1 * 3 + 1], verts[i1 * 3 + 2])
+                p2 = (verts[i2 * 3], verts[i2 * 3 + 1], verts[i2 * 3 + 2])
+                v1 = (p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2])
+                v2 = (p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2])
+                cross = (
+                    v1[1] * v2[2] - v1[2] * v2[1],
+                    v1[2] * v2[0] - v1[0] * v2[2],
+                    v1[0] * v2[1] - v1[1] * v2[0],
+                )
+                tri_area = 0.5 * (cross[0]**2 + cross[1]**2 + cross[2]**2)**0.5
+                area_cm2 += tri_area
+
+            faces.append({
+                "face_id": fr["face_id"],
+                "material_name": fr["material_name"],
+                "normal": norm,
+                "vertex_count": len(face_verts),
+                "vertices_cm": face_verts,
+                "triangle_count": t_count,
+                "area_cm2": round(area_cm2, 2),
+                "area_m2": round(area_cm2 / 10000.0, 4),
+            })
+
+        return faces
+
     @classmethod
     def _extract_model_dat(cls, data: bytes) -> Optional[bytes]:
         """Localiza e descompacta o arquivo interno 'model.dat' de dentro do container ZIP."""
@@ -1152,3 +1215,79 @@ class SkpBinaryReader:
             idx = pos + 1
 
         return None
+
+    @classmethod
+    def read_attribute_dictionaries(cls, file_path: str) -> Dict[str, Dict[str, Any]]:
+        """Lê todos os dicionários de atributos do Modelo (BIM/metadados) em Pure Python Zero DLL."""
+        with open(file_path, "rb") as f:
+            data = f.read()
+
+        mb = cls._extract_model_dat(data)
+        if not mb:
+            return {}
+
+        # Localiza o contêiner 0x36b1 do Modelo (que contém GeoReference)
+        p_geo = mb.find(b"GeoReference")
+        if p_geo == -1:
+            return {}
+
+        p_b2 = mb.rfind(b"\xb26", 0, p_geo)
+        if p_b2 == -1:
+            return {}
+
+        b2_len = struct.unpack_from("<I", mb, p_b2 + 2)[0]
+        b2_payload = mb[p_b2 + 6 : p_b2 + 6 + b2_len]
+
+        dictionaries = {}
+        sp = 0
+        while sp < len(b2_payload) - 6:
+            stag = struct.unpack_from("<H", b2_payload, sp)[0]
+            slen = struct.unpack_from("<I", b2_payload, sp + 2)[0]
+            if stag == 0x36b3:
+                d_payload = b2_payload[sp + 6 : sp + 6 + slen]
+                p_b4 = d_payload.find(b"\xb46")
+                d_name = ""
+                if p_b4 != -1:
+                    nlen = struct.unpack_from("<I", d_payload, p_b4 + 2)[0]
+                    d_name = d_payload[p_b4 + 6 : p_b4 + 6 + nlen].decode("utf-8", errors="ignore")
+
+                p_b5 = d_payload.find(b"\xb56")
+                items = {}
+                if p_b5 != -1:
+                    b5_len = struct.unpack_from("<I", d_payload, p_b5 + 2)[0]
+                    b5_payload = d_payload[p_b5 + 6 : p_b5 + 6 + b5_len]
+                    kp = 0
+                    while kp < len(b5_payload) - 6:
+                        ktag = struct.unpack_from("<H", b5_payload, kp)[0]
+                        klen = struct.unpack_from("<I", b5_payload, kp + 2)[0]
+                        if ktag == 0x36b6:
+                            kname = b5_payload[kp + 6 : kp + 6 + klen].decode("utf-8", errors="ignore")
+                            vp = kp + 6 + klen
+                            if vp < len(b5_payload) - 6:
+                                vtag = struct.unpack_from("<H", b5_payload, vp)[0]
+                                vlen = struct.unpack_from("<I", b5_payload, vp + 2)[0]
+                                if vtag == 0x38a4:
+                                    vdata = b5_payload[vp + 6 : vp + 6 + vlen]
+                                    if len(vdata) >= 6:
+                                        t_type = struct.unpack_from("<H", vdata, 0)[0]
+                                        t_len = struct.unpack_from("<I", vdata, 2)[0]
+                                        raw_val = vdata[6 : 6 + t_len]
+                                        if t_type == 0x38aa:
+                                            items[kname] = (raw_val[0] != 0) if len(raw_val) >= 1 else False
+                                        elif t_type == 0x38a7:
+                                            items[kname] = struct.unpack("<i", raw_val[:4])[0] if len(raw_val) >= 4 else 0
+                                        elif t_type == 0x38a9:
+                                            items[kname] = struct.unpack("<d", raw_val[:8])[0] if len(raw_val) >= 8 else 0.0
+                                        elif t_type == 0x38ad:
+                                            items[kname] = raw_val.decode("utf-8", errors="ignore")
+                                        else:
+                                            items[kname] = raw_val
+                                    kp = vp + 6 + vlen
+                                    continue
+                        kp += 6 + klen
+                if d_name:
+                    dictionaries[d_name] = items
+            sp += 6 + slen
+
+        return dictionaries
+
