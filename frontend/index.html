@@ -623,7 +623,9 @@
         <div class="menu-dropdown-item has-submenu disabled"><span>Arcos</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
         <div class="menu-dropdown-item has-submenu"><span>Formas</span><span class="menu-dropdown-shortcut">&#9656;</span>
           <div class="menu-dropdown">
-            <div class="menu-dropdown-item" data-action="draw-rectangle" title="Cria uma face retangular real no chao via SUEntitiesFill (SDK publico) -- ver REVERSE_ENGINEERING_NOTES.md secao 28"><span>Retângulo</span><span class="menu-dropdown-shortcut">R</span></div>
+            <div class="menu-dropdown-item" data-action="draw-rectangle" title="Cria uma face retangular real no chao"><span>Retângulo</span><span class="menu-dropdown-shortcut">R</span></div>
+            <div class="menu-dropdown-item" data-action="draw-box" title="Cria um Sólido 3D Manifold (Frente 13)"><span>Bloco 3D (Push-Pull)</span><span class="menu-dropdown-shortcut">P</span></div>
+            <div class="menu-dropdown-item" data-action="import-dxf" title="Converte e importa planta DXF para o modelo (Frente 20)"><span>Importar DXF...</span></div>
             <div class="menu-dropdown-item disabled"><span>Retângulo Giratório</span></div>
             <div class="menu-dropdown-item disabled"><span>Círculo</span></div>
             <div class="menu-dropdown-item disabled"><span>Polígono</span></div>
@@ -786,8 +788,11 @@
       </button>
     </div>
     <div class="toolbar-group">
-      <button class="toolbar-btn disabled" title="Empurrar/Puxar (fora de escopo)" aria-label="Empurrar/Puxar" disabled>
-        <svg viewBox="0 0 24 24"><path d="M7 9h10v10H7z" /><path d="M7 9l3-4h4l3 4" /><line x1="12" y1="2" x2="12" y2="6" /></svg>
+      <button class="toolbar-btn tool-icon-btn" data-action="draw-box" title="Criar Bloco 3D / Push-Pull (Frente 13)" aria-label="Bloco 3D">
+        <svg viewBox="0 0 24 24"><path d="M7 9h10v10H7z" fill="rgba(60,127,177,0.2)" /><path d="M7 9l3-4h4l3 4" /><line x1="12" y1="2" x2="12" y2="6" /><path d="M12 2l-2 2M12 2l2 2" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-action="import-dxf" title="Importar Desenho CAD DXF (Frente 20)" aria-label="Importar DXF">
+        <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z" /><line x1="4" y1="10" x2="20" y2="10" /><line x1="10" y1="4" x2="10" y2="20" /></svg>
       </button>
       <button class="toolbar-btn disabled" title="Siga-me (fora de escopo)" aria-label="Siga-me" disabled>
         <svg viewBox="0 0 24 24"><path d="M4 16c2-8 14-8 16 0" /><path d="M17 13l3 3-3 3" /></svg>
@@ -874,6 +879,24 @@
     <div class="vcb-field" id="vcb-text">
       <span style="color: var(--muted);">Texto:</span>
       <input id="text-content-input" type="text" placeholder="Conteúdo do rótulo" style="width: 160px;" />
+    </div>
+    <!-- Frente 13: VCB Sólido 3D / Box -->
+    <div class="vcb-field" id="vcb-box">
+      <span style="color: var(--muted);">Bloco:</span>
+      <input id="box-w-input" class="dim-input" type="number" step="0.1" min="0.05" value="1.0" style="width: 50px;" title="Largura X (m)" />
+      <span style="color: var(--muted);">&times;</span>
+      <input id="box-l-input" class="dim-input" type="number" step="0.1" min="0.05" value="1.0" style="width: 50px;" title="Comprimento Y (m)" />
+      <span style="color: var(--muted);">&times;</span>
+      <input id="box-h-input" class="dim-input" type="number" step="0.1" min="0.05" value="1.0" style="width: 50px;" title="Altura Z (m)" />
+      <button id="box-create-btn" class="panel-btn" title="Cria Bloco 3D Manifold">Criar Bloco</button>
+    </div>
+    <!-- Frente 20: VCB Importar DXF -->
+    <div class="vcb-field" id="vcb-dxf">
+      <span style="color: var(--muted);">DXF:</span>
+      <input id="dxf-path-input" type="text" placeholder="C:\desenho.dxf" style="width: 150px;" />
+      <button id="dxf-convert-btn" class="panel-btn" title="Converte DXF para SKP">Converter DXF</button>
+      <input type="file" id="dxf-picker-input" accept=".dxf" hidden />
+      <button id="dxf-browse-btn" class="panel-btn" style="padding: 2px 6px;">...</button>
     </div>
   </div>
 
@@ -976,6 +999,93 @@
           <button id="scene-create-btn" class="panel-btn" disabled title="Janela &gt; Bandeja padrao &gt; Cenas &gt; + -- SUSceneCreate/SUModelAddScenes real, captura so o nome (sem camera)">+ Criar cena</button>
         </div>
         <div id="scene-pages-list"><div style="font-size: 11px; color: var(--muted); font-style: italic;">Nenhum modelo aberto.</div></div>
+      </div>
+    </div>
+    
+    <!-- Frente 19: Estilos de Exibição / Renderização -->
+    <div class="tray-section" id="tray-styles">
+      <div class="tray-header" data-section="tray-styles">
+        <span class="tray-arrow"></span>
+        <span>Estilos de Renderização</span>
+      </div>
+      <div class="tray-body">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label style="font-size: 11px; font-weight: 600;">Modo de Face:</label>
+          <select id="style-mode-select" style="padding: 4px 6px; font-size: 11px; border: 1px solid var(--border); border-radius: 2px;">
+            <option value="textured" selected>Texturizado com Sombreado</option>
+            <option value="shaded">Sombreado sem Textura</option>
+            <option value="hidden_line">Linhas Ocultas (Técnico)</option>
+            <option value="monochrome">Monocromático</option>
+            <option value="wireframe">Aramado (Wireframe)</option>
+          </select>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+            <label style="font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox" id="style-xray-checkbox" />
+              <span>Modo Raio-X (X-Ray)</span>
+            </label>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+              <span>Espessura Perfis:</span>
+              <span id="style-profiles-val">2px</span>
+            </div>
+            <input type="range" id="style-profiles-slider" min="1" max="6" value="2" style="width: 100%; cursor: pointer;" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Opção 2: Desmontador Parkelo & Vista Explodida -->
+    <div class="tray-section" id="tray-exploded">
+      <div class="tray-header" data-section="tray-exploded">
+        <span class="tray-arrow"></span>
+        <span>Desmontador Parkelo (Vista Explodida)</span>
+      </div>
+      <div class="tray-body">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 600;">
+            <span>Fator de Explosão:</span>
+            <span id="exploded-factor-val">0% (Montado)</span>
+          </div>
+          <input type="range" id="exploded-slider" min="0" max="200" value="0" style="width: 100%; cursor: pointer;" />
+          <div style="display: flex; gap: 4px; margin-top: 4px;">
+            <button id="btn-explode-0" class="panel-btn" style="flex: 1; font-size: 10px;">Montado</button>
+            <button id="btn-explode-50" class="panel-btn" style="flex: 1; font-size: 10px;">50%</button>
+            <button id="btn-explode-100" class="panel-btn" style="flex: 1; font-size: 10px;">100%</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Opção 2: Orçamento BIM & BOM -->
+    <div class="tray-section" id="tray-bim">
+      <div class="tray-header" data-section="tray-bim">
+        <span class="tray-arrow"></span>
+        <span>Orçamento BIM & Quantitativos (BOM)</span>
+      </div>
+      <div class="tray-body">
+        <button id="btn-calc-bim" class="panel-btn" style="width: 100%; margin-bottom: 8px;">Atualizar Orçamento BIM</button>
+        <div id="bim-summary-panel" style="background: #F8F9FA; border: 1px solid var(--border); border-radius: 3px; padding: 6px; font-size: 11px; margin-bottom: 8px; display: none;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+            <span>Total Peças:</span>
+            <strong id="bim-total-items">0</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+            <span>Volume Total:</span>
+            <strong id="bim-total-vol">0.0 m³</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+            <span>Área Total:</span>
+            <strong id="bim-total-area">0.0 m²</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--border); color: #2B6CB0;">
+            <span>Estimativa Custo:</span>
+            <strong id="bim-total-cost">R$ 0,00</strong>
+          </div>
+        </div>
+        <div id="bim-items-list" style="font-size: 11px; max-height: 180px; overflow-y: auto;">
+          <div style="font-style: italic; color: var(--muted);">Clique em Atualizar Orçamento para calcular.</div>
+        </div>
       </div>
     </div>
   </div>

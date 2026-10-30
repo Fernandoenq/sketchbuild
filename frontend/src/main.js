@@ -30,6 +30,12 @@ import {
   listAutosaveDrafts,
   recoverAutosaveDraft,
   discardAutosaveDraft,
+  createBox,
+  setRenderingStyle,
+  getAssemblyTree,
+  convertDxf,
+  getBimReport,
+  calculateExplodedView,
   ApiError,
 } from "./api.js";
 import {
@@ -61,6 +67,38 @@ const rectHeightInputEl = document.getElementById("rect-height-input");
 const rectCreateBtnEl = document.getElementById("rect-create-btn");
 const rectAsGroupCheckboxEl = document.getElementById("rect-as-group-checkbox");
 const textContentInputEl = document.getElementById("text-content-input");
+
+// Frentes 13, 15, 19, 20 & Desmontador / BIM (Opções 1 e 2)
+const vcbBoxEl = document.getElementById("vcb-box");
+const boxWInputEl = document.getElementById("box-w-input");
+const boxLInputEl = document.getElementById("box-l-input");
+const boxHInputEl = document.getElementById("box-h-input");
+const boxCreateBtnEl = document.getElementById("box-create-btn");
+
+const vcbDxfEl = document.getElementById("vcb-dxf");
+const dxfPathInputEl = document.getElementById("dxf-path-input");
+const dxfConvertBtnEl = document.getElementById("dxf-convert-btn");
+const dxfBrowseBtnEl = document.getElementById("dxf-browse-btn");
+const dxfPickerInputEl = document.getElementById("dxf-picker-input");
+
+const styleModeSelectEl = document.getElementById("style-mode-select");
+const styleXrayCheckboxEl = document.getElementById("style-xray-checkbox");
+const styleProfilesSliderEl = document.getElementById("style-profiles-slider");
+const styleProfilesValEl = document.getElementById("style-profiles-val");
+
+const explodedSliderEl = document.getElementById("exploded-slider");
+const explodedFactorValEl = document.getElementById("exploded-factor-val");
+const btnExplode0El = document.getElementById("btn-explode-0");
+const btnExplode50El = document.getElementById("btn-explode-50");
+const btnExplode100El = document.getElementById("btn-explode-100");
+
+const btnCalcBimEl = document.getElementById("btn-calc-bim");
+const bimSummaryPanelEl = document.getElementById("bim-summary-panel");
+const bimTotalItemsEl = document.getElementById("bim-total-items");
+const bimTotalVolEl = document.getElementById("bim-total-vol");
+const bimTotalAreaEl = document.getElementById("bim-total-area");
+const bimTotalCostEl = document.getElementById("bim-total-cost");
+const bimItemsListEl = document.getElementById("bim-items-list");
 const paintColorInputEl = document.getElementById("paint-color-input");
 const tagNameInputEl = document.getElementById("tag-name-input");
 const toolsToolbarEl = document.getElementById("tools-toolbar");
@@ -298,6 +336,8 @@ function syncToolUI(activeKey) {
     [vcbTagEl, activeKey === "tag"],
     [vcbPaintEl, activeKey === "paint" || activeKey === "paintFace"],
     [vcbTextEl, activeKey === "text" || activeKey === "text3d"],
+    [vcbBoxEl, activeKey === "box"],
+    [vcbDxfEl, activeKey === "dxf"],
   ];
   let any = false;
   fields.forEach(([el, visible]) => {
@@ -328,6 +368,8 @@ function setToolMode(mode) {
   else if (mode === "tag") setStatus("Modo Etiqueta: escreva o nome na caixa no canto inferior direito e clique numa peca.");
   else if (mode === "axes") setStatus("Modo Eixos: clique na peca pra definir a ORIGEM dos eixos novos.");
   else if (mode === "rect") setStatus("Modo Retangulo: informe largura/profundidade na caixa no canto inferior direito e clique em Criar.");
+  else if (mode === "box") setStatus("Modo Bloco 3D (Push-Pull): informe largura, comprimento e altura na caixa no canto inferior direito e clique em Criar Bloco.");
+  else if (mode === "dxf") setStatus("Modo Importar DXF: informe o caminho do arquivo CAD DXF e clique em Converter DXF.");
   else setStatus("Modo Selecionar.");
   syncToolUI(mode);
 }
@@ -1838,6 +1880,18 @@ const MENU_ACTIONS = {
     setToolMode("rect");
     rectWidthInputEl.focus();
   },
+  "draw-box": () => {
+    setToolMode("box");
+    boxWInputEl?.focus();
+  },
+  "tool-pushpull": () => {
+    setToolMode("box");
+    boxWInputEl?.focus();
+  },
+  "import-dxf": () => {
+    setToolMode("dxf");
+    dxfPathInputEl?.focus();
+  },
 };
 
 /** "Janela > Bandeja padrão > Informações da entidade/Componentes" --
@@ -2091,3 +2145,258 @@ welcomePathInputEl.addEventListener("keydown", (e) => {
 });
 
 boot();
+
+
+// ============================================================================
+// Frentes 13, 15, 19, 20 & Desmontador / Orçamento BIM (Opções 1 e 2)
+// ============================================================================
+
+// 1. Estilos de Renderização no Three.js (Frente 19)
+function applyRenderingStyle() {
+  if (!currentGroup) return;
+  const mode = styleModeSelectEl ? styleModeSelectEl.value : "textured";
+  const xray = styleXrayCheckboxEl ? styleXrayCheckboxEl.checked : false;
+  const profilesWidth = styleProfilesSliderEl ? parseInt(styleProfilesSliderEl.value, 10) : 2;
+
+  if (styleProfilesValEl) {
+    styleProfilesValEl.textContent = `${profilesWidth}px`;
+  }
+
+  currentGroup.traverse((obj) => {
+    if (obj.isMesh && obj.material) {
+      if (!obj.userData.originalMaterial) {
+        obj.userData.originalMaterial = Array.isArray(obj.material)
+          ? obj.material.map((m) => m.clone())
+          : obj.material.clone();
+      }
+
+      const orig = obj.userData.originalMaterial;
+      const configureMat = (mat, origMat) => {
+        if (mode === "hidden_line") {
+          mat.color.setHex(0xffffff);
+          mat.roughness = 1.0;
+          mat.metalness = 0.0;
+          mat.map = null;
+        } else if (mode === "monochrome") {
+          mat.color.setHex(0xdddddd);
+          mat.map = null;
+        } else if (mode === "shaded") {
+          mat.color.copy(origMat.color);
+          mat.map = null;
+        } else if (mode === "textured") {
+          mat.color.copy(origMat.color);
+          mat.map = origMat.map;
+        }
+        mat.wireframe = mode === "wireframe";
+
+        if (xray) {
+          mat.transparent = true;
+          mat.opacity = 0.45;
+          mat.depthWrite = false;
+        } else {
+          mat.transparent = origMat.transparent;
+          mat.opacity = origMat.opacity;
+          mat.depthWrite = true;
+        }
+        mat.needsUpdate = true;
+      };
+
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach((m, idx) => configureMat(m, orig[idx] || orig[0]));
+      } else {
+        configureMat(obj.material, orig);
+      }
+    }
+
+    if (obj.isLineSegments && obj.material) {
+      obj.visible = mode === "hidden_line" || profilesWidth > 0;
+      if (mode === "hidden_line") {
+        obj.material.color.setHex(0x111111);
+      }
+      obj.material.linewidth = profilesWidth;
+      obj.material.needsUpdate = true;
+    }
+  });
+
+  setRenderingStyle({ mode, xray, profilesWidth }).catch(() => {});
+}
+
+if (styleModeSelectEl) styleModeSelectEl.addEventListener("change", applyRenderingStyle);
+if (styleXrayCheckboxEl) styleXrayCheckboxEl.addEventListener("change", applyRenderingStyle);
+if (styleProfilesSliderEl) styleProfilesSliderEl.addEventListener("input", applyRenderingStyle);
+
+// 2. Desmontador Parkelo / Vista Explodida Paramétrica (Opção 2)
+function applyExplodedView(lambda) {
+  if (!currentGroup) return;
+
+  if (!currentGroup.userData.centroid) {
+    const box = new THREE.Box3().setFromObject(currentGroup);
+    currentGroup.userData.centroid = box.getCenter(new THREE.Vector3());
+  }
+  const center = currentGroup.userData.centroid;
+
+  let i = 0;
+  currentGroup.children.forEach((child) => {
+    if (child.isMesh) {
+      if (!child.userData.originalPosition) {
+        child.userData.originalPosition = child.position.clone();
+      }
+      const orig = child.userData.originalPosition;
+      const dir = new THREE.Vector3().subVectors(orig, center);
+      if (dir.lengthSq() < 0.001) {
+        const angle = (2 * Math.PI * i) / Math.max(1, currentGroup.children.length);
+        dir.set(Math.cos(angle) * 0.8, 0.4 * (i + 1), Math.sin(angle) * 0.8);
+      }
+      child.matrixAutoUpdate = true;
+      child.position.copy(orig).addScaledVector(dir, lambda);
+      i++;
+    }
+  });
+
+  if (explodedFactorValEl) {
+    const pct = Math.round(lambda * 100);
+    const label = lambda === 0 ? "Montado" : lambda <= 0.5 ? "Parcial" : "Explodido";
+    explodedFactorValEl.textContent = `${pct}% (${label})`;
+  }
+}
+
+if (explodedSliderEl) {
+  explodedSliderEl.addEventListener("input", (e) => {
+    const lambda = parseFloat(e.target.value) / 100.0;
+    applyExplodedView(lambda);
+  });
+  explodedSliderEl.addEventListener("change", (e) => {
+    const lambda = parseFloat(e.target.value) / 100.0;
+    calculateExplodedView(lambda).catch(() => {});
+  });
+}
+
+if (btnExplode0El) {
+  btnExplode0El.addEventListener("click", () => {
+    if (explodedSliderEl) explodedSliderEl.value = 0;
+    applyExplodedView(0.0);
+  });
+}
+if (btnExplode50El) {
+  btnExplode50El.addEventListener("click", () => {
+    if (explodedSliderEl) explodedSliderEl.value = 50;
+    applyExplodedView(0.5);
+  });
+}
+if (btnExplode100El) {
+  btnExplode100El.addEventListener("click", () => {
+    if (explodedSliderEl) explodedSliderEl.value = 100;
+    applyExplodedView(1.0);
+  });
+}
+
+// 3. Orçamento BIM / BOM (Opção 2)
+async function handleBimReport() {
+  if (!btnCalcBimEl) return;
+  btnCalcBimEl.disabled = true;
+  btnCalcBimEl.textContent = "Calculando BIM...";
+  try {
+    const report = await getBimReport();
+    if (bimSummaryPanelEl) bimSummaryPanelEl.style.display = "block";
+    if (bimTotalItemsEl) bimTotalItemsEl.textContent = report.summary.total_items_count;
+    if (bimTotalVolEl) bimTotalVolEl.textContent = `${report.summary.total_volume_m3.toFixed(3)} m³`;
+    if (bimTotalAreaEl) bimTotalAreaEl.textContent = `${report.summary.total_area_m2.toFixed(2)} m²`;
+    if (bimTotalCostEl) {
+      bimTotalCostEl.textContent = `R$ ${report.summary.estimated_cost.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+    }
+
+    if (bimItemsListEl) {
+      bimItemsListEl.innerHTML = "";
+      report.items.forEach((item) => {
+        const row = document.createElement("div");
+        row.style.padding = "4px 0";
+        row.style.borderBottom = "1px solid #EEE";
+        row.innerHTML = `
+          <div style="font-weight: 600; display: flex; justify-content: space-between;">
+            <span>${item.definition_name} (${item.instance_count}x)</span>
+            <span>R$ ${item.total_price.toFixed(2)}</span>
+          </div>
+          <div style="color: var(--muted); font-size: 10px;">
+            ${item.total_volume_m3} m³ | ${item.total_area_m2} m² | ${item.material || "Padrão"}
+          </div>
+        `;
+        bimItemsListEl.appendChild(row);
+      });
+    }
+    setStatus(`Orçamento BIM: ${report.summary.total_items_count} peças, R$ ${report.summary.estimated_cost.toFixed(2)}`);
+  } catch (err) {
+    setStatus(`Falha ao calcular orçamento BIM: ${err.message}`, true);
+  } finally {
+    btnCalcBimEl.disabled = false;
+    btnCalcBimEl.textContent = "Atualizar Orçamento BIM";
+  }
+}
+
+if (btnCalcBimEl) btnCalcBimEl.addEventListener("click", handleBimReport);
+
+// 4. Criação de Bloco 3D Manifold (Frente 13)
+async function handleCreateBox() {
+  const w = parseFloat(boxWInputEl?.value || "1.0");
+  const l = parseFloat(boxLInputEl?.value || "1.0");
+  const h = parseFloat(boxHInputEl?.value || "1.0");
+  if (!Number.isFinite(w) || w <= 0 || !Number.isFinite(l) || l <= 0 || !Number.isFinite(h) || h <= 0) {
+    setStatus("Informe largura, comprimento e altura positivos (metros).", true);
+    return;
+  }
+  if (boxCreateBtnEl) boxCreateBtnEl.disabled = true;
+  setStatus("Criando bloco 3D manifold (Push-Pull)...");
+  try {
+    const res = await createBox(w, l, h);
+    if (res.scene) {
+      if (currentGroup) scene.remove(currentGroup);
+      currentGroup = buildSceneGroup(res.scene);
+      scene.add(currentGroup);
+      updateOutliner(res.scene);
+    }
+    setStatus(`Bloco 3D criado: ${w}x${l}x${h}m (Volume: ${res.box.volume_m3} m³)`);
+    setToolMode("select");
+  } catch (err) {
+    setStatus(`Falha ao criar bloco 3D: ${err.message}`, true);
+  } finally {
+    if (boxCreateBtnEl) boxCreateBtnEl.disabled = false;
+  }
+}
+
+if (boxCreateBtnEl) boxCreateBtnEl.addEventListener("click", handleCreateBox);
+
+// 5. Conversão e Importação de DXF (Frente 20)
+async function handleConvertDxf() {
+  const dxfPath = dxfPathInputEl ? dxfPathInputEl.value.trim() : "";
+  if (!dxfPath) {
+    setStatus("Informe o caminho do arquivo DXF no disco.", true);
+    return;
+  }
+  if (dxfConvertBtnEl) dxfConvertBtnEl.disabled = true;
+  setStatus("Convertendo arquivo DXF para SKP...");
+  try {
+    const res = await convertDxf(dxfPath);
+    setStatus(`DXF convertido: ${res.faces_count} faces, ${res.lines_count} linhas. Abrindo modelo...`);
+    const sceneRes = await openBinaryScene(res.output_skp_path);
+    if (currentGroup) scene.remove(currentGroup);
+    currentGroup = buildSceneGroup(sceneRes);
+    scene.add(currentGroup);
+    updateOutliner(sceneRes);
+    setToolMode("select");
+  } catch (err) {
+    setStatus(`Falha ao converter DXF: ${err.message}`, true);
+  } finally {
+    if (dxfConvertBtnEl) dxfConvertBtnEl.disabled = false;
+  }
+}
+
+if (dxfConvertBtnEl) dxfConvertBtnEl.addEventListener("click", handleConvertDxf);
+
+if (dxfBrowseBtnEl && dxfPickerInputEl) {
+  dxfBrowseBtnEl.addEventListener("click", () => dxfPickerInputEl.click());
+  dxfPickerInputEl.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file && dxfPathInputEl) {
+      dxfPathInputEl.value = file.name;
+    }
+  });
+}

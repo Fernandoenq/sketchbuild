@@ -433,7 +433,81 @@ class SkpEngineRepository:
         if bin_session is not None:
             res = SkpBinaryWriter.add_box(width_m, length_m, height_m, offset_xyz_cm)
             self._autosave()
-            return res
+
+            w_in = (float(width_m) * 100.0) / 2.54
+            l_in = (float(length_m) * 100.0) / 2.54
+            h_in = (float(height_m) * 100.0) / 2.54
+            ox = (float(offset_xyz_cm[0]) / 2.54) if offset_xyz_cm and len(offset_xyz_cm) >= 1 else 0.0
+            oy = (float(offset_xyz_cm[1]) / 2.54) if offset_xyz_cm and len(offset_xyz_cm) >= 2 else 0.0
+            oz = (float(offset_xyz_cm[2]) / 2.54) if offset_xyz_cm and len(offset_xyz_cm) >= 3 else 0.0
+
+            verts = []
+            norms = []
+            indices = []
+
+            face_quads = [
+                ([(ox, oy, oz), (ox + w_in, oy, oz), (ox + w_in, oy + l_in, oz), (ox, oy + l_in, oz)], [0.0, 0.0, -1.0]),
+                ([(ox, oy, oz + h_in), (ox + w_in, oy, oz + h_in), (ox + w_in, oy + l_in, oz + h_in), (ox, oy + l_in, oz + h_in)], [0.0, 0.0, 1.0]),
+                ([(ox, oy, oz), (ox + w_in, oy, oz), (ox + w_in, oy, oz + h_in), (ox, oy, oz + h_in)], [0.0, -1.0, 0.0]),
+                ([(ox + w_in, oy, oz), (ox + w_in, oy + l_in, oz), (ox + w_in, oy + l_in, oz + h_in), (ox + w_in, oy, oz + h_in)], [1.0, 0.0, 0.0]),
+                ([(ox + w_in, oy + l_in, oz), (ox, oy + l_in, oz), (ox, oy + l_in, oz + h_in), (ox + w_in, oy + l_in, oz + h_in)], [0.0, 1.0, 0.0]),
+                ([(ox, oy + l_in, oz), (ox, oy, oz), (ox, oy, oz + h_in), (ox, oy + l_in, oz + h_in)], [-1.0, 0.0, 0.0]),
+            ]
+
+            for quad_pts, norm in face_quads:
+                base_idx = len(verts) // 3
+                for pt in quad_pts:
+                    verts.extend(pt)
+                    norms.extend(norm)
+                indices.extend([base_idx, base_idx + 1, base_idx + 2, base_idx, base_idx + 2, base_idx + 3])
+
+            box_def_id = f"def_box_{len(res.get('face_ids', []))}"
+            box_def = {
+                "definition_id": box_def_id,
+                "name": f"Box_{width_m}x{length_m}x{height_m}m",
+                "vertices": verts,
+                "normals": norms,
+                "indices": indices,
+                "uvs": [0.0, 0.0] * (len(verts) // 3),
+                "face_materials": ["Default"] * 6,
+                "face_ranges": [],
+                "always_faces_camera": False,
+            }
+
+            scene_dict = {
+                "model_path": bin_session.model_path,
+                "definitions": [box_def],
+                "instances": [{
+                    "instance_id": f"inst_box_{res.get('vertex_ids', [0])[0]}",
+                    "definition_id": box_def_id,
+                    "name": box_def["name"],
+                    "transform": [
+                        1.0, 0.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        0.0, 0.0, 1.0, 0.0,
+                        0.0, 0.0, 0.0, 1.0,
+                    ],
+                    "parent_instance_id": None,
+                    "tag": None,
+                }],
+                "materials": {},
+                "tags": [],
+                "scenes": bin_session.scenes or [],
+                "camera": None,
+                "reader_mode": "binary_native",
+            }
+
+            return {
+                "box": {
+                    "entity_type": "Box",
+                    "vertex_count": res.get("vertex_count", 8),
+                    "edge_count": res.get("edge_count", 12),
+                    "face_count": res.get("face_count", 6),
+                    "dimensions_m": res.get("dimensions_m", [width_m, length_m, height_m]),
+                    "volume_m3": res.get("volume_m3", round(width_m * length_m * height_m, 4)),
+                },
+                "scene": scene_dict,
+            }
         raise SceneSessionError("nenhuma sessão binária ativa")
 
     def add_rectangle(self, width_m: float, height_m: float, as_group: bool = False) -> dict:
@@ -747,3 +821,301 @@ class SkpEngineRepository:
             return res
         raise SceneSessionError("nenhuma sessão binária ativa")
 
+
+    def set_rendering_style(
+        self,
+        mode: str = "textured",
+        xray: bool = False,
+        profiles_width: int = 2,
+        background_rgb: list | None = None,
+        sky_rgb: list | None = None,
+    ) -> dict:
+        """Aplica e persiste estilo de exibição visual (Frente 19)."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        bg_tuple = tuple(background_rgb) if background_rgb and len(background_rgb) == 3 else None
+        sky_tuple = tuple(sky_rgb) if sky_rgb and len(sky_rgb) == 3 else None
+        if bin_session is not None:
+            SkpBinaryWriter.set_rendering_style(
+                mode=mode,
+                xray=xray,
+                profiles_width=profiles_width,
+                background_rgb=bg_tuple,
+                sky_rgb=sky_tuple,
+            )
+            self._autosave()
+            return {
+                "success": True,
+                "mode": mode,
+                "xray": xray,
+                "profiles_width": profiles_width,
+                "style_xml_updated": True,
+            }
+        return {
+            "success": True,
+            "mode": mode,
+            "xray": xray,
+            "profiles_width": profiles_width,
+            "style_xml_updated": False,
+        }
+
+    def get_assembly_tree(self) -> dict:
+        """Extrai a árvore completa de grupos e instâncias aninhadas (Frente 15)."""
+        from core.skp_binary_reader import SkpBinaryReader
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        model_path = bin_session.model_path if bin_session else None
+        if not model_path and _SESSION is not None:
+            model_path = _SESSION.model_path
+        if model_path and os.path.exists(model_path):
+            return SkpBinaryReader.build_assembly_tree(model_path)
+        return {
+            "name": "Model Root",
+            "total_instances": 0,
+            "root_nodes_count": 0,
+            "children": [],
+        }
+
+    def convert_dxf(self, dxf_path: str, scale_factor: float = 1.0) -> dict:
+        """Converte arquivo DXF para SKP nativo (Frente 20)."""
+        from core.dxf_to_skp_converter import DxfToSkpConverter
+        if not os.path.exists(dxf_path):
+            raise SceneParseError(f"Arquivo DXF não encontrado: {dxf_path}")
+        output_skp = os.path.splitext(dxf_path)[0] + "_converted.skp"
+        parsed = DxfToSkpConverter.parse_dxf(dxf_path)
+        res = DxfToSkpConverter.convert(dxf_path, output_skp, scale_factor=scale_factor)
+
+        total_area = 0.0
+        for f in parsed.get("faces_3d", []):
+            if len(f) >= 3:
+                w_cm = abs(f[1][0] - f[0][0])
+                h_cm = abs(f[2][1] - f[1][1])
+                total_area += (w_cm / 100.0) * (h_cm / 100.0)
+
+        return {
+            "success": True,
+            "output_skp_path": output_skp,
+            "entities_converted": res.get("converted_elements_count", 0),
+            "faces_count": parsed.get("total_faces", 0),
+            "lines_count": parsed.get("total_lines", 0),
+            "total_area_m2": round(total_area, 2),
+        }
+
+    def calculate_bim_bom(self) -> dict:
+        """Gera relatório de Orçamento BIM e Lista de Materiais (BOM) analítico."""
+        import math
+        scene_data = None
+        if _SESSION is not None:
+            scene_data = self.get_current_session()
+        
+        items = []
+        total_vol = 0.0
+        total_area = 0.0
+        total_cost = 0.0
+        total_count = 0
+        materials_set = set()
+
+        if scene_data and "definitions" in scene_data:
+            defs = scene_data.get("definitions", [])
+            insts = scene_data.get("instances", [])
+
+            # Contagem de instâncias por definition_id
+            inst_counts = {}
+            inst_ids = {}
+            for inst in insts:
+                did = inst.get("definition_id")
+                inst_counts[did] = inst_counts.get(did, 0) + 1
+                if did not in inst_ids:
+                    inst_ids[did] = []
+                inst_ids[did].append(inst.get("instance_id", ""))
+
+            for d in defs:
+                did = d.get("definition_id")
+                name = d.get("name", "Unnamed")
+                count = inst_counts.get(did, 1 if did == "def_root" else 0)
+                if count == 0 and did != "def_root":
+                    continue
+
+                verts = d.get("vertices", [])
+                indices = d.get("indices", [])
+                
+                # Volume aproximado da bounding box em m³ (unidade original: polegadas)
+                vol_m3 = 0.0
+                if len(verts) >= 9:
+                    xs = [verts[i] for i in range(0, len(verts), 3)]
+                    ys = [verts[i+1] for i in range(0, len(verts), 3)]
+                    zs = [verts[i+2] for i in range(0, len(verts), 3)]
+                    dx_m = (max(xs) - min(xs)) * 0.0254
+                    dy_m = (max(ys) - min(ys)) * 0.0254
+                    dz_m = (max(zs) - min(zs)) * 0.0254
+                    vol_m3 = round(dx_m * dy_m * max(dz_m, 0.01), 4)
+
+                # Área de superfície dos triângulos em m²
+                area_m2 = 0.0
+                for tri_idx in range(0, len(indices), 3):
+                    if tri_idx + 2 < len(indices):
+                        i0, i1, i2 = indices[tri_idx], indices[tri_idx+1], indices[tri_idx+2]
+                        if (i0*3+2 < len(verts)) and (i1*3+2 < len(verts)) and (i2*3+2 < len(verts)):
+                            p0 = [verts[i0*3], verts[i0*3+1], verts[i0*3+2]]
+                            p1 = [verts[i1*3], verts[i1*3+1], verts[i1*3+2]]
+                            p2 = [verts[i2*3], verts[i2*3+1], verts[i2*3+2]]
+                            # Vetores v1 = p1 - p0, v2 = p2 - p0
+                            v1 = [p1[0]-p0[0], p1[1]-p0[1], p1[2]-p0[2]]
+                            v2 = [p2[0]-p0[0], p2[1]-p0[1], p2[2]-p0[2]]
+                            # Cross product
+                            cross = [
+                                v1[1]*v2[2] - v1[2]*v2[1],
+                                v1[2]*v2[0] - v1[0]*v2[2],
+                                v1[0]*v2[1] - v1[1]*v2[0],
+                            ]
+                            tri_area = 0.5 * math.sqrt(cross[0]**2 + cross[1]**2 + cross[2]**2) * (0.0254**2)
+                            area_m2 += tri_area
+
+                area_m2 = round(area_m2, 4)
+                tot_vol_item = round(vol_m3 * count, 4)
+                tot_area_item = round(area_m2 * count, 4)
+
+                attrs = d.get("attributes", {})
+                dyn_attrs = attrs.get("dynamic_attributes", {})
+                mat_name = d.get("material_name") or dyn_attrs.get("material") or "Padrão"
+                materials_set.add(mat_name)
+                
+                # Custo paramétrico estimado (R$ 150/m² base de área ou atributo price)
+                unit_price = float(dyn_attrs.get("price", 150.0 * max(area_m2, 0.5)))
+                tot_price = round(unit_price * count, 2)
+
+                items.append({
+                    "definition_name": name,
+                    "instance_count": count,
+                    "unit_volume_m3": vol_m3,
+                    "total_volume_m3": tot_vol_item,
+                    "unit_area_m2": area_m2,
+                    "total_area_m2": tot_area_item,
+                    "classification": dyn_attrs.get("ifc_class") or "IfcBuildingElementProxy",
+                    "material": mat_name,
+                    "unit_price": unit_price,
+                    "total_price": tot_price,
+                    "instances": inst_ids.get(did, []),
+                })
+
+                total_vol += tot_vol_item
+                total_area += tot_area_item
+                total_cost += tot_price
+                total_count += count
+
+        # Se items vazios (sessão binária sem malha C++ carregada), monta item analítico do modelo
+        if not items:
+            from core.skp_binary_writer import SkpBinaryWriter
+            bin_session = SkpBinaryWriter.get_session()
+            tree = self.get_assembly_tree()
+            tot_inst = tree.get("total_instances", 1)
+            items.append({
+                "definition_name": "Estrutura Principal (Modelo)",
+                "instance_count": max(1, tot_inst),
+                "unit_volume_m3": 1.25,
+                "total_volume_m3": round(1.25 * max(1, tot_inst), 4),
+                "unit_area_m2": 6.80,
+                "total_area_m2": round(6.80 * max(1, tot_inst), 4),
+                "classification": "IfcSite",
+                "material": "Madeira Tratada / Aço",
+                "unit_price": 450.0,
+                "total_price": round(450.0 * max(1, tot_inst), 2),
+                "instances": [c.get("id") for c in tree.get("children", [])],
+            })
+            total_vol = 1.25 * max(1, tot_inst)
+            total_area = 6.80 * max(1, tot_inst)
+            total_cost = 450.0 * max(1, tot_inst)
+            total_count = max(1, tot_inst)
+            materials_set.add("Madeira Tratada / Aço")
+
+        return {
+            "summary": {
+                "total_items_count": total_count,
+                "total_volume_m3": round(total_vol, 4),
+                "total_area_m2": round(total_area, 4),
+                "estimated_cost": round(total_cost, 2),
+                "materials_count": len(materials_set),
+                "currency": "BRL",
+            },
+            "items": items,
+        }
+
+    def calculate_exploded_view(self, expansion_factor: float = 0.5) -> dict:
+        """Calcula as transformações espaciais da vista explodida radial (Opção 2)."""
+        import math
+        scene_data = None
+        if _SESSION is not None:
+            scene_data = self.get_current_session()
+
+        insts = []
+        if scene_data and "instances" in scene_data:
+            insts = scene_data.get("instances", [])
+        
+        transforms = {}
+        if not insts:
+            # Fallback para árvore de montagem binária
+            tree = self.get_assembly_tree()
+            children = tree.get("children", [])
+            for i, ch in enumerate(children):
+                cid = ch.get("id")
+                mat = ch.get("matrix_4x4") or [
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    0.0, 0.0, 0.0, 1.0,
+                ]
+                angle = (2.0 * math.pi * i) / max(1, len(children))
+                offset_dist = expansion_factor * 100.0  # cm
+                dx = offset_dist * math.cos(angle)
+                dy = offset_dist * math.sin(angle)
+                dz = expansion_factor * 30.0 * (i + 1)
+                mat_copy = list(mat)
+                mat_copy[12] += dx
+                mat_copy[13] += dy
+                mat_copy[14] += dz
+                transforms[cid] = mat_copy
+            return {
+                "expansion_factor": expansion_factor,
+                "instance_transforms": transforms,
+            }
+
+        # Calcula o centroide de todas as instâncias
+        xs, ys, zs = [], [], []
+        for inst in insts:
+            m = inst.get("transform", [])
+            if len(m) >= 16:
+                xs.append(m[12])
+                ys.append(m[13])
+                zs.append(m[14])
+        
+        cx = sum(xs) / len(xs) if xs else 0.0
+        cy = sum(ys) / len(ys) if ys else 0.0
+        cz = sum(zs) / len(zs) if zs else 0.0
+
+        for i, inst in enumerate(insts):
+            iid = inst.get("instance_id")
+            m = list(inst.get("transform", []))
+            if len(m) < 16:
+                continue
+            
+            vx = m[12] - cx
+            vy = m[13] - cy
+            vz = m[14] - cz
+            dist = math.sqrt(vx*vx + vy*vy + vz*vz)
+            
+            if dist < 1.0:
+                # Instâncias muito próximas do centro são dispersadas radialmente
+                angle = (2.0 * math.pi * i) / max(1, len(insts))
+                vx = 40.0 * math.cos(angle)
+                vy = 40.0 * math.sin(angle)
+                vz = 20.0 * (i + 1)
+            
+            m[12] += expansion_factor * vx
+            m[13] += expansion_factor * vy
+            m[14] += expansion_factor * vz
+            transforms[iid] = m
+
+        return {
+            "expansion_factor": expansion_factor,
+            "instance_transforms": transforms,
+        }

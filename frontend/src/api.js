@@ -314,3 +314,58 @@ export function uploadThumbnail(path, imageDataUrl) {
     image_base64: imageDataUrl,
   });
 }
+
+// ============================================================================
+// Frentes 13, 15, 19, 20 & Desmontador / Orçamento BIM (Opções 1 e 2)
+// ============================================================================
+
+/** Cria um bloco/sólido 3D manifold paramétrico na cena (Frente 13). */
+export function createBox(widthM, lengthM, heightM, offsetXYZ = [0, 0, 0]) {
+  return postJson("/api/v1/scene/box", "POST", {
+    width_m: Number(widthM),
+    length_m: Number(lengthM),
+    height_m: Number(heightM),
+    offset_xyz_cm: offsetXYZ,
+  });
+}
+
+/** Configura o estilo técnico de renderização/exibição (Frente 19). */
+export function setRenderingStyle({ mode = "textured", xray = false, profilesWidth = 2, backgroundRgb = null, skyRgb = null } = {}) {
+  return postJson("/api/v1/scene/style", "POST", {
+    mode,
+    xray,
+    profiles_width: profilesWidth,
+    background_rgb: backgroundRgb,
+    sky_rgb: skyRgb,
+  });
+}
+
+/** Obtém a árvore hierárquica do Outliner e montagens aninhadas (Frente 15). */
+export async function getAssemblyTree() {
+  const res = await fetch("/api/v1/scene/assembly-tree");
+  if (!res.ok) throw new ApiError(res.statusText, res.status);
+  return res.json();
+}
+
+/** Converte arquivo DXF para SKP (Frente 20). */
+export function convertDxf(dxfPath, scaleFactor = 1.0) {
+  return postJson("/api/v1/scene/convert-dxf", "POST", {
+    dxf_path: dxfPath,
+    scale_factor: scaleFactor,
+  });
+}
+
+/** Obtém relatório analítico do Orçamento BIM e Lista de Materiais (BOM). */
+export async function getBimReport() {
+  const res = await fetch("/api/v1/scene/bim-report");
+  if (!res.ok) throw new ApiError(res.statusText, res.status);
+  return res.json();
+}
+
+/** Calcula a matriz 4x4 de todas as instâncias na Vista Explodida. */
+export function calculateExplodedView(expansionFactor = 0.5) {
+  return postJson("/api/v1/scene/exploded-view", "POST", {
+    expansion_factor: Number(expansionFactor),
+  });
+}
+

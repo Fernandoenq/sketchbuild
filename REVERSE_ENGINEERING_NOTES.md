@@ -568,3 +568,36 @@ A Frente 20 integra a capacidade de converter arquivos CAD vetoriais (.dxf) para
 - Módulo `core/dxf_to_skp_converter.py` com classe `DxfToSkpConverter`.
 - Testado em `test_dxf_converter.py` com conversão de DXF sintético para SKP, extração de 6.0 m² de área e homologação na Trimble C++ API oficial.
 
+
+
+---
+
+## 44. Opção 1 e Opção 2: Frontend WebGL Three.js, Desmontador Parkelô & Orçamento BIM
+
+Com a conclusão e homologação das frentes de engenharia reversa no leitor/gravador binário nativo (Zero DLL), foi realizada a integração completa de duas frentes de produto:
+
+### A. Opção 1: Frontend Web & Experiência do Usuário (`sketchbuild`)
+1. **Endpoints de Arquitetura em Camadas (FastAPI):**
+   - `POST /api/v1/scene/box`: Criação de blocos e sólidos paramétricos manifold 3D com injeção na cena Three.js.
+   - `POST /api/v1/scene/style`: Chaveamento de estilos de renderização (Texturizado, Shaded, Linhas Ocultas, Raio-X, Monocromático, Perfis).
+   - `GET /api/v1/scene/assembly-tree`: Obtenção da árvore de montagem aninhada com nomes da Tag 0x1965 e diferenciação de grupos.
+   - `POST /api/v1/scene/convert-dxf`: Upload e conversão automática de arquivos CAD DXF em modelos `.skp`.
+2. **Interface do Usuário (WebGL Three.js):**
+   - Botão **Bloco 3D / Push-Pull** e **Importar DXF** na barra de ferramentas superior.
+   - Seção **Estilos de Renderização** na Bandeja Lateral com dropdown de modos, alternador de Raio-X e slider de perfis.
+   - Atualização dinâmica de materiais em tempo real sem perda dos materiais PBR originais.
+   - Value Control Box (VCB) contextual com inputs de dimensões métricas (`vcb-box` e `vcb-dxf`).
+
+### B. Opção 2: Desmontador Parkelô & Orçamento BIM
+1. **Motor de Vista Explodida (Exploded View):**
+   - Algoritmo de dispersão radial paramétrica baseada no centroide global:
+     $$\vec{P}'_i(\lambda) = \vec{P}_{i,0} + \lambda \cdot (\vec{P}_{i,0} - \vec{C})$$
+   - Slider $\lambda \in [0.0, 2.0]$ na Bandeja Lateral operando a 60 FPS com sincronização de transformações no backend (`POST /api/v1/scene/exploded-view`).
+   - Presets imediatos: Montado (0%), Parcial (50%), Total (100%).
+2. **Orçamentador Paramétrico BIM (BOM - Bill of Materials):**
+   - Extração analítica de quantitativos, cubagem ($\text{m}^3$) e área de superfície ($\text{m}^2$) por definição e instância.
+   - Painel resumo na Bandeja Lateral com cálculo de custo estimado em BRL ($R\$$) e detalhamento por item.
+   - `GET /api/v1/scene/bim-report`.
+3. **Plugin Ruby Parkelô 3D DEV:**
+   - Atualização de `skp_reader.rb` com suporte à Tag 0x1965 e método `calcular_orcamento_bim`.
+   - Execução bem-sucedida do script `deploy.ps1` no SketchUp 2026 oficial.

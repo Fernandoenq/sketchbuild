@@ -42,6 +42,17 @@ from app.schemas.scene import (
     UpdateCameraRequest,
     UpdateCameraResponse,
     UpdateTransformResponse,
+    CreateBoxRequest,
+    CreateBoxResponse,
+    BoxDetailsDTO,
+    SetStyleRequest,
+    SetStyleResponse,
+    AssemblyTreeResponse,
+    ConvertDxfRequest,
+    ConvertDxfResponse,
+    BimBomReportResponse,
+    ExplodedViewRequest,
+    ExplodedViewResponse,
 )
 from app.services.recent_files_service import RecentFilesService
 from app.services.scene_service import SceneService
@@ -419,3 +430,65 @@ class SceneController:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Falha ao atualizar câmera: {e}",
             ) from e
+
+    async def add_box(self, body: CreateBoxRequest) -> CreateBoxResponse:
+        try:
+            res = await self._service.add_box(
+                width_m=body.width_m,
+                length_m=body.length_m,
+                height_m=body.height_m,
+                offset_xyz_cm=body.offset_xyz_cm,
+            )
+            return CreateBoxResponse(
+                box=BoxDetailsDTO.model_validate(res["box"]),
+                scene=SceneResponse.model_validate(res["scene"]),
+            )
+        except InvalidModelPathError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+    async def set_rendering_style(self, body: SetStyleRequest) -> SetStyleResponse:
+        try:
+            res = await self._service.set_rendering_style(
+                mode=body.mode,
+                xray=body.xray,
+                profiles_width=body.profiles_width,
+                background_rgb=body.background_rgb,
+                sky_rgb=body.sky_rgb,
+            )
+            return SetStyleResponse.model_validate(res)
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+    async def get_assembly_tree(self) -> AssemblyTreeResponse:
+        try:
+            res = await self._service.get_assembly_tree()
+            return AssemblyTreeResponse.model_validate(res)
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+    async def convert_dxf(self, body: ConvertDxfRequest) -> ConvertDxfResponse:
+        try:
+            res = await self._service.convert_dxf(dxf_path=body.dxf_path, scale_factor=body.scale_factor)
+            return ConvertDxfResponse.model_validate(res)
+        except InvalidModelPathError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+        except SceneParseError as e:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+
+    async def get_bim_bom_report(self) -> BimBomReportResponse:
+        try:
+            res = await self._service.calculate_bim_bom()
+            return BimBomReportResponse.model_validate(res)
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+    async def calculate_exploded_view(self, body: ExplodedViewRequest) -> ExplodedViewResponse:
+        try:
+            res = await self._service.calculate_exploded_view(expansion_factor=body.expansion_factor)
+            return ExplodedViewResponse.model_validate(res)
+        except InvalidModelPathError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e

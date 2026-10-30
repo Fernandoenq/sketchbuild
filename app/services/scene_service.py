@@ -337,6 +337,47 @@ class SceneService:
             tuple(y_point),
         )
 
+
+    async def add_box(
+        self, width_m: float, length_m: float, height_m: float, offset_xyz_cm: list[float] | None = None
+    ) -> dict:
+        if width_m <= 0 or length_m <= 0 or height_m <= 0:
+            raise InvalidModelPathError("Dimensões do bloco devem ser positivas (width, length, height > 0)")
+        return await run_in_threadpool(self._repository.add_box, width_m, length_m, height_m, offset_xyz_cm)
+
+    async def set_rendering_style(
+        self,
+        mode: str = "textured",
+        xray: bool = False,
+        profiles_width: int = 2,
+        background_rgb: list[int] | None = None,
+        sky_rgb: list[int] | None = None,
+    ) -> dict:
+        return await run_in_threadpool(
+            self._repository.set_rendering_style,
+            mode=mode,
+            xray=xray,
+            profiles_width=profiles_width,
+            background_rgb=background_rgb,
+            sky_rgb=sky_rgb,
+        )
+
+    async def get_assembly_tree(self) -> dict:
+        return await run_in_threadpool(self._repository.get_assembly_tree)
+
+    async def convert_dxf(self, dxf_path: str, scale_factor: float = 1.0) -> dict:
+        if not dxf_path or not dxf_path.lower().endswith(".dxf"):
+            raise InvalidModelPathError("Arquivo deve possuir extensão .dxf")
+        return await run_in_threadpool(self._repository.convert_dxf, dxf_path, scale_factor)
+
+    async def calculate_bim_bom(self) -> dict:
+        return await run_in_threadpool(self._repository.calculate_bim_bom)
+
+    async def calculate_exploded_view(self, expansion_factor: float = 0.5) -> dict:
+        if expansion_factor < 0.0:
+            raise InvalidModelPathError("Fator de expansão deve ser >= 0")
+        return await run_in_threadpool(self._repository.calculate_exploded_view, expansion_factor)
+
     # -- validacoes de dominio ------------------------------------------------
 
     def _validate_model_path(self, file_path: str) -> None:

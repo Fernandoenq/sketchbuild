@@ -43,6 +43,16 @@ from app.schemas.scene import (
     UpdateCameraResponse,
     UpdateTransformRequest,
     UpdateTransformResponse,
+    CreateBoxRequest,
+    CreateBoxResponse,
+    SetStyleRequest,
+    SetStyleResponse,
+    AssemblyTreeResponse,
+    ConvertDxfRequest,
+    ConvertDxfResponse,
+    BimBomReportResponse,
+    ExplodedViewRequest,
+    ExplodedViewResponse,
 )
 
 router = APIRouter(prefix="/scene", tags=["scene"])
@@ -374,3 +384,73 @@ async def set_instance_axes(
     return await controller.set_instance_axes(
         instance_id, body.origin, body.x_point, body.y_point
     )
+
+
+@router.post(
+    "/box",
+    response_model=CreateBoxResponse,
+    summary="Cria um Sólido 3D Manifold paramétrico na cena (Frente 13)",
+)
+async def create_box(
+    body: CreateBoxRequest,
+    controller: SceneController = Depends(get_controller),
+) -> CreateBoxResponse:
+    return await controller.add_box(body)
+
+
+@router.post(
+    "/style",
+    response_model=SetStyleResponse,
+    summary="Configura estilo de renderização/exibição técnica (Frente 19)",
+)
+async def set_rendering_style(
+    body: SetStyleRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SetStyleResponse:
+    return await controller.set_rendering_style(body)
+
+
+@router.get(
+    "/assembly-tree",
+    response_model=AssemblyTreeResponse,
+    summary="Obtém a árvore hierárquica do Outliner e montagens aninhadas (Frente 15)",
+)
+async def get_assembly_tree(
+    controller: SceneController = Depends(get_controller),
+) -> AssemblyTreeResponse:
+    return await controller.get_assembly_tree()
+
+
+@router.post(
+    "/convert-dxf",
+    response_model=ConvertDxfResponse,
+    summary="Converte um arquivo DXF para SKP nativo (Frente 20)",
+)
+async def convert_dxf(
+    body: ConvertDxfRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ConvertDxfResponse:
+    return await controller.convert_dxf(body)
+
+
+@router.get(
+    "/bim-report",
+    response_model=BimBomReportResponse,
+    summary="Gera relatório analítico de Orçamento BIM e Lista de Materiais (BOM)",
+)
+async def get_bim_bom_report(
+    controller: SceneController = Depends(get_controller),
+) -> BimBomReportResponse:
+    return await controller.get_bim_bom_report()
+
+
+@router.post(
+    "/exploded-view",
+    response_model=ExplodedViewResponse,
+    summary="Calcula matrizes transformadas da Vista Explodida paramétrica",
+)
+async def calculate_exploded_view(
+    body: ExplodedViewRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ExplodedViewResponse:
+    return await controller.calculate_exploded_view(body)
