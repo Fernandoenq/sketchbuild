@@ -369,3 +369,18 @@ export function calculateExplodedView(expansionFactor = 0.5) {
   });
 }
 
+// ============================================================================
+// Frente 21: Exportador Multi-formato (GLTF/GLB e IFC BIM)
+// ============================================================================
+
+/** Exporta a cena para glTF 2.0 Binary (.glb) com PBR (Frente 21). */
+export function exportModelGlb(path) {
+  return postJson("/api/v1/scene/export/glb", "POST", { path });
+}
+
+/** Exporta a cena para modelo BIM aberto IFC4 STEP ISO 10303-21 (Frente 21). */
+export function exportModelIfc(path, projectName = "Projeto SketchBuild") {
+  return postJson("/api/v1/scene/export/ifc", "POST", { path, project_name: projectName });
+}
+
+

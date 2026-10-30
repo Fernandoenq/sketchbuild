@@ -378,6 +378,16 @@ class SceneService:
             raise InvalidModelPathError("Fator de expansão deve ser >= 0")
         return await run_in_threadpool(self._repository.calculate_exploded_view, expansion_factor)
 
+    async def export_model_glb(self, file_path: str) -> dict:
+        if not file_path or not file_path.strip() or not file_path.lower().endswith(".glb"):
+            raise InvalidModelPathError(f"Caminho de exportação deve apontar para um arquivo .glb (recebido: {file_path!r})")
+        return await run_in_threadpool(self._repository.export_glb, file_path)
+
+    async def export_model_ifc(self, file_path: str, project_name: str = "Projeto SketchBuild") -> dict:
+        if not file_path or not file_path.strip() or not file_path.lower().endswith(".ifc"):
+            raise InvalidModelPathError(f"Caminho de exportação deve apontar para um arquivo .ifc (recebido: {file_path!r})")
+        return await run_in_threadpool(self._repository.export_ifc, file_path, project_name)
+
     # -- validacoes de dominio ------------------------------------------------
 
     def _validate_model_path(self, file_path: str) -> None:

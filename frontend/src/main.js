@@ -36,6 +36,8 @@ import {
   convertDxf,
   getBimReport,
   calculateExplodedView,
+  exportModelGlb,
+  exportModelIfc,
   ApiError,
 } from "./api.js";
 import {
@@ -1823,6 +1825,8 @@ const MENU_ACTIONS = {
   save: () => handleSave(),
   "save-as": () => savePathInputEl.focus(),
   "export-obj": () => exportObjPathInputEl.focus(),
+  "export-glb": () => handleExportGlb(),
+  "export-ifc": () => handleExportIfc(),
   delete: () => handleDeleteSelected(),
   "toggle-axes": () => setAxesVisible(!axesVisible),
   "toggle-shadows": () => setShadowsEnabled(!shadowsEnabled),
@@ -2399,4 +2403,42 @@ if (dxfBrowseBtnEl && dxfPickerInputEl) {
       dxfPathInputEl.value = file.name;
     }
   });
+}
+
+async function handleExportGlb() {
+  const currentPath = savePathInputEl ? savePathInputEl.value.trim() : "";
+  const defaultTarget = currentPath
+    ? currentPath.replace(/\.skp$/i, ".glb")
+    : "C:\\Users\\Fernando\\Desktop\\modelo_exportado.glb";
+
+  const targetPath = prompt("Informe o caminho de destino para o arquivo glTF/GLB (.glb):", defaultTarget);
+  if (!targetPath || !targetPath.trim()) return;
+
+  setStatus(`Exportando modelo glTF 2.0 Binary para ${targetPath}...`);
+  try {
+    const res = await exportModelGlb(targetPath.trim());
+    setStatus(`glTF/GLB exportado com sucesso: ${res.path} (${(res.file_size_bytes / 1024).toFixed(1)} KB)`);
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Falha ao exportar GLB: ${detail}`, true);
+  }
+}
+
+async function handleExportIfc() {
+  const currentPath = savePathInputEl ? savePathInputEl.value.trim() : "";
+  const defaultTarget = currentPath
+    ? currentPath.replace(/\.skp$/i, ".ifc")
+    : "C:\\Users\\Fernando\\Desktop\\modelo_bim.ifc";
+
+  const targetPath = prompt("Informe o caminho de destino para o arquivo BIM IFC4 (.ifc):", defaultTarget);
+  if (!targetPath || !targetPath.trim()) return;
+
+  setStatus(`Exportando modelo BIM IFC4 STEP para ${targetPath}...`);
+  try {
+    const res = await exportModelIfc(targetPath.trim(), "Projeto SketchBuild");
+    setStatus(`IFC4 BIM exportado com sucesso: ${res.path} (${res.elements_count} elementos)`);
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Falha ao exportar IFC: ${detail}`, true);
+  }
 }

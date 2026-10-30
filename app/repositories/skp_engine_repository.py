@@ -1119,3 +1119,108 @@ class SkpEngineRepository:
             "expansion_factor": expansion_factor,
             "instance_transforms": transforms,
         }
+
+    def _get_export_scene_data(self) -> dict:
+        """Obtém os dados completos da cena (definitions, instances, materials) para exportação."""
+        global _SESSION
+        if _SESSION is not None:
+            dto, _, _ = extract_scene_with_registry(_SESSION.api, _SESSION.model)
+            return dto
+
+        from core.skp_binary_writer import SkpBinaryWriter
+        from core.skp_binary_reader import SkpBinaryReader
+        bin_s = SkpBinaryWriter.get_session()
+        if bin_s is not None and bin_s.model_path and os.path.exists(bin_s.model_path):
+            faces = SkpBinaryReader.extract_faces_and_triangles(bin_s.model_path)
+            materials = SkpBinaryReader.extract_materials(bin_s.model_path)
+            tree = SkpBinaryReader.build_assembly_tree(bin_s.model_path)
+
+            all_verts = []
+            all_indices = []
+            all_norms = []
+            for f in faces:
+                base_idx = len(all_verts) // 3
+                for v in f.get("vertices", []):
+                    all_verts.extend(v)
+                    all_norms.extend(f.get("normal", [0.0, 0.0, 1.0]))
+                for idx in f.get("triangles", []):
+                    all_indices.append(base_idx + idx)
+
+            root_def = {
+                "definition_id": "def_root",
+                "name": "Model Root",
+                "vertices": all_verts,
+                "normals": all_norms,
+                "indices": all_indices,
+                "uvs": [],
+                "material_name": "Default",
+                "face_materials": ["Default"],
+                "face_ranges": [],
+                "always_faces_camera": False,
+            }
+
+            insts = []
+            for ch in tree.get("children", []):
+                insts.append({
+                    "instance_id": ch.get("id"),
+                    "definition_id": "def_root",
+                    "name": ch.get("name"),
+                    "transform": ch.get("matrix_4x4") or [
+                        1.0, 0.0, 0.0, 0.0,
+                        0.0, 1.0, 0.0, 0.0,
+                        0.0, 0.0, 1.0, 0.0,
+                        0.0, 0.0, 0.0, 1.0,
+                    ],
+                    "parent_instance_id": None,
+                    "attributes": {},
+                })
+
+            mat_dict = {}
+            for m_name, m_obj in materials.items():
+                mat_dict[m_name] = {
+                    "color": m_obj.color if hasattr(m_obj, "color") else [140, 153, 166],
+                    "opacity": m_obj.opacity if hasattr(m_obj, "opacity") else 1.0,
+                    "roughness": 0.85,
+                    "metalness": 0.05,
+                }
+
+            return {
+                "definitions": [root_def],
+                "instances": insts,
+                "materials": mat_dict,
+            }
+
+        raise SceneSessionError("Nenhuma sessão ativa com modelo carregado para exportação.")
+
+    def export_glb(self, file_path: str) -> dict:
+        """Exporta nativamente o modelo para glTF 2.0 Binary (.glb) (Frente 21 - Zero DLL)."""
+        from core.glb_exporter import GlbExporter
+        scene_data = self._get_export_scene_data()
+        try:
+            res = GlbExporter.export_from_scene_data(scene_data, file_path)
+            return {
+                "saved": True,
+                "path": file_path,
+                "file_size_bytes": res.get("file_size_bytes", 0),
+                "mesh_count": res.get("mesh_count", 0),
+                "node_count": res.get("node_count", 0),
+                "format": "glTF 2.0 Binary (.glb)",
+            }
+        except Exception as e:
+            raise SceneSessionError(f"Falha ao exportar modelo GLB: {e}") from e
+
+    def export_ifc(self, file_path: str, project_name: str = "Projeto SketchBuild") -> dict:
+        """Exporta nativamente o modelo para IFC4 / STEP ISO 10303-21 (Frente 21 - Zero DLL)."""
+        from core.ifc_exporter import IfcExporter
+        scene_data = self._get_export_scene_data()
+        try:
+            res = IfcExporter.export_from_scene_data(scene_data, file_path, project_name=project_name)
+            return {
+                "saved": True,
+                "path": file_path,
+                "file_size_bytes": res.get("file_size_bytes", 0),
+                "elements_count": res.get("elements_count", 0),
+                "format": "Industry Foundation Classes (IFC4 STEP)",
+            }
+        except Exception as e:
+            raise SceneSessionError(f"Falha ao exportar modelo IFC: {e}") from e
