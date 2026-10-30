@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends
 from app.controllers.model_controller import ModelController
 from app.schemas.model import (
     CloseModelResponse,
+    ExtractMeshBinaryResponse,
     InspectBinaryRequest,
     InspectBinaryResponse,
     ModelSummaryResponse,
@@ -71,4 +72,31 @@ async def inspect_binary_skp(body: InspectBinaryRequest) -> InspectBinaryRespons
         min_pt_cm=list(info["min_pt_cm"]),
         max_pt_cm=list(info["max_pt_cm"]),
         is_empty=info["is_empty"],
+    )
+
+
+@router.post(
+    "/extract-mesh-binary",
+    response_model=ExtractMeshBinaryResponse,
+    summary="Reconstrói a malha 3D completa (Vértices, Normais, Triângulos) direto do model.dat sem DLL",
+)
+async def extract_mesh_binary_skp(body: InspectBinaryRequest) -> ExtractMeshBinaryResponse:
+    mesh = SkpBinaryReader.extract_mesh(body.path)
+    if not mesh:
+        raise HTTPException(status_code=400, detail="Não foi possível reconstruir a malha do arquivo .skp")
+    return ExtractMeshBinaryResponse(
+        vertices=mesh["vertices"],
+        normals=mesh["normals"],
+        indices=mesh["indices"],
+        num_faces=mesh["num_faces"],
+        num_vertices=mesh["num_vertices"],
+        bounds=InspectBinaryResponse(
+            num_vertices=mesh["bounds"]["num_vertices"],
+            largura_cm=mesh["bounds"]["largura_cm"],
+            profundidade_cm=mesh["bounds"]["profundidade_cm"],
+            altura_cm=mesh["bounds"]["altura_cm"],
+            min_pt_cm=list(mesh["bounds"]["min_pt_cm"]),
+            max_pt_cm=list(mesh["bounds"]["max_pt_cm"]),
+            is_empty=mesh["bounds"]["is_empty"],
+        ),
     )

@@ -44,10 +44,10 @@ Cada vértice do modelo é empacotado em exatamente 46 bytes:
 
 ### B. Arestas (`Edges` | Tamanho fixo: 64 bytes)
 - Localizadas imediatamente após a sequência de vértices.
-- Cada aresta conecta dois vértices (`StartVertexID` e `EndVertexID`) com um gap de 10 bytes de flags entre eles:
-  - Flag de suavidade (`soft` / `smooth`)
-  - Flag de visibilidade (`hidden`)
-  - Índice de camada (`Layer/Tag`)
+- Tag de Vértice Inicial: `\xb9\x0b\x04\x00\x00\x00` (`uint32 StartVertexID`).
+- Tag de Vértice Final: `\xba\x0b\x04\x00\x00\x00` (`uint32 EndVertexID`).
+- O `EdgeID` (`uint32`) fica 20 bytes antes da tag de vértice inicial (`de 05 04 ... [EdgeID]`).
+- Contém flags de suavidade (`soft` / `smooth`), visibilidade (`hidden`) e camada/tag.
 
 ### C. Faces e Loops Half-Edge
 - **Equação Cartesiana do Plano (Tag `0x0dad` | 32 bytes):**
@@ -55,7 +55,11 @@ Cada vértice do modelo é empacotado em exatamente 46 bytes:
   - O vetor $(A, B, C)$ representa a normal normalizada da face.
   - $D$ representa o deslocamento perpendicular a partir da origem.
 - **Loops Half-Edge (Tag `0x0fa0`):**
-  Lista encadeada de arestas com flag booleana de direção (`0x00` ou `0x01`) definindo o sentido horário/anti-horário para coerência topológica da normal.
+  Lista encadeada de arestas com flag booleana de direção (`0x00` ou `0x01`):
+  - `dir == 0`: o segmento é percorrido de `StartVertex` para `EndVertex`.
+  - `dir == 1`: o segmento é percorrido de `EndVertex` para `StartVertex`.
+  - Percorrendo o loop em ordem, obtém-se o polígono planar ordenado `[V0, V1, V2, V3, ...]`.
+  - A triangulação é feita via Fan Triangulation (`(0, 1, 2), (0, 2, 3), ...`) ou Earcut, gerando triângulos com orientação anti-horária coerente com a normal $Ax + By + Cz + D = 0$.
 
 ---
 

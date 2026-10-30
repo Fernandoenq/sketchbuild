@@ -67,6 +67,15 @@ class InspectBinaryResponse(BaseModel):
     is_empty: bool
 
 
+class ExtractMeshBinaryResponse(BaseModel):
+    vertices: list[float]
+    normals: list[float]
+    indices: list[int]
+    num_faces: int
+    num_vertices: int
+    bounds: InspectBinaryResponse
+
+
 class HealthResponse(BaseModel):
     status: str
     bridge: PingResponse | None = None
