@@ -438,3 +438,19 @@ class SceneService:
     def _validate_scene_name(self, name: str) -> None:
         if not name or not name.strip():
             raise InvalidModelPathError("nome da cena nao pode ser vazio")
+
+    async def export_cutlist_xlsx(self, file_path: str) -> dict:
+        """Exporta lista de corte e orçamento em Excel .xlsx (Frente 23)."""
+        return await run_in_threadpool(self._repository.export_cutlist_xlsx, file_path)
+
+    async def add_circle_geometry(self, radius_m: float, center_xyz_m: list, num_segments: int = 24) -> dict:
+        """Cria círculo plano B-Rep (Frente 14)."""
+        return await run_in_threadpool(self._repository.add_circle_geometry, radius_m, center_xyz_m, num_segments)
+
+    async def add_cylinder_geometry(self, radius_m: float, height_m: float, center_xyz_m: list, num_segments: int = 16) -> dict:
+        """Cria cilindro manifold paramétrico (Frente 14)."""
+        return await run_in_threadpool(self._repository.add_cylinder_geometry, radius_m, height_m, center_xyz_m, num_segments)
+
+    async def extrude_face_geometry(self, points_m: list, distance_m: float, normal: list | None = None) -> dict:
+        """Extrude face coplanar para sólido 3D Push/Pull (Frente 24)."""
+        return await run_in_threadpool(self._repository.extrude_face_geometry, points_m, distance_m, normal)
