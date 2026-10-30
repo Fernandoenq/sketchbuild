@@ -433,6 +433,143 @@ class SkpBinaryWriter:
         }
 
     @classmethod
+    def delete_instance(cls, instance_id: str) -> bool:
+        """Exclui nativamente uma ComponentInstance existente no model.dat (Pure Python / Zero DLL).
+
+        Remove o bloco Tag 0x1964 do contêiner Tag 0x138c, remove a referência de EntityID
+        na Tag 0x138e, atualiza os comprimentos dos contêineres pais (Tag 0x138c, Tag 0x1388,
+        Tag 0x01f6 e Tag 0x01f4) e reajusta com precisão todos os offsets subsequentes na sessão.
+        """
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        if instance_id == "inst_root":
+            raise SceneSessionError("a raiz do modelo ('inst_root') não pode ser excluída")
+
+        # 1. Encontra o offset da instância
+        offset = session.instances_offsets.get(instance_id)
+        target_key = instance_id
+        if offset is None:
+            for key, off in session.instances_offsets.items():
+                if key == instance_id or key.startswith(f"inst_{instance_id}_") or key.endswith(f"_{instance_id}"):
+                    offset = off
+                    target_key = key
+                    break
+
+        if offset is None:
+            raise SceneSessionError(f"instância {instance_id!r} não encontrada na sessão binária")
+
+        mb = session.model_bytes
+
+        # 2. Localiza o contêiner mestre da instância (Tag 0x1964)
+        p_c64 = mb.rfind(b"\x64\x19", max(0, offset - 400), offset)
+        if p_c64 == -1:
+            raise SceneSessionError(f"contêiner binário Tag 0x1964 não localizado para {instance_id!r}")
+
+        c64_len = struct.unpack_from("<I", mb, p_c64 + 2)[0]
+        c64_total = 6 + c64_len
+        inst_block = mb[p_c64 : p_c64 + c64_total]
+
+        # 3. Extrai o EntityID da instância para remoção da Tag 0x138e
+        p_de = inst_block.find(b"\xde\x05")
+        target_eid = None
+        if p_de != -1:
+            eid_len = struct.unpack_from("<I", inst_block, p_de + 2)[0]
+            if 1 <= eid_len <= 8 and p_de + 6 + eid_len <= len(inst_block):
+                target_eid = int.from_bytes(inst_block[p_de + 6 : p_de + 6 + eid_len], "little")
+
+        # 4. Localiza o contêiner de instâncias Tag 0x138c
+        p_138c = mb.rfind(b"\x8c\x13", 0, p_c64)
+        if p_138c == -1:
+            raise SceneSessionError("contêiner de instâncias Tag 0x138c não localizado")
+
+        old_138c_len = struct.unpack_from("<I", mb, p_138c + 2)[0]
+
+        # 5. Remove o bloco da instância fisicamente de model_bytes
+        del mb[p_c64 : p_c64 + c64_total]
+        inst_delta = c64_total
+
+        # Atualiza o comprimento de Tag 0x138c
+        struct.pack_into("<I", mb, p_138c + 2, max(0, old_138c_len - inst_delta))
+
+        # 6. Localiza e atualiza o vetor de instâncias Tag 0x138e
+        tag_8e_delta = 0
+        p_8e = mb.find(b"\x8e\x13", p_c64)
+        if p_8e != -1 and target_eid is not None:
+            old_8e_len = struct.unpack_from("<I", mb, p_8e + 2)[0]
+            old_8e_data = mb[p_8e + 6 : p_8e + 6 + old_8e_len]
+
+            idx = 0
+            found_offset_in_8e = -1
+            item_size_in_8e = 0
+            while idx < old_8e_len:
+                l = old_8e_data[idx]
+                if idx + 1 + l > old_8e_len:
+                    break
+                val = int.from_bytes(old_8e_data[idx + 1 : idx + 1 + l], "little")
+                if val == target_eid:
+                    found_offset_in_8e = idx
+                    item_size_in_8e = 1 + l
+                    break
+                idx += 1 + l
+
+            if found_offset_in_8e != -1:
+                new_8e_data = old_8e_data[:found_offset_in_8e] + old_8e_data[found_offset_in_8e + item_size_in_8e :]
+                new_8e_len = len(new_8e_data)
+                tag_8e_delta = item_size_in_8e
+                mb[p_8e + 6 : p_8e + 6 + old_8e_len] = new_8e_data
+                struct.pack_into("<I", mb, p_8e + 2, new_8e_len)
+
+        total_delta = inst_delta + tag_8e_delta
+
+        # 7. Atualiza os contêineres pais superiores
+        p_1388 = mb.rfind(b"\x88\x13", 0, p_138c)
+        if p_1388 != -1:
+            old_1388_len = struct.unpack_from("<I", mb, p_1388 + 2)[0]
+            struct.pack_into("<I", mb, p_1388 + 2, max(0, old_1388_len - total_delta))
+
+        p_01f6 = mb.rfind(b"\xf6\x01", 0, p_1388 if p_1388 != -1 else p_138c)
+        if p_01f6 != -1:
+            old_f6_len = struct.unpack_from("<I", mb, p_01f6 + 2)[0]
+            struct.pack_into("<I", mb, p_01f6 + 2, max(0, old_f6_len - total_delta))
+
+        old_f4_len = struct.unpack_from("<I", mb, 2)[0]
+        struct.pack_into("<I", mb, 2, max(0, old_f4_len - total_delta))
+
+        # 8. Remove a instância da sessão
+        del session.instances_offsets[target_key]
+
+        # 9. Reajusta offsets na sessão
+        def adjust_offset(pos: Optional[int]) -> Optional[int]:
+            if pos is None:
+                return None
+            if p_8e != -1 and pos > p_8e:
+                return pos - total_delta
+            elif pos > p_c64:
+                return pos - inst_delta
+            return pos
+
+        for k in list(session.instances_offsets.keys()):
+            session.instances_offsets[k] = adjust_offset(session.instances_offsets[k])
+
+        if session.camera_offset is not None:
+            session.camera_offset = adjust_offset(session.camera_offset)
+
+        for t in list(session.tags_offsets.keys()):
+            session.tags_offsets[t] = adjust_offset(session.tags_offsets[t])
+
+        if session.active_scene_offset is not None:
+            session.active_scene_offset = adjust_offset(session.active_scene_offset)
+
+        for s in session.scenes:
+            if "offset" in s:
+                s["offset"] = adjust_offset(s["offset"])
+
+        session.is_dirty = True
+        return True
+
+    @classmethod
     def paint_material(
         cls, material_name: str, r: int, g: int, b: int, opacity: float = 1.0
     ) -> None:

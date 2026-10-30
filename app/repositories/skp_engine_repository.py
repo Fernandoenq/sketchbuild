@@ -348,6 +348,12 @@ class SkpEngineRepository:
         """Equivalente nativo do "Editar > Excluir"/Del -- ver
         core/su_api.py erase_instance() e REVERSE_ENGINEERING_NOTES.md
         secao 26."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None:
+            SkpBinaryWriter.delete_instance(instance_id)
+            return
+
         session = self._require_session()
         entry = session.registry.get(instance_id)
         if entry is None or entry["ref"] is None or entry["parent_entities"] is None:
