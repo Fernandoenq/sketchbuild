@@ -211,3 +211,46 @@ Com esse motor, extraímos diretamente:
 - **FastAPI (`GET /api/v1/scene/attributes?path=...`):** Exposição REST unificada para consumo por aplicações externas.
 - **Three.js / WebGL (`frontend/`):** Exibição em tempo real na aba lateral "Informações da entidade" com tabela de variáveis e destaque para fórmulas paramétricas.
 - **Ruby (`ParkeloDev::SkpReader.extrair_atributos(file_path)`):** Leitor puro em Ruby sem chamadas nativas em C++ para plugins do SketchUp Desktop.
+
+---
+
+## 35. Frente 7: Decodificação e Edição In-Place da Câmera Real 3D e Etiquetas/Camadas (Layers/Tags)
+
+### A. Câmera Nativa no Stream `model.dat`
+Ao salvar um modelo no SketchUp Desktop, a posição de visualização do arquiteto não é uma bounding box sintética, mas sim uma câmera analítica completa com coordenadas em polegadas (Z-up), vetor de subida e campo de visão (FOV).
+
+As seguintes sequências TLV foram descobertas e mapeadas no cabeçalho do `model.dat`:
+1. **Eye Point3D (`Tag 0x34bd`):**
+   - Assinatura: `\xbd\x34\x18\x00\x00\x00` (comprimento fixo de 24 bytes).
+   - Dados: 3 doubles IEEE 754 de 64 bits (`<3d`) representando as coordenadas $[X, Y, Z]$ do observador em polegadas.
+2. **Target Point3D (`Tag 0x34be`):**
+   - Assinatura: `\xbe\x34\x18\x00\x00\x00` (comprimento fixo de 24 bytes).
+   - Dados: 3 doubles IEEE 754 (`<3d`) para o ponto de foco $[X, Y, Z]$ em polegadas.
+3. **Up Vector3D (`Tag 0x34bf`):**
+   - Assinatura: `\xbf\x34\x18\x00\x00\x00` (comprimento fixo de 24 bytes).
+   - Dados: 3 doubles IEEE 754 (`<3d`) representando o vetor unitário de subida (tipicamente $[0, 0, 1]$ com pequenas rotações de roll).
+4. **Perspectiva (`Tag 0x34c2`):**
+   - Assinatura: `\xc2\x34\x01\x00\x00\x00` (1 byte).
+   - Dados: `\x01` para perspectiva cônica, `\x00` para projeção paralela/ortográfica.
+5. **Campo de Visão FOV (`Tag 0x34c4`):**
+   - Assinatura: `\xc4\x34\x08\x00\x00\x00` (8 bytes).
+   - Dados: 1 double IEEE 754 (`<d`) com o ângulo em graus (ex.: `35.0`, `60.0`).
+6. **FOV is Height (`Tag 0x34c6`):**
+   - Assinatura: `\xc6\x34\x01\x00\x00\x00` (1 byte).
+   - Dados: `\x01` para FOV vertical (altura).
+
+### B. Etiquetas e Camadas (Layers / Tags) no `model.dat`
+As etiquetas que organizam a visibilidade dos elementos arquitetônicos são estruturadas em registros sequenciais com seu respectivo EntityID e material associado:
+1. **Container de Layer (`Tag 0x3c8c`):** Agrupa os descritores da etiqueta.
+2. **EntityID (`Tag 0x05de`):** Identificador exclusivo numérico da etiqueta no modelo.
+3. **Nome da Tag (`Tag 0x3c8d`):** `\x8d\x3c` + `uint32 length` + string UTF-8 (ex.: `Layer0`, `Sapatas`, `PAREDE`, `stainless`).
+4. **Flag de Visibilidade (`Tag 0x3c8e`):** `\x8e\x3c` + `uint32 length` (1) + byte:
+   - `0x00`: Visível.
+   - `0x01`: Oculta.
+5. **Material de Cor da Etiqueta (`Tag 0x3c8f` / `Tag 0x32cc`):** Nome do material para renderização "Color by Tag" (ex.: `Layer_Sapatas`).
+
+### C. Gravação In-Place de Câmera e Visibilidade (Zero DLL)
+Como os blocos de Eye (`0x34bd`), Target (`0x34be`) e Up (`0x34bf`) têm tamanhos fixos (72 bytes de coordenadas), e a visibilidade de cada camada ocupa exatamente 1 byte (`0x3c8e`), o `SkpBinaryWriter` executa edições in-place diretamente na memória do `model.dat`:
+- **Câmera:** Gravação via `struct.pack_into("<3d", ...)` sem reconstruir a topologia nem mover ponteiros.
+- **Etiquetas:** Alternância de visibilidade alterando um único byte `0x00 <-> 0x01`.
+- **Persistência Total:** O salvamento gera um arquivo `.skp` compatível que reflete as modificações instantaneamente tanto no Three.js quanto no SketchUp Desktop nativo.

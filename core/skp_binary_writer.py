@@ -42,11 +42,15 @@ class SkpBinarySession:
         raw_zip_data: bytes,
         model_bytes: bytearray,
         instances_offsets: Dict[str, int],
+        camera_offset: Optional[int] = None,
+        tags_offsets: Optional[Dict[str, int]] = None,
     ):
         self.model_path: Optional[str] = file_path
         self.raw_zip_data: bytes = raw_zip_data
         self.model_bytes: bytearray = model_bytes
         self.instances_offsets: Dict[str, int] = instances_offsets
+        self.camera_offset: Optional[int] = camera_offset
+        self.tags_offsets: Dict[str, int] = tags_offsets or {}
         self.modified_materials: Dict[str, Dict[str, Any]] = {}
         self.is_dirty: bool = False
 
@@ -54,6 +58,8 @@ class SkpBinarySession:
         self.raw_zip_data = b""
         self.model_bytes = bytearray()
         self.instances_offsets.clear()
+        self.tags_offsets.clear()
+        self.camera_offset = None
         self.modified_materials.clear()
         self.is_dirty = False
 
@@ -92,11 +98,34 @@ class SkpBinaryWriter:
             if "offset" in inst:
                 instances_offsets[inst_id] = inst["offset"]
 
+        # Extrai a câmera real e seus offsets
+        camera_dto = SkpBinaryReader._parse_camera(bytes(model_bytes))
+        camera_offset = camera_dto.get("offset") if camera_dto else None
+
+        # Mapeia offsets de visibilidade das Tags (Tag 0x3c8e)
+        tags_offsets: Dict[str, int] = {}
+        idx = 0
+        buf = bytes(model_bytes)
+        buf_len = len(buf)
+        while True:
+            p_name = buf.find(SkpBinaryReader.TAG_LAYER_NAME, idx)
+            if p_name == -1 or p_name + 6 > buf_len:
+                break
+            slen = struct.unpack_from("<I", buf, p_name + 2)[0]
+            if 1 <= slen <= 120 and p_name + 6 + slen <= buf_len:
+                tname = buf[p_name + 6 : p_name + 6 + slen].decode("utf-8", errors="replace").strip("\x00").strip()
+                p_vis = buf.find(SkpBinaryReader.TAG_LAYER_VISIBILITY, p_name + 6 + slen, min(buf_len, p_name + 6 + slen + 50))
+                if p_vis != -1 and tname:
+                    tags_offsets[tname] = p_vis + 6
+            idx = p_name + 1
+
         session = SkpBinarySession(
             file_path=file_path,
             raw_zip_data=raw_zip_data,
             model_bytes=model_bytes,
             instances_offsets=instances_offsets,
+            camera_offset=camera_offset,
+            tags_offsets=tags_offsets,
         )
         cls._ACTIVE_SESSION = session
         return session
@@ -159,6 +188,77 @@ class SkpBinaryWriter:
             "opacity": max(0.0, min(1.0, float(opacity))),
         }
         cls._ACTIVE_SESSION.is_dirty = True
+
+    @classmethod
+    def set_camera(
+        cls,
+        eye: List[float],
+        target: List[float],
+        up: Optional[List[float]] = None,
+        fov_deg: Optional[float] = None,
+        in_inches: bool = True,
+    ) -> None:
+        """Grava a orientação e posição da Câmera 3D in-place no model.dat (Zero DLL)."""
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        if session.camera_offset is None:
+            raise SceneSessionError("offset da câmera não mapeado no modelo atual")
+
+        scale = 1.0 if in_inches else (1.0 / 2.54)
+        eye_in = [float(eye[0]) * scale, float(eye[1]) * scale, float(eye[2]) * scale]
+        tgt_in = [float(target[0]) * scale, float(target[1]) * scale, float(target[2]) * scale]
+
+        # 1. Tag 0x34bd (Eye Point3D - 24 bytes)
+        struct.pack_into("<3d", session.model_bytes, session.camera_offset + 6, *eye_in)
+
+        # 2. Tag 0x34be (Target Point3D - 24 bytes)
+        p_tgt = session.model_bytes.find(
+            SkpBinaryReader.TAG_CAMERA_TARGET,
+            session.camera_offset,
+            session.camera_offset + 60,
+        )
+        if p_tgt != -1:
+            struct.pack_into("<3d", session.model_bytes, p_tgt + 6, *tgt_in)
+
+        # 3. Tag 0x34bf (Up Vector3D - 24 bytes)
+        if up and len(up) >= 3:
+            p_up = session.model_bytes.find(
+                SkpBinaryReader.TAG_CAMERA_UP,
+                session.camera_offset,
+                session.camera_offset + 100,
+            )
+            if p_up != -1:
+                struct.pack_into("<3d", session.model_bytes, p_up + 6, float(up[0]), float(up[1]), float(up[2]))
+
+        # 4. Tag 0x34c4 (FOV Degrees - 8 bytes)
+        if fov_deg is not None:
+            p_fov = session.model_bytes.find(
+                SkpBinaryReader.TAG_CAMERA_FOV,
+                session.camera_offset,
+                session.camera_offset + 160,
+            )
+            if p_fov != -1:
+                struct.pack_into("<d", session.model_bytes, p_fov + 6, float(fov_deg))
+
+        session.is_dirty = True
+
+    @classmethod
+    def set_tag_visibility(cls, tag_name: str, visible: bool) -> bool:
+        """Modifica a visibilidade de uma Tag/Layer in-place no model.dat (1 byte na Tag 0x3c8e)."""
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        vis_offset = session.tags_offsets.get(tag_name)
+        if vis_offset is None:
+            return False
+
+        # 0x00 = Visível, 0x01 = Oculta
+        session.model_bytes[vis_offset] = 0x00 if visible else 0x01
+        session.is_dirty = True
+        return True
 
     @classmethod
     def save_session(

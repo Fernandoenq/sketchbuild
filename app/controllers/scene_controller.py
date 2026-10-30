@@ -38,6 +38,8 @@ from app.schemas.scene import (
     TagDTO,
     TagInstanceResponse,
     ListTagsResponse,
+    UpdateCameraRequest,
+    UpdateCameraResponse,
     UpdateTransformResponse,
 )
 from app.services.recent_files_service import RecentFilesService
@@ -387,3 +389,18 @@ class SceneController:
                 status_code=status.HTTP_409_CONFLICT, detail=str(e)
             ) from e
         return AddRectangleResponse(scene=SceneResponse.model_validate(scene))
+
+    async def update_camera(self, body: UpdateCameraRequest) -> UpdateCameraResponse:
+        try:
+            await self._service.update_camera(
+                eye=body.eye,
+                target=body.target,
+                up=body.up,
+                fov_deg=body.fov_deg,
+            )
+            return UpdateCameraResponse(applied=True)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Falha ao atualizar câmera: {e}",
+            ) from e

@@ -135,6 +135,23 @@ class CameraDTO(BaseModel):
     fov_is_height: bool = True
 
 
+class TagDTO(BaseModel):
+    """Uma Etiqueta (Tag/Layer) real do modelo -- ver
+    REVERSE_ENGINEERING_NOTES.md seção 28.22 (SUModelGetLayers/
+    SULayerGetName/SULayerGetVisibility). `is_default` marca a Etiqueta
+    padrão real do modelo ("Sem etiquetas"), que nenhuma instância
+    atribuída explicitamente usa mas toda instância sem Etiqueta
+    pertence a ela."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    visible: bool
+    is_default: bool = False
+    id: int | None = None
+    material_name: str | None = None
+
+
 class SceneResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -154,6 +171,10 @@ class SceneResponse(BaseModel):
         "frontend usa isso pra posicionar a camera inicial em vez de so "
         "enquadrar pela bounding box, ver REVERSE_ENGINEERING_NOTES.md "
         "secao 28.23.",
+    )
+    tags: list[TagDTO] = Field(
+        default_factory=list,
+        description="Lista de etiquetas / camadas (Tags / Layers) presentes no modelo",
     )
     materials: dict[str, MaterialDTO] = Field(
         default_factory=dict,
@@ -297,25 +318,25 @@ class TagInstanceResponse(BaseModel):
     tag_name: str
 
 
-class TagDTO(BaseModel):
-    """Uma Etiqueta (Tag/Layer) real do modelo -- ver
-    REVERSE_ENGINEERING_NOTES.md seção 28.22 (SUModelGetLayers/
-    SULayerGetName/SULayerGetVisibility). `is_default` marca a Etiqueta
-    padrão real do modelo ("Sem etiquetas"), que nenhuma instância
-    atribuída explicitamente usa mas toda instância sem Etiqueta
-    pertence a ela."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    name: str
-    visible: bool
-    is_default: bool = False
-
-
 class ListTagsResponse(BaseModel):
     """Saída de GET /scene/tags."""
 
     tags: list[TagDTO]
+
+
+class UpdateCameraRequest(BaseModel):
+    """Entrada de PATCH /scene/camera para atualizar a orientação da câmera."""
+
+    eye: list[float] = Field(..., description="Coordenadas [x, y, z] em polegadas")
+    target: list[float] = Field(..., description="Coordenadas [x, y, z] em polegadas")
+    up: list[float] | None = Field(default=None, description="Vetor unitário [x, y, z]")
+    fov_deg: float | None = Field(default=None, description="Campo de visão em graus")
+
+
+class UpdateCameraResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    applied: bool
 
 
 class SetTagVisibilityRequest(BaseModel):

@@ -86,6 +86,26 @@ class SkpHierarchyDTO(TypedDict):
     model_attributes: Optional[SkpAttributeDictionariesDTO]
 
 
+class SkpCameraDTO(TypedDict):
+    eye_cm: List[float]               # [x, y, z] em cm
+    target_cm: List[float]            # [x, y, z] em cm
+    eye_inches: List[float]           # [x, y, z] em polegadas (para o Three.js/SketchUpAPI)
+    target_inches: List[float]        # [x, y, z] em polegadas
+    up: List[float]                   # [x, y, z] vetor unitário Z-up
+    is_perspective: bool
+    fov_degrees: float
+    fov_is_height: bool
+    offset: Optional[int]
+
+
+class SkpTagDTO(TypedDict):
+    id: Optional[int]
+    name: str
+    visible: bool
+    is_default: bool
+    material_name: Optional[str]
+
+
 class SkpMeshDTO(TypedDict):
     vertices: List[float]       # [x, y, z, ...] em cm
     normals: List[float]        # [nx, ny, nz, ...]
@@ -93,10 +113,13 @@ class SkpMeshDTO(TypedDict):
     indices: List[int]          # [i0, i1, i2, ...]
     materials: Dict[str, SkpMaterialDTO]  # mapa de materiais do modelo
     face_materials: List[str]   # nome do material de cada face
+    face_ranges: List[Dict[str, Any]]
     num_faces: int
     num_vertices: int
     bounds: SkpBoundsInfo
     hierarchy: Optional[SkpHierarchyDTO]
+    camera: Optional[SkpCameraDTO]
+    tags: Optional[List[SkpTagDTO]]
 
 
 class SkpBinaryReader:
@@ -118,6 +141,16 @@ class SkpBinaryReader:
     TAG_ATTR_ITEMS = b"\xb5\x36"
     TAG_ATTR_KEY = b"\xb6\x36"
     TAG_ATTR_VALUE = b"\xa4\x38"
+    TAG_CAMERA_EYE = b"\xbd\x34\x18\x00\x00\x00"
+    TAG_CAMERA_TARGET = b"\xbe\x34\x18\x00\x00\x00"
+    TAG_CAMERA_UP = b"\xbf\x34\x18\x00\x00\x00"
+    TAG_CAMERA_PERSPECTIVE = b"\xc2\x34\x01\x00\x00\x00"
+    TAG_CAMERA_FOV = b"\xc4\x34\x08\x00\x00\x00"
+    TAG_CAMERA_FOV_IS_HEIGHT = b"\xc6\x34\x01\x00\x00\x00"
+    TAG_LAYER_CONTAINER = b"\x8c\x3c"
+    TAG_LAYER_NAME = b"\x8d\x3c"
+    TAG_LAYER_VISIBILITY = b"\x8e\x3c"
+    TAG_LAYER_MAT_NAME = b"\xcc\x32"
     ZIP_LOCAL_HEADER = b"PK\x03\x04"
 
     @classmethod
@@ -577,6 +610,151 @@ class SkpBinaryReader:
         }
 
     @classmethod
+    def extract_camera(cls, file_path: str) -> Optional[SkpCameraDTO]:
+        """Extrai os parâmetros reais da Câmera 3D (Eye, Target, Up, FOV, Perspectiva)
+        salvos pelo arquiteto no arquivo .skp."""
+        if not file_path or not os.path.exists(file_path):
+            return None
+        try:
+            with open(file_path, "rb") as f:
+                data = f.read()
+        except Exception:
+            return None
+        model_bytes = cls._extract_model_dat(data)
+        if not model_bytes:
+            return None
+        return cls._parse_camera(model_bytes)
+
+    @classmethod
+    def _parse_camera(cls, model_bytes: bytes) -> Optional[SkpCameraDTO]:
+        """Decodifica a Câmera 3D diretamente do model.dat via Tag 0x34bd..0x34c6."""
+        p_cam = model_bytes.find(cls.TAG_CAMERA_EYE)
+        if p_cam == -1:
+            return None
+
+        # Eye Point3D (3 doubles em polegadas)
+        eye_in = struct.unpack_from("<3d", model_bytes, p_cam + 6)
+        eye_cm = [round(x * 2.54, 4) for x in eye_in]
+        eye_inches = [round(x, 4) for x in eye_in]
+
+        # Target Point3D (Tag 0x34be)
+        target_cm = [0.0, 0.0, 0.0]
+        target_inches = [0.0, 0.0, 0.0]
+        p_tgt = model_bytes.find(cls.TAG_CAMERA_TARGET, p_cam, p_cam + 60)
+        if p_tgt != -1:
+            tgt_in = struct.unpack_from("<3d", model_bytes, p_tgt + 6)
+            target_cm = [round(x * 2.54, 4) for x in tgt_in]
+            target_inches = [round(x, 4) for x in tgt_in]
+
+        # Up Vector3D (Tag 0x34bf)
+        up = [0.0, 0.0, 1.0]
+        p_up = model_bytes.find(cls.TAG_CAMERA_UP, p_cam, p_cam + 100)
+        if p_up != -1:
+            up_raw = struct.unpack_from("<3d", model_bytes, p_up + 6)
+            up = [round(x, 6) for x in up_raw]
+
+        # Perspective flag (Tag 0x34c2)
+        perspective = True
+        p_persp = model_bytes.find(cls.TAG_CAMERA_PERSPECTIVE, p_cam, p_cam + 130)
+        if p_persp != -1:
+            perspective = bool(model_bytes[p_persp + 6])
+
+        # FOV (Tag 0x34c4)
+        fov_deg = 35.0
+        p_fov = model_bytes.find(cls.TAG_CAMERA_FOV, p_cam, p_cam + 160)
+        if p_fov != -1:
+            fov_deg = round(struct.unpack_from("<d", model_bytes, p_fov + 6)[0], 2)
+
+        # FOV is Height (Tag 0x34c6)
+        fov_is_height = True
+        p_fov_h = model_bytes.find(cls.TAG_CAMERA_FOV_IS_HEIGHT, p_cam, p_cam + 180)
+        if p_fov_h != -1:
+            fov_is_height = bool(model_bytes[p_fov_h + 6])
+
+        return {
+            "eye_cm": eye_cm,
+            "target_cm": target_cm,
+            "eye_inches": eye_inches,
+            "target_inches": target_inches,
+            "up": up,
+            "is_perspective": perspective,
+            "fov_degrees": fov_deg,
+            "fov_is_height": fov_is_height,
+            "offset": p_cam,
+        }
+
+    @classmethod
+    def extract_tags(cls, file_path: str) -> List[SkpTagDTO]:
+        """Extrai as Etiquetas / Camadas (Layers / Tags) cadastradas no modelo .skp."""
+        if not file_path or not os.path.exists(file_path):
+            return []
+        try:
+            with open(file_path, "rb") as f:
+                data = f.read()
+        except Exception:
+            return []
+        model_bytes = cls._extract_model_dat(data)
+        if not model_bytes:
+            return []
+        return cls._parse_tags(model_bytes)
+
+    @classmethod
+    def _parse_tags(cls, model_bytes: bytes) -> List[SkpTagDTO]:
+        """Varre o stream model.dat extraindo todas as Tags/Layers (Tag 0x3c8d e visibilidade 0x3c8e)."""
+        tags: List[SkpTagDTO] = []
+        seen_names = set()
+        idx = 0
+        buf_len = len(model_bytes)
+
+        while True:
+            p_name = model_bytes.find(cls.TAG_LAYER_NAME, idx)
+            if p_name == -1 or p_name + 6 > buf_len:
+                break
+
+            slen = struct.unpack_from("<I", model_bytes, p_name + 2)[0]
+            if 1 <= slen <= 120 and p_name + 6 + slen <= buf_len:
+                raw_name = model_bytes[p_name + 6 : p_name + 6 + slen].decode("utf-8", errors="replace")
+                tag_name = raw_name.strip("\x00").strip()
+                if tag_name and tag_name not in seen_names:
+                    seen_names.add(tag_name)
+
+                    # Visibilidade (Tag 0x3c8e em até 50 bytes após o nome)
+                    visible = True
+                    p_vis = model_bytes.find(cls.TAG_LAYER_VISIBILITY, p_name + 6 + slen, min(buf_len, p_name + 6 + slen + 50))
+                    if p_vis != -1:
+                        # 0x00 = Visível, 0x01 = Oculta
+                        visible = (model_bytes[p_vis + 6] == 0)
+
+                    # EntityID (Tag 0x05de precedente)
+                    tag_id = None
+                    p_de = model_bytes.rfind(b"\xde\x05", max(0, p_name - 60), p_name)
+                    if p_de != -1:
+                        eid_len = struct.unpack_from("<I", model_bytes, p_de + 2)[0]
+                        if 1 <= eid_len <= 8:
+                            tag_id = int.from_bytes(model_bytes[p_de + 6 : p_de + 6 + eid_len], "little")
+
+                    # Material associado (Tag 0x32cc do nome do material em até 100 bytes)
+                    mat_name = None
+                    p_mat = model_bytes.find(cls.TAG_LAYER_MAT_NAME, p_name + 6 + slen, min(buf_len, p_name + 6 + slen + 100))
+                    if p_mat != -1:
+                        mlen = struct.unpack_from("<I", model_bytes, p_mat + 2)[0]
+                        if 1 <= mlen <= 120:
+                            mat_name = model_bytes[p_mat + 6 : p_mat + 6 + mlen].decode("utf-8", errors="replace").strip("\x00")
+
+                    is_default = (tag_name == "Layer0" or tag_name == "Sem etiquetas")
+                    tags.append({
+                        "id": tag_id,
+                        "name": tag_name,
+                        "visible": visible,
+                        "is_default": is_default,
+                        "material_name": mat_name,
+                    })
+
+            idx = p_name + 1
+
+        return tags
+
+    @classmethod
     def extract_mesh(cls, file_path: str) -> Optional[SkpMeshDTO]:
         """Reconstrói a malha poligonal 3D completa com UVs, Normais, Materiais
         e Árvore Hierárquica de Instâncias diretamente do .skp para Three.js / WebGL."""
@@ -593,9 +771,11 @@ class SkpBinaryReader:
         if not model_bytes:
             return None
 
-        # 0. Materiais XML e Hierarquia de Instâncias
+        # 0. Materiais XML, Hierarquia de Instâncias, Câmera e Tags/Layers
         materials_dict = cls.extract_materials(file_path)
         hierarchy_data = cls._parse_hierarchy(model_bytes)
+        camera_data = cls._parse_camera(model_bytes)
+        tags_data = cls._parse_tags(model_bytes)
 
         # Mapeamento interno: Material EntityID -> Material Name no model.dat
         mat_id_to_name: Dict[int, str] = {}
@@ -827,6 +1007,8 @@ class SkpBinaryReader:
             "num_vertices": vert_counter,
             "bounds": bounds,
             "hierarchy": hierarchy_data,
+            "camera": camera_data,
+            "tags": tags_data,
         }
 
     @classmethod
