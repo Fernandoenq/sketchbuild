@@ -194,6 +194,11 @@ export function buildSceneGroup(sceneDTO) {
     mesh.name = instanceDTO.instance_id;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    mesh.userData.instanceId = instanceDTO.instance_id;
+    mesh.userData.definitionId = instanceDTO.definition_id;
+    mesh.userData.definitionName = definitionsById.get(instanceDTO.definition_id)?.name || "Componente";
+    mesh.userData.attributes = instanceDTO.attributes || {};
+    mesh.userData.defAttributes = definitionsById.get(instanceDTO.definition_id)?.attributes || {};
 
     // Overlay de arestas (Visualizar > Estilo de aresta > Bordas) -- filho
     // do mesh, entao herda a matriz dele (world ou billboard) automaticamente
