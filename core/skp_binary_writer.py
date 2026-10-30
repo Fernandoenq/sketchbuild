@@ -17,6 +17,7 @@ Descobertas e Regras de Serialização:
 from __future__ import annotations
 
 import io
+import math
 import os
 import re
 import struct
@@ -1535,3 +1536,284 @@ class SkpBinaryWriter:
         if cls._ACTIVE_SESSION is not None:
             cls._ACTIVE_SESSION.close()
             cls._ACTIVE_SESSION = None
+
+    @classmethod
+    def add_line_edge(
+        cls,
+        start_xyz_m: Tuple[float, float, float],
+        end_xyz_m: Tuple[float, float, float],
+    ) -> Dict[str, Any]:
+        """Cria nativamente uma aresta/linha 3D livre no model.dat (Frente 22 - Zero DLL)."""
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        mb = session.model_bytes
+
+        s_in = tuple((float(c) * 100.0) / 2.54 for c in start_xyz_m)
+        e_in = tuple((float(c) * 100.0) / 2.54 for c in end_xyz_m)
+
+        all_eids = set()
+        p = 0
+        mb_len = len(mb)
+        while p + 6 <= mb_len:
+            p_de = mb.find(b"\xde\x05", p)
+            if p_de == -1:
+                break
+            l = struct.unpack_from("<I", mb, p_de + 2)[0]
+            if 1 <= l <= 8 and p_de + 6 + l <= mb_len:
+                all_eids.add(int.from_bytes(mb[p_de + 6 : p_de + 6 + l], "little"))
+            p = p_de + 1
+
+        cur_eid = max(all_eids, default=50000)
+
+        def alloc_eid() -> int:
+            nonlocal cur_eid
+            cur_eid += 1
+            while cur_eid in all_eids:
+                cur_eid += 1
+            all_eids.add(cur_eid)
+            return cur_eid
+
+        v1_id = alloc_eid()
+        v2_id = alloc_eid()
+        edge_id = alloc_eid()
+
+        # 1. Vértices
+        v_payload = bytearray()
+        for vid, pt in [(v1_id, s_in), (v2_id, e_in)]:
+            eid_bytes = vid.to_bytes(4, "little")
+            eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+            dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+            pt_tag = b"\xc5\t\x18\x00\x00\x00" + struct.pack("<3d", *pt)
+            c4_payload = dc_tag + pt_tag
+            c4_tag = b"\xc4\t" + struct.pack("<I", len(c4_payload)) + c4_payload
+            v_payload.extend(c4_tag)
+        tag_1389 = b"\x89\x13" + struct.pack("<I", len(v_payload)) + v_payload
+
+        # 2. Aresta
+        eid_bytes = edge_id.to_bytes(4, "little")
+        eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+        dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+        d0_payload = dc_tag + b"\xd3\x07\x01\x00\x00\x00\x06"
+        d0_tag = b"\xd0\x07" + struct.pack("<I", len(d0_payload)) + d0_payload
+        b9_tag = b"\xb9\x0b\x04\x00\x00\x00" + v1_id.to_bytes(4, "little")
+        ba_tag = b"\xba\x0b\x04\x00\x00\x00" + v2_id.to_bytes(4, "little")
+        b8_payload = d0_tag + b9_tag + ba_tag
+        b8_tag = b"\xb8\x0b" + struct.pack("<I", len(b8_payload)) + b8_payload
+        tag_138a = b"\x8a\x13" + struct.pack("<I", len(b8_tag)) + b8_tag
+
+        geom_block = tag_1389 + tag_138a
+        geom_delta = len(geom_block)
+
+        p_138c = mb.find(b"\x8c\x13")
+        if p_138c == -1:
+            raise SceneSessionError("contêiner de instâncias Tag 0x138c não localizado")
+
+        ins_pos = p_138c
+        mb[ins_pos:ins_pos] = geom_block
+
+        p_8e = mb.find(b"\x8e\x13", ins_pos + geom_delta)
+        tag_8e_delta = 0
+        if p_8e != -1:
+            old_8e_len = struct.unpack_from("<I", mb, p_8e + 2)[0]
+            old_8e_data = mb[p_8e + 6 : p_8e + 6 + old_8e_len]
+            new_entries = bytearray([4]) + edge_id.to_bytes(4, "little")
+            new_8e_data = old_8e_data + new_entries
+            tag_8e_delta = len(new_entries)
+            mb[p_8e + 6 : p_8e + 6 + old_8e_len] = new_8e_data
+            struct.pack_into("<I", mb, p_8e + 2, len(new_8e_data))
+
+        total_delta = geom_delta + tag_8e_delta
+
+        p_1388 = mb.rfind(b"\x88\x13", 0, ins_pos)
+        if p_1388 != -1:
+            old_1388_len = struct.unpack_from("<I", mb, p_1388 + 2)[0]
+            struct.pack_into("<I", mb, p_1388 + 2, old_1388_len + total_delta)
+
+        p_01f6 = mb.rfind(b"\xf6\x01", 0, p_1388 if p_1388 != -1 else ins_pos)
+        if p_01f6 != -1:
+            old_f6_len = struct.unpack_from("<I", mb, p_01f6 + 2)[0]
+            struct.pack_into("<I", mb, p_01f6 + 2, old_f6_len + total_delta)
+
+        old_f4_len = struct.unpack_from("<I", mb, 2)[0]
+        struct.pack_into("<I", mb, 2, old_f4_len + total_delta)
+
+        session.is_dirty = True
+        dist_m = math.sqrt(sum((end_xyz_m[i] - start_xyz_m[i]) ** 2 for i in range(3)))
+        return {
+            "entity_type": "Edge",
+            "edge_id": edge_id,
+            "vertex_ids": [v1_id, v2_id],
+            "start_m": list(start_xyz_m),
+            "end_m": list(end_xyz_m),
+            "length_m": round(dist_m, 4),
+        }
+
+    @classmethod
+    def add_polygon_face(
+        cls,
+        points_xyz_m: List[Tuple[float, float, float]],
+    ) -> Dict[str, Any]:
+        """Cria nativamente uma Face plana poligonal com N lados no model.dat (Frente 22 - Zero DLL)."""
+        if len(points_xyz_m) < 3:
+            raise SceneSessionError("Uma face requer pelo menos 3 pontos coplanares.")
+
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        mb = session.model_bytes
+
+        # Converte metros para polegadas
+        pts_in = [tuple((float(c) * 100.0) / 2.54 for c in p) for p in points_xyz_m]
+        n_pts = len(pts_in)
+
+        # Calcula a normal analítica do polígono via produto vetorial de (P1 - P0) x (P2 - P0)
+        p0 = pts_in[0]
+        p1 = pts_in[1]
+        p2 = pts_in[2]
+        v1 = (p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2])
+        v2 = (p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2])
+        nx = v1[1] * v2[2] - v1[2] * v2[1]
+        ny = v1[2] * v2[0] - v1[0] * v2[2]
+        nz = v1[0] * v2[1] - v1[1] * v2[0]
+        norm_len = math.sqrt(nx * nx + ny * ny + nz * nz)
+        if norm_len < 1e-8:
+            nx, ny, nz = 0.0, 0.0, 1.0
+        else:
+            nx, ny, nz = nx / norm_len, ny / norm_len, nz / norm_len
+
+        # D da equação do plano: Ax + By + Cz + D = 0 => D = -(Ax + By + Cz)
+        plane_d = -(nx * p0[0] + ny * p0[1] + nz * p0[2])
+
+        # Alocação de novos EntityIDs
+        all_eids = set()
+        p = 0
+        mb_len = len(mb)
+        while p + 6 <= mb_len:
+            p_de = mb.find(b"\xde\x05", p)
+            if p_de == -1:
+                break
+            l = struct.unpack_from("<I", mb, p_de + 2)[0]
+            if 1 <= l <= 8 and p_de + 6 + l <= mb_len:
+                all_eids.add(int.from_bytes(mb[p_de + 6 : p_de + 6 + l], "little"))
+            p = p_de + 1
+
+        cur_eid = max(all_eids, default=50000)
+
+        def alloc_eid() -> int:
+            nonlocal cur_eid
+            cur_eid += 1
+            while cur_eid in all_eids:
+                cur_eid += 1
+            all_eids.add(cur_eid)
+            return cur_eid
+
+        v_ids = [alloc_eid() for _ in range(n_pts)]
+        e_ids = [alloc_eid() for _ in range(n_pts)]
+        f_id = alloc_eid()
+
+        # 1. Bloco de Vértices (Tag 0x1389)
+        v_payload = bytearray()
+        for i in range(n_pts):
+            eid_bytes = v_ids[i].to_bytes(4, "little")
+            eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+            dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+            pt_tag = b"\xc5\t\x18\x00\x00\x00" + struct.pack("<3d", *pts_in[i])
+            c4_payload = dc_tag + pt_tag
+            c4_tag = b"\xc4\t" + struct.pack("<I", len(c4_payload)) + c4_payload
+            v_payload.extend(c4_tag)
+        tag_1389 = b"\x89\x13" + struct.pack("<I", len(v_payload)) + v_payload
+
+        # 2. Bloco de Arestas (Tag 0x138a)
+        e_payload = bytearray()
+        for i in range(n_pts):
+            v_start = v_ids[i]
+            v_end = v_ids[(i + 1) % n_pts]
+            eid_bytes = e_ids[i].to_bytes(4, "little")
+            eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+            dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+            d0_payload = dc_tag + b"\xd3\x07\x01\x00\x00\x00\x06"
+            d0_tag = b"\xd0\x07" + struct.pack("<I", len(d0_payload)) + d0_payload
+            b9_tag = b"\xb9\x0b\x04\x00\x00\x00" + v_start.to_bytes(4, "little")
+            ba_tag = b"\xba\x0b\x04\x00\x00\x00" + v_end.to_bytes(4, "little")
+            b8_payload = d0_tag + b9_tag + ba_tag
+            b8_tag = b"\xb8\x0b" + struct.pack("<I", len(b8_payload)) + b8_payload
+            e_payload.extend(b8_tag)
+        tag_138a = b"\x8a\x13" + struct.pack("<I", len(e_payload)) + e_payload
+
+        # 3. Bloco de Face (Tag 0x138b)
+        eid_bytes = f_id.to_bytes(4, "little")
+        eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+        dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+        d0_payload = dc_tag + b"\xd3\x07\x01\x00\x00\x00\x06"
+        d0_tag = b"\xd0\x07" + struct.pack("<I", len(d0_payload)) + d0_payload
+
+        dad_tag = b"\xad\x0d\x20\x00\x00\x00" + struct.pack("<4d", nx, ny, nz, plane_d)
+
+        edge_uses = bytearray()
+        for i in range(n_pts):
+            fa1 = b"\xa1\x0f\x04\x00\x00\x00" + e_ids[i].to_bytes(4, "little")
+            fa2 = b"\xa2\x0f\x01\x00\x00\x00\x00"
+            fa0_payload = fa1 + fa2
+            fa0_tag = b"\xa0\x0f" + struct.pack("<I", len(fa0_payload)) + fa0_payload
+            edge_uses.extend(fa0_tag)
+
+        tag_1195 = b"\x95\x11" + struct.pack("<I", len(edge_uses)) + edge_uses
+        tag_1194 = b"\x94\x11" + struct.pack("<I", len(tag_1195)) + tag_1195
+        dae_tag = b"\xae\x0d" + struct.pack("<I", len(tag_1194)) + tag_1194
+
+        ac0d_payload = d0_tag + dad_tag + dae_tag
+        ac0d_tag = b"\xac\r" + struct.pack("<I", len(ac0d_payload)) + ac0d_payload
+        tag_138b = b"\x8b\x13" + struct.pack("<I", len(ac0d_tag)) + ac0d_tag
+
+        geom_block = tag_1389 + tag_138a + tag_138b
+        geom_delta = len(geom_block)
+
+        p_138c = mb.find(b"\x8c\x13")
+        if p_138c == -1:
+            raise SceneSessionError("contêiner de instâncias Tag 0x138c não localizado")
+
+        ins_pos = p_138c
+        mb[ins_pos:ins_pos] = geom_block
+
+        p_8e = mb.find(b"\x8e\x13", ins_pos + geom_delta)
+        tag_8e_delta = 0
+        if p_8e != -1:
+            old_8e_len = struct.unpack_from("<I", mb, p_8e + 2)[0]
+            old_8e_data = mb[p_8e + 6 : p_8e + 6 + old_8e_len]
+            new_entries = bytearray()
+            for eid in e_ids + [f_id]:
+                new_entries.append(4)
+                new_entries.extend(eid.to_bytes(4, "little"))
+            new_8e_data = old_8e_data + new_entries
+            tag_8e_delta = len(new_entries)
+            mb[p_8e + 6 : p_8e + 6 + old_8e_len] = new_8e_data
+            struct.pack_into("<I", mb, p_8e + 2, len(new_8e_data))
+
+        total_delta = geom_delta + tag_8e_delta
+
+        p_1388 = mb.rfind(b"\x88\x13", 0, ins_pos)
+        if p_1388 != -1:
+            old_1388_len = struct.unpack_from("<I", mb, p_1388 + 2)[0]
+            struct.pack_into("<I", mb, p_1388 + 2, old_1388_len + total_delta)
+
+        p_01f6 = mb.rfind(b"\xf6\x01", 0, p_1388 if p_1388 != -1 else ins_pos)
+        if p_01f6 != -1:
+            old_f6_len = struct.unpack_from("<I", mb, p_01f6 + 2)[0]
+            struct.pack_into("<I", mb, p_01f6 + 2, old_f6_len + total_delta)
+
+        old_f4_len = struct.unpack_from("<I", mb, 2)[0]
+        struct.pack_into("<I", mb, 2, old_f4_len + total_delta)
+
+        session.is_dirty = True
+        return {
+            "entity_type": "Face",
+            "face_id": f_id,
+            "edge_ids": e_ids,
+            "vertex_ids": v_ids,
+            "vertex_count": n_pts,
+            "normal": [round(nx, 4), round(ny, 4), round(nz, 4)],
+            "plane_d": round(plane_d, 4),
+        }

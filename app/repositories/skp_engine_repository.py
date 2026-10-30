@@ -1224,3 +1224,24 @@ class SkpEngineRepository:
             }
         except Exception as e:
             raise SceneSessionError(f"Falha ao exportar modelo IFC: {e}") from e
+
+    def add_line_geometry(self, start_m: list, end_m: list) -> dict:
+        """Cria nativamente uma aresta 3D interativa (Frente 22)."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_s = SkpBinaryWriter.get_session()
+        if bin_s is not None:
+            res = SkpBinaryWriter.add_line_edge(tuple(start_m), tuple(end_m))
+            self._autosave()
+            return {"success": True, "entity": res}
+        raise SceneSessionError("nenhuma sessão binária ativa")
+
+    def add_face_geometry(self, points_m: list) -> dict:
+        """Cria nativamente uma face coplanar fechada interativa (Frente 22)."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_s = SkpBinaryWriter.get_session()
+        if bin_s is not None:
+            pts_tuple = [tuple(p) for p in points_m]
+            res = SkpBinaryWriter.add_polygon_face(pts_tuple)
+            self._autosave()
+            return {"success": True, "entity": res}
+        raise SceneSessionError("nenhuma sessão binária ativa")

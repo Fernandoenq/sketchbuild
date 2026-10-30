@@ -388,6 +388,14 @@ class SceneService:
             raise InvalidModelPathError(f"Caminho de exportação deve apontar para um arquivo .ifc (recebido: {file_path!r})")
         return await run_in_threadpool(self._repository.export_ifc, file_path, project_name)
 
+    async def add_line_geometry(self, start_m: list[float], end_m: list[float]) -> dict:
+        return await run_in_threadpool(self._repository.add_line_geometry, start_m, end_m)
+
+    async def add_face_geometry(self, points_m: list[list[float]]) -> dict:
+        if len(points_m) < 3:
+            raise InvalidModelPathError("Face requer pelo menos 3 pontos coplanares.")
+        return await run_in_threadpool(self._repository.add_face_geometry, points_m)
+
     # -- validacoes de dominio ------------------------------------------------
 
     def _validate_model_path(self, file_path: str) -> None:

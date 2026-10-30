@@ -750,3 +750,30 @@ class ExportIfcResponse(BaseModel):
     format: str = "Industry Foundation Classes (IFC4 STEP)"
 
 
+# ============================================================================
+# Frente 22: Autoria Interativa de Desenho no Canvas WebGL
+# ============================================================================
+
+class AddLineGeometryRequest(BaseModel):
+    """Entrada para criação de aresta 3D livre via desenho interativo."""
+
+    start_m: list[float] = Field(..., min_length=3, max_length=3, description="Ponto de partida [x, y, z] em metros")
+    end_m: list[float] = Field(..., min_length=3, max_length=3, description="Ponto final [x, y, z] em metros")
+
+
+class AddFaceGeometryRequest(BaseModel):
+    """Entrada para criação de face 3D poligonal coplanar via fechamento de polígono."""
+
+    points_m: list[list[float]] = Field(..., min_length=3, description="Lista de 3 ou mais pontos [x, y, z] em metros")
+
+
+class AddGeometryEntityResponse(BaseModel):
+    """Resposta de criação de geometria livre (Aresta ou Face)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    success: bool = True
+    entity: dict[str, Any]
+
+
+

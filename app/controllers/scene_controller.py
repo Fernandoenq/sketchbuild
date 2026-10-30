@@ -30,6 +30,9 @@ from app.schemas.scene import (
     ExportGlbResponse,
     ExportIfcRequest,
     ExportIfcResponse,
+    AddLineGeometryRequest,
+    AddFaceGeometryRequest,
+    AddGeometryEntityResponse,
     ListAutosaveDraftsResponse,
     ListScenePagesResponse,
     PaintFaceResponse,
@@ -510,6 +513,22 @@ class SceneController:
         try:
             res = await self._service.export_model_ifc(path, project_name=project_name)
             return ExportIfcResponse.model_validate(res)
+        except InvalidModelPathError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+    async def add_line_geometry(self, body: AddLineGeometryRequest) -> AddGeometryEntityResponse:
+        try:
+            res = await self._service.add_line_geometry(body.start_m, body.end_m)
+            return AddGeometryEntityResponse.model_validate(res)
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+    async def add_face_geometry(self, body: AddFaceGeometryRequest) -> AddGeometryEntityResponse:
+        try:
+            res = await self._service.add_face_geometry(body.points_m)
+            return AddGeometryEntityResponse.model_validate(res)
         except InvalidModelPathError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
         except SceneSessionError as e:

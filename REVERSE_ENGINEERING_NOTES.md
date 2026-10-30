@@ -634,3 +634,51 @@ A Frente 21 adiciona a capacidade de compilar o modelo `.skp` para os padrões i
 - Endpoints FastAPI: `POST /api/v1/scene/export/glb` e `POST /api/v1/scene/export/ifc`.
 - Integração no menu do frontend: *Arquivo > Exportar > Modelo glTF 2.0 (.glb)...* e *Arquivo > Exportar > Modelo BIM IFC4 (.ifc)...*.
 - Testado e validado em `test_multiformat_exporter.py` com 100% de aprovação.
+
+---
+
+## 46. Frente 22: Autoria Interativa de Desenho no Canvas WebGL com Snapping e Inferência de Eixos
+
+A Frente 22 implementa a primeira ferramenta de desenho interativo do SketchBuild: a ferramenta **Linha (Lápis / Atalho `L`)** com o consagrado **Motor de Inferência (Inference Engine)** e fechamento automático de polígonos em **Faces 3D nativas B-Rep**.
+
+### A. Motor de Inferência e Snapping (`frontend/src/inferenceEngine.js`)
+1. **Snapping Magnético a Vértices Existentes (Extremidade / Endpoint):**
+   - Projeta os vértices da cena no espaço de tela da câmera (`camera.project()`).
+   - Se a distância euclidiana na tela for menor que o raio de captura (14px), atrai o cursor e projeta o marcador pontual verde (`#00ff00`, `Tag: Extremidade`).
+2. **Snapping a Ponto Médio de Arestas (Midpoint):**
+   - Calcula os pontos médios de cada aresta $\frac{V_0 + V_1}{2}$.
+   - Marcador ciano (`#00ffff`, `Tag: Ponto médio`).
+3. **Inferência de Eixos Cartesianos com Linha Guia Infinita Tracejada:**
+   - Ao desenhar com um ponto inicial fixado, o motor compara as variações $\Delta x, \Delta y, \Delta z$:
+     - **Eixo Vermelho (X):** Variação primária em $X$, $\Delta y = 0, \Delta z = 0$. Linha guia tracejada vermelha (`#ff2222`).
+     - **Eixo Verde (Y do SketchUp / Z do Three.js):** Variação primária em $Z$ do Three.js, $\Delta x = 0, \Delta y = 0$. Linha guia tracejada verde (`#22aa22`).
+     - **Eixo Azul (Z do SketchUp / Y do Three.js):** Variação primária em $Y$ do Three.js, $\Delta x = 0, \Delta z = 0$. Linha guia tracejada azul (`#2244ff`).
+4. **Trava de Eixos via Teclado:**
+   - `Seta Direita`: Trava no Eixo Vermelho ($X$).
+   - `Seta Esquerda`: Trava no Eixo Verde ($Y$ SketchUp).
+   - `Seta Cima`: Trava no Eixo Azul ($Z$ SketchUp).
+   - `Seta Baixo`: Destrava o eixo.
+   - `Esc`: Cancela o desenho atual.
+5. **Integração com o VCB (Value Control Box):**
+   - Exibição métrica em tempo real do comprimento da linha elástica (`Comprimento: X.XXX m`) e status do snap.
+
+### B. Injeção de Topologia B-Rep Nativa Zero DLL (`core/skp_binary_writer.py`)
+1. **Criação de Aresta 3D Livre (`SkpBinaryWriter.add_line_edge`):**
+   - Cria 2 novos vértices na Tag `0x1389` e 1 nova aresta B-Rep na Tag `0x138a`.
+   - Registra a aresta no contêiner de entidades Tag `0x138e` e atualiza as contagens hierárquicas das Tags `0x1388`, `0x01f6` e `0x00f4`.
+2. **Criação de Face B-Rep Coplanar com $N$ Vértices (`SkpBinaryWriter.add_polygon_face`):**
+   - Converte os pontos para polegadas.
+   - Calcula a normal analítica unitária do plano $\vec{N} = \frac{(P_1 - P_0) \times (P_2 - P_0)}{\|(P_1 - P_0) \times (P_2 - P_0)\|}$.
+   - Calcula o parâmetro da equação do plano $Ax + By + Cz + D = 0$, onde $D = -(\vec{N} \cdot P_0)$.
+   - Constrói o loop ordenado de arestas e `EdgeUse` na Tag `0x0dae`.
+   - Serializa a Face B-Rep na Tag `0x0dad` e a envelopa na Tag `0x138b`.
+   - Adiciona a face e arestas no contêiner de entidades `0x138e`.
+3. **Validação Ground Truth na SketchUpAPI.dll C++ Oficial:**
+   - Teste automatizado `test_interactive_drawing.py`:
+     - Criação de linha livre e face poligonal.
+     - Abertura com `SUModelCreateFromFile` e inspeção com `SUEntitiesGetNumFaces` e `SUEntitiesGetNumEdges`.
+     - Resultado: **1 face oficial e 4 arestas oficiais**, status `SU_ERROR_NONE`.
+
+### C. Endpoints FastAPI
+- `POST /api/v1/scene/geometry/line`: Adiciona aresta conectada a partir de coordenadas $(x, y, z)$ em metros.
+- `POST /api/v1/scene/geometry/face`: Adiciona face coplanar fechada a partir de $N$ vértices em metros.
