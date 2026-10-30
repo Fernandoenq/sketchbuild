@@ -24,6 +24,7 @@ from app.schemas.scene import (
     CreateScenePageResponse,
     DeleteInstanceResponse,
     DiscardAutosaveDraftResponse,
+    DuplicateInstanceResponse,
     ExportModelResponse,
     ListAutosaveDraftsResponse,
     ListScenePagesResponse,
@@ -232,6 +233,20 @@ class SceneController:
                 status_code=status.HTTP_409_CONFLICT, detail=str(e)
             ) from e
         return SaveSceneResponse(saved=True, path=saved_path)
+
+    async def duplicate_instance(
+        self,
+        instance_id: str,
+        transform: list[float] | None = None,
+        offset_delta_cm: list[float] | None = None,
+    ) -> DuplicateInstanceResponse:
+        try:
+            res = await self._service.duplicate_instance(instance_id, transform, offset_delta_cm)
+        except SceneSessionError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=str(e)
+            ) from e
+        return DuplicateInstanceResponse(instance=res, duplicated=True)
 
     async def delete_instance(self, instance_id: str) -> DeleteInstanceResponse:
         try:

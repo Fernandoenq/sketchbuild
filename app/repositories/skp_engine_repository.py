@@ -277,6 +277,73 @@ class SkpEngineRepository:
         session.model_path = target_path
         return target_path
 
+    def duplicate_instance(
+        self,
+        instance_id: str,
+        new_world_transform: list[float] | None = None,
+        offset_delta_cm: list[float] | None = None,
+    ) -> dict:
+        """Duplica nativamente uma instância na sessão ativa (Zero DLL via SkpBinaryWriter ou fallback ctypes)."""
+        from core.skp_binary_writer import SkpBinaryWriter
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None:
+            new_dto = SkpBinaryWriter.duplicate_instance(
+                instance_id,
+                new_transform_16=new_world_transform,
+                offset_delta_cm=offset_delta_cm,
+            )
+            return {
+                "instance_id": new_dto["instance_key"],
+                "definition_id": f"def_{new_dto.get('definition_id') or 'clone'}",
+                "transform": new_dto["matrix_4x4"],
+                "parent_instance_id": "inst_root",
+                "tag": "Sem etiquetas",
+                "attributes": {},
+            }
+
+        session = self._require_session()
+        entry = session.registry.get(instance_id)
+        if entry is None or entry["ref"] is None:
+            raise SceneSessionError(
+                f"instancia {instance_id!r} nao encontrada na sessao atual "
+                "(ou e o pseudo-objeto 'inst_root', que nao e duplicavel)"
+            )
+
+        definition = session.api.get_instance_definition(entry["ref"])
+        new_inst = session.api.create_instance(definition)
+        orig_trans = session.api.get_instance_transform(entry["ref"])
+        new_trans = list(orig_trans)
+        if new_world_transform and len(new_world_transform) >= 16:
+            new_trans = list(new_world_transform)
+        elif offset_delta_cm and len(offset_delta_cm) >= 3:
+            new_trans[12] += float(offset_delta_cm[0]) / 2.54
+            new_trans[13] += float(offset_delta_cm[1]) / 2.54
+            new_trans[14] += float(offset_delta_cm[2]) / 2.54
+        else:
+            new_trans[12] += 50.0 / 2.54
+
+        session.api.set_instance_transform(new_inst, new_trans)
+        parent_entities = entry["parent_entities"] or session.model.get_entities()
+        session.api.add_instance(parent_entities, new_inst)
+
+        new_id = f"inst_{len(session.registry)}_{entry.get('definition_name', 'Componente')}"
+        session.registry[new_id] = {
+            "ref": new_inst,
+            "parent_entities": parent_entities,
+            "parent_world": entry["parent_world"],
+            "definition_name": entry.get("definition_name", "Componente"),
+        }
+        self._autosave()
+
+        return {
+            "instance_id": new_id,
+            "definition_id": entry.get("definition_id", "def_0"),
+            "transform": new_trans,
+            "parent_instance_id": "inst_root",
+            "tag": "Sem etiquetas",
+            "attributes": {},
+        }
+
     def delete_instance(self, instance_id: str) -> None:
         """Equivalente nativo do "Editar > Excluir"/Del -- ver
         core/su_api.py erase_instance() e REVERSE_ENGINEERING_NOTES.md

@@ -289,3 +289,46 @@ As seguintes assinaturas TLV foram descobertas e mapeadas:
 - **Leitor Nativo:** `SkpBinaryReader.extract_scenes(file_path)` decodifica a lista completa de cenas, flags e status ativo em milissegundos.
 - **API REST:** `GET /api/v1/scene/pages` e `POST /api/v1/scene/pages/{id}/activate` totalmente operacionais no modo `binary_native` (Zero DLL).
 - **Tríplice Sincronização:** Suporte idêntico implementado em Ruby puro no plugin `ParkeloDev::SkpReader.extrair_cenas(file_path)` e integrado ao Second Brain.
+
+---
+
+## 37. Frente 8B: Instanciação e Duplicação Nativa de Componentes (Zero DLL)
+
+### A. Estrutura Binária de Instâncias e Contêineres de Entidades
+A instanciação de componentes no formato binário do SketchUp (`model.dat`) reaproveita a geometria pré-existente na `ComponentDefinition` (vértices, normais, faces e materiais) e insere um descritor de instância leve (~290 bytes) no contêiner de instâncias.
+
+As seguintes estruturas foram decodificadas e mapeadas:
+1. **Contêiner Mestre da Instância (`Tag 0x1964`):**
+   - Assinatura: `\x64\x19` + `uint32 length` (~286 a 294 bytes).
+   - Contém o encapsulador de entidade (`Tag 0x07d0`), marcador (`Tag 0x1965`), matriz 4x4 (`Tag 0x1966`), ponteiro de definição (`Tag 0x1967`) e GUID único da instância (`Tag 0x1968`).
+2. **EntityID Único da Instância (`Tag 0x05de`):**
+   - Assinatura: `\xde\x05` + `uint32 length` + `uint16/uint32 EntityID`.
+   - Requer ID numérico único no modelo para evitar colisão com vértices, arestas ou faces existentes.
+3. **GUID Único Binário (`Tag 0x1968`):**
+   - Assinatura: `\x68\x19\x10\x00\x00\x00` + 16 bytes de GUID binário aleatório (`uuid.uuid4().bytes`).
+4. **Transformação Afim 4x4 (`Tag 0x1966`):**
+   - Assinatura: `\x66\x19\x68\x00\x00\x00` + 104 bytes (13 doubles IEEE 754 em polegadas).
+5. **Ponteiro de Definição (`Tag 0x1967`):**
+   - Assinatura: `\x67\x19` + `uint32 length` + `DefinitionID` (referência à geometria real).
+6. **Contêiner de Instâncias Filhas (`Tag 0x138c`):**
+   - Assinatura: `\x8c\x13` + `uint32 length`.
+   - Agrupa sequencialmente todos os blocos `Tag 0x1964` das instâncias filhas de um contêiner `Entities`.
+7. **Vetor de Referências de Instâncias (`Tag 0x138e`):**
+   - Assinatura: `\x8e\x13` + `uint32 length` + sequência de `[1 byte eid_len] + [eid little-endian]`.
+8. **Bounding Box 3D do Contêiner (`Tag 0x13a0`):**
+   - Assinatura: `\xa0\x13\x30\x00\x00\x00` + 48 bytes (6 doubles: minX, minY, minZ, maxX, maxY, maxZ).
+   - Validação geométrica estrita da Trimble: os limites do contêiner devem englobar a nova posição da instância.
+9. **Contêineres Superiores de Topo:**
+   - `Tag 0x1388`: Contêiner de Entidades raiz (`\x88\x13`).
+   - `Tag 0x01f6`: Contêiner pai da Tag 0x1388 (`\xf6\x01`).
+   - `Tag 0x01f4`: Contêiner raiz do `model.dat` no offset 0 (`\xf4\x01`).
+
+### B. Prefixo Nativo do Arquivo .SKP (69 Bytes)
+Descoberta crítica de compatibilidade: o arquivo `.skp` gerado pela Trimble não começa no offset 0 com o identificador ZIP `PK\x03\x04`, mas sim com um cabeçalho binário nativo de 69 bytes:
+`b'\xff\xfe\xff\x0eS\x00k\x00e\x00t\x00c\x00h\x00U\x00p\x00 \x00M\x00o\x00d\x00e\x00l\x00\xff\xfe\xff\n{\x002\x006\x00.\x002\x00.\x002\x004\x003\x00}\x00VFF\x08\x00\x01\x00\x11\x00\x99\xef4\xd7'`
+A preservação estrita desse prefixo na serialização permite que o arquivo gerado via Pure Python seja aceito e carregado sem erros por qualquer versão da API Trimble C++ (`SUModelCreateFromFileWithStatus`), pelo SketchUp Desktop nativo e pelo visualizador Web Three.js.
+
+### C. Endpoints e Atalhos
+- `POST /api/v1/scene/instances/{instance_id}/duplicate`: Clona nativamente uma instância existente com nova matriz 4x4 ou deslocamento relativo em cm.
+- **Frontend:** Suporte a atalho `Ctrl+D` (ou `Cmd+D`) para duplicar a instância selecionada no visualizador Three.js e inseri-la instantaneamente na árvore e na cena.
+- **Testes Automatizados:** Teste de ponta a ponta em `test_duplicate_instance.py` com validação cruzada entre SkpBinaryReader e SketchUpAPI.dll (100% de sucesso).

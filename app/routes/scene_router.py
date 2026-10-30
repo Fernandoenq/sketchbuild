@@ -16,6 +16,8 @@ from app.schemas.scene import (
     CreateScenePageResponse,
     DeleteInstanceResponse,
     DiscardAutosaveDraftResponse,
+    DuplicateInstanceRequest,
+    DuplicateInstanceResponse,
     ExportModelRequest,
     ExportModelResponse,
     ListAutosaveDraftsResponse,
@@ -211,6 +213,21 @@ async def save_scene(
     body: SaveSceneRequest, controller: SceneController = Depends(get_controller)
 ) -> SaveSceneResponse:
     return await controller.save_scene(body.path, body.overwrite_confirmed)
+
+
+@router.post(
+    "/instances/{instance_id}/duplicate",
+    response_model=DuplicateInstanceResponse,
+    summary="Duplica nativamente uma instância na sessão ativa (Pure Python / Zero DLL)",
+)
+async def duplicate_instance(
+    instance_id: str,
+    body: DuplicateInstanceRequest | None = None,
+    controller: SceneController = Depends(get_controller),
+) -> DuplicateInstanceResponse:
+    trans = body.transform if body else None
+    delta = body.offset_delta_cm if body else None
+    return await controller.duplicate_instance(instance_id, trans, delta)
 
 
 @router.delete(
