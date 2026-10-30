@@ -763,6 +763,211 @@ class SkpBinaryWriter:
         }
 
     @classmethod
+    def add_box(
+        cls,
+        width_m: float,
+        length_m: float,
+        height_m: float,
+        offset_xyz_cm: Optional[List[float]] = None,
+    ) -> Dict[str, Any]:
+        """Cria nativamente um Sólido 3D Manifold (Paralelepípedo / Push-Pull) no model.dat (Zero DLL).
+
+        Gera os 8 vértices (Tag 0x09c4 em Tag 0x1389), as 12 arestas (Tag 0x0bb8 em Tag 0x138a),
+        e as 6 faces orientadas com seus planos analíticos e loops de EdgeUses (Tag 0x138b),
+        atualizando a Tag 0x138e e todos os contêineres pais superiores.
+        """
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        mb = session.model_bytes
+
+        w_in = (float(width_m) * 100.0) / 2.54
+        l_in = (float(length_m) * 100.0) / 2.54
+        h_in = (float(height_m) * 100.0) / 2.54
+
+        ox = (float(offset_xyz_cm[0]) / 2.54) if offset_xyz_cm and len(offset_xyz_cm) >= 1 else 0.0
+        oy = (float(offset_xyz_cm[1]) / 2.54) if offset_xyz_cm and len(offset_xyz_cm) >= 2 else 0.0
+        oz = (float(offset_xyz_cm[2]) / 2.54) if offset_xyz_cm and len(offset_xyz_cm) >= 3 else 0.0
+
+        pts = [
+            (ox, oy, oz),               # V0
+            (ox + w_in, oy, oz),        # V1
+            (ox + w_in, oy + l_in, oz), # V2
+            (ox, oy + l_in, oz),        # V3
+            (ox, oy, oz + h_in),        # V4
+            (ox + w_in, oy, oz + h_in), # V5
+            (ox + w_in, oy + l_in, oz + h_in), # V6
+            (ox, oy + l_in, oz + h_in), # V7
+        ]
+
+        all_eids = set()
+        p = 0
+        mb_len = len(mb)
+        while p + 6 <= mb_len:
+            p_de = mb.find(b"\xde\x05", p)
+            if p_de == -1:
+                break
+            l = struct.unpack_from("<I", mb, p_de + 2)[0]
+            if 1 <= l <= 8 and p_de + 6 + l <= mb_len:
+                all_eids.add(int.from_bytes(mb[p_de + 6 : p_de + 6 + l], "little"))
+            p = p_de + 1
+
+        cur_eid = max(all_eids, default=50000)
+        def alloc_eid() -> int:
+            nonlocal cur_eid
+            cur_eid += 1
+            while cur_eid in all_eids:
+                cur_eid += 1
+            all_eids.add(cur_eid)
+            return cur_eid
+
+        v_ids = [alloc_eid() for _ in range(8)]
+        e_ids = [alloc_eid() for _ in range(12)]
+        f_ids = [alloc_eid() for _ in range(6)]
+
+        # 1. Vértices
+        v_payload = bytearray()
+        for i in range(8):
+            eid_bytes = v_ids[i].to_bytes(4, "little")
+            eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+            dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+            pt_tag = b"\xc5\t\x18\x00\x00\x00" + struct.pack("<3d", *pts[i])
+            c4_payload = dc_tag + pt_tag
+            c4_tag = b"\xc4\t" + struct.pack("<I", len(c4_payload)) + c4_payload
+            v_payload.extend(c4_tag)
+        tag_1389 = b"\x89\x13" + struct.pack("<I", len(v_payload)) + v_payload
+
+        # 2. Arestas
+        edge_defs = [
+            (0, 1), (1, 2), (2, 3), (3, 0),
+            (4, 5), (5, 6), (6, 7), (7, 4),
+            (0, 4), (1, 5), (2, 6), (3, 7),
+        ]
+        e_payload = bytearray()
+        for i, (va, vb) in enumerate(edge_defs):
+            eid_bytes = e_ids[i].to_bytes(4, "little")
+            eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+            dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+            d0_payload = dc_tag + b"\xd3\x07\x01\x00\x00\x00\x06"
+            d0_tag = b"\xd0\x07" + struct.pack("<I", len(d0_payload)) + d0_payload
+            b9_tag = b"\xb9\x0b\x04\x00\x00\x00" + v_ids[va].to_bytes(4, "little")
+            ba_tag = b"\xba\x0b\x04\x00\x00\x00" + v_ids[vb].to_bytes(4, "little")
+            b8_payload = d0_tag + b9_tag + ba_tag
+            b8_tag = b"\xb8\x0b" + struct.pack("<I", len(b8_payload)) + b8_payload
+            e_payload.extend(b8_tag)
+        tag_138a = b"\x8a\x13" + struct.pack("<I", len(e_payload)) + e_payload
+
+        # 3. Faces
+        face_defs = [
+            (0.0, 0.0, 1.0, -(oz + h_in), [(e_ids[4], 0), (e_ids[5], 0), (e_ids[6], 0), (e_ids[7], 0)]),
+            (0.0, 0.0, -1.0, oz, [(e_ids[3], 1), (e_ids[2], 1), (e_ids[1], 1), (e_ids[0], 1)]),
+            (0.0, -1.0, 0.0, oy, [(e_ids[0], 0), (e_ids[9], 0), (e_ids[4], 1), (e_ids[8], 1)]),
+            (0.0, 1.0, 0.0, -(oy + l_in), [(e_ids[2], 0), (e_ids[11], 0), (e_ids[6], 1), (e_ids[10], 1)]),
+            (-1.0, 0.0, 0.0, ox, [(e_ids[3], 0), (e_ids[8], 0), (e_ids[7], 1), (e_ids[11], 1)]),
+            (1.0, 0.0, 0.0, -(ox + w_in), [(e_ids[1], 0), (e_ids[10], 0), (e_ids[5], 1), (e_ids[9], 1)]),
+        ]
+
+        f_payload = bytearray()
+        for i, (nx, ny, nz, d_val, f_edges) in enumerate(face_defs):
+            eid_bytes = f_ids[i].to_bytes(4, "little")
+            eid_tag = b"\xde\x05\x04\x00\x00\x00" + eid_bytes
+            dc_tag = b"\xdc\x05\n\x00\x00\x00" + eid_tag
+            d0_payload = dc_tag + b"\xd3\x07\x01\x00\x00\x00\x06"
+            d0_tag = b"\xd0\x07" + struct.pack("<I", len(d0_payload)) + d0_payload
+
+            dad_tag = b"\xad\x0d\x20\x00\x00\x00" + struct.pack("<4d", nx, ny, nz, d_val)
+
+            edge_uses = bytearray()
+            for edge_eid, dir_flag in f_edges:
+                fa1 = b"\xa1\x0f\x04\x00\x00\x00" + edge_eid.to_bytes(4, "little")
+                fa2 = b"\xa2\x0f\x01\x00\x00\x00" + (b"\x01" if dir_flag == 1 else b"\x00")
+                fa0_payload = fa1 + fa2
+                fa0_tag = b"\xa0\x0f" + struct.pack("<I", len(fa0_payload)) + fa0_payload
+                edge_uses.extend(fa0_tag)
+
+            tag_1195_payload = edge_uses
+            tag_1195 = b"\x95\x11" + struct.pack("<I", len(tag_1195_payload)) + tag_1195_payload
+            tag_1194 = b"\x94\x11" + struct.pack("<I", len(tag_1195)) + tag_1195
+            dae_tag = b"\xae\x0d" + struct.pack("<I", len(tag_1194)) + tag_1194
+
+            ac0d_payload = d0_tag + dad_tag + dae_tag
+            ac0d_tag = b"\xac\r" + struct.pack("<I", len(ac0d_payload)) + ac0d_payload
+            f_payload.extend(ac0d_tag)
+
+        tag_138b = b"\x8b\x13" + struct.pack("<I", len(f_payload)) + f_payload
+
+        geom_block = tag_1389 + tag_138a + tag_138b
+        geom_delta = len(geom_block)
+
+        p_138c = mb.find(b"\x8c\x13")
+        if p_138c == -1:
+            raise SceneSessionError("contêiner de instâncias Tag 0x138c não localizado")
+
+        ins_pos = p_138c
+        mb[ins_pos:ins_pos] = geom_block
+
+        p_8e = mb.find(b"\x8e\x13", ins_pos + geom_delta)
+        tag_8e_delta = 0
+        if p_8e != -1:
+            old_8e_len = struct.unpack_from("<I", mb, p_8e + 2)[0]
+            old_8e_data = mb[p_8e + 6 : p_8e + 6 + old_8e_len]
+            new_entries = bytearray()
+            for eid in e_ids + f_ids:
+                new_entries.append(4)
+                new_entries.extend(eid.to_bytes(4, "little"))
+            new_8e_data = old_8e_data + new_entries
+            tag_8e_delta = len(new_entries)
+            mb[p_8e + 6 : p_8e + 6 + old_8e_len] = new_8e_data
+            struct.pack_into("<I", mb, p_8e + 2, len(new_8e_data))
+
+        total_delta = geom_delta + tag_8e_delta
+
+        p_1388 = mb.rfind(b"\x88\x13", 0, ins_pos)
+        if p_1388 != -1:
+            old_1388_len = struct.unpack_from("<I", mb, p_1388 + 2)[0]
+            struct.pack_into("<I", mb, p_1388 + 2, old_1388_len + total_delta)
+
+        p_01f6 = mb.rfind(b"\xf6\x01", 0, p_1388 if p_1388 != -1 else ins_pos)
+        if p_01f6 != -1:
+            old_f6_len = struct.unpack_from("<I", mb, p_01f6 + 2)[0]
+            struct.pack_into("<I", mb, p_01f6 + 2, old_f6_len + total_delta)
+
+        old_f4_len = struct.unpack_from("<I", mb, 2)[0]
+        struct.pack_into("<I", mb, 2, old_f4_len + total_delta)
+
+        for k, off in list(session.instances_offsets.items()):
+            if off > ins_pos:
+                session.instances_offsets[k] = off + total_delta
+
+        if session.camera_offset is not None and session.camera_offset > ins_pos:
+            session.camera_offset += total_delta
+
+        for t, toff in list(session.tags_offsets.items()):
+            if toff > ins_pos:
+                session.tags_offsets[t] = toff + total_delta
+
+        if session.active_scene_offset is not None and session.active_scene_offset > ins_pos:
+            session.active_scene_offset += total_delta
+
+        for s in session.scenes:
+            if "offset" in s and s["offset"] > ins_pos:
+                s["offset"] += total_delta
+
+        session.is_dirty = True
+        return {
+            "entity_type": "Box",
+            "vertex_count": 8,
+            "edge_count": 12,
+            "face_count": 6,
+            "face_ids": f_ids,
+            "edge_ids": e_ids,
+            "vertex_ids": v_ids,
+            "dimensions_m": [float(width_m), float(length_m), float(height_m)],
+            "volume_m3": round(float(width_m) * float(length_m) * float(height_m), 4),
+        }
+
+    @classmethod
     def paint_material(
         cls, material_name: str, r: int, g: int, b: int, opacity: float = 1.0
     ) -> None:
@@ -912,6 +1117,114 @@ class SkpBinaryWriter:
             "has_texture": True,
             "texture_file": image_filename,
             "scale_cm": [float(scale_u_cm), float(scale_v_cm)],
+        }
+
+    @classmethod
+    def set_rendering_style(
+        cls,
+        mode: Optional[str] = None,
+        xray: Optional[bool] = None,
+        profiles_width: Optional[int] = None,
+        background_rgb: Optional[Tuple[int, int, int]] = None,
+        sky_rgb: Optional[Tuple[int, int, int]] = None,
+    ) -> Dict[str, Any]:
+        """Configura nativamente os estilos de renderização e exibição visual do modelo no style.xml (Zero DLL).
+
+        Suporta:
+        - Modo de face: wireframe, hidden_line, shaded, textured, monochrome
+        - Raio-X (X-Ray Mode)
+        - Espessura de Perfis (Edge Profiles)
+        - Cor do Fundo (Background Color)
+        - Cor do Céu (Sky Color)
+        """
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+
+        # Localiza o style.xml no ZIP existente ou inicializa um novo
+        style_filename = None
+        style_xml_text = None
+
+        if session.raw_zip_data:
+            with zipfile.ZipFile(io.BytesIO(session.raw_zip_data), "r") as zin:
+                for fname in zin.namelist():
+                    if fname.startswith("styles/") and fname.endswith("/style.xml"):
+                        style_filename = fname
+                        style_xml_text = zin.read(fname).decode("utf-8", errors="replace")
+                        break
+
+        if not style_filename:
+            style_filename = "styles/[Simple Style]/style.xml"
+            style_xml_text = '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<styleDocument xmlns="http://sketchup.google.com/schemas/sketchup/1.0/style" xmlns:sty="http://sketchup.google.com/schemas/sketchup/1.0/style">
+  <sty:style xmlns:t="http://sketchup.google.com/schemas/1.0/types" name="[Simple Style]" desc="[Configured by SketchBuild Native]">
+    <sty:item id="1000"><t:variant type="4">1</t:variant></sty:item>
+    <sty:item id="1002"><t:variant type="4">1</t:variant></sty:item>
+    <sty:item id="1005"><t:variant type="4">3</t:variant></sty:item>
+    <sty:item id="2001"><t:variant type="4">3</t:variant></sty:item>
+    <sty:item id="2004"><t:variant type="1">0</t:variant></sty:item>
+    <sty:item id="4000"><t:variant type="4">-3752001</t:variant></sty:item>
+    <sty:item id="4001"><t:variant type="4">-2516480</t:variant></sty:item>
+    <sty:item id="4002"><t:variant type="1">1</t:variant></sty:item>
+  </sty:style>
+</styleDocument>'''
+
+        def rgb_to_argb_signed(r: int, g: int, b: int) -> int:
+            val = (0xFF << 24) | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF)
+            return struct.unpack("<i", struct.pack("<I", val))[0]
+
+        def update_item(text: str, item_id: str, new_val: str, vtype: str = "4") -> str:
+            pat = rf'(<sty:item id="{item_id}">\s*<t:variant type="[^"]*">)(.*?)(</t:variant>\s*</sty:item>)'
+            if re.search(pat, text):
+                return re.sub(pat, rf'\g<1>{new_val}\g<3>', text)
+            else:
+                closing = "</sty:style>"
+                new_block = f'    <sty:item id="{item_id}"><t:variant type="{vtype}">{new_val}</t:variant></sty:item>\n  '
+                return text.replace(closing, new_block + closing, 1)
+
+        mode_map = {
+            "wireframe": 0,
+            "hidden_line": 1,
+            "shaded": 2,
+            "textured": 3,
+            "monochrome": 4,
+        }
+
+        updated_xml = style_xml_text
+
+        if mode is not None and mode.lower() in mode_map:
+            val_code = str(mode_map[mode.lower()])
+            updated_xml = update_item(updated_xml, "2001", val_code, "4")
+
+        if xray is not None:
+            x_code = "1" if xray else "0"
+            updated_xml = update_item(updated_xml, "2004", x_code, "1")
+
+        if profiles_width is not None:
+            w_val = max(0, int(profiles_width))
+            updated_xml = update_item(updated_xml, "1002", "1" if w_val > 0 else "0", "4")
+            updated_xml = update_item(updated_xml, "1005", str(w_val), "4")
+
+        if background_rgb is not None:
+            bg_int = rgb_to_argb_signed(*background_rgb)
+            updated_xml = update_item(updated_xml, "4000", str(bg_int), "4")
+
+        if sky_rgb is not None:
+            sky_int = rgb_to_argb_signed(*sky_rgb)
+            updated_xml = update_item(updated_xml, "4001", str(sky_int), "4")
+            updated_xml = update_item(updated_xml, "4002", "1", "1")
+
+        session.custom_zip_files[style_filename] = updated_xml.encode("utf-8")
+        session.is_dirty = True
+
+        return {
+            "style_file": style_filename,
+            "mode": mode,
+            "xray": xray,
+            "profiles_width": profiles_width,
+            "background_rgb": background_rgb,
+            "sky_rgb": sky_rgb,
         }
 
     @classmethod
@@ -1179,13 +1492,17 @@ class SkpBinaryWriter:
                                     zout.writestr(item, xml_text.encode("utf-8"))
                                 else:
                                     zout.writestr(item, zin.read(fname))
+                            elif fname in session.custom_zip_files:
+                                zout.writestr(item, session.custom_zip_files[fname])
                             else:
                                 # Copia outros assets intactos (texturas, thumbnails, etc.)
                                 zout.writestr(item, zin.read(fname))
 
-                        # Grava arquivos customizados (novas texturas e materiais)
+                        # Grava novos arquivos customizados que não existiam no ZIP original
+                        existing_names = {item.filename for item in zin.infolist()}
                         for custom_path, custom_data in session.custom_zip_files.items():
-                            zout.writestr(custom_path, custom_data)
+                            if custom_path not in existing_names:
+                                zout.writestr(custom_path, custom_data)
 
             final_zip_bytes = zip_buffer_out.getvalue()
             with open(tmp_target, "wb") as f_out:

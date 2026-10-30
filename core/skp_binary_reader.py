@@ -1291,3 +1291,175 @@ class SkpBinaryReader:
 
         return dictionaries
 
+    @classmethod
+    def build_assembly_tree(cls, file_path: str) -> Dict[str, Any]:
+        """Extrai a árvore completa de montagens, subgrupos e componentes aninhados (Outliner Tree)
+        em Pure Python (Zero DLL), mapeando relações pai-filho e nomes da Tag 0x1965."""
+        with open(file_path, "rb") as f:
+            data = f.read()
+
+        mb = cls._extract_model_dat(data)
+        if not mb:
+            return {"name": "Model Root", "children": []}
+
+        # 1. Mapeia ComponentDefinitions e seus nomes (Tag 0x157e / Tag 0x05de)
+        defs_map: Dict[int, str] = {}
+        idx = 0
+        while True:
+            pos = mb.find(cls.TAG_DEF_NAME, idx)
+            if pos == -1:
+                break
+            slen = struct.unpack_from("<I", mb, pos + 2)[0]
+            if 1 <= slen <= 120:
+                name = mb[pos + 6 : pos + 6 + slen].decode("latin1", errors="replace")
+                de_pos = mb.find(b"\xde\x05", pos + 6 + slen, pos + 2500)
+                if de_pos != -1:
+                    id_len = struct.unpack_from("<I", mb, de_pos + 2)[0]
+                    if 1 <= id_len <= 8:
+                        did = int.from_bytes(mb[de_pos + 6 : de_pos + 6 + id_len], "little")
+                        defs_map[did] = name
+            idx = pos + 1
+
+        # 2. Localiza todas as instâncias (Tag 0x1964)
+        instances = []
+        p = 0
+        while True:
+            pos = mb.find(b"\x64\x19", p)
+            if pos == -1:
+                break
+            tlen = struct.unpack_from("<I", mb, pos + 2)[0]
+            chunk = mb[pos + 6 : pos + 6 + tlen]
+
+            # EID da instância (Tag 0x05de)
+            p_de = chunk.find(b"\xde\x05")
+            eid = None
+            if p_de != -1:
+                l = struct.unpack_from("<I", chunk, p_de + 2)[0]
+                if 1 <= l <= 8:
+                    eid = int.from_bytes(chunk[p_de + 6 : p_de + 6 + l], "little")
+
+            # Nome da instância / Grupo (Tag 0x1965)
+            p_65 = chunk.find(b"\x65\x19")
+            name = ""
+            is_group = False
+            if p_65 != -1:
+                nlen = struct.unpack_from("<I", chunk, p_65 + 2)[0]
+                if 1 <= nlen <= 120:
+                    name = chunk[p_65 + 6 : p_65 + 6 + nlen].decode("utf-8", errors="ignore")
+                    is_group = True
+
+            # Matriz 4x4 (Tag 0x1966)
+            p_66 = chunk.find(b"\x66\x19")
+            mat_4x4 = None
+            translation_cm = [0.0, 0.0, 0.0]
+            if p_66 != -1:
+                raw_m = struct.unpack_from("<13d", chunk, p_66 + 6)
+                translation_cm = [
+                    round(raw_m[9] * 2.54, 2),
+                    round(raw_m[10] * 2.54, 2),
+                    round(raw_m[11] * 2.54, 2),
+                ]
+                mat_4x4 = [
+                    round(raw_m[0], 6), round(raw_m[1], 6), round(raw_m[2], 6), 0.0,
+                    round(raw_m[3], 6), round(raw_m[4], 6), round(raw_m[5], 6), 0.0,
+                    round(raw_m[6], 6), round(raw_m[7], 6), round(raw_m[8], 6), 0.0,
+                    translation_cm[0], translation_cm[1], translation_cm[2], round(raw_m[12], 6),
+                ]
+
+            # Definição referenciada (Tag 0x1967)
+            p_67 = chunk.find(b"\x67\x19")
+            def_id = None
+            if p_67 != -1:
+                dlen = struct.unpack_from("<I", chunk, p_67 + 2)[0]
+                if 1 <= dlen <= 8:
+                    def_id = int.from_bytes(chunk[p_67 + 6 : p_67 + 6 + dlen], "little")
+
+            # Definição container pai (onde essa instância está contida)
+            p_parent_de = mb.rfind(b"\xde\x05", 0, pos)
+            parent_def_id = None
+            if p_parent_de != -1 and p_parent_de > pos - 2000:
+                plen = struct.unpack_from("<I", mb, p_parent_de + 2)[0]
+                if 1 <= plen <= 8:
+                    parent_def_id = int.from_bytes(mb[p_parent_de + 6 : p_parent_de + 6 + plen], "little")
+
+            def_name = defs_map.get(def_id, f"Component_{def_id}" if def_id else "Component")
+            final_name = name if name else def_name
+
+            instances.append({
+                "id": str(eid) if eid is not None else f"inst_{pos}",
+                "name": final_name,
+                "is_group": is_group,
+                "definition_id": def_id,
+                "definition_name": def_name,
+                "parent_def_id": parent_def_id,
+                "translation_cm": translation_cm,
+                "matrix_4x4": mat_4x4,
+                "children": [],
+            })
+            p = pos + 1
+
+        # 3. Monta a árvore hierárquica conectando instâncias filhas às definições correspondentes
+        def_to_insts = {}
+        for inst in instances:
+            p_did = inst["parent_def_id"]
+            if p_did not in def_to_insts:
+                def_to_insts[p_did] = []
+            def_to_insts[p_did].append(inst)
+
+        # Para cada instância, aninha as instâncias que residem dentro da sua ComponentDefinition
+        for inst in instances:
+            target_def = inst["definition_id"]
+            if target_def in def_to_insts:
+                inst["children"] = def_to_insts[target_def]
+
+        # Instâncias de nível raiz (cujo parent_def_id não pertence a nenhuma instância anterior)
+        child_ids = set()
+        for inst in instances:
+            for ch in inst["children"]:
+                child_ids.add(ch["id"])
+
+        root_children = [inst for inst in instances if inst["id"] not in child_ids]
+
+        return {
+            "name": "Model Root",
+            "total_instances": len(instances),
+            "root_nodes_count": len(root_children),
+            "children": root_children,
+        }
+
+    @classmethod
+    def extract_dimensions(cls, file_path: str) -> List[Dict[str, Any]]:
+        """Extrai todas as cotas lineares e angulares técnicas (DimensionLinear) do modelo (Zero DLL)."""
+        with open(file_path, "rb") as f:
+            data = f.read()
+
+        mb = cls._extract_model_dat(data)
+        if not mb:
+            return []
+
+        dims = []
+        p = 0
+        while True:
+            pos = mb.find(b"\xb4_\xa7\x00\x00\x00" if False else b"\xb4_", p)
+            if pos == -1:
+                break
+
+            tlen = struct.unpack_from("<I", mb, pos + 2)[0]
+            if 50 <= tlen <= 500:
+                payload = mb[pos + 6 : pos + 6 + tlen]
+                # Offset da cota (Tag 0x5fc3 ou float IEEE-754)
+                p_c3 = payload.find(b"\xc3_")
+                offset_val = 0.0
+                if p_c3 != -1:
+                    offset_val = struct.unpack_from("<d", payload, p_c3 + 6)[0]
+
+                dims.append({
+                    "type": "DimensionLinear",
+                    "offset_inches": round(offset_val, 4),
+                    "offset_cm": round(offset_val * 2.54, 2),
+                    "raw_len": tlen,
+                })
+            p = pos + 1
+
+        return dims
+
