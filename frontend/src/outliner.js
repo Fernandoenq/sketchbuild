@@ -101,3 +101,93 @@ export function buildOutlinerTree(sceneDTO, onSelect) {
 
   return { element: root, setSelected };
 }
+
+/**
+ * Monta a árvore do Outliner a partir do DTO hierárquico analítico da Frente 15 (Tag 0x1965 / build_assembly_tree).
+ * @param {object} assemblyTree - DTO de /api/v1/scene/assembly-tree
+ * @param {(instanceId: string) => void} onSelect - chamado ao clicar numa linha
+ */
+export function buildOutlinerTreeFromAssembly(assemblyTree, onSelect) {
+  const rowByInstanceId = new Map();
+  let selectedRow = null;
+
+  function buildNode(node) {
+    const children = node.children || [];
+    const isGroup = node.is_group;
+    const label = node.name || node.definition_name || "Component";
+
+    const nodeEl = document.createElement("div");
+    nodeEl.className = "outliner-node";
+
+    const rowEl = document.createElement("div");
+    rowEl.className = "outliner-row";
+    rowEl.title = `${node.id} (${isGroup ? "Grupo" : "Componente"})`;
+
+    const toggleEl = document.createElement("span");
+    toggleEl.className = "outliner-toggle";
+    toggleEl.textContent = children.length ? "▾" : "";
+
+    const iconEl = document.createElement("span");
+    iconEl.style.fontSize = "10px";
+    iconEl.style.marginRight = "4px";
+    iconEl.style.opacity = "0.7";
+    iconEl.textContent = isGroup ? "📁" : "🧊";
+
+    const labelEl = document.createElement("span");
+    labelEl.className = "outliner-label";
+    labelEl.textContent = label;
+
+    rowEl.appendChild(toggleEl);
+    rowEl.appendChild(iconEl);
+    rowEl.appendChild(labelEl);
+    nodeEl.appendChild(rowEl);
+    rowByInstanceId.set(node.id, rowEl);
+
+    rowEl.addEventListener("click", (event) => {
+      event.stopPropagation();
+      onSelect(node.id);
+    });
+
+    if (children.length) {
+      const childrenEl = document.createElement("div");
+      childrenEl.className = "outliner-children";
+      for (const child of children) {
+        childrenEl.appendChild(buildNode(child));
+      }
+      nodeEl.appendChild(childrenEl);
+
+      toggleEl.addEventListener("click", (event) => {
+        event.stopPropagation();
+        childrenEl.classList.toggle("collapsed");
+        toggleEl.textContent = childrenEl.classList.contains("collapsed") ? "▸" : "▾";
+      });
+    }
+
+    return nodeEl;
+  }
+
+  const root = document.createElement("div");
+  for (const child of assemblyTree.children || []) {
+    root.appendChild(buildNode(child));
+  }
+
+  function setSelected(instanceId) {
+    if (selectedRow) selectedRow.classList.remove("selected");
+    selectedRow = instanceId ? rowByInstanceId.get(instanceId) || null : null;
+    if (selectedRow) {
+      selectedRow.classList.add("selected");
+      let parentChildren = selectedRow.closest(".outliner-children");
+      while (parentChildren) {
+        parentChildren.classList.remove("collapsed");
+        const parentRow = parentChildren.previousElementSibling;
+        const toggleEl = parentRow?.querySelector(".outliner-toggle");
+        if (toggleEl) toggleEl.textContent = "▾";
+        parentChildren = parentChildren.parentElement?.closest(".outliner-children");
+      }
+      selectedRow.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  return { element: root, setSelected };
+}
+

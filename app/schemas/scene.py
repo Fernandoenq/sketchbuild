@@ -522,3 +522,175 @@ class DuplicateInstanceResponse(BaseModel):
 
     instance: InstanceDTO
     duplicated: bool = True
+
+
+# ============================================================================
+# Frentes 13, 15, 19, 20 & Desmontador / Orçamentador BIM (Opções 1 e 2)
+# ============================================================================
+
+class CreateBoxRequest(BaseModel):
+    """Entrada para criação de Sólido 3D Manifold (Frente 13)."""
+
+    width_m: float = Field(..., gt=0, description="Largura em metros (eixo X)", examples=[1.0])
+    length_m: float = Field(..., gt=0, description="Comprimento em metros (eixo Y)", examples=[2.0])
+    height_m: float = Field(..., gt=0, description="Altura em metros (eixo Z)", examples=[0.8])
+    offset_xyz_cm: list[float] | None = Field(
+        default=None,
+        description="Deslocamento relativo opcional [dx, dy, dz] em centímetros.",
+        examples=[[0.0, 0.0, 0.0]],
+    )
+
+
+class BoxDetailsDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "Box"
+    vertex_count: int = 8
+    edge_count: int = 12
+    face_count: int = 6
+    dimensions_m: list[float]
+    volume_m3: float
+
+
+class CreateBoxResponse(BaseModel):
+    """Resposta com detalhes do sólido e cena atualizada."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    box: BoxDetailsDTO
+    scene: SceneResponse
+
+
+class SetStyleRequest(BaseModel):
+    """Entrada de configuração de Estilos de Renderização (Frente 19)."""
+
+    mode: str = Field(
+        default="textured",
+        description="Modo de exibição: textured, shaded, hidden_line, wireframe, monochrome",
+        examples=["hidden_line"],
+    )
+    xray: bool = Field(default=False, description="Modo Raio-X (transparência técnica)")
+    profiles_width: int = Field(default=2, ge=1, le=10, description="Largura do traço de contornos/arestas")
+    background_rgb: list[int] | None = Field(
+        default=None,
+        description="Cor de fundo RGB [r, g, b] 0-255",
+        examples=[[255, 255, 255]],
+    )
+    sky_rgb: list[int] | None = Field(
+        default=None,
+        description="Cor do céu RGB [r, g, b] 0-255",
+        examples=[[200, 220, 240]],
+    )
+
+
+class SetStyleResponse(BaseModel):
+    """Resposta de alteração de Estilo de Renderização."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    success: bool = True
+    mode: str
+    xray: bool
+    profiles_width: int
+    style_xml_updated: bool = True
+
+
+class AssemblyTreeNodeDTO(BaseModel):
+    """Nó da Árvore Hierárquica do Outliner e Vista Explodida (Frente 15)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    is_group: bool = False
+    definition_id: int | None = None
+    definition_name: str | None = None
+    parent_def_id: int | None = None
+    translation_cm: list[float] | None = None
+    matrix_4x4: list[float] | None = None
+    children: list[AssemblyTreeNodeDTO] = Field(default_factory=list)
+
+
+class AssemblyTreeResponse(BaseModel):
+    """Resposta de GET /scene/assembly-tree."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str = "Model Root"
+    total_instances: int
+    root_nodes_count: int
+    children: list[AssemblyTreeNodeDTO]
+
+
+class ConvertDxfRequest(BaseModel):
+    """Entrada para conversão de arquivo DXF para SKP (Frente 20)."""
+
+    dxf_path: str = Field(..., min_length=1, description="Caminho do arquivo DXF no servidor")
+    scale_factor: float = Field(default=1.0, gt=0, description="Fator de escala do DXF")
+
+
+class ConvertDxfResponse(BaseModel):
+    """Resposta de conversão DXF -> SKP."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    success: bool = True
+    output_skp_path: str
+    entities_converted: int
+    faces_count: int
+    lines_count: int
+    total_area_m2: float
+
+
+class BimItemDTO(BaseModel):
+    """Item analítico do Orçamento BIM / BOM."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    definition_name: str
+    instance_count: int
+    unit_volume_m3: float
+    total_volume_m3: float
+    unit_area_m2: float
+    total_area_m2: float
+    classification: str | None = None
+    material: str | None = None
+    unit_price: float = 0.0
+    total_price: float = 0.0
+    instances: list[str] = Field(default_factory=list)
+
+
+class BimBomSummaryDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    total_items_count: int
+    total_volume_m3: float
+    total_area_m2: float
+    estimated_cost: float
+    materials_count: int
+    currency: str = "BRL"
+
+
+class BimBomReportResponse(BaseModel):
+    """Resposta de GET /scene/bim-report."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    summary: BimBomSummaryDTO
+    items: list[BimItemDTO]
+
+
+class ExplodedViewRequest(BaseModel):
+    """Entrada de cálculo paramétrico de Vista Explodida."""
+
+    expansion_factor: float = Field(default=0.5, ge=0.0, le=5.0, description="Fator de explosão lambda (0.0 = montado, 1.0+ = explodido)")
+
+
+class ExplodedViewResponse(BaseModel):
+    """Matrizes transformadas para cada instância na vista explodida."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    expansion_factor: float
+    instance_transforms: dict[str, list[float]]
+
