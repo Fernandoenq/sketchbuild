@@ -694,3 +694,59 @@ class ExplodedViewResponse(BaseModel):
     expansion_factor: float
     instance_transforms: dict[str, list[float]]
 
+
+# ============================================================================
+# Frente 21: Exportador Multi-formato (GLTF/GLB e IFC BIM)
+# ============================================================================
+
+class ExportGlbRequest(BaseModel):
+    """Entrada de POST /scene/export/glb."""
+
+    path: str = Field(
+        ...,
+        min_length=1,
+        description="Caminho absoluto de destino para o arquivo binário .glb",
+        examples=[r"C:\Users\<usuario>\Desktop\modelo.glb"],
+    )
+
+
+class ExportGlbResponse(BaseModel):
+    """Resposta de exportação glTF 2.0 Binary (.glb)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    saved: bool = True
+    path: str
+    file_size_bytes: int
+    mesh_count: int
+    node_count: int
+    format: str = "glTF 2.0 Binary (.glb)"
+
+
+class ExportIfcRequest(BaseModel):
+    """Entrada de POST /scene/export/ifc."""
+
+    path: str = Field(
+        ...,
+        min_length=1,
+        description="Caminho absoluto de destino para o arquivo BIM .ifc",
+        examples=[r"C:\Users\<usuario>\Desktop\modelo.ifc"],
+    )
+    project_name: str = Field(
+        default="Projeto SketchBuild",
+        description="Nome do projeto na estrutura espacial IfcProject",
+    )
+
+
+class ExportIfcResponse(BaseModel):
+    """Resposta de exportação IFC4 / IFC2X3 (STEP ISO 10303-21)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    saved: bool = True
+    path: str
+    file_size_bytes: int
+    elements_count: int
+    format: str = "Industry Foundation Classes (IFC4 STEP)"
+
+

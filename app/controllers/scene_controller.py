@@ -26,6 +26,10 @@ from app.schemas.scene import (
     DiscardAutosaveDraftResponse,
     DuplicateInstanceResponse,
     ExportModelResponse,
+    ExportGlbRequest,
+    ExportGlbResponse,
+    ExportIfcRequest,
+    ExportIfcResponse,
     ListAutosaveDraftsResponse,
     ListScenePagesResponse,
     PaintFaceResponse,
@@ -488,6 +492,24 @@ class SceneController:
         try:
             res = await self._service.calculate_exploded_view(expansion_factor=body.expansion_factor)
             return ExplodedViewResponse.model_validate(res)
+        except InvalidModelPathError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+    async def export_model_glb(self, path: str) -> ExportGlbResponse:
+        try:
+            res = await self._service.export_model_glb(path)
+            return ExportGlbResponse.model_validate(res)
+        except InvalidModelPathError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+    async def export_model_ifc(self, path: str, project_name: str = "Projeto SketchBuild") -> ExportIfcResponse:
+        try:
+            res = await self._service.export_model_ifc(path, project_name=project_name)
+            return ExportIfcResponse.model_validate(res)
         except InvalidModelPathError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
         except SceneSessionError as e:

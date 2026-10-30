@@ -601,3 +601,36 @@ Com a conclusão e homologação das frentes de engenharia reversa no leitor/gra
 3. **Plugin Ruby Parkelô 3D DEV:**
    - Atualização de `skp_reader.rb` com suporte à Tag 0x1965 e método `calcular_orcamento_bim`.
    - Execução bem-sucedida do script `deploy.ps1` no SketchUp 2026 oficial.
+
+
+---
+
+## 45. Frente 21: Exportador Nativo Multi-formato (GLTF/GLB e IFC BIM - Zero DLL)
+
+A Frente 21 adiciona a capacidade de compilar o modelo `.skp` para os padrões internacionais abertos da indústria gráfica 3D e de engenharia BIM: **glTF 2.0 Binary (.glb)** (Khronos Group) e **IFC4 STEP ISO 10303-21** (buildingSMART), em Pure Python sem depender de licenças comerciais ou do executável do SketchUp.
+
+### A. Compilador Binário glTF 2.0 (GLB)
+1. **Estrutura de Container Monolítico (RFC / Khronos Spec):**
+   - **Header de 12 bytes:** `magic = 0x46546C67` (ASCII `glTF`), `version = 2`, `length` total do arquivo.
+   - **Chunk 0 (JSON Chunk, `0x4E4F534A`):** Manifesto UTF-8 alinhado em 4 bytes descrevendo `asset`, `scenes`, `nodes`, `meshes`, `primitives`, `materials`, `accessors`, `bufferViews`, `buffers`.
+   - **Chunk 1 (BIN Chunk, `0x004E4942`):** Array de memória binária contígua empacotando posições (`VEC3 FLOAT`), normais (`VEC3 FLOAT`), coordenadas de textura analíticas UV e índices poligonais triangulares (`SCALAR USHORT/UINT`).
+2. **Transformação Analítica de Coordenadas:**
+   - O SketchUp adota convenção Z-up com medidas em polegadas. O glTF adota Y-up e metros.
+   - Matriz de transformação direta:
+     $$X_{gltf} = X_{skp} \cdot 0.0254, \quad Y_{gltf} = Z_{skp} \cdot 0.0254, \quad Z_{gltf} = -Y_{skp} \cdot 0.0254$$
+   - Normais transformadas analogamente: $\vec{N}_{gltf} = (N_x, N_z, -N_y)$.
+3. **Módulo:** `core/glb_exporter.py` com classe `GlbExporter`.
+
+### B. Compilador BIM IFC4 (Industry Foundation Classes STEP ISO 10303-21)
+1. **Hierarquia Espacial BIM Completa:**
+   - Criação da árvore espacial: `IFCPROJECT` $\rightarrow$ `IFCSITE` $\rightarrow$ `IFCBUILDING` $\rightarrow$ `IFCBUILDINGSTOREY` agregados via `IFCRELAGGREGATES`.
+2. **Topologia B-Rep Analítica:**
+   - Cada face triangular ou coplanar é compilada para `IFCPOLYLOOP`, delimitada por `IFCFACEOUTERBOUND`, agregada em `IFCFACE` e envelopada em uma casca topológica `IFCCLOSEDSHELL` dentro de um `IFCFACETEDBREP`.
+3. **Injeção de Metadados BIM (Property Sets):**
+   - Os dicionários de atributos mapeados na Frente 12 (`Tag 0x36b1`) são transformados em `IFCPROPERTYSET` com valores `IFCPROPERTYSINGLEVALUE`, vinculados aos elementos `IFCBUILDINGELEMENTPROXY` via `IFCRELDEFINESBYPROPERTIES`.
+4. **Módulo:** `core/ifc_exporter.py` com classe `IfcExporter`.
+
+### C. Endpoints e Integração Web
+- Endpoints FastAPI: `POST /api/v1/scene/export/glb` e `POST /api/v1/scene/export/ifc`.
+- Integração no menu do frontend: *Arquivo > Exportar > Modelo glTF 2.0 (.glb)...* e *Arquivo > Exportar > Modelo BIM IFC4 (.ifc)...*.
+- Testado e validado em `test_multiformat_exporter.py` com 100% de aprovação.

@@ -20,6 +20,10 @@ from app.schemas.scene import (
     DuplicateInstanceResponse,
     ExportModelRequest,
     ExportModelResponse,
+    ExportGlbRequest,
+    ExportGlbResponse,
+    ExportIfcRequest,
+    ExportIfcResponse,
     ListAutosaveDraftsResponse,
     ListScenePagesResponse,
     NewSceneFromTemplateRequest,
@@ -454,3 +458,27 @@ async def calculate_exploded_view(
     controller: SceneController = Depends(get_controller),
 ) -> ExplodedViewResponse:
     return await controller.calculate_exploded_view(body)
+
+
+@router.post(
+    "/export/glb",
+    response_model=ExportGlbResponse,
+    summary="Exporta nativamente a cena para glTF 2.0 Binary (.glb) com PBR (Frente 21 - Zero DLL)",
+)
+async def export_model_glb(
+    body: ExportGlbRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ExportGlbResponse:
+    return await controller.export_model_glb(body.path)
+
+
+@router.post(
+    "/export/ifc",
+    response_model=ExportIfcResponse,
+    summary="Exporta nativamente a cena para modelo BIM aberto IFC4 STEP ISO 10303-21 (Frente 21 - Zero DLL)",
+)
+async def export_model_ifc(
+    body: ExportIfcRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ExportIfcResponse:
+    return await controller.export_model_ifc(body.path, project_name=body.project_name)
