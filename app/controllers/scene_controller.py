@@ -272,6 +272,31 @@ from app.schemas.scene import (
     DynamicComponentInteractResponse,
     TrimbleSolidToolsRequest,
     TrimbleSolidToolsResponse,
+    IfcClassifyComponentRequest,
+    IfcClassifyComponentResponse,
+    IfcAuditRequest,
+    IfcAuditResponse,
+    ThreeDTextGenerateRequest,
+    ThreeDTextGenerateResponse,
+    GenerateReportRequest,
+    GenerateReportResponse,
+    AxesCustomSetRequest,
+    AxesCustomSetResponse,
+    AxesAlignFaceRequest,
+    AxesAlignFaceResponse,
+    AxesResetResponse,
+    EntityInspectEdgeRequest,
+    EntityInspectEdgeResponse,
+    EntityInspectFaceRequest,
+    EntityInspectFaceResponse,
+    EntityInspectSolidRequest,
+    EntityInspectSolidResponse,
+    ComponentEditModeRequest,
+    ComponentEditModeResponse,
+    ModelUnitsConfigRequest,
+    ModelUnitsConfigResponse,
+    ModelUnitsFormatRequest,
+    ModelUnitsFormatResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2480,5 +2505,100 @@ class SceneController:
         try:
             res = await self._service.trimble_solid_tools_execute(**body.model_dump())
             return TrimbleSolidToolsResponse(operation_result=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 2): CONTROLLERS NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def ifc_classify_component(self, body: IfcClassifyComponentRequest) -> IfcClassifyComponentResponse:
+        try:
+            res = await self._service.ifc_classify_component(**body.model_dump())
+            return IfcClassifyComponentResponse(classification=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def ifc_audit_classifications(self, body: IfcAuditRequest) -> IfcAuditResponse:
+        try:
+            res = await self._service.ifc_audit_classifications(**body.model_dump())
+            return IfcAuditResponse(audit_summary=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_3d_text(self, body: ThreeDTextGenerateRequest) -> ThreeDTextGenerateResponse:
+        try:
+            res = await self._service.generate_3d_text(**body.model_dump())
+            return ThreeDTextGenerateResponse(text_geometry=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_report(self, body: GenerateReportRequest) -> GenerateReportResponse:
+        try:
+            res = await self._service.generate_report(**body.model_dump())
+            return GenerateReportResponse(report_data=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def axes_set_custom(self, body: AxesCustomSetRequest) -> AxesCustomSetResponse:
+        try:
+            res = await self._service.axes_set_custom(**body.model_dump())
+            return AxesCustomSetResponse(axes=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def axes_align_to_face(self, body: AxesAlignFaceRequest) -> AxesAlignFaceResponse:
+        try:
+            res = await self._service.axes_align_to_face(**body.model_dump())
+            return AxesAlignFaceResponse(axes=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def axes_reset(self) -> AxesResetResponse:
+        try:
+            res = await self._service.axes_reset()
+            return AxesResetResponse(axes=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def inspect_entity_edge(self, body: EntityInspectEdgeRequest) -> EntityInspectEdgeResponse:
+        try:
+            res = await self._service.inspect_entity_edge(**body.model_dump())
+            return EntityInspectEdgeResponse(metrics=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def inspect_entity_face(self, body: EntityInspectFaceRequest) -> EntityInspectFaceResponse:
+        try:
+            res = await self._service.inspect_entity_face(**body.model_dump())
+            return EntityInspectFaceResponse(metrics=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def inspect_entity_solid(self, body: EntityInspectSolidRequest) -> EntityInspectSolidResponse:
+        try:
+            res = await self._service.inspect_entity_solid(**body.model_dump())
+            return EntityInspectSolidResponse(metrics=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def component_edit_mode_apply(self, body: ComponentEditModeRequest) -> ComponentEditModeResponse:
+        try:
+            res = await self._service.component_edit_mode_apply(**body.model_dump())
+            return ComponentEditModeResponse(edit_mode_state=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def model_units_configure(self, body: ModelUnitsConfigRequest) -> ModelUnitsConfigResponse:
+        try:
+            res = await self._service.model_units_configure(**body.model_dump())
+            return ModelUnitsConfigResponse(units_config=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def model_units_format(self, body: ModelUnitsFormatRequest) -> ModelUnitsFormatResponse:
+        try:
+            res = await self._service.model_units_format(**body.model_dump())
+            return ModelUnitsFormatResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

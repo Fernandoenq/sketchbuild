@@ -1853,3 +1853,121 @@ export function trimbleSolidToolsExecute(operation = "subtract", solidA, solidB)
     solid_b: solidB
   });
 }
+
+
+// ============================================================================
+// OPÇÃO A (PARTE 2): CLIENT API DAS FERRAMENTAS NATIVAS ADICIONAIS DO SKETCHUP
+// ============================================================================
+
+export function ifcClassifyComponent(instanceId = "inst_1", definitionName = "Viga", schemaName = "IFC4", ifcClass = "IfcBeam", predefinedType = "NOTDEFINED", description = "", tag = null) {
+  return postJson("/api/v1/scene/bim/ifc/classify", "POST", {
+    instance_id: instanceId,
+    definition_name: definitionName,
+    schema_name: schemaName,
+    ifc_class: ifcClass,
+    predefined_type: predefinedType,
+    description: description,
+    tag: tag
+  });
+}
+
+export function ifcAuditClassifications(instances = []) {
+  return postJson("/api/v1/scene/bim/ifc/audit", "POST", { instances: instances });
+}
+
+export function generate3dText(text = "SKETCHBUILD", fontFamily = "Arial", heightM = 0.30, extrusionDepthM = 0.05, isFilled = true, isExtruded = true, alignment = "left", originXyz = [0, 0, 0]) {
+  return postJson("/api/v1/scene/geometry/3d-text", "POST", {
+    text: text,
+    font_family: fontFamily,
+    height_m: heightM,
+    extrusion_depth_m: extrusionDepthM,
+    is_filled: isFilled,
+    is_extruded: isExtruded,
+    alignment: alignment,
+    origin_xyz: originXyz
+  });
+}
+
+export function generateReport(instances = [], scope = "entire_model", groupByDefinition = true, selectedInstanceIds = null) {
+  return postJson("/api/v1/scene/reports/generate", "POST", {
+    instances: instances,
+    scope: scope,
+    group_by_definition: groupByDefinition,
+    selected_instance_ids: selectedInstanceIds
+  });
+}
+
+export function axesSetCustom(origin = [0, 0, 0], xPoint = [1, 0, 0], yPoint = [0, 1, 0]) {
+  return postJson("/api/v1/scene/axes/custom", "POST", {
+    origin: origin,
+    x_point: xPoint,
+    y_point: yPoint
+  });
+}
+
+export function axesAlignToFace(faceVertices = []) {
+  return postJson("/api/v1/scene/axes/align-face", "POST", { face_vertices: faceVertices });
+}
+
+export function axesReset() {
+  return postJson("/api/v1/scene/axes/reset", "POST", {});
+}
+
+export function inspectEntityEdge(v1, v2, isSmooth = false, isSoft = false, isHidden = false, tag = "Layer0") {
+  return postJson("/api/v1/scene/entity-info/edge", "POST", {
+    v1: v1, v2: v2,
+    is_smooth: isSmooth, is_soft: isSoft, is_hidden: isHidden, tag: tag
+  });
+}
+
+export function inspectEntityFace(vertices, frontMaterial = null, backMaterial = null, tag = "Layer0") {
+  return postJson("/api/v1/scene/entity-info/face", "POST", {
+    vertices: vertices,
+    front_material: frontMaterial,
+    back_material: backMaterial,
+    tag: tag
+  });
+}
+
+export function inspectEntitySolid(definitionName = "Componente", instanceName = "inst_1", triangles = [], tag = "Layer0", dynamicAttributes = null) {
+  return postJson("/api/v1/scene/entity-info/solid", "POST", {
+    definition_name: definitionName,
+    instance_name: instanceName,
+    triangles: triangles,
+    tag: tag,
+    dynamic_attributes: dynamicAttributes
+  });
+}
+
+export function componentEditModeApply(activeInstanceId = null, activeDefinitionName = null, allInstances = [], hideRest = false, hideSimilar = false, fadeRest = true, fadeSimilar = true, fadeOpacity = 0.25) {
+  return postJson("/api/v1/scene/components/edit-mode", "POST", {
+    active_instance_id: activeInstanceId,
+    active_definition_name: activeDefinitionName,
+    all_instances: allInstances,
+    hide_rest_of_model: hideRest,
+    hide_similar_components: hideSimilar,
+    fade_rest_of_model: fadeRest,
+    fade_similar_components: fadeSimilar,
+    fade_opacity: fadeOpacity
+  });
+}
+
+export function modelUnitsConfigure(formatType = "DECIMAL", unitLength = "METERS", precisionDigits = 2, enableLengthSnap = true, lengthSnapInterval = 0.01, enableAngleSnap = true, angleSnapDeg = 15.0) {
+  return postJson("/api/v1/scene/units/configure", "POST", {
+    format_type: formatType,
+    unit_length: unitLength,
+    precision_digits: precisionDigits,
+    enable_length_snapping: enableLengthSnap,
+    length_snap_interval_m: lengthSnapInterval,
+    enable_angle_snapping: enableAngleSnap,
+    angle_snap_degrees: angleSnapDeg
+  });
+}
+
+export function modelUnitsFormat(lengthMeters = 1.0, unit = "METERS", precisionDigits = 2) {
+  return postJson("/api/v1/scene/units/format", "POST", {
+    length_meters: lengthMeters,
+    unit: unit,
+    precision_digits: precisionDigits
+  });
+}
