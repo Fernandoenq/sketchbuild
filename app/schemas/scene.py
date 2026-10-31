@@ -3215,3 +3215,481 @@ class Bim5dSinapiCostResponse(BaseModel):
     abc_classification_summary: dict[str, Any]
     items: list[dict[str, Any]]
     status: str
+
+
+# ============================================================================
+# Frentes 116 a 145: Schemas de Engenharia Civil, Geotecnia, MEP, BIM 4D/7D e Sustentabilidade
+# ============================================================================
+
+# 116
+class StormwaterDrainageRequest(BaseModel):
+    roof_area_m2: float = Field(default=120.0, ge=1.0)
+    rainfall_intensity_mm_h: float = Field(default=150.0, ge=10.0)
+    gutter_width_m: float = Field(default=0.20, ge=0.05)
+    gutter_depth_m: float = Field(default=0.15, ge=0.05)
+    gutter_slope_m_m: float = Field(default=0.005, ge=0.001)
+    downspout_diameter_mm: float = Field(default=100.0, ge=50.0)
+    gutters_count: int = Field(default=2, ge=1)
+
+class StormwaterDrainageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    hydraulic_results: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 117
+class PermeablePavementRequest(BaseModel):
+    pavement_area_m2: float = Field(default=250.0, ge=1.0)
+    design_rainfall_mm: float = Field(default=60.0, ge=1.0)
+    surface_type: str = Field(default="INTERLOCKING_CONCRETE_BLOCKS")
+    base_thickness_m: float = Field(default=0.25, ge=0.05)
+    base_voids_ratio: float = Field(default=0.38, ge=0.1, le=0.6)
+    soil_infiltration_rate_mm_h: float = Field(default=15.0, ge=0.1)
+
+class PermeablePavementResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    drainage_metrics: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 118
+class SewerNetworkGravityRequest(BaseModel):
+    pipe_diameter_dn_mm: float = Field(default=150.0, ge=100.0)
+    flow_rate_l_s: float = Field(default=2.50, ge=0.01)
+    pipe_length_m: float = Field(default=40.0, ge=1.0)
+    slope_m_m: float = Field(default=0.008, ge=0.001)
+    manning_n: float = Field(default=0.013)
+
+class SewerNetworkGravityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    hydraulic_metrics: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 119
+class DetentionBasinHydrologyRequest(BaseModel):
+    catchment_area_ha: float = Field(default=5.0, ge=0.1)
+    runoff_coefficient: float = Field(default=0.70, ge=0.05, le=1.0)
+    design_rainfall_intensity_mm_h: float = Field(default=120.0, ge=10.0)
+    allowable_outflow_l_s: float = Field(default=250.0, ge=1.0)
+    basin_depth_m: float = Field(default=2.0, ge=0.5)
+
+class DetentionBasinHydrologyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    hydrologic_results: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 120
+class EarthworkBrucknerRequest(BaseModel):
+    cross_sections: list[dict[str, Any]] | None = Field(default=None)
+    bulking_factor: float = Field(default=1.25, ge=1.0, le=2.0)
+    compaction_factor: float = Field(default=0.85, ge=0.5, le=1.0)
+
+class EarthworkBrucknerResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    earthwork_summary: dict[str, Any]
+    bruckner_curve: list[dict[str, Any]]
+    status: str
+
+# 121
+class SlopeStabilityBishopRequest(BaseModel):
+    slope_height_m: float = Field(default=8.0, ge=1.0)
+    slope_angle_deg: float = Field(default=35.0, ge=5.0, le=80.0)
+    soil_cohesion_kpa: float = Field(default=12.0, ge=0.0)
+    soil_friction_angle_deg: float = Field(default=28.0, ge=5.0, le=45.0)
+    soil_unit_weight_kn_m3: float = Field(default=19.0, ge=10.0)
+    piezometric_ru: float = Field(default=0.15, ge=0.0, le=0.5)
+
+class SlopeStabilityBishopResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    stability_analysis: dict[str, Any]
+    failure_arc_points: list[list[float]]
+    status: str
+
+# 122
+class DeepFoundationsPilesRequest(BaseModel):
+    pile_type: str = Field(default="CONTINUOUS_FLIGHT_AUGER")
+    pile_diameter_mm: float = Field(default=500.0, ge=200.0)
+    pile_length_m: float = Field(default=12.0, ge=2.0)
+    spt_profile_n_values: list[int] | None = Field(default=None)
+    column_axial_load_kn: float = Field(default=1800.0, ge=10.0)
+
+class DeepFoundationsPilesResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    geotechnical_capacity: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 123
+class ShallowFootingsRequest(BaseModel):
+    column_load_kn: float = Field(default=650.0, ge=10.0)
+    soil_allowable_stress_mpa: float = Field(default=0.20, ge=0.05)
+    column_dim_a_cm: float = Field(default=20.0, ge=10.0)
+    column_dim_b_cm: float = Field(default=40.0, ge=10.0)
+    fck_concrete_mpa: float = Field(default=25.0, ge=15.0)
+
+class ShallowFootingsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    footing_dimensions: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 124
+class GabionRetainingWallRequest(BaseModel):
+    wall_height_m: float = Field(default=4.0, ge=1.0)
+    tiers_count: int = Field(default=4, ge=1)
+    base_width_m: float = Field(default=2.5, ge=0.5)
+    top_width_m: float = Field(default=1.0, ge=0.5)
+    soil_friction_angle_deg: float = Field(default=30.0, ge=15.0)
+
+class GabionRetainingWallResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    stability_analysis: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 125
+class ConcreteFormworkShoringRequest(BaseModel):
+    element_type: str = Field(default="COLUMN")
+    height_or_span_m: float = Field(default=3.20, ge=0.5)
+    pour_rate_v_m_h: float = Field(default=2.50, ge=0.5)
+    slump_cm: float = Field(default=12.0, ge=5.0)
+    slab_thickness_cm: float = Field(default=15.0, ge=5.0)
+
+class ConcreteFormworkShoringResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    formwork_metrics: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 126
+class ReinforcedConcreteBeamRequest(BaseModel):
+    section_width_bw_cm: float = Field(default=20.0, ge=10.0)
+    section_height_h_cm: float = Field(default=50.0, ge=15.0)
+    bending_moment_mk_kn_m: float = Field(default=120.0, ge=1.0)
+    shear_force_vk_kn: float = Field(default=85.0, ge=1.0)
+    concrete_fck_mpa: float = Field(default=30.0, ge=15.0)
+
+class ReinforcedConcreteBeamResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    design_results: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 127
+class WaffleSlabRequest(BaseModel):
+    span_x_m: float = Field(default=8.0, ge=2.0)
+    span_y_m: float = Field(default=8.0, ge=2.0)
+    rib_spacing_cm: float = Field(default=80.0, ge=40.0)
+    rib_width_bw_cm: float = Field(default=12.0, ge=7.0)
+    slab_total_height_h_cm: float = Field(default=30.0, ge=15.0)
+    topping_thickness_hf_cm: float = Field(default=5.0, ge=4.0)
+
+class WaffleSlabResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    waffle_metrics: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 128
+class PrestressedConcreteRequest(BaseModel):
+    beam_span_m: float = Field(default=16.0, ge=4.0)
+    section_height_h_m: float = Field(default=0.90, ge=0.3)
+    section_width_bw_m: float = Field(default=0.35, ge=0.15)
+    strands_count: int = Field(default=8, ge=1)
+    eccentricity_midspan_m: float = Field(default=0.32, ge=0.0)
+    concrete_fck_mpa: float = Field(default=40.0, ge=25.0)
+
+class PrestressedConcreteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    prestress_metrics: dict[str, Any]
+    parabolic_tendon_3d: list[list[float]]
+    status: str
+
+# 129
+class GlulamCltTimberRequest(BaseModel):
+    timber_type: str = Field(default="GLULAM_BEAM")
+    span_m: float = Field(default=9.0, ge=1.0)
+    width_b_cm: float = Field(default=16.0, ge=5.0)
+    height_h_cm: float = Field(default=45.0, ge=10.0)
+    distributed_load_kn_m: float = Field(default=12.0, ge=0.5)
+    fire_resistance_rating_minutes: int = Field(default=60, ge=0)
+
+class GlulamCltTimberResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    timber_structural_results: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 130
+class SpaceTrussRequest(BaseModel):
+    span_x_m: float = Field(default=12.0, ge=4.0)
+    span_y_m: float = Field(default=12.0, ge=4.0)
+    module_size_m: float = Field(default=2.0, ge=1.0)
+    truss_depth_m: float = Field(default=1.20, ge=0.5)
+    uniform_load_kn_m2: float = Field(default=1.20, ge=0.2)
+
+class SpaceTrussResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    truss_statistics: dict[str, Any]
+    truss_nodes: list[dict[str, Any]]
+    status: str
+
+# 131
+class FuelGasPipingRequest(BaseModel):
+    gas_type: str = Field(default="GLP")
+    total_power_kw: float = Field(default=75.0, ge=1.0)
+    pipe_length_m: float = Field(default=25.0, ge=1.0)
+    inlet_pressure_kpa: float = Field(default=2.80, ge=1.0)
+    nominal_diameter_dn_mm: float = Field(default=22.0, ge=10.0)
+
+class FuelGasPipingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    gas_network_results: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 132
+class LightningProtectionSpdaRequest(BaseModel):
+    building_width_m: float = Field(default=20.0, ge=2.0)
+    building_length_m: float = Field(default=30.0, ge=2.0)
+    building_height_m: float = Field(default=18.0, ge=2.0)
+    protection_level: str = Field(default="LEVEL_III")
+    air_terminals_count: int = Field(default=4, ge=1)
+
+class LightningProtectionSpdaResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    spda_design: dict[str, Any]
+    air_terminals_positions_3d: list[list[float]]
+    status: str
+
+# 133
+class FireEgressRouteRequest(BaseModel):
+    occupancy_type: str = Field(default="OFFICE_D1")
+    floor_population_persons: int = Field(default=180, ge=1)
+    longest_travel_distance_m: float = Field(default=38.0, ge=1.0)
+    has_sprinklers: bool = Field(default=True)
+    doors_count: int = Field(default=2, ge=1)
+
+class FireEgressRouteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    egress_metrics: dict[str, Any]
+    egress_path_waypoints_3d: list[list[float]]
+    status: str
+
+# 134
+class HvacThermalLoadRequest(BaseModel):
+    floor_area_m2: float = Field(default=80.0, ge=5.0)
+    ceiling_height_m: float = Field(default=2.80, ge=2.0)
+    occupants_count: int = Field(default=8, ge=1)
+    outdoor_temp_c: float = Field(default=34.0, ge=20.0)
+    indoor_temp_c: float = Field(default=24.0, ge=16.0)
+
+class HvacThermalLoadResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    thermal_load_breakdown: dict[str, Any]
+    status: str
+
+# 135
+class PhotometricLumenDesignRequest(BaseModel):
+    room_length_m: float = Field(default=10.0, ge=2.0)
+    room_width_m: float = Field(default=6.0, ge=2.0)
+    ceiling_height_m: float = Field(default=3.0, ge=2.0)
+    target_lux: float = Field(default=500.0, ge=50.0)
+    lamp_lumens: float = Field(default=4000.0, ge=500.0)
+
+class PhotometricLumenDesignResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    lighting_results: dict[str, Any]
+    luminaire_positions_3d: list[list[float]]
+    status: str
+
+# 136
+class SolarPhotovoltaicArrayRequest(BaseModel):
+    roof_available_area_m2: float = Field(default=150.0, ge=10.0)
+    latitude_deg: float = Field(default=-23.55)
+    module_peak_power_w: float = Field(default=550.0, ge=100.0)
+    solar_irradiance_kwh_m2_day: float = Field(default=4.80, ge=1.0)
+
+class SolarPhotovoltaicArrayResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    solar_system_metrics: dict[str, Any]
+    modules_positions_3d: list[list[float]]
+    status: str
+
+# 137
+class NaturalVentilationRequest(BaseModel):
+    room_volume_m3: float = Field(default=180.0, ge=10.0)
+    inlet_opening_area_m2: float = Field(default=2.50, ge=0.1)
+    outlet_opening_area_m2: float = Field(default=2.50, ge=0.1)
+    vertical_height_difference_m: float = Field(default=4.0, ge=0.5)
+    wind_speed_m_s: float = Field(default=3.5, ge=0.1)
+
+class NaturalVentilationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    ventilation_results: dict[str, Any]
+    status: str
+
+# 138
+class GlazingFenestrationRequest(BaseModel):
+    fenestration_type: str = Field(default="CURTAIN_WALL")
+    width_m: float = Field(default=3.0, ge=0.5)
+    height_m: float = Field(default=2.60, ge=0.5)
+    glass_type: str = Field(default="LAMINATED_DOUBLE")
+    glass_thickness_mm: float = Field(default=8.0, ge=4.0)
+
+class GlazingFenestrationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    fenestration_metrics: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+# 139
+class VentilatedFacadeRequest(BaseModel):
+    facade_height_m: float = Field(default=15.0, ge=2.0)
+    facade_width_m: float = Field(default=20.0, ge=2.0)
+    air_cavity_depth_cm: float = Field(default=8.0, ge=3.0)
+    cladding_material: str = Field(default="PORCELAIN_TILES")
+
+class VentilatedFacadeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    thermal_and_structural_results: dict[str, Any]
+    status: str
+
+# 140
+class MiniWindCfd2dRequest(BaseModel):
+    building_width_m: float = Field(default=12.0, ge=2.0)
+    building_depth_m: float = Field(default=12.0, ge=2.0)
+    wind_inflow_speed_m_s: float = Field(default=10.0, ge=1.0)
+    grid_resolution: str = Field(default="MEDIUM")
+
+class MiniWindCfd2dResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    aerodynamic_results: dict[str, Any]
+    streamlines_sample: list[list[dict[str, Any]]]
+    status: str
+
+# 141
+class Bim4dGanttScheduleRequest(BaseModel):
+    project_start_date: str = Field(default="2026-11-01")
+    tasks: list[dict[str, Any]] | None = Field(default=None)
+    total_budget_brl: float = Field(default=450000.0, ge=1000.0)
+
+class Bim4dGanttScheduleResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    schedule_summary: dict[str, Any]
+    gantt_tasks: list[dict[str, Any]]
+    curve_s_points: list[dict[str, Any]]
+    status: str
+
+# 142
+class Bim7dAssetManagementCobieRequest(BaseModel):
+    facility_name: str = Field(default="Edifício Corporativo SketchBuild")
+    assets: list[dict[str, Any]] | None = Field(default=None)
+
+class Bim7dAssetManagementCobieResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    facility_management_summary: dict[str, Any]
+    cobie_components: list[dict[str, Any]]
+    preventive_tasks: list[dict[str, Any]]
+    status: str
+
+# 143
+class ConstructionSiteLogisticsRequest(BaseModel):
+    site_width_m: float = Field(default=60.0, ge=10.0)
+    site_length_m: float = Field(default=80.0, ge=10.0)
+    building_footprint_m2: float = Field(default=1200.0, ge=50.0)
+    cranes: list[dict[str, Any]] | None = Field(default=None)
+    daily_workers_count: int = Field(default=65, ge=1)
+
+class ConstructionSiteLogisticsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    logistics_results: dict[str, Any]
+    status: str
+
+# 144
+class UniversalAccessibilityRequest(BaseModel):
+    door_clear_width_cm: float = Field(default=85.0, ge=50.0)
+    corridor_width_cm: float = Field(default=120.0, ge=80.0)
+    ramp_slope_percent: float = Field(default=8.33, ge=1.0)
+    ramp_rise_height_cm: float = Field(default=60.0, ge=5.0)
+    wheelchair_turn_space_diameter_m: float = Field(default=1.50, ge=0.8)
+    has_tactile_paving: bool = Field(default=True)
+
+class UniversalAccessibilityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    compliance_checklist: dict[str, Any]
+    status: str
+
+# 145
+class LifeCycleAssessmentRequest(BaseModel):
+    gross_floor_area_m2: float = Field(default=850.0, ge=10.0)
+    building_lifespan_years: int = Field(default=50, ge=10)
+    materials_inventory: list[dict[str, Any]] | None = Field(default=None)
+
+class LifeCycleAssessmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str
+    parameters: dict[str, Any]
+    lca_metrics: dict[str, Any]
+    materials_breakdown: list[dict[str, Any]]
+    status: str

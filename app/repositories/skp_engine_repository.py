@@ -3194,3 +3194,126 @@ class SkpEngineRepository:
         return Bim5dSinapiCostEngine.calculate_5d_budget(
             elements, bdi_percent, social_charges_percent
         )
+
+    # ---------------------------------------------------------
+    # Frentes 116 a 145: Repositório de Motores Especializados
+    # ---------------------------------------------------------
+    def calculate_stormwater_drainage(self, **kwargs) -> dict:
+        from core.stormwater_drainage_engine import StormwaterDrainageEngine
+        return StormwaterDrainageEngine.calculate_drainage(**kwargs)
+
+    def calculate_permeable_pavement(self, **kwargs) -> dict:
+        from core.permeable_pavement_engine import PermeablePavementEngine
+        return PermeablePavementEngine.calculate_pavement(**kwargs)
+
+    def calculate_sewer_network(self, **kwargs) -> dict:
+        from core.sewer_network_gravity_engine import SewerNetworkGravityEngine
+        return SewerNetworkGravityEngine.calculate_sewer_run(**kwargs)
+
+    def calculate_detention_basin(self, **kwargs) -> dict:
+        from core.detention_basin_hydrology_engine import DetentionBasinHydrologyEngine
+        return DetentionBasinHydrologyEngine.calculate_basin(**kwargs)
+
+    def calculate_earthwork_bruckner(self, **kwargs) -> dict:
+        from core.earthwork_bruckner_engine import EarthworkBrucknerEngine
+        return EarthworkBrucknerEngine.calculate_earthwork(**kwargs)
+
+    def calculate_slope_stability_bishop(self, **kwargs) -> dict:
+        from core.slope_stability_bishop_engine import SlopeStabilityBishopEngine
+        return SlopeStabilityBishopEngine.calculate_stability(**kwargs)
+
+    def calculate_deep_foundations_piles(self, **kwargs) -> dict:
+        from core.deep_foundations_piles_engine import DeepFoundationsPilesEngine
+        return DeepFoundationsPilesEngine.calculate_pile(**kwargs)
+
+    def calculate_shallow_footings(self, **kwargs) -> dict:
+        from core.shallow_footings_engine import ShallowFootingsEngine
+        return ShallowFootingsEngine.calculate_footing(**kwargs)
+
+    def calculate_gabion_wall(self, **kwargs) -> dict:
+        from core.gabion_retaining_wall_engine import GabionRetainingWallEngine
+        return GabionRetainingWallEngine.calculate_gabion(**kwargs)
+
+    def calculate_concrete_formwork(self, **kwargs) -> dict:
+        from core.concrete_formwork_shoring_engine import ConcreteFormworkShoringEngine
+        return ConcreteFormworkShoringEngine.calculate_formwork(**kwargs)
+
+    def calculate_reinforced_concrete_beam(self, **kwargs) -> dict:
+        from core.reinforced_concrete_beam_engine import ReinforcedConcreteBeamEngine
+        return ReinforcedConcreteBeamEngine.calculate_beam_elu(**kwargs)
+
+    def calculate_waffle_slab(self, **kwargs) -> dict:
+        from core.waffle_slab_engine import WaffleSlabEngine
+        return WaffleSlabEngine.calculate_waffle_slab(**kwargs)
+
+    def calculate_prestressed_concrete(self, **kwargs) -> dict:
+        from core.prestressed_concrete_engine import PrestressedConcreteEngine
+        return PrestressedConcreteEngine.calculate_prestressing(**kwargs)
+
+    def calculate_glulam_timber(self, **kwargs) -> dict:
+        from core.glulam_clt_timber_engine import GlulamCltTimberEngine
+        return GlulamCltTimberEngine.calculate_timber(**kwargs)
+
+    def generate_space_truss(self, **kwargs) -> dict:
+        from core.space_truss_engine import SpaceTrussEngine
+        return SpaceTrussEngine.generate_space_truss(**kwargs)
+
+    def calculate_fuel_gas_piping(self, **kwargs) -> dict:
+        from core.fuel_gas_piping_engine import FuelGasPipingEngine
+        return FuelGasPipingEngine.calculate_gas_network(**kwargs)
+
+    def calculate_lightning_spda(self, **kwargs) -> dict:
+        from core.lightning_protection_spda_engine import LightningProtectionSpdaEngine
+        return LightningProtectionSpdaEngine.calculate_spda(**kwargs)
+
+    def calculate_fire_egress(self, **kwargs) -> dict:
+        from core.fire_egress_route_engine import FireEgressRouteEngine
+        return FireEgressRouteEngine.calculate_egress(**kwargs)
+
+    def calculate_hvac_cooling_load(self, **kwargs) -> dict:
+        from core.hvac_thermal_load_engine import HvacThermalLoadEngine
+        return HvacThermalLoadEngine.calculate_cooling_load(**kwargs)
+
+    def calculate_photometric_lighting(self, **kwargs) -> dict:
+        from core.photometric_lumen_design_engine import PhotometricLumenDesignEngine
+        return PhotometricLumenDesignEngine.calculate_lighting(**kwargs)
+
+    def calculate_solar_pv(self, **kwargs) -> dict:
+        from core.solar_photovoltaic_array_engine import SolarPhotovoltaicArrayEngine
+        return SolarPhotovoltaicArrayEngine.calculate_pv_system(**kwargs)
+
+    def calculate_natural_ventilation(self, **kwargs) -> dict:
+        from core.natural_ventilation_engine import NaturalVentilationEngine
+        return NaturalVentilationEngine.calculate_ventilation(**kwargs)
+
+    def generate_glazing_fenestration(self, **kwargs) -> dict:
+        from core.glazing_fenestration_engine import GlazingFenestrationEngine
+        return GlazingFenestrationEngine.generate_fenestration(**kwargs)
+
+    def calculate_ventilated_facade(self, **kwargs) -> dict:
+        from core.ventilated_facade_engine import VentilatedFacadeEngine
+        return VentilatedFacadeEngine.calculate_facade(**kwargs)
+
+    def simulate_wind_cfd_2d(self, **kwargs) -> dict:
+        from core.mini_wind_cfd_2d_engine import MiniWindCfd2dEngine
+        return MiniWindCfd2dEngine.simulate_wind_tunnel_2d(**kwargs)
+
+    def generate_bim_4d_schedule(self, **kwargs) -> dict:
+        from core.bim_4d_gantt_schedule_engine import Bim4dGanttScheduleEngine
+        return Bim4dGanttScheduleEngine.generate_4d_schedule(**kwargs)
+
+    def generate_bim_7d_cobie(self, **kwargs) -> dict:
+        from core.bim_7d_asset_management_cobie_engine import Bim7dAssetManagementCobieEngine
+        return Bim7dAssetManagementCobieEngine.generate_cobie_assets(**kwargs)
+
+    def calculate_site_logistics(self, **kwargs) -> dict:
+        from core.construction_site_logistics_engine import ConstructionSiteLogisticsEngine
+        return ConstructionSiteLogisticsEngine.calculate_site_logistics(**kwargs)
+
+    def audit_universal_accessibility(self, **kwargs) -> dict:
+        from core.universal_accessibility_engine import UniversalAccessibilityEngine
+        return UniversalAccessibilityEngine.audit_accessibility(**kwargs)
+
+    def calculate_lca_emissions(self, **kwargs) -> dict:
+        from core.life_cycle_assessment_engine import LifeCycleAssessmentEngine
+        return LifeCycleAssessmentEngine.calculate_lca(**kwargs)

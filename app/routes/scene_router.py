@@ -181,6 +181,66 @@ from app.schemas.scene import (
     SteelProfileResponse,
     Bim5dSinapiCostRequest,
     Bim5dSinapiCostResponse,
+    StormwaterDrainageRequest,
+    StormwaterDrainageResponse,
+    PermeablePavementRequest,
+    PermeablePavementResponse,
+    SewerNetworkGravityRequest,
+    SewerNetworkGravityResponse,
+    DetentionBasinHydrologyRequest,
+    DetentionBasinHydrologyResponse,
+    EarthworkBrucknerRequest,
+    EarthworkBrucknerResponse,
+    SlopeStabilityBishopRequest,
+    SlopeStabilityBishopResponse,
+    DeepFoundationsPilesRequest,
+    DeepFoundationsPilesResponse,
+    ShallowFootingsRequest,
+    ShallowFootingsResponse,
+    GabionRetainingWallRequest,
+    GabionRetainingWallResponse,
+    ConcreteFormworkShoringRequest,
+    ConcreteFormworkShoringResponse,
+    ReinforcedConcreteBeamRequest,
+    ReinforcedConcreteBeamResponse,
+    WaffleSlabRequest,
+    WaffleSlabResponse,
+    PrestressedConcreteRequest,
+    PrestressedConcreteResponse,
+    GlulamCltTimberRequest,
+    GlulamCltTimberResponse,
+    SpaceTrussRequest,
+    SpaceTrussResponse,
+    FuelGasPipingRequest,
+    FuelGasPipingResponse,
+    LightningProtectionSpdaRequest,
+    LightningProtectionSpdaResponse,
+    FireEgressRouteRequest,
+    FireEgressRouteResponse,
+    HvacThermalLoadRequest,
+    HvacThermalLoadResponse,
+    PhotometricLumenDesignRequest,
+    PhotometricLumenDesignResponse,
+    SolarPhotovoltaicArrayRequest,
+    SolarPhotovoltaicArrayResponse,
+    NaturalVentilationRequest,
+    NaturalVentilationResponse,
+    GlazingFenestrationRequest,
+    GlazingFenestrationResponse,
+    VentilatedFacadeRequest,
+    VentilatedFacadeResponse,
+    MiniWindCfd2dRequest,
+    MiniWindCfd2dResponse,
+    Bim4dGanttScheduleRequest,
+    Bim4dGanttScheduleResponse,
+    Bim7dAssetManagementCobieRequest,
+    Bim7dAssetManagementCobieResponse,
+    ConstructionSiteLogisticsRequest,
+    ConstructionSiteLogisticsResponse,
+    UniversalAccessibilityRequest,
+    UniversalAccessibilityResponse,
+    LifeCycleAssessmentRequest,
+    LifeCycleAssessmentResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2130,3 +2190,127 @@ async def calculate_bim_5d_sinapi_budget(
     controller: SceneController = Depends(get_controller),
 ) -> Bim5dSinapiCostResponse:
     return await controller.calculate_bim_5d_sinapi_budget(body)
+
+
+# ---------------------------------------------------------
+# Frentes 116 a 145: Endpoints FastAPI
+# ---------------------------------------------------------
+@router.post("/mep/stormwater-drainage", response_model=StormwaterDrainageResponse, summary="Drenagem pluvial e calhas NBR 10844 (Frente 116)")
+async def calculate_stormwater_drainage(body: StormwaterDrainageRequest, controller: SceneController = Depends(get_controller)) -> StormwaterDrainageResponse:
+    return await controller.calculate_stormwater_drainage(body)
+
+@router.post("/environment/permeable-pavement", response_model=PermeablePavementResponse, summary="Pavimentação permeável e amortecimento NBR 16416 (Frente 117)")
+async def calculate_permeable_pavement(body: PermeablePavementRequest, controller: SceneController = Depends(get_controller)) -> PermeablePavementResponse:
+    return await controller.calculate_permeable_pavement(body)
+
+@router.post("/mep/sewer-network", response_model=SewerNetworkGravityResponse, summary="Rede de esgoto sanitário por gravidade NBR 9649 (Frente 118)")
+async def calculate_sewer_network(body: SewerNetworkGravityRequest, controller: SceneController = Depends(get_controller)) -> SewerNetworkGravityResponse:
+    return await controller.calculate_sewer_network(body)
+
+@router.post("/hydrology/detention-basin", response_model=DetentionBasinHydrologyResponse, summary="Bacia de detenção e amortecimento de cheias (Frente 119)")
+async def calculate_detention_basin(body: DetentionBasinHydrologyRequest, controller: SceneController = Depends(get_controller)) -> DetentionBasinHydrologyResponse:
+    return await controller.calculate_detention_basin(body)
+
+@router.post("/infrastructure/earthwork-bruckner", response_model=EarthworkBrucknerResponse, summary="Terraplenagem e curva de massas de Brückner (Frente 120)")
+async def calculate_earthwork_bruckner(body: EarthworkBrucknerRequest, controller: SceneController = Depends(get_controller)) -> EarthworkBrucknerResponse:
+    return await controller.calculate_earthwork_bruckner(body)
+
+@router.post("/geotechnics/slope-stability-bishop", response_model=SlopeStabilityBishopResponse, summary="Estabilidade de taludes método de Bishop (Frente 121)")
+async def calculate_slope_stability_bishop(body: SlopeStabilityBishopRequest, controller: SceneController = Depends(get_controller)) -> SlopeStabilityBishopResponse:
+    return await controller.calculate_slope_stability_bishop(body)
+
+@router.post("/geotechnics/deep-foundations-piles", response_model=DeepFoundationsPilesResponse, summary="Estacas e fundações profundas NBR 6122 (Frente 122)")
+async def calculate_deep_foundations_piles(body: DeepFoundationsPilesRequest, controller: SceneController = Depends(get_controller)) -> DeepFoundationsPilesResponse:
+    return await controller.calculate_deep_foundations_piles(body)
+
+@router.post("/structures/shallow-footings", response_model=ShallowFootingsResponse, summary="Sapatas rígidas rasas NBR 6118/6122 (Frente 123)")
+async def calculate_shallow_footings(body: ShallowFootingsRequest, controller: SceneController = Depends(get_controller)) -> ShallowFootingsResponse:
+    return await controller.calculate_shallow_footings(body)
+
+@router.post("/geotechnics/gabion-wall", response_model=GabionRetainingWallResponse, summary="Muros de contenção de gabião NBR 10328 (Frente 124)")
+async def calculate_gabion_wall(body: GabionRetainingWallRequest, controller: SceneController = Depends(get_controller)) -> GabionRetainingWallResponse:
+    return await controller.calculate_gabion_wall(body)
+
+@router.post("/structures/concrete-formwork", response_model=ConcreteFormworkShoringResponse, summary="Fôrmas e escoramento NBR 15696 / DIN 18218 (Frente 125)")
+async def calculate_concrete_formwork(body: ConcreteFormworkShoringRequest, controller: SceneController = Depends(get_controller)) -> ConcreteFormworkShoringResponse:
+    return await controller.calculate_concrete_formwork(body)
+
+@router.post("/structures/reinforced-concrete-beam", response_model=ReinforcedConcreteBeamResponse, summary="Vigas de concreto armado no ELU NBR 6118 (Frente 126)")
+async def calculate_reinforced_concrete_beam(body: ReinforcedConcreteBeamRequest, controller: SceneController = Depends(get_controller)) -> ReinforcedConcreteBeamResponse:
+    return await controller.calculate_reinforced_concrete_beam(body)
+
+@router.post("/structures/waffle-slab", response_model=WaffleSlabResponse, summary="Lajes nervuradas com cubetas NBR 6118 (Frente 127)")
+async def calculate_waffle_slab(body: WaffleSlabRequest, controller: SceneController = Depends(get_controller)) -> WaffleSlabResponse:
+    return await controller.calculate_waffle_slab(body)
+
+@router.post("/structures/prestressed-concrete", response_model=PrestressedConcreteResponse, summary="Concreto protendido e perdas NBR 6118 (Frente 128)")
+async def calculate_prestressed_concrete(body: PrestressedConcreteRequest, controller: SceneController = Depends(get_controller)) -> PrestressedConcreteResponse:
+    return await controller.calculate_prestressed_concrete(body)
+
+@router.post("/structures/glulam-timber", response_model=GlulamCltTimberResponse, summary="Madeira laminada colada e CLT NBR 7190 (Frente 129)")
+async def calculate_glulam_timber(body: GlulamCltTimberRequest, controller: SceneController = Depends(get_controller)) -> GlulamCltTimberResponse:
+    return await controller.calculate_glulam_timber(body)
+
+@router.post("/structures/space-truss", response_model=SpaceTrussResponse, summary="Treliças espaciais tubulares 3D (Frente 130)")
+async def generate_space_truss(body: SpaceTrussRequest, controller: SceneController = Depends(get_controller)) -> SpaceTrussResponse:
+    return await controller.generate_space_truss(body)
+
+@router.post("/mep/fuel-gas-piping", response_model=FuelGasPipingResponse, summary="Instalações de gás GLP/GN NBR 15526 (Frente 131)")
+async def calculate_fuel_gas_piping(body: FuelGasPipingRequest, controller: SceneController = Depends(get_controller)) -> FuelGasPipingResponse:
+    return await controller.calculate_fuel_gas_piping(body)
+
+@router.post("/mep/lightning-spda", response_model=LightningProtectionSpdaResponse, summary="SPDA método esfera rolante NBR 5419 (Frente 132)")
+async def calculate_lightning_spda(body: LightningProtectionSpdaRequest, controller: SceneController = Depends(get_controller)) -> LightningProtectionSpdaResponse:
+    return await controller.calculate_lightning_spda(body)
+
+@router.post("/safety/fire-egress", response_model=FireEgressRouteResponse, summary="Rotas de fuga e saídas de emergência NBR 9077 (Frente 133)")
+async def calculate_fire_egress(body: FireEgressRouteRequest, controller: SceneController = Depends(get_controller)) -> FireEgressRouteResponse:
+    return await controller.calculate_fire_egress(body)
+
+@router.post("/mep/hvac-cooling-load", response_model=HvacThermalLoadResponse, summary="Carga térmica HVAC ASHRAE / NBR 16401 (Frente 134)")
+async def calculate_hvac_cooling_load(body: HvacThermalLoadRequest, controller: SceneController = Depends(get_controller)) -> HvacThermalLoadResponse:
+    return await controller.calculate_hvac_cooling_load(body)
+
+@router.post("/lighting/photometric-lumen", response_model=PhotometricLumenDesignResponse, summary="Iluminação interior método dos lúmens NBR 8995 (Frente 135)")
+async def calculate_photometric_lighting(body: PhotometricLumenDesignRequest, controller: SceneController = Depends(get_controller)) -> PhotometricLumenDesignResponse:
+    return await controller.calculate_photometric_lighting(body)
+
+@router.post("/energy/solar-photovoltaic", response_model=SolarPhotovoltaicArrayResponse, summary="Usinas solares fotovoltaicas (Frente 136)")
+async def calculate_solar_pv(body: SolarPhotovoltaicArrayRequest, controller: SceneController = Depends(get_controller)) -> SolarPhotovoltaicArrayResponse:
+    return await controller.calculate_solar_pv(body)
+
+@router.post("/environment/natural-ventilation", response_model=NaturalVentilationResponse, summary="Ventilação natural e efeito chaminé NBR 15220 (Frente 137)")
+async def calculate_natural_ventilation(body: NaturalVentilationRequest, controller: SceneController = Depends(get_controller)) -> NaturalVentilationResponse:
+    return await controller.calculate_natural_ventilation(body)
+
+@router.post("/architecture/glazing-fenestration", response_model=GlazingFenestrationResponse, summary="Esquadrias paramétricas e pele de vidro (Frente 138)")
+async def generate_glazing_fenestration(body: GlazingFenestrationRequest, controller: SceneController = Depends(get_controller)) -> GlazingFenestrationResponse:
+    return await controller.generate_glazing_fenestration(body)
+
+@router.post("/architecture/ventilated-facade", response_model=VentilatedFacadeResponse, summary="Fachadas ventiladas e câmara convectiva (Frente 139)")
+async def calculate_ventilated_facade(body: VentilatedFacadeRequest, controller: SceneController = Depends(get_controller)) -> VentilatedFacadeResponse:
+    return await controller.calculate_ventilated_facade(body)
+
+@router.post("/aerodynamics/mini-wind-cfd-2d", response_model=MiniWindCfd2dResponse, summary="Túnel de vento CFD 2D e vórtices de Kármán (Frente 140)")
+async def simulate_wind_cfd_2d(body: MiniWindCfd2dRequest, controller: SceneController = Depends(get_controller)) -> MiniWindCfd2dResponse:
+    return await controller.simulate_wind_cfd_2d(body)
+
+@router.post("/bim/4d-gantt-schedule", response_model=Bim4dGanttScheduleResponse, summary="Cronograma BIM 4D e curva S (Frente 141)")
+async def generate_bim_4d_schedule(body: Bim4dGanttScheduleRequest, controller: SceneController = Depends(get_controller)) -> Bim4dGanttScheduleResponse:
+    return await controller.generate_bim_4d_schedule(body)
+
+@router.post("/bim/7d-cobie-assets", response_model=Bim7dAssetManagementCobieResponse, summary="Gestão de ativos BIM 7D e COBie (Frente 142)")
+async def generate_bim_7d_cobie(body: Bim7dAssetManagementCobieRequest, controller: SceneController = Depends(get_controller)) -> Bim7dAssetManagementCobieResponse:
+    return await controller.generate_bim_7d_cobie(body)
+
+@router.post("/safety/construction-site-logistics", response_model=ConstructionSiteLogisticsResponse, summary="Logística de canteiro e raio de gruas NR-18 (Frente 143)")
+async def calculate_site_logistics(body: ConstructionSiteLogisticsRequest, controller: SceneController = Depends(get_controller)) -> ConstructionSiteLogisticsResponse:
+    return await controller.calculate_site_logistics(body)
+
+@router.post("/accessibility/universal-audit", response_model=UniversalAccessibilityResponse, summary="Acessibilidade universal NBR 9050 (Frente 144)")
+async def audit_universal_accessibility(body: UniversalAccessibilityRequest, controller: SceneController = Depends(get_controller)) -> UniversalAccessibilityResponse:
+    return await controller.audit_universal_accessibility(body)
+
+@router.post("/sustainability/lca-emissions", response_model=LifeCycleAssessmentResponse, summary="Avaliação de ciclo de vida ACV ISO 14040 (Frente 145)")
+async def calculate_lca_emissions(body: LifeCycleAssessmentRequest, controller: SceneController = Depends(get_controller)) -> LifeCycleAssessmentResponse:
+    return await controller.calculate_lca_emissions(body)

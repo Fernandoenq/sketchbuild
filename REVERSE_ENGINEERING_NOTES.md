@@ -2083,3 +2083,51 @@ A Frente 115 introduz a dimensão BIM 5D ao sistema, integrando dados quantitati
 - **Módulo:** `core/bim_5d_sinapi_cost_engine.py` (`Bim5dSinapiCostEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/bim/5d-sinapi-budget`.
 
+---
+
+## 143 a 172. Frentes 116 a 145: Grande Pacote de Infraestrutura, Geotecnia, Estruturas, MEP, BIM 4D/7D e Sustentabilidade (Zero DLL / Pure Python)
+
+As Frentes 116 a 145 consolidam a maturidade plena do SketchBuild como um ecossistema holístico de CAD/BIM/CAE em Python puro e Three.js, cobrindo normas ABNT, DIN, ISO e ASHRAE:
+
+### Bloco 1: Hidrologia, Drenagem e Infraestrutura Urbana (Frentes 116 a 120)
+- **Frente 116 (Drenagem Pluvial NBR 10844):** `StormwaterDrainageEngine` calcula vazão pluvial de beirais por Manning-Strickler e dimensionamento de calhas e condutores verticais.
+- **Frente 117 (Pavimentação Permeável NBR 16416):** `PermeablePavementEngine` avalia coeficiente de escoamento (Runoff C), taxa de infiltração e reservatório subterrâneo de amortecimento.
+- **Frente 118 (Redes de Esgoto por Gravidade NBR 9649):** `SewerNetworkGravityEngine` dimensiona coletores com lâmina máxima $y/D \le 0.75$, velocidade e tensão trativa mínima de autolimpeza ($\tau \ge 1.0\text{ Pa}$).
+- **Frente 119 (Bacias de Detenção de Cheias):** `DetentionBasinHydrologyEngine` projeta volume de retenção de pico, orifício de fundo e vertedouro de emergência.
+- **Frente 120 (Terraplenagem e Curva de Brückner):** `EarthworkBrucknerEngine` processa seções transversais, empolamento/contração e Distância Média de Transporte (DMT).
+
+### Bloco 2: Geotecnia, Encostas e Fundações (Frentes 121 a 125)
+- **Frente 121 (Estabilidade de Taludes Bishop):** `SlopeStabilityBishopEngine` calcula equilíbrio limite por fatias verticais para círculo crítico de ruptura e Fator de Segurança global ($FS \ge 1.50$).
+- **Frente 122 (Estacas e Fundações Profundas NBR 6122):** `DeepFoundationsPilesEngine` determina atrito lateral e ponta pelos métodos Décourt-Quaresma e Aoki-Velloso a partir de perfis de SPT.
+- **Frente 123 (Sapatas Rígidas Rasas NBR 6118/6122):** `ShallowFootingsEngine` dimensiona sapatas em planta mantendo abas de balanço iguais, verifica rigidez e armadura de flexão de base.
+- **Frente 124 (Muros de Gabião NBR 10328):** `GabionRetainingWallEngine` analisa estabilidade por gravidade de caixas metálicas com pedra rachão contra empuxo ativo e tombamento.
+- **Frente 125 (Fôrmas e Escoramento NBR 15696 / DIN 18218):** `ConcreteFormworkShoringEngine` calcula pressão lateral do concreto fresco em pilares/paredes e flambagem de Euler de escoras metálicas.
+
+### Bloco 3: Estruturas de Concreto, Aço e Madeira (Frentes 126 a 130)
+- **Frente 126 (Vigas de Concreto Armado no ELU NBR 6118):** `ReinforcedConcreteBeamEngine` dimensiona armadura longitudinal tracionada $A_s$ e estribos cortantes no Estádio III (flexão simples).
+- **Frente 127 (Lajes Nervuradas com Cubetas Plásticas):** `WaffleSlabEngine` modula nervuras bidirecionais em eixos X/Y, calcula economia de concreto e capitel maciço de punção.
+- **Frente 128 (Concreto Protendido e Perdas NBR 6118):** `PrestressedConcreteEngine` calcula força de protensão inicial/efetiva, traçado parabólico de cabos e perdas imediatas e diferidas.
+- **Frente 129 (Madeira Glulam / CLT NBR 7190):** `GlulamCltTimberEngine` avalia tensão atuante de flexão, flecha sensorial ($L/300$) e taxa de carbonização ao fogo ($\beta_n = 0.65\text{ mm/min}$).
+- **Frente 130 (Treliças Espaciais Tubulares 3D):** `SpaceTrussEngine` gera nós esféricos tipo Mero e barras tubulares conectadas em malhas piramidais com verificação de esforço axial e flambagem.
+
+### Bloco 4: Instalações Prediais MEP e Segurança (Frentes 131 a 135)
+- **Frente 131 (Gás Canalizado GLP/GN NBR 15526):** `FuelGasPipingEngine` dimensiona redes de cobre/aço por fórmula de Renouard e controle de velocidade e perda de carga.
+- **Frente 132 (SPDA Esfera Rolante NBR 5419):** `LightningProtectionSpdaEngine` calcula raio da esfera eletrogeométrica (R=20m a 60m por nível I-IV) e malha de Faraday com condutores de descida.
+- **Frente 133 (Rotas de Fuga NBR 9077):** `FireEgressRouteEngine` calcula Unidades de Passagem (UP), distâncias máximas de caminhamento até saídas externas e largura mínima de portas e escadas.
+- **Frente 134 (Carga Térmica HVAC NBR 16401 / ASHRAE):** `HvacThermalLoadEngine` quantifica ganhos térmicos sensíveis e latentes por envoltória, sol em vidros, pessoas, luz e renovação de ar em TR / BTU/h.
+- **Frente 135 (Iluminação Método dos Lúmens NBR 8995):** `PhotometricLumenDesignEngine` calcula iluminância média mantida $E_m$, índice do recinto K, coeficiente de utilização e malha de luminárias LED.
+
+### Bloco 5: Desempenho Ambiental, Energia e Esquadrias (Frentes 136 a 140)
+- **Frente 136 (Usinas Solares Fotovoltaicas):** `SolarPhotovoltaicArrayEngine` calcula inclinação ótima (tilt), espaçamento entre fileiras sem sombreamento mútuo e geração anual em kWh/ano.
+- **Frente 137 (Ventilação Natural e Efeito Chaminé NBR 15220):** `NaturalVentilationEngine` avalia ventilação cruzada por vento e tiragem térmica em átrios, determinando trocas de ar horárias (ACH).
+- **Frente 138 (Esquadrias Paramétricas e Pele de Vidro):** `GlazingFenestrationEngine` gera portas pivotantes, maxim-ar e fachadas cortina com cálculo de peso de vidro, ventilação e fator solar ($FS$).
+- **Frente 139 (Fachadas Ventiladas Convectivas):** `VentilatedFacadeEngine` modela a tiragem na câmara de ar exterior, taxa de dissipação do calor solar absorvido e ancoragens estruturais.
+- **Frente 140 (Túnel de Vento Numérico CFD 2D):** `MiniWindCfd2dEngine` executa simulação fluidodinâmica bidimensional ao redor de edifícios, esteira de von Kármán e coeficientes de arrasto $C_d$.
+
+### Bloco 6: Gestão da Construção, BIM 4D/7D e Canteiro (Frentes 141 a 145)
+- **Frente 141 (Planejamento BIM 4D e Cronograma Gantt):** `Bim4dGanttScheduleEngine` associa geometria tridimensional a tarefas construtivas, gerando Curva S físico-financeira e simulação temporal 4D.
+- **Frente 142 (Gestão de Ativos BIM 7D COBie):** `Bim7dAssetManagementCobieEngine` padroniza componentes segundo as planilhas COBie para Facility Management e manutenção preditiva com QR Tags.
+- **Frente 143 (Logística de Canteiro NR-18):** `ConstructionSiteLogisticsEngine` avalia interferência de lanças de gruas de torre com desnível vertical de segurança e áreas de vivência obrigatórias.
+- **Frente 144 (Acessibilidade Universal NBR 9050):** `UniversalAccessibilityEngine` audita rotas acessíveis, vãos de portas $\ge 80\text{ cm}$, corredores, rampas com inclinação máxima de $8.33\%$ e giros de $360^\circ$.
+- **Frente 145 (Avaliação do Ciclo de Vida ACV ISO 14040):** `LifeCycleAssessmentEngine` quantifica pegada de carbono incorporada ($kg CO_2e/m^2$) de berço ao portão (Módulos A1-A3) para certificações LEED/AQUA.
+
