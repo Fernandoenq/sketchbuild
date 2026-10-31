@@ -356,6 +356,21 @@ from app.schemas.scene import (
     FlipAlongRequest,
     FlipAlongResponse,
 
+    LeaderTextCalloutRequest,
+    LeaderTextCalloutResponse,
+    FromContoursRequest,
+    FromContoursResponse,
+    SolidInspectorRequest,
+    SolidInspectorResponse,
+    ConstructionGuideRequest,
+    ConstructionGuideResponse,
+    AlignedDimensionRequest,
+    AlignedDimensionResponse,
+    RadialArcDimensionRequest,
+    RadialArcDimensionResponse,
+    SoftSmoothAngleRequest,
+    SoftSmoothAngleResponse,
+
     FollowMeRequest,
     FollowMeResponse,
     ArcRequest,
@@ -2879,6 +2894,59 @@ class SceneController:
             return FlipAlongResponse(flip=res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 8): 7 NOVAS FERRAMENTAS OFICIAIS DO SKETCHUP DESKTOP
+    # --------------------------------------------------------------------------
+    async def leader_text_callout_create(self, body: LeaderTextCalloutRequest) -> LeaderTextCalloutResponse:
+        try:
+            res = await self._service.leader_text_callout_create(**body.model_dump())
+            return LeaderTextCalloutResponse(callout=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def from_contours_sandbox_generate(self, body: FromContoursRequest) -> FromContoursResponse:
+        try:
+            res = await self._service.from_contours_sandbox_generate(**body.model_dump())
+            return FromContoursResponse(contours=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def solid_inspector_check(self, body: SolidInspectorRequest) -> SolidInspectorResponse:
+        try:
+            res = await self._service.solid_inspector_check(**body.model_dump())
+            return SolidInspectorResponse(inspection=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def construction_guide_create(self, body: ConstructionGuideRequest) -> ConstructionGuideResponse:
+        try:
+            res = await self._service.construction_guide_create(**body.model_dump())
+            return ConstructionGuideResponse(guide=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def aligned_dimension_create(self, body: AlignedDimensionRequest) -> AlignedDimensionResponse:
+        try:
+            res = await self._service.aligned_dimension_create(**body.model_dump())
+            return AlignedDimensionResponse(dimension=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def radial_arc_dimension_create(self, body: RadialArcDimensionRequest) -> RadialArcDimensionResponse:
+        try:
+            res = await self._service.radial_arc_dimension_create(**body.model_dump())
+            return RadialArcDimensionResponse(dimension=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def soft_smooth_angle_apply(self, body: SoftSmoothAngleRequest) -> SoftSmoothAngleResponse:
+        try:
+            res = await self._service.soft_smooth_angle_apply(**body.model_dump())
+            return SoftSmoothAngleResponse(smooth_settings=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
 
 
 

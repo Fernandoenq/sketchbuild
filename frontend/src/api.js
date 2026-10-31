@@ -2300,3 +2300,75 @@ export function flipAlongAxes(vertices, indices = null, axis = "red", center = n
     center: center,
   });
 }
+
+// -----------------------------------------------------------------------------
+// OPÇÃO A (PARTE 8): 7 NOVAS FERRAMENTAS OFICIAIS DO SKETCHUP DESKTOP
+// -----------------------------------------------------------------------------
+
+export function createLeaderTextCallout(anchorPoint = null, text = null, faceVertices = null, offsetVector = [0.3, 0.3, 0.4], arrowType = "ARROW") {
+  return postJson("/api/v1/scene/tools/leader-text", "POST", {
+    anchor_point: anchorPoint,
+    text: text,
+    face_vertices: faceVertices,
+    offset_vector: offsetVector,
+    arrow_type: arrowType,
+  });
+}
+
+export function generateFromContoursSandbox(contourCurves, isClosed = false) {
+  return postJson("/api/v1/scene/tools/from-contours", "POST", {
+    contour_curves: contourCurves,
+    is_closed: isClosed,
+  });
+}
+
+export function checkSolidInspector(vertices, triangles) {
+  return postJson("/api/v1/scene/tools/solid-inspector", "POST", {
+    vertices: vertices,
+    triangles: triangles,
+  });
+}
+
+export function createConstructionGuide(guideType = "parallel", pointA = [0, 0, 0], pointB = [1, 0, 0], offsetDistance = 0.5, angleDeg = 45.0, planeNormal = [0, 0, 1]) {
+  return postJson("/api/v1/scene/tools/construction-guide", "POST", {
+    guide_type: guideType,
+    point_a: pointA,
+    point_b: pointB,
+    offset_distance: offsetDistance,
+    angle_deg: angleDeg,
+    plane_normal: planeNormal,
+  });
+}
+
+export function createAlignedDimension(startPoint, endPoint, mode = "aligned", axis = "X", offsetDistance = 0.25, unit = "m") {
+  return postJson("/api/v1/scene/tools/aligned-dimension", "POST", {
+    start_point: startPoint,
+    end_point: endPoint,
+    mode: mode,
+    axis: axis,
+    offset_distance: offsetDistance,
+    unit: unit,
+  });
+}
+
+export function createRadialArcDimension(center, radius, mode = "radius", angleDeg = 45.0, startAngleDeg = 0.0, endAngleDeg = 90.0, unit = "m") {
+  return postJson("/api/v1/scene/tools/radial-arc-dimension", "POST", {
+    center: center,
+    radius: radius,
+    mode: mode,
+    angle_deg: angleDeg,
+    start_angle_deg: startAngleDeg,
+    end_angle_deg: endAngleDeg,
+    unit: unit,
+  });
+}
+
+export function applySoftSmoothAngle(vertices, triangles, maxAngleDeg = 35.0, softenCoplanar = true) {
+  return postJson("/api/v1/scene/tools/soft-smooth-angle", "POST", {
+    vertices: vertices,
+    triangles: triangles,
+    max_angle_deg: maxAngleDeg,
+    soften_coplanar: softenCoplanar,
+  });
+}
+
