@@ -1463,3 +1463,62 @@ class SkpEngineRepository:
         """Importa arquivo Wavefront OBJ e converte para entidades B-Rep do .SKP (Frente 35)."""
         from core.obj_to_skp_importer import ObjToSkpImporter
         return ObjToSkpImporter.import_obj_to_skp(file_path, scale=scale)
+
+    def calculate_nesting_optimizer(self, demanded_pieces: list, stock_bar_length_m: float = 3.00) -> dict:
+        """Calcula otimização de plano de corte de barras (Frente 36)."""
+        from core.nesting_optimizer import NestingOptimizer
+        return NestingOptimizer.optimize_1d_bars(demanded_pieces, stock_bar_length_m=stock_bar_length_m)
+
+    def create_terrain_geometry(self, width_m: float = 10.0, length_m: float = 10.0, grid_res: float = 1.0, slope_x: float = 0.0, slope_y: float = 5.0) -> dict:
+        """Gera terreno paramétrico e malha topográfica Sandbox (Frente 37)."""
+        from core.terrain_generator import TerrainGenerator
+        res = TerrainGenerator.generate_grid_terrain(width_m, length_m, grid_res, slope_x, slope_y)
+
+        # Injeta as faces triangulares na sessão binária se ativa
+        session = SkpBinaryWriter.get_session()
+        if session is not None:
+            for tri in res.get("faces", []):
+                try:
+                    SkpBinaryWriter.add_polygon_face(tri)
+                except Exception:
+                    pass
+            self._autosave()
+
+        return res
+
+    def calculate_structural_analysis(self, span_m: float, load_kn_m: float, section_type: str = "circular", diameter_m: float = 0.16, width_m: float = 0.08, height_m: float = 0.16) -> dict:
+        """Calcula tensões, flecha e estabilidade de viga segundo NBR 7190 (Frente 38)."""
+        from core.structural_analyzer import StructuralAnalyzer
+        return StructuralAnalyzer.analyze_beam(
+            span_length_m=span_m,
+            load_kn_per_m=load_kn_m,
+            section_type=section_type,
+            diameter_m=diameter_m,
+            width_m=width_m,
+            height_m=height_m
+        )
+
+    def apply_scale_transform(self, instance_id: str, scale_factors: list, pivot: list) -> dict:
+        """Aplica escala paramétrica à instância (Frente 39)."""
+        from core.scale_tool import ScaleTool
+        scale_mat = ScaleTool.create_scale_matrix(tuple(scale_factors), tuple(pivot))
+        self.set_instance_transform(instance_id, scale_mat)
+        return {
+            "instance_id": instance_id,
+            "scale_factors": list(scale_factors),
+            "pivot": list(pivot),
+            "transform_matrix_16": scale_mat,
+        }
+
+    def export_cam_dxf(self, parts: list, output_filename: str) -> dict:
+        """Exporta contornos para máquinas CNC e Corte a Laser em DXF (Frente 40)."""
+        from core.cam_dxf_exporter import CamDxfExporter
+        import tempfile, os
+        out_dir = tempfile.gettempdir()
+        out_path = os.path.join(out_dir, output_filename)
+        saved = CamDxfExporter.export_cam_dxf(parts, out_path)
+        return {
+            "file_path": saved,
+            "size_bytes": os.path.getsize(saved),
+            "parts_count": len(parts),
+        }

@@ -509,6 +509,7 @@
         <div class="menu-dropdown-item" data-action="export-drawing-2d"><span>Exportar &gt; Desenho Técnico 2D (.svg)...</span></div>
         <div class="menu-dropdown-item" data-action="export-assembly-manual"><span>Exportar &gt; Manual de Montagem HTML...</span></div>
         <div class="menu-dropdown-item" data-action="export-executive-pdf"><span>Exportar &gt; Proposta Executiva (.pdf)...</span></div>
+        <div class="menu-dropdown-item" data-action="export-cam-dxf"><span>Exportar &gt; Arquivo para CNC/Laser (.dxf)...</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Enviar para o LayOut...</span></div>
         <div class="menu-dropdown-item disabled"><span>Imprimir...</span><span class="menu-dropdown-shortcut">Ctrl+P</span></div>
@@ -632,6 +633,7 @@
             <div class="menu-dropdown-item" data-action="draw-box" title="Cria um Sólido 3D Manifold (Frente 13)"><span>Bloco 3D (Push-Pull)</span><span class="menu-dropdown-shortcut">P</span></div>
             <div class="menu-dropdown-item" data-action="import-dxf" title="Converte e importa planta DXF para o modelo (Frente 20)"><span>Importar DXF...</span></div>
             <div class="menu-dropdown-item" data-action="draw-arc" title="Cria um Arco 3D Paramétrico (Frente 32)"><span>Arco 3D (2 Pontos)</span><span class="menu-dropdown-shortcut">A</span></div>
+            <div class="menu-dropdown-item" data-action="draw-terrain" title="Gera Terreno Paramétrico Sandbox (Frente 37)"><span>Terreno Sandbox (Grid 3D)</span></div>
             <div class="menu-dropdown-item" data-action="import-obj" title="Importa malha Wavefront OBJ para .SKP (Frente 35)"><span>Importar OBJ...</span></div>
             <div class="menu-dropdown-item" data-action="draw-circle" title="Cria um Círculo B-Rep (Frente 14)"><span>Círculo</span><span class="menu-dropdown-shortcut">C</span></div>
             <div class="menu-dropdown-item" data-action="draw-cylinder" title="Cria um Cilindro/Poste 3D (Frente 14)"><span>Cilindro 3D</span></div>
@@ -1168,6 +1170,27 @@
       </div>
     </div><!-- /tray-sections -->
 
+
+
+    <!-- Frentes 36 e 38: Engenharia Estrutural NBR 7190 & Nesting -->
+    <div class="tray-section collapsed" id="tray-engineering">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">Engenharia Estrutural &amp; Nesting</span>
+        <span class="tray-arrow">&#9662;</span>
+      </div>
+      <div class="tray-body">
+        <button id="btn-calc-structural" class="panel-btn" style="width: 100%; margin-bottom: 6px;">Cálculo Estrutural NBR 7190</button>
+        <div id="structural-result" style="display: none; padding: 6px; background: #EEF4F9; border: 1px solid #B8D5E5; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="structural-status-badge" style="font-weight: bold; color: var(--accent);"></div>
+          <div id="structural-details" style="color: var(--text);"></div>
+        </div>
+        <button id="btn-calc-nesting" class="panel-btn" style="width: 100%; margin-bottom: 6px;">Otimizar Plano de Corte (Nesting)</button>
+        <div id="nesting-result" style="display: none; padding: 6px; background: #FFF9E6; border: 1px solid #FFE082; border-radius: 3px; font-size: 10.5px;">
+          <div id="nesting-status-badge" style="font-weight: bold; color: #B78103;"></div>
+          <div id="nesting-details" style="color: var(--text);"></div>
+        </div>
+      </div>
+    </div><!-- /tray-engineering -->
 
     <!-- Frente 34: Auditoria de Segurança Infantil ABNT NBR 16071 -->
     <div class="tray-section collapsed" id="tray-safety">

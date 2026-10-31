@@ -1138,3 +1138,121 @@ class ImportObjResponse(BaseModel):
     imported_vertices: int
     imported_faces: int
     scale: float
+
+
+# ============================================================================
+# Frentes 36 a 40: Nesting 1D/2D, Terrenos, FEA Estrutural, Escala e CAM DXF
+# ============================================================================
+
+class NestingRequest(BaseModel):
+    """Entrada para otimização de plano de corte de barras e toras."""
+
+    demanded_pieces: list[dict[str, Any]] = Field(description="Lista de peças [{'name': str, 'length_m': float, 'quantity': int}]")
+    stock_bar_length_m: float = Field(default=3.00, description="Comprimento comercial da barra bruta em metros")
+
+
+class NestingResponse(BaseModel):
+    """Resposta com o plano de corte otimizado."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    stock_bar_length_m: float
+    total_bars_required: int
+    total_pieces_cut: int
+    total_stock_used_m: float
+    total_net_pieces_m: float
+    total_scrap_m: float
+    efficiency_percent: float
+    scrap_percent: float
+    bars: list[dict[str, Any]]
+
+
+class TerrainRequest(BaseModel):
+    """Entrada para geração de terreno paramétrico Sandbox."""
+
+    width_m: float = Field(default=10.0, description="Largura do terreno em metros")
+    length_m: float = Field(default=10.0, description="Comprimento do terreno em metros")
+    grid_resolution_m: float = Field(default=1.0, description="Resolução da malha em metros")
+    slope_x_pct: float = Field(default=0.0, description="Declividade em X (%)")
+    slope_y_pct: float = Field(default=5.0, description="Declividade em Y (%)")
+
+
+class TerrainResponse(BaseModel):
+    """Resposta com a malha topográfica gerada."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "TerrainMesh"
+    dimensions_m: list[float]
+    grid_size: list[int]
+    vertex_count: int
+    triangle_count: int
+    mean_elevation_m: float
+    earthwork_cut_m3: float
+    earthwork_fill_m3: float
+
+
+class StructuralAnalysisRequest(BaseModel):
+    """Entrada para cálculo estrutural e tensões em vigas de madeira."""
+
+    span_length_m: float = Field(default=2.00, description="Vão livre da viga em metros")
+    load_kn_per_m: float = Field(default=2.50, description="Carga distribuída em kN/m")
+    section_type: str = Field(default="circular", description="'circular' ou 'rectangular'")
+    diameter_m: float = Field(default=0.16, description="Diâmetro se tora circular")
+    width_m: float = Field(default=0.08, description="Largura se retangular")
+    height_m: float = Field(default=0.16, description="Altura se retangular")
+
+
+class StructuralAnalysisResponse(BaseModel):
+    """Resposta com o laudo de estabilidade estrutural."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    section_type: str
+    span_length_m: float
+    applied_load_kn_m: float
+    max_bending_moment_kn_m: float
+    bending_stress_mpa: float
+    admissible_stress_mpa: float
+    max_deflection_mm: float
+    deflection_limit_mm: float
+    safety_factor: float
+    deflection_compliant: bool
+    stress_compliant: bool
+    structural_status: str
+
+
+class ScaleRequest(BaseModel):
+    """Entrada para ferramenta de escala paramétrica."""
+
+    instance_id: str = Field(description="ID da instância a redimensionar")
+    scale_factors: list[float] = Field(default=[1.0, 1.0, 1.0], description="Fatores de escala [sx, sy, sz]")
+    pivot: list[float] = Field(default=[0.0, 0.0, 0.0], description="Ponto pivô de ancoragem da escala [px, py, pz]")
+
+
+class ScaleResponse(BaseModel):
+    """Resposta da operação de escala."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    instance_id: str
+    scale_factors: list[float]
+    pivot: list[float]
+    transform_matrix_16: list[float]
+
+
+class ExportCamDxfRequest(BaseModel):
+    """Entrada para exportação DXF para CNC / Corte a Laser."""
+
+    parts: list[dict[str, Any]] = Field(description="Peças com contorno externo e furos em mm")
+    output_filename: str = Field(default="pecas_usinagem_cnc.dxf", description="Nome do arquivo DXF")
+
+
+class ExportCamDxfResponse(BaseModel):
+    """Resposta com caminho e dados do arquivo DXF gerado."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    file_path: str
+    size_bytes: int
+    parts_count: int

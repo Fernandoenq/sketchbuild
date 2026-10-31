@@ -613,3 +613,56 @@ export function importObj(filePath, scale = 1.0) {
     scale: scale,
   });
 }
+
+
+// ============================================================================
+// Frentes 36 a 40: Nesting, Terrenos, FEA Estrutural, Escala e CAM DXF
+// ============================================================================
+
+/** Otimiza plano de corte de barras de madeira no chão de fábrica (Frente 36). */
+export function calculateNesting(demandedPieces, stockBarLength = 3.00) {
+  return postJson("/api/v1/scene/factory/nesting-optimizer", "POST", {
+    demanded_pieces: demandedPieces,
+    stock_bar_length_m: stockBarLength,
+  });
+}
+
+/** Gera terreno paramétrico e malha topográfica Sandbox (Frente 37). */
+export function createTerrain(widthM = 10.0, lengthM = 10.0, gridRes = 1.0, slopeX = 0.0, slopeY = 5.0) {
+  return postJson("/api/v1/scene/geometry/terrain", "POST", {
+    width_m: widthM,
+    length_m: lengthM,
+    grid_resolution_m: gridRes,
+    slope_x_pct: slopeX,
+    slope_y_pct: slopeY,
+  });
+}
+
+/** Calcula tensões e flechas em vigas de eucalipto segundo NBR 7190 (Frente 38). */
+export function calculateStructuralAnalysis(spanM = 2.0, loadKnM = 2.5, sectionType = "circular", diameterM = 0.16, widthM = 0.08, heightM = 0.16) {
+  return postJson("/api/v1/scene/engineering/structural-analysis", "POST", {
+    span_length_m: spanM,
+    load_kn_per_m: loadKnM,
+    section_type: sectionType,
+    diameter_m: diameterM,
+    width_m: widthM,
+    height_m: heightM,
+  });
+}
+
+/** Aplica escala paramétrica à instância (Frente 39). */
+export function applyScale(instanceId, scaleFactors = [1.0, 1.0, 1.0], pivot = [0.0, 0.0, 0.0]) {
+  return postJson("/api/v1/scene/geometry/scale", "POST", {
+    instance_id: instanceId,
+    scale_factors: scaleFactors,
+    pivot: pivot,
+  });
+}
+
+/** Exporta contornos para máquinas CNC e Corte a Laser em DXF (Frente 40). */
+export function exportCamDxf(parts, outputFilename = "pecas_usinagem_cnc.dxf") {
+  return postJson("/api/v1/scene/export/cam-dxf", "POST", {
+    parts: parts,
+    output_filename: outputFilename,
+  });
+}
