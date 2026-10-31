@@ -2197,3 +2197,125 @@ class NestedHierarchyResponse(BaseModel):
     entity_type: str = "NestedHierarchyResult"
     hierarchy_data: dict[str, Any]
     status: str
+
+
+# ==============================================================================
+# FRENTES 76 A 80 - ENGENHARIA REVERSA PURA DO SKETCHUP (COTAS RADIAIS, NÉVOA, SMOOTHING, HACHURAS E GEO)
+# ==============================================================================
+
+class DimensionRadialRequest(BaseModel):
+    """Entrada para cálculo de cota radial ou diamétrica SUDimensionRadialRef."""
+
+    center: list[float] = Field(description="Centro do arco/círculo [x, y, z]")
+    radius: float = Field(gt=0.0, description="Raio do arco/círculo em metros")
+    normal: list[float] = Field(default=[0.0, 0.0, 1.0], description="Normal do plano do círculo")
+    angle_deg: float = Field(default=45.0, description="Ângulo de contato na borda em graus")
+    is_diameter: bool = Field(default=False, description="True para cota diamétrica (Ø), False para radial (R)")
+    leader_length: float = Field(default=0.3, ge=0.05, le=5.0)
+    unit: str = Field(default="m", description="m, cm, mm, in")
+    precision: int = Field(default=2, ge=0, le=4)
+
+
+class DimensionRadialResponse(BaseModel):
+    """Resposta com dados gráficos da cota radial/diamétrica SUDimensionRadialRef."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SUDimensionRadialRef"
+    radial_data: dict[str, Any]
+    status: str
+
+
+class FogStyleRequest(BaseModel):
+    """Entrada para configuração de névoa atmosférica de cena SUStyleFog."""
+
+    enabled: bool = Field(default=True)
+    start_dist_m: float = Field(default=10.0, ge=0.0)
+    end_dist_m: float = Field(default=100.0, ge=0.1)
+    color_hex: str = Field(default="#dcdde1")
+
+
+class AutoFogRequest(BaseModel):
+    """Entrada para cálculo automático de névoa baseado na Bounding Box."""
+
+    min_point: list[float] = Field(description="Canto inferior da BBox [min_x, min_y, min_z]")
+    max_point: list[float] = Field(description="Canto superior da BBox [max_x, max_y, max_z]")
+    color_hex: str = Field(default="#dcdde1")
+
+
+class FogStyleResponse(BaseModel):
+    """Resposta com parâmetros de névoa configurados."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SUStyleFog"
+    fog_data: dict[str, Any]
+    status: str
+
+
+class MeshSmoothingRequest(BaseModel):
+    """Entrada para algoritmo de suavização de arestas Soft & Smooth do SketchUp."""
+
+    vertices: list[list[float]] = Field(description="Vértices da malha [[x,y,z], ...]")
+    faces: list[list[int]] = Field(description="Faces indexadas")
+    angle_threshold_deg: float = Field(default=35.0, ge=0.0, le=90.0, description="Ângulo limite diedro em graus")
+
+
+class MeshSmoothingResponse(BaseModel):
+    """Resposta com classificação de arestas e normais de vértices ponderadas."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "MeshSmoothingResult"
+    smoothing_data: dict[str, Any]
+    status: str
+
+
+class SectionHatchRequest(BaseModel):
+    """Entrada para geração de hachuras gráficas normativas NBR 6492 / ISO 128."""
+
+    closed_loop_3d: list[list[float]] = Field(description="Loop de contorno seccionado [[x,y,z], ...]")
+    pattern: str = Field(default="WOOD", description="WOOD, CONCRETE, STEEL, SOLID")
+    spacing_m: float = Field(default=0.05, ge=0.005, le=1.0)
+    angle_deg: float = Field(default=45.0, ge=-180.0, le=180.0)
+
+
+class SectionHatchResponse(BaseModel):
+    """Resposta com segmentos de reta 3D das linhas de hachura."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SectionHatchResult"
+    hatch_data: dict[str, Any]
+    status: str
+
+
+class GeoReferenceRequest(BaseModel):
+    """Entrada para georreferenciamento do modelo SUGeoReferenceRef."""
+
+    latitude: float = Field(ge=-90.0, le=90.0)
+    longitude: float = Field(ge=-180.0, le=180.0)
+    altitude_m: float = Field(default=0.0)
+    north_angle_deg: float = Field(default=0.0, ge=-360.0, le=360.0)
+    city: str = Field(default="São Paulo")
+    country: str = Field(default="Brasil")
+
+
+class LocalToGeoRequest(BaseModel):
+    """Entrada para conversão de ponto 3D local em coordenadas WGS84."""
+
+    local_xyz_m: list[float] = Field(description="Ponto 3D local [x, y, z] em metros")
+    origin_lat: float = Field(ge=-90.0, le=90.0)
+    origin_lon: float = Field(ge=-180.0, le=180.0)
+    origin_alt_m: float = Field(default=0.0)
+    north_angle_deg: float = Field(default=0.0)
+
+
+class GeoReferenceResponse(BaseModel):
+    """Resposta de dados georreferenciados e conversões geodésicas."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SUGeoReferenceRef"
+    geo_data: dict[str, Any]
+    status: str

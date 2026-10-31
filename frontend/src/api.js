@@ -1121,3 +1121,79 @@ export function convertWorldTransformToLocal(desiredWorldMatrix, parentWorldMatr
     parent_world_matrix: parentWorldMatrix,
   });
 }
+
+
+/** Calcula cota radial ou diametrica SUDimensionRadialRef (Frente 76). */
+export function createDimensionRadial(center, radius, normal = [0, 0, 1], angleDeg = 45.0, isDiameter = false, leaderLength = 0.3, unit = "m", precision = 2) {
+  return postJson("/api/v1/scene/dimensions/radial", "POST", {
+    center,
+    radius,
+    normal,
+    angle_deg: angleDeg,
+    is_diameter: isDiameter,
+    leader_length: leaderLength,
+    unit,
+    precision,
+  });
+}
+
+/** Configura parametros de nevoa de cena SUStyleFog (Frente 77). */
+export function configureFogStyle(enabled = true, startDistM = 10.0, endDistM = 100.0, colorHex = "#dcdde1") {
+  return postJson("/api/v1/scene/styles/fog", "POST", {
+    enabled,
+    start_dist_m: startDistM,
+    end_dist_m: endDistM,
+    color_hex: colorHex,
+  });
+}
+
+/** Calcula parametros ideais de nevoa a partir da Bounding Box (Frente 77). */
+export function calculateAutoFogFromBbox(minPoint, maxPoint, colorHex = "#dcdde1") {
+  return postJson("/api/v1/scene/styles/auto-fog", "POST", {
+    min_point: minPoint,
+    max_point: maxPoint,
+    color_hex: colorHex,
+  });
+}
+
+/** Calcula suavizacao de arestas Soft & Smooth e normais de vertices (Frente 78). */
+export function processMeshSmoothing(vertices, faces, angleThresholdDeg = 35.0) {
+  return postJson("/api/v1/scene/geometry/smoothing", "POST", {
+    vertices,
+    faces,
+    angle_threshold_deg: angleThresholdDeg,
+  });
+}
+
+/** Gera hachuras graficas normativas NBR 6492 / ISO 128 em cortes (Frente 79). */
+export function generateSectionHatchLines(closedLoop3d, pattern = "WOOD", spacingM = 0.05, angleDeg = 45.0) {
+  return postJson("/api/v1/scene/section-planes/hatch", "POST", {
+    closed_loop_3d: closedLoop3d,
+    pattern,
+    spacing_m: spacingM,
+    angle_deg: angleDeg,
+  });
+}
+
+/** Define georreferenciamento e calcula coordenadas UTM WGS84 (Frente 80). */
+export function setGeoLocation(latitude, longitude, altitudeM = 0.0, northAngleDeg = 0.0, city = "São Paulo", country = "Brasil") {
+  return postJson("/api/v1/scene/geo/reference", "POST", {
+    latitude,
+    longitude,
+    altitude_m: altitudeM,
+    north_angle_deg: northAngleDeg,
+    city,
+    country,
+  });
+}
+
+/** Converte ponto 3D local em coordenadas geograficas WGS84 (Frente 80). */
+export function localPointToWgs84(localXyzM, originLat, originLon, originAltM = 0.0, northAngleDeg = 0.0) {
+  return postJson("/api/v1/scene/geo/local-to-wgs84", "POST", {
+    local_xyz_m: localXyzM,
+    origin_lat: originLat,
+    origin_lon: originLon,
+    origin_alt_m: originAltM,
+    north_angle_deg: northAngleDeg,
+  });
+}

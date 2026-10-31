@@ -1521,3 +1521,70 @@ A Frente 75 implementa a álgebra linear necessária para navegar e transformar 
   $$M_{	ext{local\_new}} = (M_{	ext{parent\_world}})^{-1} 	imes M_{	ext{world\_desired}}$$
 - **Módulo:** `core/nested_instance_hierarchy_engine.py` (`NestedInstanceHierarchyEngine`).
 - **Endpoints FastAPI:** `POST /api/v1/scene/hierarchy/resolve` e `POST /api/v1/scene/hierarchy/world-to-local`.
+
+
+---
+
+## 103. Frente 76: Cotas Radiais e Diamétricas (SUDimensionRadialRef - Zero DLL)
+
+A Frente 76 introduz a representação e cálculo analítico de cotas em arcos e circunferências do SketchUp (`SUDimensionRadialRef`).
+
+### A. Geometria de Cotas Radiais e Diamétricas
+- **Cota Radial:** Prefixo "R", partindo do centro analítico do arco ou tocando a circunferência em ângulo arbitrário $\theta$.
+- **Cota Diamétrica:** Prefixo "Ø", cruzando o diâmetro completo e conectando extremidades opostas do círculo.
+- **Líder com Cotovelo e Pouso de Texto:** Gera os segmentos de reta 3D que quebram o líder horizontalmente para sustentação do texto.
+- **Módulo:** `core/dimension_radial_engine.py` (`DimensionRadialEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/dimensions/radial`.
+
+---
+
+## 104. Frente 77: Estilos de Névoa Atmosférica e Profundidade de Campo (SUStyleFog - Zero DLL)
+
+A Frente 77 mapeia as propriedades de névoa de cena do SketchUp (`SUStyleRef` - Fog).
+
+### A. Parâmetros e Auto-Cálculo por Bounding Box
+- `enabled`, `start_distance_m`, `end_distance_m` e `color`.
+- `calculate_auto_fog_from_bbox`: Calcula a profundidade ideal de névoa atmosférica a partir da diagonal tridimensional do modelo ($0.6 \times \text{Diag}$ até $2.5 \times \text{Diag}$), evitando sobreposição e perda de geometria próxima.
+- Mapeamento direto para os parâmetros nativos do `THREE.Fog(color, near, far)`.
+- **Módulo:** `core/fog_depth_engine.py` (`FogDepthEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/styles/fog` e `POST /api/v1/scene/styles/auto-fog`.
+
+---
+
+## 105. Frente 78: Decodificador de Malhas com Suavização de Arestas (Soft & Smooth Edges - Zero DLL)
+
+A Frente 78 reproduz o algoritmo de suavização de arestas por ângulo diedro do SketchUp (`SUEdgeGetSmooth` e `SUEdgeGetSoft`).
+
+### A. Algoritmo Soften & Smooth por Ângulo Diedro
+- Para cada aresta interna compartilhada por duas faces adjacentes, calcula o produto escalar $\cos\theta = \vec{n}_1 \cdot \vec{n}_2$.
+- Se $\theta \le \theta_{\text{threshold}}$ (padrão $35^\circ$), a aresta é marcada como `soft` (oculta da renderização de linhas) e `smooth` (suavizada).
+- **Normais de Vértice Ponderadas:** Calcula as normais de vértice $\vec{N}_v = \text{norm}(\sum \vec{n}_f)$ para permitir sombreamento suave (Phong Shading) em superfícies curvas orgânicas.
+- **Módulo:** `core/smooth_soft_edges_engine.py` (`SmoothSoftEdgesEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/smoothing`.
+
+---
+
+## 106. Frente 79: Motor de Hachuras Gráficas para Cortes de Seção (NBR 6492 & ISO 128 - Zero DLL)
+
+A Frente 79 implementa hachuras técnicas analíticas sobre loops fechados de corte de planos de seção (`SUSectionPlaneRef`).
+
+### A. Padrões Normativos de Preenchimento
+- `WOOD`: Linhas paralelas inclinadas a $45^\circ$ com espaçamento métrico customizável (ex: $0.05$ m).
+- `CONCRETE`: Linhas diagonais com pequenos triângulos e pontilhados esparsos.
+- `STEEL`: Linhas diagonais duplas.
+- Algoritmo de interseção reta-polígono em 2D local e projeção inversa em 3D para renderização no Three.js `LineSegments` ou exportação DXF/SVG.
+- **Módulo:** `core/section_hatch_engine.py` (`SectionHatchPatternEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/section-planes/hatch`.
+
+---
+
+## 107. Frente 80: Gerenciador de Georreferenciamento e Coordenadas Globais (SUGeoReferenceRef - Zero DLL)
+
+A Frente 80 implementa a persistência e cálculo de coordenadas geográficas globais do SketchUp.
+
+### A. Georreferenciamento WGS84 e Projeção Plana UTM
+- Decodifica e expõe `latitude`, `longitude`, `altitude_m`, `north_angle_deg`, `city`, `country`.
+- Conversão analítica geodésica WGS84 para coordenadas planas métricas UTM (Zona UTM e Hemisfério).
+- Conversão bidirecional entre coordenadas locais $(x, y, z)$ em metros do modelo e coordenadas geográficas reais (Lat, Lon, Alt) rotacionadas pelo ângulo do Norte verdadeiro.
+- **Módulo:** `core/geo_reference_engine.py` (`GeoReferenceEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/geo/reference` e `POST /api/v1/scene/geo/local-to-wgs84`.
