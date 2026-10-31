@@ -3481,3 +3481,89 @@ class SkpEngineRepository:
     def model_statistics_calculate(self, **kwargs) -> dict:
         from core.model_statistics_engine import ModelStatisticsEngine
         return ModelStatisticsEngine.calculate_statistics(**kwargs)
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 4): MÉTODOS DE REPOSITÓRIO NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    def regular_polygon_generate(self, **kwargs) -> dict:
+        from core.regular_polygon_engine import RegularPolygonEngine
+        return RegularPolygonEngine.generate_regular_polygon(
+            sides_count=kwargs.get("sides_count", 6),
+            radius_m=kwargs.get("radius_m", 1.0),
+            radius_mode=kwargs.get("radius_mode", "CIRCUMSCRIBED"),
+            center_xyz=kwargs.get("center_xyz", (0.0, 0.0, 0.0)),
+            normal_xyz=kwargs.get("normal_xyz", (0.0, 0.0, 1.0))
+        )
+
+    def freehand_curve_process(self, **kwargs) -> dict:
+        from core.freehand_curve_engine import FreehandCurveEngine
+        return FreehandCurveEngine.process_freehand_curve(
+            raw_points_xyz=kwargs.get("raw_points_xyz", []),
+            tolerance_m=kwargs.get("tolerance_m", 0.02),
+            auto_close=kwargs.get("auto_close", False),
+            close_threshold_m=kwargs.get("close_threshold_m", 0.1)
+        )
+
+    def reverse_orient_faces(self, **kwargs) -> dict:
+        from core.reverse_orient_faces_engine import ReverseOrientFacesEngine
+        mode = kwargs.get("mode", "REVERSE").upper().strip()
+        faces = kwargs.get("faces", [])
+        if mode == "ORIENT":
+            ref_idx = kwargs.get("reference_face_index", 0)
+            return ReverseOrientFacesEngine.orient_connected_faces(faces, reference_face_index=ref_idx)
+        else:
+            selected_indices = kwargs.get("selected_face_indices", [])
+            return ReverseOrientFacesEngine.reverse_selected_faces(faces, selected_indices=selected_indices)
+
+    def dolly_fov_lens_control(self, **kwargs) -> dict:
+        from core.dolly_fov_lens_engine import DollyFovLensEngine
+        op = kwargs.get("operation", "PARSE_VCB").upper().strip()
+        if op == "PARSE_VCB":
+            return DollyFovLensEngine.parse_vcb_camera_input(kwargs.get("vcb_input", "35 deg"))
+        elif op == "FOV_TO_FOCAL":
+            fov = kwargs.get("fov_degrees", 35.0)
+            f_mm = DollyFovLensEngine.fov_degrees_to_focal_length_mm(fov)
+            return {"fov_degrees": fov, "focal_length_mm": f_mm}
+        elif op == "FOCAL_TO_FOV":
+            f_mm = kwargs.get("focal_length_mm", 50.0)
+            fov = DollyFovLensEngine.focal_length_mm_to_fov_degrees(f_mm)
+            return {"focal_length_mm": f_mm, "fov_degrees": fov}
+        elif op == "APPLY_DOLLY":
+            eye = kwargs.get("camera_eye_xyz", (0.0, -5.0, 2.0))
+            target = kwargs.get("camera_target_xyz", (0.0, 0.0, 0.0))
+            delta = kwargs.get("dolly_delta_m", 1.0)
+            mode = kwargs.get("dolly_mode", "KEEP_TARGET")
+            return DollyFovLensEngine.apply_camera_dolly(eye, target, delta, mode=mode)
+        return {"status": "error", "message": f"Operação desconhecida: {op}"}
+
+    def intersect_faces_compute(self, **kwargs) -> dict:
+        from core.intersect_faces_engine import IntersectFacesEngine
+        return IntersectFacesEngine.intersect_faces_sets(
+            faces_set_a=kwargs.get("faces_set_a", []),
+            faces_set_b=kwargs.get("faces_set_b"),
+            context_mode=kwargs.get("context_mode", "WITH_MODEL")
+        )
+
+    def axis_lock_inference(self, **kwargs) -> dict:
+        from core.axis_lock_inference_engine import AxisLockInferenceEngine
+        arrow = kwargs.get("arrow_key", "RIGHT")
+        custom_dir = kwargs.get("custom_direction_xyz")
+        lock_info = AxisLockInferenceEngine.resolve_arrow_key_lock(arrow, custom_direction=custom_dir)
+
+        cursor = kwargs.get("cursor_point_xyz")
+        if cursor is not None and lock_info.get("is_locked"):
+            origin = kwargs.get("origin_point_xyz", (0.0, 0.0, 0.0))
+            proj = AxisLockInferenceEngine.project_point_onto_axis(
+                cursor_point=cursor,
+                origin_point=origin,
+                axis_direction=tuple(lock_info["direction_vector"])
+            )
+            lock_info["projection"] = proj
+
+        return lock_info
+
+    def ground_sky_style_configure(self, **kwargs) -> dict:
+        from core.ground_sky_style_engine import GroundSkyStyleEngine
+        return GroundSkyStyleEngine.configure_background_style(**kwargs)
+

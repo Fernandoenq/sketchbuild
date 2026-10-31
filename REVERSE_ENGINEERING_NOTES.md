@@ -2305,3 +2305,76 @@ Esta seção documenta a terceira rodada de ferramentas centrais do **SketchUp D
   - Perfil de Complexidade e Desempenho no Viewport: Classificação em LEVE (< 25k faces), MÉDIO (25k-150k) ou PESADO (> 150k) com taxa estimada de FPS.
 - **Módulo Core:** `core/model_statistics_engine.py` (`ModelStatisticsEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/model/statistics`.
+
+---
+
+## 176. Opção A (Parte 4): Ferramentas Nativas Oficiais do SketchUp Desktop (Zero DLL / Pure Python)
+
+### 176.1 Polígono Regular Paramétrico (RegularPolygonEngine)
+- **Ferramenta Nativa:** Desenho -> Formas -> Polígono (Polygon Tool / VCB: `6s`, `8s`, `12s`).
+- **Engenharia Reversa:**
+  - Parâmetros: Número de lados $N \ge 3$, raio em metros e modo de raio: `CIRCUMSCRIBED` (circunscrito) ou `INSCRIBED` (inscrito com correção trigonométrica $r_{\text{vertice}} = r / \cos(\pi / N)$).
+  - Cálculo analítico de base ortonormal 3D para qualquer plano com normal arbitrária $\vec{n}$.
+  - Geração de arestas perimetrais, decomposição do polígono em leque triangular (*triangle fan*) centrado e métricas exatas de perímetro e área.
+- **Módulo Core:** `core/regular_polygon_engine.py` (`RegularPolygonEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/regular-polygon`.
+
+### 176.2 Ferramenta Mão Livre com Simplificação RDP (FreehandCurveEngine)
+- **Ferramenta Nativa:** Desenho -> Linhas -> Mão Livre (Freehand Tool).
+- **Engenharia Reversa:**
+  - Captura sequencial de traço livre com ruído de amostragem.
+  - Simplificação geométrica recursiva pelo algoritmo **Ramer-Douglas-Peucker (RDP)** com tolerância submétrica configurável.
+  - Detecção automática de fechamento de contorno (*Closed Loop*): se a distância entre as extremidades for inferior ao limiar, solda as pontas e sintetiza automaticamente uma face plana triangulada.
+- **Módulo Core:** `core/freehand_curve_engine.py` (`FreehandCurveEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/freehand-curve`.
+
+### 176.3 Inverter Faces e Orientar Faces Conexas (ReverseOrientFacesEngine)
+- **Ferramenta Nativa:** Menu de contexto de face -> Inverter Faces / Orientar Faces.
+- **Engenharia Reversa:**
+  - *Reverse Faces:* Inversão do vetor normal $\vec{n} \to -\vec{n}$ e da ordem de enrolamento (*winding order*) dos vértices e triângulos da face.
+  - *Orient Faces:* Propagação orientada por busca em largura (BFS) a partir de uma face de referência. Identifica arestas compartilhadas entre faces adjacentes e assegura coerência topológica 2-manifold (direções de percurso opostas na aresta compartilhada), corrigindo superfícies com normais invertidas.
+- **Módulo Core:** `core/reverse_orient_faces_engine.py` (`ReverseOrientFacesEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/reverse-orient-faces`.
+
+### 176.4 Dolly de Câmera e Lente Fotográfica de 35mm (DollyFovLensEngine)
+- **Ferramenta Nativa:** Câmera -> Zoom (Z) / VCB: Graus de FOV (ex: `35 deg`) vs Lente em mm (ex: `50 mm`).
+- **Engenharia Reversa:**
+  - Padrão full-frame 35mm com largura de sensor de 36.0mm.
+  - Fórmulas óticas:
+    $$f_{\text{mm}} = \frac{36.0}{2 \cdot \tan(\text{FOV}_{\text{rad}} / 2)}$$
+    $$\text{FOV}_{\text{deg}} = 2 \cdot \arctan\left(\frac{36.0}{2 \cdot f_{\text{mm}}}\right) \cdot \frac{180}{\pi}$$
+  - Parser VCB para entradas `50mm`, `35 mm`, `60 deg` e execução de Dolly In/Out avançando ao longo do vetor diretor da linha de visão mantendo ou movendo o alvo (*target*).
+- **Módulo Core:** `core/dolly_fov_lens_engine.py` (`DollyFovLensEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/camera/dolly-fov-lens`.
+
+### 176.5 Interseção 3D de Faces com Modelo / Seleção (IntersectFacesEngine)
+- **Ferramenta Nativa:** Menu de contexto -> Interseccionar Faces -> Com o Modelo / Com a Seleção.
+- **Engenharia Reversa:**
+  - Cálculo analítico de reta de interseção entre planos de triângulos secantes ($\vec{d} = \vec{n}_a \times \vec{n}_b$).
+  - Teste de segmento-plano para delimitar os segmentos de aresta gerados dentro dos limites de ambos os polígonos.
+  - Geração de arestas de corte 3D (*cutting lines*) para divisão e fatiamento de geometria.
+- **Módulo Core:** `core/intersect_faces_engine.py` (`IntersectFacesEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/intersect-faces`.
+
+### 176.6 Bloqueio de Eixos e Inferência por Teclado (AxisLockInferenceEngine)
+- **Ferramenta Nativa:** Teclas de setas (Arrow Keys) do SketchUp durante desenho/movimentação.
+- **Engenharia Reversa:**
+  - Seta Direita: Trava no Eixo Vermelho / X (`[1, 0, 0]`).
+  - Seta Esquerda: Trava no Eixo Verde / Y (`[0, 1, 0]`).
+  - Seta Cima: Trava no Eixo Azul / Z (`[0, 0, 1]`).
+  - Seta Baixo: Trava em direção Paralela ou Perpendicular à referência anterior.
+  - Projeção ortogonal estrita de ponto 3D do cursor sobre o eixo bloqueado:
+    $$P_{\text{proj}} = P_0 + ((P - P_0) \cdot \vec{u}) \cdot \vec{u}$$
+- **Módulo Core:** `core/axis_lock_inference_engine.py` (`AxisLockInferenceEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/axis-lock-inference`.
+
+### 176.7 Configurações de Céu, Solo e Fundo dos Estilos (GroundSkyStyleEngine)
+- **Ferramenta Nativa:** Painel Estilos -> Editar -> Configurações de Fundo (Styles -> Edit -> Background).
+- **Engenharia Reversa:**
+  - Cor de fundo base (`background_color`).
+  - Cúpula de céu com chave de ativação (`sky_enabled`, `sky_color`).
+  - Plano de solo com transparência percentual de 0 a 100% (`ground_enabled`, `ground_color`, `ground_transparency_pct`) e opção de visualização por baixo (`show_ground_from_below`).
+  - Exportação direta de payload para clearColor e renderizadores WebGL / Three.js.
+- **Módulo Core:** `core/ground_sky_style_engine.py` (`GroundSkyStyleEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/styles/ground-sky`.
+

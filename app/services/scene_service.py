@@ -2143,3 +2143,29 @@ class SceneService:
 
     async def model_statistics_calculate(self, **kwargs) -> dict:
         return await run_in_threadpool(self._repository.model_statistics_calculate, **kwargs)
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 4): MÉTODOS DE SERVIÇO NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def regular_polygon_generate(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.regular_polygon_generate, **kwargs)
+
+    async def freehand_curve_process(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.freehand_curve_process, **kwargs)
+
+    async def reverse_orient_faces(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.reverse_orient_faces, **kwargs)
+
+    async def dolly_fov_lens_control(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.dolly_fov_lens_control, **kwargs)
+
+    async def intersect_faces_compute(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.intersect_faces_compute, **kwargs)
+
+    async def axis_lock_inference(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.axis_lock_inference, **kwargs)
+
+    async def ground_sky_style_configure(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.ground_sky_style_configure, **kwargs)
+

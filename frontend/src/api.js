@@ -2042,3 +2042,78 @@ export function hiddenGeometryConfigure(showHiddenGeometry = false, showHiddenOb
 export function modelStatisticsCalculate(params = {}) {
   return postJson("/api/v1/scene/model/statistics", "POST", params);
 }
+
+// ============================================================================
+// OPÇÃO A (PARTE 4): CLIENT API NATIVO DO SKETCHUP
+// ============================================================================
+
+export function generateRegularPolygon(sidesCount = 6, radiusM = 1.0, radiusMode = "CIRCUMSCRIBED", center = [0, 0, 0], normal = [0, 0, 1]) {
+  return postJson("/api/v1/scene/tools/regular-polygon", "POST", {
+    sides_count: sidesCount,
+    radius_m: radiusM,
+    radius_mode: radiusMode,
+    center_xyz: center,
+    normal_xyz: normal
+  });
+}
+
+export function processFreehandCurve(rawPoints = [], toleranceM = 0.02, autoClose = false, closeThresholdM = 0.1) {
+  return postJson("/api/v1/scene/tools/freehand-curve", "POST", {
+    raw_points_xyz: rawPoints,
+    tolerance_m: toleranceM,
+    auto_close: autoClose,
+    close_threshold_m: closeThresholdM
+  });
+}
+
+export function reverseOrientFaces(mode = "REVERSE", faces = [], selectedFaceIndices = [], referenceFaceIndex = 0) {
+  return postJson("/api/v1/scene/geometry/reverse-orient-faces", "POST", {
+    mode: mode,
+    faces: faces,
+    selected_face_indices: selectedFaceIndices,
+    reference_face_index: referenceFaceIndex
+  });
+}
+
+export function controlDollyFovLens(operation = "PARSE_VCB", vcbInput = null, fovDegrees = null, focalLengthMm = null, cameraEye = null, cameraTarget = null, dollyDeltaM = 1.0, dollyMode = "KEEP_TARGET") {
+  return postJson("/api/v1/scene/camera/dolly-fov-lens", "POST", {
+    operation: operation,
+    vcb_input: vcbInput,
+    fov_degrees: fovDegrees,
+    focal_length_mm: focalLengthMm,
+    camera_eye_xyz: cameraEye,
+    camera_target_xyz: cameraTarget,
+    dolly_delta_m: dollyDeltaM,
+    dolly_mode: dollyMode
+  });
+}
+
+export function computeIntersectFaces(facesSetA = [], facesSetB = null, contextMode = "WITH_MODEL") {
+  return postJson("/api/v1/scene/geometry/intersect-faces", "POST", {
+    faces_set_a: facesSetA,
+    faces_set_b: facesSetB,
+    context_mode: contextMode
+  });
+}
+
+export function axisLockInference(arrowKey = "RIGHT", cursorPoint = null, originPoint = [0, 0, 0], customDirection = null) {
+  return postJson("/api/v1/scene/tools/axis-lock-inference", "POST", {
+    arrow_key: arrowKey,
+    cursor_point_xyz: cursorPoint,
+    origin_point_xyz: originPoint,
+    custom_direction_xyz: customDirection
+  });
+}
+
+export function configureGroundSkyStyle(backgroundColor = null, skyEnabled = null, skyColor = null, groundEnabled = null, groundColor = null, groundTransparencyPct = null, showGroundFromBelow = null) {
+  return postJson("/api/v1/scene/styles/ground-sky", "POST", {
+    background_color: backgroundColor,
+    sky_enabled: skyEnabled,
+    sky_color: skyColor,
+    ground_enabled: groundEnabled,
+    ground_color: groundColor,
+    ground_transparency_pct: groundTransparencyPct,
+    show_ground_from_below: showGroundFromBelow
+  });
+}
+
