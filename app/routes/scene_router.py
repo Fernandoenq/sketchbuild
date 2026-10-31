@@ -288,6 +288,20 @@ from app.schemas.scene import (
     ModelUnitsConfigResponse,
     ModelUnitsFormatRequest,
     ModelUnitsFormatResponse,
+    TexturePinTransformRequest,
+    TexturePinTransformResponse,
+    ColorByTagApplyRequest,
+    ColorByTagApplyResponse,
+    PurgeUnusedRequest,
+    PurgeUnusedResponse,
+    MakeComponentDefinitionRequest,
+    MakeComponentDefinitionResponse,
+    AdvancedSelectionRequest,
+    AdvancedSelectionResponse,
+    HiddenGeometryConfigRequest,
+    HiddenGeometryConfigResponse,
+    ModelStatisticsRequest,
+    ModelStatisticsResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2678,3 +2692,97 @@ async def model_units_format(
     controller: SceneController = Depends(get_controller)
 ) -> ModelUnitsFormatResponse:
     return await controller.model_units_format(body)
+
+# ------------------------------------------------------------------------------
+# OPÇÃO A (PARTE 3): ENDPOINTS NATIVOS ADICIONAIS DO SKETCHUP
+# ------------------------------------------------------------------------------
+
+@router.post(
+    "/textures/pin-transform",
+    response_model=TexturePinTransformResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Mapeia UV da textura usando os 4 pinos oficiais (Vermelho, Verde, Azul, Amarelo)"
+)
+async def texture_pin_transform(
+    body: TexturePinTransformRequest,
+    controller: SceneController = Depends(get_controller)
+) -> TexturePinTransformResponse:
+    return await controller.texture_pin_transform(body)
+
+
+@router.post(
+    "/styles/color-by-tag",
+    response_model=ColorByTagApplyResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Ativa ou desativa a substituição de materiais por cores de etiqueta (Color by Tag)"
+)
+async def color_by_tag_apply(
+    body: ColorByTagApplyRequest,
+    controller: SceneController = Depends(get_controller)
+) -> ColorByTagApplyResponse:
+    return await controller.color_by_tag_apply(body)
+
+
+@router.post(
+    "/cleanup/purge-unused",
+    response_model=PurgeUnusedResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Elimina componentes, materiais e tags não utilizados do modelo (Purge Unused)"
+)
+async def purge_unused_items(
+    body: PurgeUnusedRequest,
+    controller: SceneController = Depends(get_controller)
+) -> PurgeUnusedResponse:
+    return await controller.purge_unused_items(body)
+
+
+@router.post(
+    "/components/make-component",
+    response_model=MakeComponentDefinitionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Cria definição de componente oficial com comportamentos (Glue to, Cut Opening, Face-Me)"
+)
+async def make_component_definition(
+    body: MakeComponentDefinitionRequest,
+    controller: SceneController = Depends(get_controller)
+) -> MakeComponentDefinitionResponse:
+    return await controller.make_component_definition(body)
+
+
+@router.post(
+    "/selection/advanced",
+    response_model=AdvancedSelectionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Executa seleção avançada: Inverter, Mesma Tag, Mesmo Material ou Conectados (Triplo Clique)"
+)
+async def advanced_selection_execute(
+    body: AdvancedSelectionRequest,
+    controller: SceneController = Depends(get_controller)
+) -> AdvancedSelectionResponse:
+    return await controller.advanced_selection_execute(body)
+
+
+@router.post(
+    "/styles/hidden-geometry",
+    response_model=HiddenGeometryConfigResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Configura exibição de geometria oculta (tracejada) e objetos ocultos (fantasma)"
+)
+async def hidden_geometry_configure(
+    body: HiddenGeometryConfigRequest,
+    controller: SceneController = Depends(get_controller)
+) -> HiddenGeometryConfigResponse:
+    return await controller.hidden_geometry_configure(body)
+
+
+@router.post(
+    "/model/statistics",
+    response_model=ModelStatisticsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Calcula o censo de entidades e classificação de complexidade do modelo (Model Statistics)"
+)
+async def model_statistics_calculate(
+    body: ModelStatisticsRequest,
+    controller: SceneController = Depends(get_controller)
+) -> ModelStatisticsResponse:
+    return await controller.model_statistics_calculate(body)

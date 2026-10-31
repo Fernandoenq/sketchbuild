@@ -2118,3 +2118,28 @@ class SceneService:
 
     async def model_units_format(self, **kwargs) -> dict:
         return await run_in_threadpool(self._repository.model_units_format, **kwargs)
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 3): MÉTODOS DE SERVIÇO NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def texture_pin_transform(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.texture_pin_transform, **kwargs)
+
+    async def color_by_tag_apply(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.color_by_tag_apply, **kwargs)
+
+    async def purge_unused_items(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.purge_unused_items, **kwargs)
+
+    async def make_component_definition(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.make_component_definition, **kwargs)
+
+    async def advanced_selection_execute(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.advanced_selection_execute, **kwargs)
+
+    async def hidden_geometry_configure(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.hidden_geometry_configure, **kwargs)
+
+    async def model_statistics_calculate(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.model_statistics_calculate, **kwargs)

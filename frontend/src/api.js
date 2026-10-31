@@ -1971,3 +1971,74 @@ export function modelUnitsFormat(lengthMeters = 1.0, unit = "METERS", precisionD
     precision_digits: precisionDigits
   });
 }
+
+
+// ============================================================================
+// OPÇÃO A (PARTE 3): CLIENT API DAS FERRAMENTAS NATIVAS ADICIONAIS DO SKETCHUP
+// ============================================================================
+
+export function texturePinTransform(faceVertices = [], redPinOrigin = [0, 0], greenPinScaleRot = [1.0, 0.0], bluePinShear = 0.0, yellowPinDistortion = null) {
+  return postJson("/api/v1/scene/textures/pin-transform", "POST", {
+    face_vertices: faceVertices,
+    red_pin_origin: redPinOrigin,
+    green_pin_scale_rot: greenPinScaleRot,
+    blue_pin_shear: bluePinShear,
+    yellow_pin_distortion: yellowPinDistortion
+  });
+}
+
+export function colorByTagApply(tags = [], instances = [], enabled = true) {
+  return postJson("/api/v1/scene/styles/color-by-tag", "POST", {
+    tags: tags,
+    instances: instances,
+    enabled: enabled
+  });
+}
+
+export function purgeUnusedItems(componentDefinitions = [], instances = [], materials = [], tags = []) {
+  return postJson("/api/v1/scene/cleanup/purge-unused", "POST", {
+    component_definitions: componentDefinitions,
+    instances: instances,
+    materials: materials,
+    tags: tags
+  });
+}
+
+export function makeComponentDefinition(definitionName = "Novo Componente", description = "", glueTo = "NONE", cutOpening = false, alwaysFaceCamera = false, shadowsFaceSun = false, localOrigin = [0, 0, 0], openingLoop2d = null) {
+  return postJson("/api/v1/scene/components/make-component", "POST", {
+    definition_name: definitionName,
+    description: description,
+    glue_to: glueTo,
+    cut_opening: cutOpening,
+    always_face_camera: alwaysFaceCamera,
+    shadows_face_sun: shadowsFaceSun,
+    local_origin: localOrigin,
+    opening_loop_2d: openingLoop2d
+  });
+}
+
+export function advancedSelectionExecute(operation = "invert", allEntityIds = [], currentlySelectedIds = [], targetTag = null, targetMaterial = null, instances = [], seedFaceIndex = 0, facesVertices = []) {
+  return postJson("/api/v1/scene/selection/advanced", "POST", {
+    operation: operation,
+    all_entity_ids: allEntityIds,
+    currently_selected_ids: currentlySelectedIds,
+    target_tag: targetTag,
+    target_material: targetMaterial,
+    instances: instances,
+    seed_face_index: seedFaceIndex,
+    faces_vertices: facesVertices
+  });
+}
+
+export function hiddenGeometryConfigure(showHiddenGeometry = false, showHiddenObjects = false, instances = null, edges = null) {
+  return postJson("/api/v1/scene/styles/hidden-geometry", "POST", {
+    show_hidden_geometry: showHiddenGeometry,
+    show_hidden_objects: showHiddenObjects,
+    instances: instances,
+    edges: edges
+  });
+}
+
+export function modelStatisticsCalculate(params = {}) {
+  return postJson("/api/v1/scene/model/statistics", "POST", params);
+}

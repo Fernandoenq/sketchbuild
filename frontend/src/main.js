@@ -178,6 +178,13 @@ import {
   componentEditModeApply,
   modelUnitsConfigure,
   modelUnitsFormat,
+  texturePinTransform,
+  colorByTagApply,
+  purgeUnusedItems,
+  makeComponentDefinition,
+  advancedSelectionExecute,
+  hiddenGeometryConfigure,
+  modelStatisticsCalculate,
   downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
@@ -5877,5 +5884,198 @@ document.getElementById("btn-native-units-config")?.addEventListener("click", as
     }
   } catch (err) {
     setStatus(`Erro ao configurar unidades: ${err.message}`, true);
+  }
+});
+
+
+// 22. Posição da Textura por Pinos (Texture Position Pin Tool)
+document.getElementById("btn-native-texture-pins")?.addEventListener("click", async () => {
+  setStatus("Ajustando textura com os 4 pinos oficiais do SketchUp...");
+  try {
+    const facePts = [[0, 0, 0], [2, 0, 0], [2, 1.5, 0], [0, 1.5, 0]];
+    const res = await texturePinTransform(facePts, [0.2, 0.1], [1.5, 45.0], 10.0, null);
+    if (res?.mapping) {
+      const m = res.mapping;
+      showNativeToolsResult(
+        "🎨 Posição da Textura (4 Pinos Oficiais)",
+        `Pino Vermelho (Origem UV): <b>(${m.pins_config.red_pin_origin.join(", ")})</b><br>` +
+        `Pino Verde: Escala <b>${m.pins_config.green_pin_scale}x</b> | Rotação <b>${m.pins_config.green_pin_rotation_deg}°</b><br>` +
+        `Pino Azul (Cisalhamento): <b>${m.pins_config.blue_pin_shear_deg}°</b><br>` +
+        `UVs mapeadas: <code>${JSON.stringify(m.uv_coordinates)}</code>`
+      );
+      setStatus("Textura posicionada pelos pinos oficiais.");
+    }
+  } catch (err) {
+    setStatus(`Erro nos pinos de textura: ${err.message}`, true);
+  }
+});
+
+// 23. Colorir por Etiqueta (Color by Tag)
+let isColorByTagActive = false;
+document.getElementById("btn-native-color-by-tag")?.addEventListener("click", async () => {
+  isColorByTagActive = !isColorByTagActive;
+  setStatus(`Alternando modo Colorir por Etiqueta (${isColorByTagActive ? "ATIVADO" : "DESATIVADO"})...`);
+  try {
+    const mockTags = [
+      { name: "Estrutura", color: "#E53E3E" },
+      { name: "Alvenaria", color: "#DD6B20" },
+      { name: "Esquadrias", color: "#3182CE" }
+    ];
+    const mockInstances = [
+      { id: "col_1", tag: "Estrutura" },
+      { id: "wall_1", tag: "Alvenaria" },
+      { id: "win_1", tag: "Esquadrias" }
+    ];
+    const res = await colorByTagApply(mockTags, mockInstances, isColorByTagActive);
+    if (res?.color_by_tag_result) {
+      const cr = res.color_by_tag_result;
+      showNativeToolsResult(
+        "🏷️ Colorir por Etiqueta (Color by Tag)",
+        `Modo Color by Tag: <b>${cr.color_by_tag_enabled ? "ATIVADO (Cores de disciplina ativas)" : "DESATIVADO (Texturas originais)"}</b><br>` +
+        `Tags mapeadas: <b>${JSON.stringify(cr.tag_color_map)}</b>`
+      );
+      setStatus(`Color by Tag ${cr.color_by_tag_enabled ? "ativado" : "desativado"}.`);
+    }
+  } catch (err) {
+    setStatus(`Erro no Color by Tag: ${err.message}`, true);
+  }
+});
+
+// 24. Eliminar Não Utilizados (Purge Unused)
+document.getElementById("btn-native-purge-unused")?.addEventListener("click", async () => {
+  setStatus("Executando eliminação de elementos não utilizados (Purge Unused)...");
+  try {
+    const mockDefs = [{ name: "Pilar Usado" }, { name: "Cadeira Órfã" }];
+    const mockInsts = [{ id: "i1", definition_name: "Pilar Usado", tag: "Layer0", material: "Madeira" }];
+    const mockMats = [{ name: "Madeira" }, { name: "Vidro Não Utilizado" }];
+    const mockTags = [{ name: "Layer0" }, { name: "Tag Vazia" }];
+
+    const res = await purgeUnusedItems(mockDefs, mockInsts, mockMats, mockTags);
+    if (res?.purge_result) {
+      const p = res.purge_result;
+      showNativeToolsResult(
+        "🧹 Eliminar Não Utilizados (Purge Unused)",
+        `Total de itens eliminados: <b style="color: #C53030;">${p.total_items_purged}</b><br>` +
+        `Componentes purgados: <b>${p.purged_components.join(", ") || "Nenhum"}</b> (${p.purged_components_count})<br>` +
+        `Materiais purgados: <b>${p.purged_materials.join(", ") || "Nenhum"}</b> (${p.purged_materials_count})<br>` +
+        `Etiquetas purgadas: <b>${p.purged_tags.join(", ") || "Nenhum"}</b> (${p.purged_tags_count})`
+      );
+      setStatus(`Purge Unused concluído: ${p.total_items_purged} itens removidos.`);
+    }
+  } catch (err) {
+    setStatus(`Erro no Purge Unused: ${err.message}`, true);
+  }
+});
+
+// 25. Criar Componente com Comportamentos
+document.getElementById("btn-native-make-comp")?.addEventListener("click", async () => {
+  setStatus("Criando definição de componente com comportamentos oficiais...");
+  try {
+    const res = await makeComponentDefinition(
+      "Janela Pivotante 1.20x1.00m",
+      "Janela que corta abertura automática na parede e cola em plano vertical",
+      "VERTICAL",
+      true,
+      false,
+      false,
+      [0, 0, 0],
+      [[-0.6, 0.0], [0.6, 0.0], [0.6, 1.0], [-0.6, 1.0]]
+    );
+    if (res?.definition) {
+      const d = res.definition;
+      const b = d.behavior;
+      showNativeToolsResult(
+        "📦 Criar Componente (Make Component)",
+        `Definição: <b>"${d.definition_name}"</b><br>` +
+        `Colar em (Glue to): <b>${b.glue_to}</b> | Cortar Abertura: <b>${b.cut_opening ? "SIM (Automático)" : "NÃO"}</b><br>` +
+        `Sempre Encarar Câmera (Face-Me): <b>${b.always_face_camera ? "SIM" : "NÃO"}</b>`
+      );
+      setStatus(`Componente "${d.definition_name}" criado com sucesso.`);
+    }
+  } catch (err) {
+    setStatus(`Erro ao criar componente: ${err.message}`, true);
+  }
+});
+
+// 26. Seleção Avançada (Inverter / Triplo Clique)
+document.getElementById("btn-native-adv-selection")?.addEventListener("click", async () => {
+  setStatus("Executando seleção avançada (Inverter Seleção)...");
+  try {
+    const allIds = ["inst_1", "inst_2", "inst_3", "inst_4", "inst_5"];
+    const currentSelected = selectedInstanceId ? [selectedInstanceId] : ["inst_1", "inst_2"];
+    const res = await advancedSelectionExecute("invert", allIds, currentSelected);
+    if (res) {
+      showNativeToolsResult(
+        "🎯 Seleção Avançada (Invert Selection)",
+        `Operação: <b>Inverter Seleção (Ctrl+Shift+I)</b><br>` +
+        `Seleção anterior: [${currentSelected.join(", ")}]<br>` +
+        `Nova seleção ativa: <b>[${res.selected_ids.join(", ")}]</b> (Total: ${res.total_selected})`
+      );
+      setStatus(`Seleção invertida: ${res.total_selected} itens selecionados.`);
+    }
+  } catch (err) {
+    setStatus(`Erro na seleção avançada: ${err.message}`, true);
+  }
+});
+
+// 27. Geometria Oculta & Objetos Ocultos
+let showHiddenGeomActive = false;
+let showHiddenObjsActive = false;
+document.getElementById("btn-native-hidden-geom")?.addEventListener("click", async () => {
+  showHiddenGeomActive = !showHiddenGeomActive;
+  showHiddenObjsActive = !showHiddenObjsActive;
+  setStatus(`Alternando Geometria Oculta e Objetos Ocultos (${showHiddenGeomActive ? "VISÍVEIS" : "OCULTOS"})...`);
+  try {
+    const mockInsts = [{ id: "inst_1", is_hidden: true }, { id: "inst_2", is_hidden: false }];
+    const mockEdges = [{ id: "e1", is_smooth: true }, { id: "e2", is_smooth: false }];
+    const res = await hiddenGeometryConfigure(showHiddenGeomActive, showHiddenObjsActive, mockInsts, mockEdges);
+    if (res?.display_state) {
+      const ds = res.display_state;
+      showNativeToolsResult(
+        "👁️ Geometria Oculta & Objetos Ocultos",
+        `Geometria Oculta (Arestas tracejadas): <b>${ds.show_hidden_geometry ? "EXIBINDO" : "OCULTO"}</b><br>` +
+        `Objetos Ocultos (Malhas fantasma): <b>${ds.show_hidden_objects ? "EXIBINDO" : "OCULTO"}</b>`
+      );
+      setStatus("Exibição de geometria oculta atualizada.");
+    }
+  } catch (err) {
+    setStatus(`Erro na geometria oculta: ${err.message}`, true);
+  }
+});
+
+// 28. Estatísticas do Modelo (Model Info Statistics)
+document.getElementById("btn-native-model-stats")?.addEventListener("click", async () => {
+  setStatus("Calculando censo oficial de entidades e estatísticas do modelo...");
+  try {
+    const statsParams = {
+      edges_count: 1450,
+      faces_count: 820,
+      component_definitions_count: 14,
+      component_instances_count: 38,
+      groups_count: 5,
+      guide_lines_count: 6,
+      guide_points_count: 2,
+      section_planes_count: 2,
+      dimensions_count: 8,
+      texts_count: 4,
+      materials_count: 12,
+      tags_count: 6,
+      scenes_count: 3
+    };
+    const res = await modelStatisticsCalculate(statsParams);
+    if (res?.statistics) {
+      const s = res.statistics;
+      const c = s.census;
+      showNativeToolsResult(
+        "📈 Estatísticas do Modelo (Model Info)",
+        `Classificação de Complexidade: <b style="color: #2F855A;">${s.complexity_level}</b> (${s.performance_profile})<br>` +
+        `Geometria: <b>${c.edges} Arestas</b>, <b>${c.faces} Faces</b><br>` +
+        `Componentes: <b>${c.component_instances} Instâncias</b> (${c.component_definitions} Definições), <b>${c.groups} Grupos</b><br>` +
+        `Anotações: <b>${c.dimensions} Cotas</b>, <b>${c.texts} Textos</b>, <b>${c.guide_lines} Guias</b>, <b>${c.section_planes} Cortes</b>`
+      );
+      setStatus(`Estatísticas do modelo calculadas: Perfil ${s.complexity_level}.`);
+    }
+  } catch (err) {
+    setStatus(`Erro nas estatísticas: ${err.message}`, true);
   }
 });

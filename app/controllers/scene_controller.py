@@ -297,6 +297,20 @@ from app.schemas.scene import (
     ModelUnitsConfigResponse,
     ModelUnitsFormatRequest,
     ModelUnitsFormatResponse,
+    TexturePinTransformRequest,
+    TexturePinTransformResponse,
+    ColorByTagApplyRequest,
+    ColorByTagApplyResponse,
+    PurgeUnusedRequest,
+    PurgeUnusedResponse,
+    MakeComponentDefinitionRequest,
+    MakeComponentDefinitionResponse,
+    AdvancedSelectionRequest,
+    AdvancedSelectionResponse,
+    HiddenGeometryConfigRequest,
+    HiddenGeometryConfigResponse,
+    ModelStatisticsRequest,
+    ModelStatisticsResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2600,5 +2614,58 @@ class SceneController:
         try:
             res = await self._service.model_units_format(**body.model_dump())
             return ModelUnitsFormatResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 3): CONTROLLERS NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def texture_pin_transform(self, body: TexturePinTransformRequest) -> TexturePinTransformResponse:
+        try:
+            res = await self._service.texture_pin_transform(**body.model_dump())
+            return TexturePinTransformResponse(mapping=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def color_by_tag_apply(self, body: ColorByTagApplyRequest) -> ColorByTagApplyResponse:
+        try:
+            res = await self._service.color_by_tag_apply(**body.model_dump())
+            return ColorByTagApplyResponse(color_by_tag_result=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def purge_unused_items(self, body: PurgeUnusedRequest) -> PurgeUnusedResponse:
+        try:
+            res = await self._service.purge_unused_items(**body.model_dump())
+            return PurgeUnusedResponse(purge_result=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def make_component_definition(self, body: MakeComponentDefinitionRequest) -> MakeComponentDefinitionResponse:
+        try:
+            res = await self._service.make_component_definition(**body.model_dump())
+            return MakeComponentDefinitionResponse(definition=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def advanced_selection_execute(self, body: AdvancedSelectionRequest) -> AdvancedSelectionResponse:
+        try:
+            res = await self._service.advanced_selection_execute(**body.model_dump())
+            return AdvancedSelectionResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def hidden_geometry_configure(self, body: HiddenGeometryConfigRequest) -> HiddenGeometryConfigResponse:
+        try:
+            res = await self._service.hidden_geometry_configure(**body.model_dump())
+            return HiddenGeometryConfigResponse(display_state=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def model_statistics_calculate(self, body: ModelStatisticsRequest) -> ModelStatisticsResponse:
+        try:
+            res = await self._service.model_statistics_calculate(**body.model_dump())
+            return ModelStatisticsResponse(statistics=res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
