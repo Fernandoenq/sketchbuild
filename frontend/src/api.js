@@ -883,7 +883,7 @@ export function manageAttributeDictionary(dictName = "dynamic_attributes", key =
 }
 
 /** Cria e gerencia pastas de tags hierarquicas (Frente 62). */
-export function manageTagFolder(folderId, name, parentId = null, visible = True, tagsToAdd = []) {
+export function manageTagFolder(folderId, name, parentId = null, visible = true, tagsToAdd = []) {
   return postJson("/api/v1/scene/tags/folder", "POST", {
     folder_id: folderId,
     name: name,
@@ -917,5 +917,104 @@ export function projectTextureUv(vertices, projectionType = "planar", planeNorma
     scale_u_m: scaleUM,
     scale_v_m: scaleVM,
     rotation_deg: rotationDeg,
+  });
+}
+
+
+/** Solda arestas contiguas em curvas SUCurveRef (Frente 66). */
+export function weldCurveEdges(edges, tolerance = 0.0001) {
+  return postJson("/api/v1/scene/curves/weld", "POST", { edges, tolerance });
+}
+
+/** Cria arco analitico parametrico SUArcCurveRef (Frente 66). */
+export function createArcCurve(center, radius, normal = [0, 0, 1], startAngleRad = 0.0, endAngleRad = 6.283185, numSegments = 24) {
+  return postJson("/api/v1/scene/curves/arc", "POST", {
+    center,
+    radius,
+    normal,
+    start_angle_rad: startAngleRad,
+    end_angle_rad: endAngleRad,
+    num_segments: numSegments,
+  });
+}
+
+/** Cria ou configura plano de corte SUSectionPlaneRef (Frente 67). */
+export function createOrReverseSectionPlane(name = "Corte Transversal", symbol = "A", normal = [0, 0, -1], distance = 1.0, isActive = true) {
+  return postJson("/api/v1/scene/section-planes/create", "POST", {
+    name,
+    symbol,
+    normal,
+    distance,
+    is_active: isActive,
+  });
+}
+
+/** Fatia malha 3D gerando contornos e loops de corte transversal (Frente 67). */
+export function sliceGeometryByPlane(vertices, faces, planeEquation) {
+  return postJson("/api/v1/scene/section-planes/slice", "POST", {
+    vertices,
+    faces,
+    plane_equation: planeEquation,
+  });
+}
+
+/** Resolve shaders e propriedades PBR de estilos de faces (Frente 68). */
+export function resolveFaceRenderStyle(mode = "SHADED_WITH_TEXTURES", materialColor = null, texturePath = null, opacity = 1.0, isBackFace = false) {
+  return postJson("/api/v1/scene/styles/face-rendering", "POST", {
+    mode,
+    material_color: materialColor,
+    texture_path: texturePath,
+    opacity,
+    is_back_face: isBackFace,
+  });
+}
+
+/** Cria material de vidro fisico PBR (Frente 68). */
+export function createGlassPbrMaterial(name = "Vidro Arquitetônico Transparente", color = "#dff9fb", opacity = 0.3, refractionIndex = 1.52) {
+  return postJson("/api/v1/scene/materials/glass-pbr", "POST", {
+    name,
+    color,
+    opacity,
+    refraction_index: refractionIndex,
+  });
+}
+
+/** Cria definicao canonica de cena SUSceneRef (Frente 69). */
+export function createPresentationScene(name, eye, target, up = [0, 1, 0], fov = 35.0, isOrthographic = false, transitionTime = 1.5, delayTime = 1.0, includeInAnimation = true) {
+  return postJson("/api/v1/scene/scenes/create", "POST", {
+    name,
+    eye,
+    target,
+    up,
+    fov,
+    is_orthographic: isOrthographic,
+    transition_time: transitionTime,
+    delay_time: delayTime,
+    include_in_animation: includeInAnimation,
+  });
+}
+
+/** Gera timeline continua de transicao entre cenas (Frente 69). */
+export function generateSceneAnimationTimeline(scenes, fps = 30, loop = true) {
+  return postJson("/api/v1/scene/scenes/animate", "POST", { scenes, fps, loop });
+}
+
+/** Calcula parametros de iluminacao solar e sombreamento SUShadowInfoRef (Frente 70). */
+export function calculateShadowAndSunInfo(params = {}) {
+  return postJson("/api/v1/scene/shadows/heliodon", "POST", {
+    year: params.year ?? 2026,
+    month: params.month ?? 3,
+    day: params.day ?? 21,
+    hour: params.hour ?? 14,
+    minute: params.minute ?? 0,
+    latitude: params.latitude ?? -23.5505,
+    longitude: params.longitude ?? -46.6333,
+    tz_offset: params.tz_offset ?? -3.0,
+    north_angle: params.north_angle ?? 0.0,
+    light_intensity: params.light_intensity ?? 80,
+    dark_intensity: params.dark_intensity ?? 45,
+    display_shadows: params.display_shadows ?? true,
+    use_sun_for_shading: params.use_sun_for_shading ?? true,
+    edges_cast_shadows: params.edges_cast_shadows ?? false,
   });
 }

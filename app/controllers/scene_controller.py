@@ -78,6 +78,20 @@ from app.schemas.scene import (
     TwoPointPerspectiveResponse,
     TextureProjectionRequest,
     TextureProjectionResponse,
+    CurveWeldRequest,
+    CurveArcCreateRequest,
+    CurveResponse,
+    SectionPlaneCreateRequest,
+    SectionPlaneSliceRequest,
+    SUSectionPlaneResponse,
+    FaceStyleResolveRequest,
+    GlassMaterialRequest,
+    FaceStyleResponse,
+    SceneCreateRequest,
+    SceneAnimationTimelineRequest,
+    SceneAnimationResponse,
+    ShadowInfoRequest,
+    ShadowInfoResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1154,5 +1168,139 @@ class SceneController:
                 body.rotation_deg
             )
             return TextureProjectionResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+
+    async def weld_curve_edges(self, body: CurveWeldRequest) -> CurveResponse:
+        """Solda arestas contiguas em curvas SUCurveRef (Frente 66)."""
+        try:
+            res = await self._service.weld_curve_edges(body.edges, body.tolerance)
+            return CurveResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_arc_curve(self, body: CurveArcCreateRequest) -> CurveResponse:
+        """Cria arco analitico parametrico SUArcCurveRef (Frente 66)."""
+        try:
+            res = await self._service.create_arc_curve(
+                body.center,
+                body.radius,
+                body.normal,
+                body.start_angle_rad,
+                body.end_angle_rad,
+                body.num_segments
+            )
+            return CurveResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_or_reverse_section_plane(self, body: SectionPlaneCreateRequest) -> SUSectionPlaneResponse:
+        """Cria ou configura plano de corte SUSectionPlaneRef (Frente 67)."""
+        try:
+            res = await self._service.create_or_reverse_section_plane(
+                body.name,
+                body.symbol,
+                body.normal,
+                body.distance,
+                body.is_active
+            )
+            return SUSectionPlaneResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def slice_geometry_by_plane(self, body: SectionPlaneSliceRequest) -> SUSectionPlaneResponse:
+        """Fatia malha 3D gerando contornos e loops de corte transversal (Frente 67)."""
+        try:
+            res = await self._service.slice_geometry_by_plane(
+                body.vertices,
+                body.faces,
+                body.plane_equation
+            )
+            return SUSectionPlaneResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def resolve_face_render_style(self, body: FaceStyleResolveRequest) -> FaceStyleResponse:
+        """Resolve shaders e propriedades PBR de estilos de faces (Frente 68)."""
+        try:
+            res = await self._service.resolve_face_render_style(
+                body.mode,
+                body.material_color,
+                body.texture_path,
+                body.opacity,
+                body.is_back_face
+            )
+            return FaceStyleResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_glass_pbr_material(self, body: GlassMaterialRequest) -> FaceStyleResponse:
+        """Cria material de vidro fisico PBR (Frente 68)."""
+        try:
+            res = await self._service.create_glass_pbr_material(
+                body.name,
+                body.color,
+                body.opacity,
+                body.refraction_index
+            )
+            return FaceStyleResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_presentation_scene(self, body: SceneCreateRequest) -> SceneAnimationResponse:
+        """Cria definicao canonica de cena SUSceneRef (Frente 69)."""
+        try:
+            res = await self._service.create_presentation_scene(
+                body.name,
+                body.eye,
+                body.target,
+                body.up,
+                body.fov,
+                body.is_orthographic,
+                body.transition_time,
+                body.delay_time,
+                body.include_in_animation
+            )
+            return SceneAnimationResponse(
+                entity_type="SUSceneRef",
+                timeline=res,
+                status=res["status"]
+            )
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_scene_animation_timeline(self, body: SceneAnimationTimelineRequest) -> SceneAnimationResponse:
+        """Gera timeline continua de transicao entre cenas (Frente 69)."""
+        try:
+            res = await self._service.generate_scene_animation_timeline(
+                body.scenes,
+                body.fps,
+                body.loop
+            )
+            return SceneAnimationResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_shadow_and_sun_info(self, body: ShadowInfoRequest) -> ShadowInfoResponse:
+        """Calcula parametros de iluminacao solar e sombreamento SUShadowInfoRef (Frente 70)."""
+        try:
+            res = await self._service.calculate_shadow_and_sun_info(
+                body.year,
+                body.month,
+                body.day,
+                body.hour,
+                body.minute,
+                body.latitude,
+                body.longitude,
+                body.tz_offset,
+                body.north_angle,
+                body.light_intensity,
+                body.dark_intensity,
+                body.display_shadows,
+                body.use_sun_for_shading,
+                body.edges_cast_shadows
+            )
+            return ShadowInfoResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

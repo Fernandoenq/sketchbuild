@@ -1994,3 +1994,239 @@ class SkpEngineRepository:
             "uv_coordinates": uv_list,
             "status": f"MAPEAMENTO UV {projection_type.upper()} CALCULADO COM SUCESSO"
         }
+
+
+    def weld_curve_edges(self, edges: list, tolerance: float = 0.0001) -> dict:
+        """Solda arestas contíguas em polilinhas SUCurveRef (Frente 66)."""
+        from core.curve_engine import CurveEngine
+        formatted_edges = [((e[0][0], e[0][1], e[0][2]), (e[1][0], e[1][1], e[1][2])) for e in edges]
+        chains = CurveEngine.weld_edges(formatted_edges, tolerance=tolerance)
+        return {
+            "entity_type": "SUCurveEntity",
+            "curve_data": {
+                "type": "SUCurveRef",
+                "total_chains": len(chains),
+                "chains": [
+                    [[round(p[0], 4), round(p[1], 4), round(p[2], 4)] for p in chain]
+                    for chain in chains
+                ]
+            },
+            "status": f"{len(chains)} CURVA(S) SOLDADA(S) COM SUCESSO"
+        }
+
+    def create_arc_curve(
+        self,
+        center: list,
+        radius: float,
+        normal: list,
+        start_angle_rad: float = 0.0,
+        end_angle_rad: float = 6.283185,
+        num_segments: int = 24
+    ) -> dict:
+        """Cria arco analítico paramétrico SUArcCurveRef (Frente 66)."""
+        from core.curve_engine import CurveEngine
+        arc = CurveEngine.create_arc(
+            center=tuple(center),
+            radius=radius,
+            normal=tuple(normal),
+            start_angle_rad=start_angle_rad,
+            end_angle_rad=end_angle_rad,
+            num_segments=num_segments
+        )
+        return {
+            "entity_type": "SUCurveEntity",
+            "curve_data": arc,
+            "status": "ARCO ANALÍTICO CRIADO COM SUCESSO"
+        }
+
+    def create_or_reverse_section_plane(
+        self,
+        name: str = "Corte Transversal",
+        symbol: str = "A",
+        normal: list = None,
+        distance: float = 1.0,
+        is_active: bool = True,
+        reverse: bool = False
+    ) -> dict:
+        """Cria ou inverte plano de corte SUSectionPlaneRef (Frente 67)."""
+        from core.section_plane_engine import SectionPlaneEngine
+        norm = tuple(normal) if normal else (0.0, 0.0, -1.0)
+        plane = SectionPlaneEngine.create_plane(
+            name=name,
+            symbol=symbol,
+            normal=norm,
+            distance=distance,
+            is_active=is_active
+        )
+        if reverse:
+            plane = SectionPlaneEngine.reverse_plane(plane)
+        return {
+            "entity_type": "SUSectionPlane",
+            "plane_data": plane,
+            "status": "PLANO DE CORTE CONFIGURADO COM SUCESSO"
+        }
+
+    def slice_geometry_by_plane(
+        self,
+        vertices: list,
+        faces: list,
+        plane_equation: list
+    ) -> dict:
+        """Fatia malha 3D gerando contornos e loops de corte transversal (Frente 67)."""
+        from core.section_plane_engine import SectionPlaneEngine
+        verts = [tuple(v) for v in vertices]
+        res = SectionPlaneEngine.slice_mesh(
+            vertices=verts,
+            faces=faces,
+            plane_equation=tuple(plane_equation)
+        )
+        return {
+            "entity_type": "SUSectionPlane",
+            "plane_data": res,
+            "status": f"{res['total_cut_segments']} SEGMENTOS E {res['closed_loops_count']} LOOPS DE CORTE CALCULADOS"
+        }
+
+    def resolve_face_render_style(
+        self,
+        mode: str = "SHADED_WITH_TEXTURES",
+        material_color: str = None,
+        texture_path: str = None,
+        opacity: float = 1.0,
+        is_back_face: bool = False
+    ) -> dict:
+        """Resolve shaders e propriedades PBR de estilos de faces (Frente 68)."""
+        from core.face_styles_engine import FaceStylesEngine, FaceRenderMode
+        try:
+            enum_mode = FaceRenderMode(mode)
+        except ValueError:
+            enum_mode = FaceRenderMode.SHADED_WITH_TEXTURES
+
+        props = FaceStylesEngine.resolve_material_render_properties(
+            mode=enum_mode,
+            material_color=material_color,
+            texture_path=texture_path,
+            opacity=opacity,
+            is_back_face=is_back_face
+        )
+        return {
+            "entity_type": "FaceStyleShader",
+            "render_properties": props,
+            "status": f"ESTILO DE FACE {enum_mode.value} APLICADO"
+        }
+
+    def create_glass_pbr_material(
+        self,
+        name: str = "Vidro Arquitetônico Transparente",
+        color: str = "#dff9fb",
+        opacity: float = 0.3,
+        refraction_index: float = 1.52
+    ) -> dict:
+        """Cria material de vidro físico PBR (Frente 68)."""
+        from core.face_styles_engine import FaceStylesEngine
+        glass = FaceStylesEngine.create_glass_material(
+            name=name,
+            color=color,
+            opacity=opacity,
+            refraction_index=refraction_index
+        )
+        return {
+            "entity_type": "FaceStyleShader",
+            "render_properties": glass,
+            "status": "MATERIAL DE VIDRO PBR CRIADO COM SUCESSO"
+        }
+
+    def create_presentation_scene(
+        self,
+        name: str,
+        eye: list,
+        target: list,
+        up: list = None,
+        fov: float = 35.0,
+        is_orthographic: bool = False,
+        transition_time: float = 1.5,
+        delay_time: float = 1.0,
+        include_in_animation: bool = True
+    ) -> dict:
+        """Cria definição canônica de cena SUSceneRef (Frente 69)."""
+        from core.scenes_animation_engine import ScenesAnimationEngine
+        scene = ScenesAnimationEngine.create_scene(
+            name=name,
+            eye=eye,
+            target=target,
+            up=up or [0.0, 1.0, 0.0],
+            fov=fov,
+            is_orthographic=is_orthographic,
+            transition_time=transition_time,
+            delay_time=delay_time,
+            include_in_animation=include_in_animation
+        )
+        return {
+            "entity_type": "SUSceneRef",
+            "name": name,
+            "camera": scene["camera"],
+            "transition_time": scene["transition_time"],
+            "delay_time": scene["delay_time"],
+            "include_in_animation": scene["include_in_animation"],
+            "flags": scene["flags"],
+            "status": f"CENA '{name}' CRIADA COM SUCESSO"
+        }
+
+    def generate_scene_animation_timeline(
+        self,
+        scenes: list,
+        fps: int = 30,
+        loop: bool = True
+    ) -> dict:
+        """Gera timeline contínua de transição entre cenas (Frente 69)."""
+        from core.scenes_animation_engine import ScenesAnimationEngine
+        timeline = ScenesAnimationEngine.generate_animation_timeline(
+            scenes=scenes,
+            fps=fps,
+            loop=loop
+        )
+        return {
+            "entity_type": "ScenesAnimationTimeline",
+            "timeline": timeline,
+            "status": f"TIMELINE COM {timeline['total_frames']} FRAMES GERADA"
+        }
+
+    def calculate_shadow_and_sun_info(
+        self,
+        year: int = 2026,
+        month: int = 3,
+        day: int = 21,
+        hour: int = 14,
+        minute: int = 0,
+        latitude: float = -23.5505,
+        longitude: float = -46.6333,
+        tz_offset: float = -3.0,
+        north_angle: float = 0.0,
+        light_intensity: int = 80,
+        dark_intensity: int = 45,
+        display_shadows: bool = True,
+        use_sun_for_shading: bool = True,
+        edges_cast_shadows: bool = False
+    ) -> dict:
+        """Calcula parâmetros de iluminação solar e sombreamento SUShadowInfoRef (Frente 70)."""
+        from core.shadow_heliodon_engine import ShadowHeliodonEngine
+        info = ShadowHeliodonEngine.calculate_shadow_info(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            minute=minute,
+            latitude=latitude,
+            longitude=longitude,
+            tz_offset=tz_offset,
+            north_angle=north_angle,
+            light_intensity=light_intensity,
+            dark_intensity=dark_intensity,
+            display_shadows=display_shadows,
+            use_sun_for_shading=use_sun_for_shading,
+            edges_cast_shadows=edges_cast_shadows
+        )
+        return {
+            "entity_type": "SUShadowInfo",
+            "shadow_info": info,
+            "status": f"SOMBREAMENTO SOLAR HELIODON CALCULADO ({info['astronomy']['solar_altitude_deg']}° ALTITUDE)"
+        }

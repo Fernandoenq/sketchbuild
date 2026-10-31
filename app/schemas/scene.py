@@ -1899,3 +1899,153 @@ class TextureProjectionResponse(BaseModel):
     vertices_count: int
     uv_coordinates: list[list[float]]
     status: str
+
+
+# ==============================================================================
+# FRENTES 66 A 70 - ENGENHARIA REVERSA PURA DO SKETCHUP (CURVAS, CORTES, ESTILOS, CENAS E SOMBRAS)
+# ==============================================================================
+
+class CurveWeldRequest(BaseModel):
+    """Entrada para soldagem de arestas consecutivas em polilinha/curva SUCurveRef."""
+
+    edges: list[list[list[float]]] = Field(description="Lista de arestas [[[x0,y0,z0], [x1,y1,z1]], ...]")
+    tolerance: float = Field(default=0.0001, ge=1e-6, le=0.01)
+
+
+class CurveArcCreateRequest(BaseModel):
+    """Entrada para criação de arco analítico SUArcCurveRef."""
+
+    center: list[float] = Field(default=[0.0, 0.0, 0.0], description="Centro [x, y, z]")
+    radius: float = Field(default=1.0, ge=0.001, description="Raio do arco")
+    normal: list[float] = Field(default=[0.0, 0.0, 1.0], description="Normal unitária")
+    start_angle_rad: float = Field(default=0.0, description="Ângulo inicial em radianos")
+    end_angle_rad: float = Field(default=6.283185, description="Ângulo final em radianos")
+    num_segments: int = Field(default=24, ge=3, le=360, description="Segmentação do arco")
+
+
+class CurveResponse(BaseModel):
+    """Resposta com curvas soldadas ou metadados de arco analítico."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SUCurveEntity"
+    curve_data: dict[str, Any]
+    status: str
+
+
+class SectionPlaneCreateRequest(BaseModel):
+    """Entrada para criação/inversão de plano de corte SUSectionPlaneRef."""
+
+    name: str = Field(default="Corte Transversal", description="Nome do corte")
+    symbol: str = Field(default="A", max_length=5, description="Símbolo ou letra indicativa")
+    normal: list[float] = Field(default=[0.0, 0.0, -1.0], description="Normal do plano (A, B, C)")
+    distance: float = Field(default=1.0, description="Distância D do plano")
+    is_active: bool = Field(default=True, description="Se o corte está ativo")
+
+
+class SectionPlaneSliceRequest(BaseModel):
+    """Entrada para fatiamento de geometria 3D por plano de corte."""
+
+    vertices: list[list[float]] = Field(description="Vértices da malha [[x,y,z], ...]")
+    faces: list[list[int]] = Field(description="Polígonos/triângulos indexados")
+    plane_equation: list[float] = Field(description="Equação do plano [A, B, C, D]")
+
+
+class SUSectionPlaneResponse(BaseModel):
+    """Resposta de operações com planos de corte analíticos (Frente 67)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SUSectionPlane"
+    plane_data: dict[str, Any]
+    status: str
+
+
+class FaceStyleResolveRequest(BaseModel):
+    """Entrada para resolução de propriedades visuais por estilo de face."""
+
+    mode: str = Field(default="SHADED_WITH_TEXTURES", description="Modo: WIRE_FRAME, HIDDEN_LINE, SHADED, SHADED_WITH_TEXTURES, MONOCHROME, XRAY")
+    material_color: str | None = Field(default=None, description="Cor hexadecimal #RRGGBB")
+    texture_path: str | None = Field(default=None, description="URL ou path de textura difusa")
+    opacity: float = Field(default=1.0, ge=0.0, le=1.0)
+    is_back_face: bool = Field(default=False, description="True se for a face posterior (verso)")
+
+
+class GlassMaterialRequest(BaseModel):
+    """Entrada para geração de material translúcido estilo vidro arquitetônico."""
+
+    name: str = Field(default="Vidro Arquitetônico Transparente")
+    color: str = Field(default="#dff9fb")
+    opacity: float = Field(default=0.3, ge=0.05, le=0.95)
+    refraction_index: float = Field(default=1.52, ge=1.0, le=2.5)
+
+
+class FaceStyleResponse(BaseModel):
+    """Resposta com shaders e propriedades PBR de renderização."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "FaceStyleShader"
+    render_properties: dict[str, Any]
+    status: str
+
+
+class SceneCreateRequest(BaseModel):
+    """Entrada para criação de cena/página de apresentação SUSceneRef."""
+
+    name: str = Field(description="Nome da cena")
+    eye: list[float] = Field(description="Posição da câmera [x, y, z]")
+    target: list[float] = Field(description="Ponto focal observado [x, y, z]")
+    up: list[float] = Field(default=[0.0, 1.0, 0.0])
+    fov: float = Field(default=35.0, ge=5.0, le=90.0)
+    is_orthographic: bool = Field(default=False)
+    transition_time: float = Field(default=1.5, ge=0.0, le=30.0)
+    delay_time: float = Field(default=1.0, ge=0.0, le=30.0)
+    include_in_animation: bool = Field(default=True)
+
+
+class SceneAnimationTimelineRequest(BaseModel):
+    """Entrada para interpolação contínua de timeline entre cenas."""
+
+    scenes: list[dict[str, Any]] = Field(description="Lista de cenas SUSceneRef")
+    fps: int = Field(default=30, ge=10, le=60)
+    loop: bool = Field(default=True)
+
+
+class SceneAnimationResponse(BaseModel):
+    """Resposta com keyframes e timeline interpolada de animação de câmera."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "ScenesAnimationTimeline"
+    timeline: dict[str, Any]
+    status: str
+
+
+class ShadowInfoRequest(BaseModel):
+    """Entrada para cálculo astronômico de vetor solar SUShadowInfoRef."""
+
+    year: int = Field(default=2026, ge=1900, le=2100)
+    month: int = Field(default=3, ge=1, le=12)
+    day: int = Field(default=21, ge=1, le=31)
+    hour: int = Field(default=14, ge=0, le=23)
+    minute: int = Field(default=0, ge=0, le=59)
+    latitude: float = Field(default=-23.5505, ge=-90.0, le=90.0)
+    longitude: float = Field(default=-46.6333, ge=-180.0, le=180.0)
+    tz_offset: float = Field(default=-3.0, ge=-12.0, le=14.0)
+    north_angle: float = Field(default=0.0, ge=-360.0, le=360.0)
+    light_intensity: int = Field(default=80, ge=0, le=100)
+    dark_intensity: int = Field(default=45, ge=0, le=100)
+    display_shadows: bool = Field(default=True)
+    use_sun_for_shading: bool = Field(default=True)
+    edges_cast_shadows: bool = Field(default=False)
+
+
+class ShadowInfoResponse(BaseModel):
+    """Resposta com vetor solar e iluminação para Three.js."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SUShadowInfo"
+    shadow_info: dict[str, Any]
+    status: str
