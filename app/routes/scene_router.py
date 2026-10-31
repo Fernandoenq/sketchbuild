@@ -49,6 +49,16 @@ from app.schemas.scene import (
     AngleDimensionResponse,
     FastenerTorqueRequest,
     FastenerTorqueResponse,
+    HipRoofRequest,
+    HipRoofResponse,
+    HicRequest,
+    HicResponse,
+    ZebraLabelRequest,
+    ZebraLabelResponse,
+    ExplodedTrailsRequest,
+    ExplodedTrailsResponse,
+    CarbonFootprintRequest,
+    CarbonFootprintResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1098,3 +1108,63 @@ async def calculate_fastener_torque(
     controller: SceneController = Depends(get_controller),
 ) -> FastenerTorqueResponse:
     return await controller.calculate_fastener_torque(body)
+
+
+@router.post(
+    "/geometry/hip-roof",
+    response_model=HipRoofResponse,
+    summary="Gera geometria 3D de telhado de 4 aguas ou piramidal (Frente 56)",
+)
+async def generate_hip_roof(
+    body: HipRoofRequest,
+    controller: SceneController = Depends(get_controller),
+) -> HipRoofResponse:
+    return await controller.generate_hip_roof(body)
+
+
+@router.post(
+    "/engineering/hic-impact",
+    response_model=HicResponse,
+    summary="Simula impacto HIC e piso amortecedor NBR 16071-3 (Frente 57)",
+)
+async def simulate_hic_impact(
+    body: HicRequest,
+    controller: SceneController = Depends(get_controller),
+) -> HicResponse:
+    return await controller.simulate_hic_impact(body)
+
+
+@router.post(
+    "/export/zebra-label",
+    response_model=ZebraLabelResponse,
+    summary="Exporta etiqueta termica industrial Zebra ZPL II e SVG (Frente 58)",
+)
+async def export_zebra_label(
+    body: ZebraLabelRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ZebraLabelResponse:
+    return await controller.export_zebra_label(body)
+
+
+@router.post(
+    "/geometry/exploded-trails",
+    response_model=ExplodedTrailsResponse,
+    summary="Calcula linhas tracejadas de trajetoria para vista explodida (Frente 59)",
+)
+async def calculate_exploded_trails(
+    body: ExplodedTrailsRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ExplodedTrailsResponse:
+    return await controller.calculate_exploded_trails(body)
+
+
+@router.post(
+    "/engineering/carbon-footprint",
+    response_model=CarbonFootprintResponse,
+    summary="Calcula balanco de carbono e sustentabilidade florestal (Frente 60)",
+)
+async def calculate_carbon_footprint(
+    body: CarbonFootprintRequest,
+    controller: SceneController = Depends(get_controller),
+) -> CarbonFootprintResponse:
+    return await controller.calculate_carbon_footprint(body)

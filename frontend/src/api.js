@@ -817,3 +817,55 @@ export function calculateFastenerTorque(timberThicknessMm = 160.0, steelPlateThi
     friction_factor_k: 0.18,
   });
 }
+
+
+/** Gera geometria 3D de telhado de 4 aguas ou piramidal (Frente 56). */
+export function generateHipRoof(baseWidthM = 2.40, baseLengthM = 3.20, baseHeightM = 2.80, pitchDeg = 30.0, overhangM = 0.35) {
+  return postJson("/api/v1/scene/geometry/hip-roof", "POST", {
+    base_width_m: baseWidthM,
+    base_length_m: baseLengthM,
+    base_height_m: baseHeightM,
+    pitch_deg: pitchDeg,
+    overhang_m: overhangM,
+  });
+}
+
+/** Simula impacto HIC e piso amortecedor NBR 16071-3 (Frente 57). */
+export function simulateHicImpact(fallHeightM = 1.80, surfaceType = "areia_lavada", installedThicknessMm = 300.0) {
+  return postJson("/api/v1/scene/engineering/hic-impact", "POST", {
+    fall_height_m: fallHeightM,
+    surface_type: surfaceType,
+    installed_thickness_mm: installedThicknessMm,
+  });
+}
+
+/** Exporta etiqueta termica industrial Zebra ZPL II e SVG (Frente 58). */
+export function exportZebraLabel(partName = "Pilar Eucalipto", partSku = "PKL-EUC-16-220", dimensionsMm = "D160 x L2200 mm", lotBatch = "LOTE-2026-X84") {
+  return postJson("/api/v1/scene/export/zebra-label", "POST", {
+    part_name: partName,
+    part_sku: partSku,
+    dimensions_mm: dimensionsMm,
+    lot_batch: lotBatch,
+    output_zpl_filename: "etiqueta_zebra.zpl",
+    output_svg_filename: "etiqueta_zebra.svg",
+  });
+}
+
+/** Calcula linhas tracejadas de trajetoria para vista explodida (Frente 59). */
+export function calculateExplodedTrails(parts, dashSizeM = 0.05, gapSizeM = 0.03) {
+  return postJson("/api/v1/scene/geometry/exploded-trails", "POST", {
+    parts: parts,
+    dash_size_m: dashSizeM,
+    gap_size_m: gapSizeM,
+  });
+}
+
+/** Calcula balanco de carbono e sustentabilidade florestal (Frente 60). */
+export function calculateCarbonFootprint(timberVolumeM3 = 2.80, steelWeightKg = 95.0, plasticWeightKg = 45.0, transportDistanceKm = 350.0) {
+  return postJson("/api/v1/scene/engineering/carbon-footprint", "POST", {
+    timber_volume_m3: timberVolumeM3,
+    steel_weight_kg: steelWeightKg,
+    plastic_weight_kg: plasticWeightKg,
+    transport_distance_km: transportDistanceKm,
+  });
+}

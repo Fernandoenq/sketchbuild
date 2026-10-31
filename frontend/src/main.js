@@ -81,6 +81,11 @@ import {
   exportFieldInspectionHtml,
   calculateAngleDimension,
   calculateFastenerTorque,
+  generateHipRoof,
+  simulateHicImpact,
+  exportZebraLabel,
+  calculateExplodedTrails,
+  calculateCarbonFootprint,
   ApiError,
 } from "./api.js";
 import {
@@ -2058,6 +2063,8 @@ const MENU_ACTIONS = {
   "export-art-pdf": () => handleExportArtPdf(),
   "export-technical-sketch": () => handleExportTechnicalSketch(),
   "draw-spiral-tube": () => handleDrawSpiralTube(),
+  "draw-hip-roof": () => handleDrawHipRoof(),
+  "export-zebra-label": () => handleExportZebraLabel(),
   "export-inspection-checklist": () => handleExportInspectionChecklist(),
   "tool-mirror": () => handleMirrorTool(),
   "draw-terrain": () => handleDrawTerrain(),
@@ -3523,3 +3530,72 @@ async function handleFastenerTorque() {
 // Listeners adicionais
 document.getElementById("btn-calc-overturn")?.addEventListener("click", handleOverturnStability);
 document.getElementById("btn-calc-fasteners")?.addEventListener("click", handleFastenerTorque);
+
+
+// --- Frente 56: Modelagem de Telhado 4 Águas / Quiosque ---
+async function handleDrawHipRoof() {
+  setStatus("Gerando geometria 3D de telhado de 4 águas para quiosque...");
+  try {
+    const res = await generateHipRoof(2.40, 3.20, 2.80, 30.0, 0.35);
+    setStatus(`Telhado ${res.roof_type} gerado: Área ${res.sloped_roof_area_m2}m², Cumeeira ${res.ridge_length_m}m (Ápice a ${res.apex_height_m}m).`);
+  } catch (err) {
+    setStatus(`Erro ao gerar telhado: ${err.message}`, true);
+  }
+}
+
+// --- Frente 57: Simulação de Impacto HIC NBR 16071-3 ---
+async function handleHicSimulation() {
+  setStatus("Simulando desaceleração HIC e piso amortecedor NBR 16071-3...");
+  try {
+    const res = await simulateHicImpact(1.80, "areia_lavada", 300.0);
+    const badge = document.getElementById("hic-status-badge");
+    const details = document.getElementById("hic-details");
+    const box = document.getElementById("hic-result");
+    if (badge && details && box) {
+      box.style.display = "block";
+      badge.textContent = `${res.safety_verdict} | HIC: ${res.hic_score}`;
+      details.innerHTML = `• <strong>Superfície:</strong> ${res.surface_name} (${res.installed_thickness_mm} mm instalados)<br/>` +
+        `• <strong>Pico de Desaceleração:</strong> ${res.peak_deceleration_g} g (Limite: 200g)<br/>` +
+        `• <strong>HIC Score:</strong> ${res.hic_score} (Limite: 1000) | V_impacto: ${res.impact_velocity_m_s} m/s`;
+    }
+    setStatus(`Simulação HIC concluída: ${res.safety_verdict} (HIC=${res.hic_score}).`);
+  } catch (err) {
+    setStatus(`Erro na simulação HIC: ${err.message}`, true);
+  }
+}
+
+// --- Frente 58: Exportação de Etiqueta Térmica Zebra ZPL ---
+async function handleExportZebraLabel() {
+  setStatus("Gerando código ZPL II e preview SVG de etiqueta térmica Zebra...");
+  try {
+    const res = await exportZebraLabel("Pilar Eucalipto Citriodora", "PKL-EUC-16-220", "D160 x L2200 mm", "LOTE-2026-X84");
+    setStatus(`Etiqueta Zebra exportada com sucesso: ${res.zpl_file_path} (${res.zpl_size_bytes} bytes).`);
+  } catch (err) {
+    setStatus(`Erro ao exportar etiqueta Zebra: ${err.message}`, true);
+  }
+}
+
+// --- Frente 60: Balanço de Carbono e Selo Verde ---
+async function handleCarbonFootprint() {
+  setStatus("Calculando balanço de carbono florestal e emissões de fabricação...");
+  try {
+    const res = await calculateCarbonFootprint(2.80, 95.0, 45.0, 350.0);
+    const badge = document.getElementById("carbon-status-badge");
+    const details = document.getElementById("carbon-details");
+    const box = document.getElementById("carbon-result");
+    if (badge && details && box) {
+      box.style.display = "block";
+      badge.textContent = `${res.sustainability_badge} | Saldo Líquido: ${res.net_carbon_balance_kg} kg CO2e`;
+      details.innerHTML = `• <strong>Sequestrado pela Madeira:</strong> +${res.co2_sequestered_kg} kg CO2e (${res.timber_volume_m3} m³ eucalipto)<br/>` +
+        `• <strong>Emissões (Aço + PEAD + Frete):</strong> -${res.total_emissions_kg} kg CO2e<br/>` +
+        `• <strong>Equivalência Ecológica:</strong> ${res.equivalent_trees_planted_years} árvores preservadas por 1 ano`;
+    }
+    setStatus(`Balanço de Carbono: ${res.status}.`);
+  } catch (err) {
+    setStatus(`Erro ao calcular pegada de carbono: ${err.message}`, true);
+  }
+}
+
+// Listeners adicionais
+document.getElementById("btn-calc-hic")?.addEventListener("click", handleHicSimulation);
+document.getElementById("btn-calc-carbon")?.addEventListener("click", handleCarbonFootprint);

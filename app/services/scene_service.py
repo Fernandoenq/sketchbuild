@@ -724,3 +724,85 @@ class SceneService:
             material_grade,
             friction_factor_k
         )
+
+    async def generate_hip_roof(
+        self,
+        base_width_m: float = 2.40,
+        base_length_m: float = 3.20,
+        base_height_m: float = 2.80,
+        pitch_deg: float = 30.0,
+        overhang_m: float = 0.35
+    ) -> dict:
+        """Gera geometria 3D de telhado de 4 águas ou piramidal (Frente 56)."""
+        return await run_in_threadpool(
+            self._repository.generate_hip_roof,
+            base_width_m,
+            base_length_m,
+            base_height_m,
+            pitch_deg,
+            overhang_m
+        )
+
+    async def simulate_hic_impact(
+        self,
+        fall_height_m: float = 1.80,
+        surface_type: str = "areia_lavada",
+        installed_thickness_mm: float = 300.0
+    ) -> dict:
+        """Simula impacto HIC e piso amortecedor NBR 16071-3 (Frente 57)."""
+        return await run_in_threadpool(
+            self._repository.simulate_hic_impact,
+            fall_height_m,
+            surface_type,
+            installed_thickness_mm
+        )
+
+    async def export_zebra_label(
+        self,
+        part_name: str,
+        part_sku: str,
+        dimensions_mm: str,
+        lot_batch: str,
+        output_zpl_filename: str = "etiqueta_zebra.zpl",
+        output_svg_filename: str = "etiqueta_zebra.svg"
+    ) -> dict:
+        """Exporta etiqueta térmica industrial Zebra ZPL II e SVG (Frente 58)."""
+        return await run_in_threadpool(
+            self._repository.export_zebra_label,
+            part_name,
+            part_sku,
+            dimensions_mm,
+            lot_batch,
+            output_zpl_filename,
+            output_svg_filename
+        )
+
+    async def calculate_exploded_trails(
+        self,
+        parts: list,
+        dash_size_m: float = 0.05,
+        gap_size_m: float = 0.03
+    ) -> dict:
+        """Calcula linhas tracejadas de trajetória para vista explodida (Frente 59)."""
+        return await run_in_threadpool(
+            self._repository.calculate_exploded_trails,
+            parts,
+            dash_size_m,
+            gap_size_m
+        )
+
+    async def calculate_carbon_footprint(
+        self,
+        timber_volume_m3: float = 2.80,
+        steel_weight_kg: float = 95.0,
+        plastic_weight_kg: float = 45.0,
+        transport_distance_km: float = 350.0
+    ) -> dict:
+        """Calcula balanço de carbono e sustentabilidade florestal (Frente 60)."""
+        return await run_in_threadpool(
+            self._repository.calculate_carbon_footprint,
+            timber_volume_m3,
+            steel_weight_kg,
+            plastic_weight_kg,
+            transport_distance_km
+        )

@@ -1229,3 +1229,67 @@ A Frente 55 fecha a especificação de montagem física de estruturas de madeira
 - Determinação do torque normativo de montagem: $T = K \cdot D \cdot F_p$ (em $	ext{N}\cdot	ext{m}$ e $	ext{kgf}\cdot	ext{m}$), garantindo aperto seguro contra vibrações de uso sem rachar ou danificar as peças de madeira tratada.
 - **Módulo:** `core/fastener_torque_optimizer.py` (`FastenerTorqueOptimizer`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/engineering/fastener-torque`.
+
+
+---
+
+## 83. Frente 56: Gerador de Telhados de Quatro Águas e Piramidais (Zero DLL)
+
+A Frente 56 introduz a modelagem analítica paramétrica de coberturas para quiosques, mirantes e torres de playgrounds.
+
+### A. Geometria de Cobertura e Rincões
+- Determinação do ápice e cumeeira (*ridge*) em função do comprimento $L$, largura $W$ e inclinação $lpha$:
+  $$H_{	ext{ridge}} = \left(rac{W + 2E}{2}ight) \cdot 	anlpha, \quad L_{	ext{ridge}} = \max(0, L - W)$$
+- Geração de faces B-Rep com fechamento inferior do forro, cálculo dos comprimentos de espigões/caibros de rincão e da área real inclinada de telhas ($A_{	ext{inclinada}} = rac{A_{	ext{projetada}}}{\coslpha}$).
+- **Módulo:** `core/hip_roof_generator.py` (`HipRoofGenerator`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/hip-roof`.
+
+---
+
+## 84. Frente 57: Simulador de Impacto e Altura Crítica de Queda HIC (NBR 16071-3 / EN 1177 - Zero DLL)
+
+A Frente 57 implementa o ensaio biomecânico e normativo de segurança contra lesões cerebrais infantis decorrentes de queda livre.
+
+### A. Critério HIC e Desaceleração
+- Formulação integral do *Head Injury Criterion*:
+  $$HIC = \max \left[ (t_2 - t_1) \cdot \left(rac{1}{t_2 - t_1}\int_{t_1}^{t_2} a(t)dtight)^{2.5} ight] \le 1000, \quad a_{\max} \le 200g$$
+- Dimensionamento de camadas atenuantes (Areia lavada descompactada, Cavaco de eucalipto, Piso EPDM moldado e Grama) com cálculo da Altura Crítica de Queda ($CFH$) e curva simulada $a(t)$ nos 30ms de impacto.
+- **Módulo:** `core/hic_simulator.py` (`HicSimulator`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/engineering/hic-impact`.
+
+---
+
+## 85. Frente 58: Exportador de Etiquetas Térmicas Zebra ZPL II Industriais (Zero DLL)
+
+A Frente 58 automatiza a expedição e o controle de produção na fábrica da Parkelô com geração direta de comandos térmicos.
+
+### A. Comandos ZPL II e Rastreabilidade Fabril
+- Código nativo `^XA ... ^XZ` formatado para impressoras térmicas industriais de 203 DPI (8 dots/mm) no formato $100 	imes 50	ext{ mm}$.
+- Inclusão de código de barras linear Code 128 (`^BC`), QR Code analítico de rastreabilidade (`^BQ`), dimensões de usinagem, lote de tratamento autoclave (CCA) e preview gráfico em SVG.
+- **Módulo:** `core/zebra_label_exporter.py` (`ZebraLabelExporter`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/export/zebra-label`.
+
+---
+
+## 86. Frente 59: Ferramenta de Linhas de Trajetória para Vista Explodida (Zero DLL)
+
+A Frente 59 enriquece os diagramas de montagem com linhas-guia cinemáticas tracejadas conectando a montagem real à vista explodida.
+
+### A. Traçado Discretizado de Explosão (*Exploded Trails*)
+- Conexão analítica entre o ponto de ancoragem montado $[x_0, y_0, z_0]$ e a posição deslocada $[x_e, y_e, z_e]$.
+- Discretização em segmentos tracejados parametrizados para `LineDashedMaterial` do Three.js e elementos `<line stroke-dasharray>` de pranchas técnicas SVG.
+- **Módulo:** `core/exploded_view_trail_tool.py` (`ExplodedViewTrailTool`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/exploded-trails`.
+
+---
+
+## 87. Frente 60: Calculador de Pegada de Carbono e Sustentabilidade de Madeira (Zero DLL)
+
+A Frente 60 quantifica os benefícios ecológicos do uso de madeira de reflorestamento em playgrounds e estruturas urbanas.
+
+### A. Inventário de Ciclo de Vida e Créditos de Carbono
+- Fator de Sequestro da Madeira: $1	ext{ m}^3$ de eucalipto seco absorve $pprox 950	ext{ kg } CO_2e$.
+- Fatores de Emissão embutida: Aço galvanizado ($2.10	ext{ kg } CO_2e/	ext{kg}$), PEAD ($1.95	ext{ kg } CO_2e/	ext{kg}$) e transporte rodoviário a diesel ($0.12	ext{ kg } CO_2e/	ext{ton}\cdot	ext{km}$).
+- Determinação do Saldo Líquido de Carbono (*Net Carbon Balance*), demonstrando que o playground é um produto **Carbono Negativo (Clima-Positivo)** que retém toneladas de carbono da atmosfera.
+- **Módulo:** `core/carbon_footprint_calculator.py` (`CarbonFootprintCalculator`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/engineering/carbon-footprint`.

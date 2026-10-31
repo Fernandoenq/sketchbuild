@@ -1636,3 +1636,144 @@ class FastenerTorqueResponse(BaseModel):
     recommended_torque_n_m: float
     recommended_torque_kgf_m: float
     safe_clamping_status: str
+
+
+class HipRoofRequest(BaseModel):
+    """Entrada para geração de telhado de quatro águas ou piramidal."""
+
+    base_width_m: float = Field(default=2.40, ge=0.5, le=20.0, description="Largura da base da torre em metros")
+    base_length_m: float = Field(default=3.20, ge=0.5, le=30.0, description="Comprimento da base da torre em metros")
+    base_height_m: float = Field(default=2.80, ge=0.5, le=10.0, description="Altura do beiral ao solo em metros")
+    pitch_deg: float = Field(default=30.0, ge=10.0, le=60.0, description="Inclinação das águas do telhado em graus")
+    overhang_m: float = Field(default=0.35, ge=0.0, le=1.5, description="Projeção do beiral em metros")
+
+
+class HipRoofResponse(BaseModel):
+    """Resposta com geometria e quantitativo do telhado de quatro águas."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "HipRoofGeometry"
+    base_width_m: float
+    base_length_m: float
+    base_height_m: float
+    pitch_deg: float
+    overhang_m: float
+    apex_height_m: float
+    ridge_length_m: float
+    sloped_roof_area_m2: float
+    hip_rafter_length_m: float
+    vertices_count: int
+    faces_count: int
+    vertices: list[list[float]]
+    faces: list[list[int]]
+    roof_type: str
+
+
+class HicRequest(BaseModel):
+    """Entrada para simulação de impacto HIC e piso amortecedor NBR 16071-3."""
+
+    fall_height_m: float = Field(default=1.80, ge=0.3, le=5.0, description="Altura de queda livre em metros")
+    surface_type: str = Field(default="areia_lavada", description="'areia_lavada', 'casca_madeira', 'borracha_epdm' ou 'grama_natural'")
+    installed_thickness_mm: float = Field(default=300.0, ge=0.0, le=600.0, description="Espessura instalada do piso amortecedor em mm")
+
+
+class HicResponse(BaseModel):
+    """Resposta da simulação de desaceleração de impacto HIC."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "HicImpactAnalysis"
+    surface_name: str
+    surface_type: str
+    fall_height_m: float
+    installed_thickness_mm: float
+    recommended_thickness_mm: float
+    impact_velocity_m_s: float
+    impact_duration_ms: float
+    peak_deceleration_g: float
+    hic_score: float
+    critical_fall_height_m: float
+    hic_limit: float
+    peak_g_limit: float
+    is_compliant: bool
+    curve_points_count: int
+    curve_points: list[dict[str, Any]]
+    safety_verdict: str
+
+
+class ZebraLabelRequest(BaseModel):
+    """Entrada para emissão de etiqueta térmica Zebra ZPL II industrial."""
+
+    part_name: str = Field(default="Pilar Eucalipto Citriodora", description="Nome da peça usinada")
+    part_sku: str = Field(default="PKL-EUC-16-220", description="SKU / Código de rastreio da peça")
+    dimensions_mm: str = Field(default="D160 x L2200 mm", description="Dimensões métricas em milímetros")
+    lot_batch: str = Field(default="LOTE-2026-X84", description="Número do lote de autoclave")
+    output_zpl_filename: str = Field(default="etiqueta_zebra.zpl", description="Nome do arquivo ZPL")
+    output_svg_filename: str = Field(default="etiqueta_zebra.svg", description="Nome do arquivo SVG de preview")
+
+
+class ZebraLabelResponse(BaseModel):
+    """Resposta da emissão da etiqueta industrial Zebra."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "ZebraThermalLabel"
+    zpl_file_path: str
+    svg_file_path: str
+    zpl_size_bytes: int
+    part_sku: str
+    part_name: str
+    label_dimensions: str
+
+
+class ExplodedTrailsRequest(BaseModel):
+    """Entrada para cálculo de linhas de trajetória de vista explodida."""
+
+    parts: list[dict[str, Any]] = Field(description="Lista de peças [{'id': str, 'name': str, 'original_pos': [x,y,z], 'exploded_pos': [x,y,z]}]")
+    dash_size_m: float = Field(default=0.05, ge=0.01, le=0.5, description="Comprimento do traço da linha em metros")
+    gap_size_m: float = Field(default=0.03, ge=0.01, le=0.5, description="Espaçamento do traço em metros")
+
+
+class ExplodedTrailsResponse(BaseModel):
+    """Resposta com as linhas de chamada tracejadas de montagem."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "ExplodedViewTrails"
+    parts_with_trails_count: int
+    total_trail_length_m: float
+    dash_size_m: float
+    gap_size_m: float
+    trails: list[dict[str, Any]]
+
+
+class CarbonFootprintRequest(BaseModel):
+    """Entrada para cálculo de balanço de carbono e sustentabilidade."""
+
+    timber_volume_m3: float = Field(default=2.80, ge=0.1, le=50.0, description="Volume total de madeira tratada em m³")
+    steel_weight_kg: float = Field(default=95.0, ge=0.0, le=5000.0, description="Peso de ferragens de aço em kg")
+    plastic_weight_kg: float = Field(default=45.0, ge=0.0, le=2000.0, description="Peso de peças plásticas PEAD em kg")
+    transport_distance_km: float = Field(default=350.0, ge=0.0, le=5000.0, description="Distância de frete da fábrica ao local em km")
+
+
+class CarbonFootprintResponse(BaseModel):
+    """Resposta com o inventário e selo de carbono da estrutura."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "CarbonFootprintAnalysis"
+    timber_volume_m3: float
+    co2_sequestered_kg: float
+    steel_weight_kg: float
+    co2_steel_emissions_kg: float
+    plastic_weight_kg: float
+    co2_plastic_emissions_kg: float
+    transport_distance_km: float
+    co2_transport_emissions_kg: float
+    total_emissions_kg: float
+    net_carbon_balance_kg: float
+    is_carbon_negative: bool
+    equivalent_trees_planted_years: float
+    sustainability_badge: str
+    status: str
