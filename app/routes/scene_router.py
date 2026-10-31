@@ -29,6 +29,16 @@ from app.schemas.scene import (
     MirrorResponse,
     QrTagExportRequest,
     QrTagExportResponse,
+    SwingKinematicsRequest,
+    SwingKinematicsResponse,
+    ArtReportRequest,
+    ArtReportResponse,
+    WallThicknessRequest,
+    WallThicknessResponse,
+    CargoLoadRequest,
+    CargoLoadResponse,
+    TechnicalSketchRequest,
+    TechnicalSketchResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -958,3 +968,63 @@ async def export_qr_tag_svg(
     controller: SceneController = Depends(get_controller),
 ) -> QrTagExportResponse:
     return await controller.export_qr_tag_svg(body)
+
+
+@router.post(
+    "/engineering/swing-kinematics",
+    response_model=SwingKinematicsResponse,
+    summary="Simula cinematica e envelope de impacto de balanco NBR 16071 (Frente 46)",
+)
+async def simulate_swing_kinematics(
+    body: SwingKinematicsRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SwingKinematicsResponse:
+    return await controller.simulate_swing_kinematics(body)
+
+
+@router.post(
+    "/export/art-report-pdf",
+    response_model=ArtReportResponse,
+    summary="Gera minuta executiva de ART / RRT em PDF vetorial (Frente 47)",
+)
+async def generate_art_pdf(
+    body: ArtReportRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ArtReportResponse:
+    return await controller.generate_art_pdf(body)
+
+
+@router.post(
+    "/engineering/wall-thickness",
+    response_model=WallThicknessResponse,
+    summary="Inspeciona espessura de paredes de pecas rotomoldadas (Frente 48)",
+)
+async def inspect_wall_thickness(
+    body: WallThicknessRequest,
+    controller: SceneController = Depends(get_controller),
+) -> WallThicknessResponse:
+    return await controller.inspect_wall_thickness(body)
+
+
+@router.post(
+    "/factory/cargo-load",
+    response_model=CargoLoadResponse,
+    summary="Otimiza cubagem e carregamento de carga 3D no transporte (Frente 49)",
+)
+async def optimize_cargo_load(
+    body: CargoLoadRequest,
+    controller: SceneController = Depends(get_controller),
+) -> CargoLoadResponse:
+    return await controller.optimize_cargo_load(body)
+
+
+@router.post(
+    "/export/technical-sketch-svg",
+    response_model=TechnicalSketchResponse,
+    summary="Exporta esboco arquitetonico estilizado com overshoot em SVG (Frente 50)",
+)
+async def generate_technical_sketch(
+    body: TechnicalSketchRequest,
+    controller: SceneController = Depends(get_controller),
+) -> TechnicalSketchResponse:
+    return await controller.generate_technical_sketch(body)

@@ -1574,3 +1574,110 @@ class SkpEngineRepository:
             "size_bytes": os.path.getsize(saved),
             "serial_number": serial_number,
         }
+
+    def simulate_swing_kinematics(
+        self,
+        chain_length_m: float = 2.20,
+        user_mass_kg: float = 50.0,
+        initial_angle_deg: float = 45.0,
+        seat_height_at_rest_m: float = 0.45,
+        damping_ratio: float = 0.05,
+        total_time_s: float = 4.0,
+        fps: int = 24
+    ) -> dict:
+        """Simula cinemática, tração e envelope de segurança de balanço NBR 16071 (Frente 46)."""
+        from core.swing_kinematics_simulator import SwingKinematicsSimulator
+        return SwingKinematicsSimulator.simulate_swing(
+            chain_length_m=chain_length_m,
+            user_mass_kg=user_mass_kg,
+            initial_angle_deg=initial_angle_deg,
+            seat_height_at_rest_m=seat_height_at_rest_m,
+            damping_ratio=damping_ratio,
+            total_time_s=total_time_s,
+            fps=fps
+        )
+
+    def generate_art_pdf(
+        self,
+        professional_name: str,
+        crea_cau: str,
+        rnp: str,
+        contractor: str,
+        location: str,
+        project_name: str,
+        output_filename: str
+    ) -> dict:
+        """Gera minuta de ART / RRT em formato PDF vetorial (Frente 47)."""
+        from core.art_report_generator import ArtReportGenerator
+        import tempfile, os
+        out_dir = tempfile.gettempdir()
+        out_path = os.path.join(out_dir, output_filename)
+        prof_data = {"name": professional_name, "crea_cau": crea_cau, "rnp": rnp}
+        proj_data = {"contractor": contractor, "location": location, "project_name": project_name}
+        return ArtReportGenerator.generate_art_pdf(prof_data, proj_data, out_path)
+
+    def inspect_wall_thickness(self, min_thickness_mm: float = 6.0, max_thickness_mm: float = 14.0) -> dict:
+        """Inspeciona espessura de paredes de peças rotomoldadas (Frente 48)."""
+        from core.wall_thickness_inspector import WallThicknessInspector
+        # Coleta faces da cena ativa se houver, ou usa amostragem analítica
+        faces_data = []
+        try:
+            scene_dto = self._get_export_scene_data()
+            for defn in scene_dto.definitions:
+                # Se houver faces mapeadas na definição
+                if hasattr(defn, "faces") and defn.faces:
+                    for f in defn.faces:
+                        faces_data.append({"vertices": f.get("vertices", []), "normal": f.get("normal", [0, 0, 1])})
+        except Exception:
+            pass
+        return WallThicknessInspector.inspect_thickness(faces_data, min_thickness_mm, max_thickness_mm)
+
+    def optimize_cargo_load(self, packages: list, vehicle_type: str = "caminhao_truck") -> dict:
+        """Otimiza a cubagem e alocação 3D de volumes no transporte (Frente 49)."""
+        from core.cargo_load_optimizer import CargoLoadOptimizer
+        return CargoLoadOptimizer.optimize_load(packages, vehicle_type)
+
+    def generate_technical_sketch(
+        self,
+        dihedral_angle_threshold_deg: float = 25.0,
+        overshoot_mm: float = 8.0,
+        output_filename: str = "esboco_tecnico_arquitetura.svg"
+    ) -> dict:
+        """Gera prancha em SVG com traço arquitetônico estilizado e overshoot (Frente 50)."""
+        from core.technical_sketch_shader import TechnicalSketchShader
+        import tempfile, os
+        out_dir = tempfile.gettempdir()
+        out_path = os.path.join(out_dir, output_filename)
+
+        # Arestas padrão arquitetônicas se cena estiver vazia
+        faces_data = []
+        try:
+            scene_dto = self._get_export_scene_data()
+            for defn in scene_dto.definitions:
+                if hasattr(defn, "faces") and defn.faces:
+                    for f in defn.faces:
+                        faces_data.append({"vertices": f.get("vertices", []), "normal": f.get("normal", [0, 0, 1])})
+        except Exception:
+            pass
+
+        if not faces_data:
+            # Caixa padrão para teste / visualização arquitetônica
+            faces_data = [
+                {"vertices": [[-1, -1, 0], [1, -1, 0], [1, 1, 0], [-1, 1, 0]], "normal": [0, 0, -1]},
+                {"vertices": [[-1, -1, 2], [1, -1, 2], [1, 1, 2], [-1, 1, 2]], "normal": [0, 0, 1]},
+                {"vertices": [[-1, -1, 0], [1, -1, 0], [1, -1, 2], [-1, -1, 2]], "normal": [0, -1, 0]},
+                {"vertices": [[1, -1, 0], [1, 1, 0], [1, 1, 2], [1, -1, 2]], "normal": [1, 0, 0]},
+                {"vertices": [[1, 1, 0], [-1, 1, 0], [-1, 1, 2], [1, 1, 2]], "normal": [0, 1, 0]},
+                {"vertices": [[-1, 1, 0], [-1, -1, 0], [-1, -1, 2], [-1, 1, 2]], "normal": [-1, 0, 0]},
+            ]
+
+        sharp_edges = TechnicalSketchShader.filter_sharp_edges(faces_data, dihedral_angle_threshold_deg)
+        saved = TechnicalSketchShader.generate_sketch_svg(sharp_edges, overshoot_mm=overshoot_mm, output_path=out_path)
+
+        return {
+            "entity_type": "TechnicalSketchSvg",
+            "file_path": out_path,
+            "size_bytes": os.path.getsize(out_path),
+            "sharp_edges_count": len(sharp_edges),
+            "overshoot_mm": overshoot_mm,
+        }

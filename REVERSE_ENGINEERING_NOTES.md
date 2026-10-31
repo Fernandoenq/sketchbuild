@@ -1089,3 +1089,73 @@ A Frente 45 implementa a geração industrial de placas de patrimônio e etiquet
   - QR Code para acesso direto ao manual de montagem e checklist de manutenção
 - **Módulo:** `core/qr_tag_generator.py` (`QrTagGenerator`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/export/qr-tag-svg`.
+
+
+---
+
+## 73. Frente 46: Simulador de Trajetória e Cinemática de Balanço / Pêndulo (NBR 16071 - Zero DLL)
+
+A Frente 46 introduz o cálculo analítico físico-dinâmico de equipamentos oscilantes tipo balanço segundo a ABNT NBR 16071 (Partes 1 e 2).
+
+### A. Formulação Física de Oscilação Amortecida
+1. **Frequência Natural e Pêndulo Gravitacional:** $\omega_n = \sqrt{g/L}$, com amortecimento subcrítico $	heta(t) = 	heta_0 e^{-\gamma t} \cos(\omega_d t)$.
+2. **Velocidade Tangencial Máxima:** $v_{\max} = \sqrt{2 g L (1 - \cos	heta_0)}$ no ponto inferior de equilíbrio.
+3. **Tração Dinâmica Máxima nos Tirantes/Correntes:** $T_{\max} = m \cdot g \cdot (3 - 2\cos	heta_0)$.
+4. **Envelope de Segurança e Zona de Queda (NBR 16071-2):**
+   - Altura do assento ao solo em repouso: $0.35	ext{ m} \le H_{	ext{assento}} \le 0.60	ext{ m}$.
+   - Comprimento da zona de absorção de impacto longitudinal: $L_{	ext{impacto}} = 0.867 \cdot \sqrt{H_{	ext{suspensão}}} + 1.75	ext{ m}$.
+- **Módulo:** `core/swing_kinematics_simulator.py` (`SwingKinematicsSimulator`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/engineering/swing-kinematics`.
+
+---
+
+## 74. Frente 47: Gerador de Minuta Técnica de ART / RRT em PDF Vetorial (Zero DLL)
+
+A Frente 47 automatiza a emissão de documentos formais de engenharia legal para Anotação de Responsabilidade Técnica (CREA/CAU).
+
+### A. Estrutura e Compilação em PDF 1.4 Nativo
+- Layout formal com molduras, quadros normativos de dados do profissional, contratante, endereço da instalação e declarações técnicas.
+- Síntese dos parâmetros de segurança da NBR 16071 e NBR 7190 (área de amortecimento, altura máxima de queda, capacidade de crianças, madeira tratada e ensaios anti-aprisionamento).
+- Linhas de assinatura para o Responsável Técnico e Fabricante com carimbo de homologação digital.
+- **Módulo:** `core/art_report_generator.py` (`ArtReportGenerator`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/export/art-report-pdf`.
+
+---
+
+## 75. Frente 48: Inspetor de Espessura de Parede e Detecção de Casca Fina (Zero DLL)
+
+A Frente 48 adiciona inspeção geométrica para controle de qualidade na produção de peças plásticas em rotomoldagem (escorregadores, curvas e tubos PEAD).
+
+### A. Análise Projetada de Normais Opostas
+- Detecta pares de faces com vetores normais opostos ($ec{n}_1 \cdot ec{n}_2 < -0.7$) e projeta a distância euclidiana entre centroides ao longo do vetor normal.
+- Identifica defeitos críticos de fabricação:
+  - **Subespessura / Casca Fina ($< 6.0	ext{ mm}$):** Risco de rompimento por impacto ou fragilidade mecânica em uso infantil.
+  - **Sobreespessura ($> 14.0	ext{ mm}$):** Risco de rechupes, bolhas internas e deformação térmica durante resfriamento.
+- **Módulo:** `core/wall_thickness_inspector.py` (`WallThicknessInspector`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/engineering/wall-thickness`.
+
+---
+
+## 76. Frente 49: Empacotador de Carga para Transporte e Cubagem 3D (Zero DLL)
+
+A Frente 49 implementa a logística e cubicagem de expedição de produtos desmontados da fábrica em caminhões de entrega.
+
+### A. Algoritmo de Empacotamento em Camadas Tridimensionais (Bin Packing 3D)
+- Perfis de veículos pré-calibrados: Caminhão Toco ($6.2	ext{m}$), Truck ($8.5	ext{m}$) e Carreta Baú ($14.2	ext{m}$).
+- Ordenação prioritária por massa decrescente para assentamento de peças pesadas na base do veículo.
+- Cálculo de ocupação volumétrica ($\%$ do baú) e taxa de carga útil (peso transportado vs. limite do veículo).
+- Cálculo contínuo do Centro de Gravidade tridimensional $(X_{cg}, Y_{cg}, Z_{cg})$ para garantia de estabilidade dinâmica no tráfego rodoviário.
+- **Módulo:** `core/cargo_load_optimizer.py` (`CargoLoadOptimizer`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/factory/cargo-load`.
+
+---
+
+## 77. Frente 50: Renderizador Estilizado Linha Oculta e Esboço Técnico (NPR Cartoon / Overshoot - Zero DLL)
+
+A Frente 50 introduz a renderização não-fotorealística (NPR) com estilo arquitetônico clássico de nanquim e linhas ocultas.
+
+### A. Filtragem de Arestas Vivas e Traço Arquitetônico
+- Filtragem analítica de ângulo diédrico ($	heta > 25^\circ$) para isolar contornos nítidos e eliminar arestas coplanares suaves de malhas poligonais.
+- Efeito de cruzamento e prolongamento nas pontas (*Overshoot / Overhang* de nanquim configurável em milímetros) com filtro SVG de ruído fractal para simulação de papel vegetal e traço manual.
+- **Módulo:** `core/technical_sketch_shader.py` (`TechnicalSketchShader`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/export/technical-sketch-svg`.

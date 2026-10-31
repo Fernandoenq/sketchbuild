@@ -512,6 +512,8 @@
         <div class="menu-dropdown-item" data-action="export-cam-dxf"><span>Exportar &gt; Arquivo para CNC/Laser (.dxf)...</span></div>
         <div class="menu-dropdown-item" data-action="export-point-cloud"><span>Exportar &gt; Nuvem de Pontos LiDAR (.xyz)...</span></div>
         <div class="menu-dropdown-item" data-action="export-qr-tag"><span>Exportar &gt; Placa Patrimonial com QR Code (.svg)...</span></div>
+        <div class="menu-dropdown-item" data-action="export-art-pdf"><span>Exportar &gt; Minuta de ART / RRT (.pdf)...</span></div>
+        <div class="menu-dropdown-item" data-action="export-technical-sketch"><span>Exportar &gt; Esboço Arquitetônico NPR (.svg)...</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Enviar para o LayOut...</span></div>
         <div class="menu-dropdown-item disabled"><span>Imprimir...</span><span class="menu-dropdown-shortcut">Ctrl+P</span></div>
@@ -1190,6 +1192,16 @@
           <div id="structural-details" style="color: var(--text);"></div>
         </div>
         <button id="btn-calc-nesting" class="panel-btn" style="width: 100%; margin-bottom: 6px;">Otimizar Plano de Corte (Nesting)</button>
+        <button id="btn-calc-cargo" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #6B46C1; color: white;">Cubagem &amp; Carregamento 3D (Caminhão)</button>
+        <div id="cargo-result" style="display: none; padding: 6px; background: #F3E8FF; border: 1px solid #D8B4FE; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="cargo-status-badge" style="font-weight: bold; color: #6B46C1;"></div>
+          <div id="cargo-details" style="color: var(--text);"></div>
+        </div>
+        <button id="btn-inspect-thickness" class="panel-btn" style="width: 100%; margin-bottom: 6px;">Inspecionar Espessura de Parede (PEAD)</button>
+        <div id="thickness-result" style="display: none; padding: 6px; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="thickness-status-badge" style="font-weight: bold; color: #047857;"></div>
+          <div id="thickness-details" style="color: var(--text);"></div>
+        </div>
         <div id="nesting-result" style="display: none; padding: 6px; background: #FFF9E6; border: 1px solid #FFE082; border-radius: 3px; font-size: 10.5px;">
           <div id="nesting-status-badge" style="font-weight: bold; color: #B78103;"></div>
           <div id="nesting-details" style="color: var(--text);"></div>
@@ -1207,7 +1219,12 @@
         <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">
           Inspeção normativa automática contra aprisionamento de cabeça/pescoço e altura máxima de queda.
         </div>
-        <button id="btn-calc-maintenance" class="panel-btn" style="width: 100%; margin-bottom: 8px; background: #007791; color: white;">Plano de Manutenção Preventiva NBR 16071-7</button>
+        <button id="btn-calc-maintenance" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #007791; color: white;">Plano de Manutenção Preventiva NBR 16071-7</button>
+        <button id="btn-calc-swing" class="panel-btn" style="width: 100%; margin-bottom: 8px; background: #D97706; color: white;">Simular Cinemática de Balanço NBR 16071</button>
+        <div id="swing-result" style="display: none; padding: 6px; background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="swing-status-badge" style="font-weight: bold; color: #B45309;"></div>
+          <div id="swing-details" style="color: var(--text);"></div>
+        </div>
         <div id="maintenance-result" style="display: none; padding: 6px; background: #E6F4F8; border: 1px solid #99D5E8; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
           <div id="maintenance-status-badge" style="font-weight: bold; color: #007791;"></div>
           <div id="maintenance-details" style="color: var(--text);"></div>

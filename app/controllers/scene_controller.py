@@ -38,6 +38,16 @@ from app.schemas.scene import (
     MirrorResponse,
     QrTagExportRequest,
     QrTagExportResponse,
+    SwingKinematicsRequest,
+    SwingKinematicsResponse,
+    ArtReportRequest,
+    ArtReportResponse,
+    WallThicknessRequest,
+    WallThicknessResponse,
+    CargoLoadRequest,
+    CargoLoadResponse,
+    TechnicalSketchRequest,
+    TechnicalSketchResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -851,5 +861,65 @@ class SceneController:
         try:
             res = await self._service.export_qr_tag_svg(body.serial_number, body.product_name, body.output_filename)
             return QrTagExportResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def simulate_swing_kinematics(self, body: SwingKinematicsRequest) -> SwingKinematicsResponse:
+        """Simula cinematica e seguranca de balanco NBR 16071 (Frente 46)."""
+        try:
+            res = await self._service.simulate_swing_kinematics(
+                body.chain_length_m,
+                body.user_mass_kg,
+                body.initial_angle_deg,
+                body.seat_height_at_rest_m,
+                body.damping_ratio,
+                body.total_time_s,
+                body.fps
+            )
+            return SwingKinematicsResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_art_pdf(self, body: ArtReportRequest) -> ArtReportResponse:
+        """Gera minuta de ART / RRT em PDF vetorial (Frente 47)."""
+        try:
+            res = await self._service.generate_art_pdf(
+                body.professional_name,
+                body.crea_cau,
+                body.rnp,
+                body.contractor,
+                body.location,
+                body.project_name,
+                body.output_filename
+            )
+            return ArtReportResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def inspect_wall_thickness(self, body: WallThicknessRequest) -> WallThicknessResponse:
+        """Inspeciona espessura de paredes de pecas rotomoldadas (Frente 48)."""
+        try:
+            res = await self._service.inspect_wall_thickness(body.min_thickness_mm, body.max_thickness_mm)
+            return WallThicknessResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def optimize_cargo_load(self, body: CargoLoadRequest) -> CargoLoadResponse:
+        """Otimiza a cubagem e alocacao 3D de volumes no transporte (Frente 49)."""
+        try:
+            res = await self._service.optimize_cargo_load(body.packages, body.vehicle_type)
+            return CargoLoadResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_technical_sketch(self, body: TechnicalSketchRequest) -> TechnicalSketchResponse:
+        """Gera prancha em SVG com traco arquitetonico estilizado e overshoot (Frente 50)."""
+        try:
+            res = await self._service.generate_technical_sketch(
+                body.dihedral_angle_threshold_deg,
+                body.overshoot_mm,
+                body.output_filename
+            )
+            return TechnicalSketchResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

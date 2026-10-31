@@ -562,3 +562,69 @@ class SceneService:
     async def export_qr_tag_svg(self, serial_number: str, product_name: str, output_filename: str) -> dict:
         """Gera placa de identificação patrimonial com QR Code em SVG (Frente 45)."""
         return await run_in_threadpool(self._repository.export_qr_tag_svg, serial_number, product_name, output_filename)
+
+    async def simulate_swing_kinematics(
+        self,
+        chain_length_m: float = 2.20,
+        user_mass_kg: float = 50.0,
+        initial_angle_deg: float = 45.0,
+        seat_height_at_rest_m: float = 0.45,
+        damping_ratio: float = 0.05,
+        total_time_s: float = 4.0,
+        fps: int = 24
+    ) -> dict:
+        """Simula cinemática, tração e envelope de segurança de balanço NBR 16071 (Frente 46)."""
+        return await run_in_threadpool(
+            self._repository.simulate_swing_kinematics,
+            chain_length_m,
+            user_mass_kg,
+            initial_angle_deg,
+            seat_height_at_rest_m,
+            damping_ratio,
+            total_time_s,
+            fps
+        )
+
+    async def generate_art_pdf(
+        self,
+        professional_name: str,
+        crea_cau: str,
+        rnp: str,
+        contractor: str,
+        location: str,
+        project_name: str,
+        output_filename: str
+    ) -> dict:
+        """Gera minuta de ART / RRT em formato PDF vetorial (Frente 47)."""
+        return await run_in_threadpool(
+            self._repository.generate_art_pdf,
+            professional_name,
+            crea_cau,
+            rnp,
+            contractor,
+            location,
+            project_name,
+            output_filename
+        )
+
+    async def inspect_wall_thickness(self, min_thickness_mm: float = 6.0, max_thickness_mm: float = 14.0) -> dict:
+        """Inspeciona espessura de paredes de peças rotomoldadas (Frente 48)."""
+        return await run_in_threadpool(self._repository.inspect_wall_thickness, min_thickness_mm, max_thickness_mm)
+
+    async def optimize_cargo_load(self, packages: list, vehicle_type: str = "caminhao_truck") -> dict:
+        """Otimiza a cubagem e alocação 3D de volumes no transporte (Frente 49)."""
+        return await run_in_threadpool(self._repository.optimize_cargo_load, packages, vehicle_type)
+
+    async def generate_technical_sketch(
+        self,
+        dihedral_angle_threshold_deg: float = 25.0,
+        overshoot_mm: float = 8.0,
+        output_filename: str = "esboco_tecnico_arquitetura.svg"
+    ) -> dict:
+        """Gera prancha em SVG com traço arquitetônico estilizado e overshoot (Frente 50)."""
+        return await run_in_threadpool(
+            self._repository.generate_technical_sketch,
+            dihedral_angle_threshold_deg,
+            overshoot_mm,
+            output_filename
+        )
