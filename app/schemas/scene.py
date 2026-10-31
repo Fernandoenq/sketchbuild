@@ -4243,3 +4243,102 @@ class GroundSkyStyleResponse(BaseModel):
     style: dict[str, Any]
     status: str = "success"
 
+# -----------------------------------------------------------------------------
+# OPÇÃO A (PARTE 5): FERRAMENTAS NATIVAS OFICIAIS DO SKETCHUP DESKTOP
+# -----------------------------------------------------------------------------
+
+# 1. Carimbo de Terreno (Stamp Tool)
+class StampTerrainRequest(BaseModel):
+    tin_vertices: list[list[float]] = Field(description="Lista de vértices [x, y, z] da malha TIN")
+    tin_triangles: list[list[int]] = Field(description="Lista de triângulos [i0, i1, i2] da malha TIN")
+    footprint_polygon: list[list[float]] = Field(description="Polígono da pegada da construção [[x, y], ...]")
+    target_elevation: float = Field(default=0.0, description="Cota Z do platô nivelado")
+    transition_width: float = Field(default=1.5, ge=0.01, description="Largura do talude/saia de transição em metros")
+
+class StampTerrainResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_stamp_terrain"
+    stamp: dict[str, Any]
+    status: str = "success"
+
+# 2. Projetar Linhas no Terreno (Drape Tool)
+class DrapePathRequest(BaseModel):
+    tin_vertices: list[list[float]] = Field(description="Lista de vértices [x, y, z] da malha TIN")
+    tin_triangles: list[list[int]] = Field(description="Lista de triângulos da malha TIN")
+    path_points_2d: list[list[float]] = Field(description="Pontos 2D [x, y] da polilinha a ser projetada")
+    subdivision_steps: int = Field(default=4, ge=1, le=32, description="Passos de subdivisão por segmento")
+
+class DrapePathResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_drape_path"
+    drape: dict[str, Any]
+    status: str = "success"
+
+# 3. Preenchimento de Seção e Inversão (Section Cut Fill & Flip)
+class SectionCutFillRequest(BaseModel):
+    solid_vertices: list[list[float]] = Field(description="Vértices do sólido cortado")
+    solid_triangles: list[list[int]] = Field(description="Triângulos do sólido cortado")
+    plane_coeffs: list[float] = Field(default=[0.0, -1.0, 0.0, 0.0], description="Coeficientes do plano [a, b, c, d]")
+    flip_direction: bool = Field(default=False, description="Inverte o sentido de visualização do corte")
+    fill_color_hex: str = Field(default="#333333", description="Cor hex da tampa de preenchimento")
+
+class SectionCutFillResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_section_cut_fill"
+    cut_fill: dict[str, Any]
+    status: str = "success"
+
+# 4. Suavizar / Alisar Arestas (Soft/Smooth Edges)
+class SoftSmoothEdgesRequest(BaseModel):
+    vertices: list[list[float]] = Field(description="Vértices da malha [x, y, z]")
+    triangles: list[list[int]] = Field(description="Triângulos da malha [i0, i1, i2]")
+    max_angle_deg: float = Field(default=35.0, ge=0.0, le=180.0, description="Ângulo diedro limite em graus")
+    soften_coplanar: bool = Field(default=True, description="Suaviza arestas entre faces coplanares")
+    smooth_normals: bool = Field(default=True, description="Gera normais interpoladas para Gouraud shading")
+
+class SoftSmoothEdgesResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_soft_smooth_edges"
+    soft_smooth: dict[str, Any]
+    status: str = "success"
+
+# 5. Dividir Aresta em N Segmentos (Edge Divide Tool)
+class EdgeDivideRequest(BaseModel):
+    start_point: list[float] = Field(description="Ponto inicial da aresta [x, y, z]")
+    end_point: list[float] = Field(description="Ponto final da aresta [x, y, z]")
+    num_segments: int | str = Field(default=4, description="Quantidade de segmentos ou texto do VCB (ex: '6s')")
+
+class EdgeDivideResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_edge_divide"
+    divide: dict[str, Any]
+    status: str = "success"
+
+# 6. Push/Pull com Nova Face Inicial (Ctrl + Push/Pull)
+class PushPullCreateFaceRequest(BaseModel):
+    face_vertices: list[list[float]] = Field(description="Vértices do polígono plano 3D")
+    distance_m: float = Field(description="Distância de extrusão em metros")
+    create_new_face: bool = Field(default=True, description="Modificador Ctrl ativo: preserva face base")
+
+class PushPullCreateFaceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_push_pull_create_face"
+    extrude: dict[str, Any]
+    status: str = "success"
+
+# 7. Conjuntos de Propriedades BIM IFC (IFC Property Sets - Psets)
+class BimIfcPropertySetRequest(BaseModel):
+    instance_id: str = Field(description="ID da instância no modelo")
+    ifc_class: str = Field(default="IfcBeam", description="Classe oficial IFC (ex: IfcBeam, IfcWall)")
+    pset_name: str = Field(default="Pset_BeamCommon", description="Nome do conjunto de propriedades")
+    properties: dict[str, Any] = Field(default_factory=dict, description="Dicionário de propriedades e valores")
+    schema_version: str = Field(default="IFC4", description="Versão do schema: IFC2X3 ou IFC4")
+    start_step_id: int = Field(default=500, description="ID inicial para linhas STEP")
+
+class BimIfcPropertySetResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_bim_ifc_pset"
+    pset: dict[str, Any]
+    status: str = "success"
+
+

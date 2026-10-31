@@ -3567,3 +3567,70 @@ class SkpEngineRepository:
         from core.ground_sky_style_engine import GroundSkyStyleEngine
         return GroundSkyStyleEngine.configure_background_style(**kwargs)
 
+    def stamp_terrain_apply(self, **kwargs) -> dict:
+        from core.stamp_terrain_engine import StampTerrainEngine
+        return StampTerrainEngine.apply_stamp(
+            tin_vertices=kwargs.get("tin_vertices", []),
+            tin_triangles=kwargs.get("tin_triangles", []),
+            footprint_polygon=kwargs.get("footprint_polygon", []),
+            target_elevation=kwargs.get("target_elevation", 0.0),
+            transition_width=kwargs.get("transition_width", 1.5),
+        )
+
+    def drape_path_apply(self, **kwargs) -> dict:
+        from core.drape_contour_engine import DrapeContourEngine
+        return DrapeContourEngine.drape_path(
+            tin_vertices=kwargs.get("tin_vertices", []),
+            tin_triangles=kwargs.get("tin_triangles", []),
+            path_points_2d=kwargs.get("path_points_2d", []),
+            subdivision_steps=kwargs.get("subdivision_steps", 4),
+        )
+
+    def section_cut_fill_compute(self, **kwargs) -> dict:
+        from core.section_cut_fill_engine import SectionCutFillEngine
+        return SectionCutFillEngine.compute_section_fill(
+            solid_vertices=kwargs.get("solid_vertices", []),
+            solid_triangles=kwargs.get("solid_triangles", []),
+            plane_coeffs=kwargs.get("plane_coeffs", [0.0, -1.0, 0.0, 0.0]),
+            flip_direction=kwargs.get("flip_direction", False),
+            fill_color_hex=kwargs.get("fill_color_hex", "#333333"),
+        )
+
+    def soft_smooth_edges_process(self, **kwargs) -> dict:
+        from core.soft_smooth_edges_engine import SoftSmoothEdgesEngine
+        return SoftSmoothEdgesEngine.process_soft_smooth(
+            vertices=kwargs.get("vertices", []),
+            triangles=kwargs.get("triangles", []),
+            max_angle_deg=kwargs.get("max_angle_deg", 35.0),
+            soften_coplanar=kwargs.get("soften_coplanar", True),
+            smooth_normals=kwargs.get("smooth_normals", True),
+        )
+
+    def edge_divide_execute(self, **kwargs) -> dict:
+        from core.edge_divide_engine import EdgeDivideEngine
+        return EdgeDivideEngine.divide_edge(
+            start_point=kwargs.get("start_point", [0.0, 0.0, 0.0]),
+            end_point=kwargs.get("end_point", [1.0, 0.0, 0.0]),
+            num_segments=kwargs.get("num_segments", 4),
+        )
+
+    def push_pull_create_face_extrude(self, **kwargs) -> dict:
+        from core.push_pull_create_face_engine import PushPullCreateFaceEngine
+        return PushPullCreateFaceEngine.extrude_with_new_face(
+            face_vertices=kwargs.get("face_vertices", []),
+            distance_m=kwargs.get("distance_m", 1.0),
+            create_new_face=kwargs.get("create_new_face", True),
+        )
+
+    def bim_ifc_property_set_build(self, **kwargs) -> dict:
+        from core.bim_ifc_property_set_engine import BimIfcPropertySetEngine
+        return BimIfcPropertySetEngine.validate_and_build_pset(
+            instance_id=kwargs.get("instance_id", "inst_01"),
+            ifc_class=kwargs.get("ifc_class", "IfcBeam"),
+            pset_name=kwargs.get("pset_name", "Pset_BeamCommon"),
+            properties=kwargs.get("properties", {}),
+            schema_version=kwargs.get("schema_version", "IFC4"),
+            start_step_id=kwargs.get("start_step_id", 500),
+        )
+
+

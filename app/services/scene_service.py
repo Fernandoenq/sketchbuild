@@ -2169,3 +2169,29 @@ class SceneService:
     async def ground_sky_style_configure(self, **kwargs) -> dict:
         return await run_in_threadpool(self._repository.ground_sky_style_configure, **kwargs)
 
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 5): MÉTODOS DE SERVIÇO NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def stamp_terrain_apply(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.stamp_terrain_apply, **kwargs)
+
+    async def drape_path_apply(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.drape_path_apply, **kwargs)
+
+    async def section_cut_fill_compute(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.section_cut_fill_compute, **kwargs)
+
+    async def soft_smooth_edges_process(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.soft_smooth_edges_process, **kwargs)
+
+    async def edge_divide_execute(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.edge_divide_execute, **kwargs)
+
+    async def push_pull_create_face_extrude(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.push_pull_create_face_extrude, **kwargs)
+
+    async def bim_ifc_property_set_build(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.bim_ifc_property_set_build, **kwargs)
+
+

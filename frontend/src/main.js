@@ -192,6 +192,13 @@ import {
   computeIntersectFaces,
   axisLockInference,
   configureGroundSkyStyle,
+  applyStampTerrain,
+  applyDrapePath,
+  computeSectionCutFill,
+  processSoftSmoothEdges,
+  executeEdgeDivide,
+  extrudePushPullCreateFace,
+  buildBimIfcPropertySet,
   downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
@@ -6299,6 +6306,209 @@ document.getElementById("btn-native-ground-sky")?.addEventListener("click", asyn
     }
   } catch (err) {
     setStatus(`Erro ao configurar estilo de fundo: ${err.message}`, true);
+  }
+});
+
+// ----------------------------------------------------------------------------
+// Opção A (Parte 5): Listeners das Novas Ferramentas Nativas Oficiais
+// ----------------------------------------------------------------------------
+
+// 34. Carimbo de Terreno com Talude Suave (Stamp Tool)
+document.getElementById("btn-native-stamp-terrain")?.addEventListener("click", async () => {
+  setStatus("Executando ferramenta Carimbo (Stamp) sobre malha TIN...");
+  try {
+    const tinVertices = [
+      [-10, -10, 0], [0, -10, 0.5], [10, -10, 1.0],
+      [-10, 0, 0.8], [0, 0, 1.2], [10, 0, 1.5],
+      [-10, 10, 1.0], [0, 10, 1.8], [10, 10, 2.2]
+    ];
+    const tinTriangles = [
+      [0, 1, 4], [0, 4, 3], [1, 2, 5], [1, 5, 4],
+      [3, 4, 7], [3, 7, 6], [4, 5, 8], [4, 8, 7]
+    ];
+    const footprint = [[-3, -3], [3, -3], [3, 3], [-3, 3]];
+    const res = await applyStampTerrain(tinVertices, tinTriangles, footprint, 2.5, 2.0);
+    if (res?.stamp) {
+      const st = res.stamp;
+      showNativeToolsResult(
+        "🏔️ Carimbo de Terreno (Stamp Tool)",
+        `Platô nivelado na cota Z: <b>${st.target_elevation}m</b><br>` +
+        `Largura do talude perimetral: <b>${st.transition_width}m</b><br>` +
+        `Vértices no platô: <b>${st.vertices_plateau_count}</b> | Vértices no talude: <b>${st.vertices_slope_count}</b><br>` +
+        `Volume est. de corte: <b>${st.estimated_cut_m3} m³</b> | Aterro: <b>${st.estimated_fill_m3} m³</b>`
+      );
+      setStatus("Carimbo de terreno aplicado com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro no Carimbo de Terreno: ${err.message}`, true);
+  }
+});
+
+// 35. Projetar Contorno no Relevo TIN (Drape Tool)
+document.getElementById("btn-native-drape-path")?.addEventListener("click", async () => {
+  setStatus("Projetando contorno 2D sobre o relevo da malha (Drape Tool)...");
+  try {
+    const tinVertices = [
+      [-10, -10, 0], [10, -10, 2], [10, 10, 4], [-10, 10, 1]
+    ];
+    const tinTriangles = [[0, 1, 2], [0, 2, 3]];
+    const path2D = [[-8, -8], [0, 0], [8, 8]];
+    const res = await applyDrapePath(tinVertices, tinTriangles, path2D, 4);
+    if (res?.drape) {
+      const dp = res.drape;
+      showNativeToolsResult(
+        "🛤️ Projetar Contorno (Drape Tool)",
+        `Comprimento projetado 2D: <b>${dp.length_2d_m}m</b> -> 3D real: <b>${dp.length_3d_m}m</b><br>` +
+        `Alongamento topográfico: <b>${dp.elongation_pct}%</b> | Cota média: <b>${dp.average_elevation_m}m</b><br>` +
+        `Total de nós 3D gerados: <b>${dp.total_points} pontos</b>`
+      );
+      setStatus("Contorno projetado sobre o relevo com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao projetar contorno (Drape): ${err.message}`, true);
+  }
+});
+
+// 36. Preenchimento de Seção & Inverter Corte (Section Fill)
+document.getElementById("btn-native-section-fill")?.addEventListener("click", async () => {
+  setStatus("Calculando preenchimento de corte (Section Fill) e invertendo plano...");
+  try {
+    const boxVerts = [
+      [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+      [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
+    ];
+    const boxTris = [
+      [0, 1, 2], [0, 2, 3], [4, 6, 5], [4, 7, 6],
+      [0, 4, 5], [0, 5, 1], [1, 5, 6], [1, 6, 2],
+      [2, 6, 7], [2, 7, 3], [3, 7, 4], [3, 4, 0]
+    ];
+    const res = await computeSectionCutFill(boxVerts, boxTris, [0, 0, 1, 0], true, "#2B6CB0");
+    if (res?.cut_fill) {
+      const cf = res.cut_fill;
+      showNativeToolsResult(
+        "✂️ Preenchimento de Seção (Section Cut Fill)",
+        `Plano ativo (Invertido): <b>[${cf.active_plane.join(", ")}]</b><br>` +
+        `Segmentos de corte: <b>${cf.cut_segments_count}</b><br>` +
+        `Tampa gerada: <b>${cf.has_fill_cap ? "Sim (Tampa Sólida Ativa)" : "Não"}</b> | Triângulos da tampa: <b>${cf.fill_geometry.triangles.length}</b><br>` +
+        `Cor do preenchimento: <span style="color: ${cf.fill_color_hex};">■ ${cf.fill_color_hex}</span>`
+      );
+      setStatus("Preenchimento de corte calculado com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro no Preenchimento de Seção: ${err.message}`, true);
+  }
+});
+
+// 37. Suavizar / Alisar Arestas (Soft/Smooth Edges)
+document.getElementById("btn-native-soft-smooth")?.addEventListener("click", async () => {
+  setStatus("Processando suavização de arestas (Soften / Smooth Edges Dialog)...");
+  try {
+    const cylVerts = [];
+    const n = 12;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      cylVerts.push([Math.cos(a), Math.sin(a), 0]);
+      cylVerts.push([Math.cos(a), Math.sin(a), 2]);
+    }
+    const cylTris = [];
+    for (let i = 0; i < n; i++) {
+      const next = (i + 1) % n;
+      const b0 = i * 2, t0 = i * 2 + 1;
+      const b1 = next * 2, t1 = next * 2 + 1;
+      cylTris.push([b0, b1, t1]);
+      cylTris.push([b0, t1, t0]);
+    }
+    const res = await processSoftSmoothEdges(cylVerts, cylTris, 35.0, true, true);
+    if (res?.soft_smooth) {
+      const sm = res.soft_smooth;
+      showNativeToolsResult(
+        "🪄 Suavizar Arestas (Soft/Smooth Edges)",
+        `Ângulo limite diedro: <b>${sm.max_angle_deg}°</b> | Suavizar coplanares: <b>${sm.soften_coplanar ? "Sim" : "Não"}</b><br>` +
+        `Total de arestas analisadas: <b>${sm.total_edges}</b><br>` +
+        `Arestas Suaves (Soft/Smooth): <b style="color: #2F855A;">${sm.edges_soft_count}</b> | Arestas Duras (Hard): <b>${sm.edges_hard_count}</b><br>` +
+        `Normais de vértice interpoladas (Gouraud Shading): <b>${sm.vertex_normals.length} calculadas</b>`
+      );
+      setStatus("Suavização de arestas processada com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro na suavização de arestas: ${err.message}`, true);
+  }
+});
+
+// 38. Dividir Aresta em N Partes (Divide Tool)
+document.getElementById("btn-native-edge-divide")?.addEventListener("click", async () => {
+  setStatus("Dividindo aresta linear em N segmentos com o VCB (Divide Tool)...");
+  try {
+    const pStart = [0, 0, 0];
+    const pEnd = [6, 0, 0];
+    const res = await executeEdgeDivide(pStart, pEnd, "6s");
+    if (res?.divide) {
+      const dv = res.divide;
+      showNativeToolsResult(
+        "📏 Dividir Aresta (Edge Divide Tool)",
+        `Comprimento original: <b>${dv.total_length_m}m</b><br>` +
+        `Segmentos divididos: <b>${dv.num_segments} partes iguais</b><br>` +
+        `Comprimento de cada trecho: <b>${dv.segment_length_m}m</b><br>` +
+        `Novos nós intermediários: <b>${dv.vertices_count} vértices</b>`
+      );
+      setStatus("Aresta dividida com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao dividir aresta: ${err.message}`, true);
+  }
+});
+
+// 39. Push/Pull com Nova Face (Ctrl + Push/Pull)
+document.getElementById("btn-native-pushpull-ctrl")?.addEventListener("click", async () => {
+  setStatus("Executando Push/Pull com criação de nova face preservada (Ctrl + Push/Pull)...");
+  try {
+    const rect = [[0, 0, 0], [2, 0, 0], [2, 1.5, 0], [0, 1.5, 0]];
+    const res = await extrudePushPullCreateFace(rect, 3.0, true);
+    if (res?.extrude) {
+      const ex = res.extrude;
+      if (typeof addProceduralMeshToScene === "function") {
+        addProceduralMeshToScene(ex.vertices, ex.triangles, 0xDD6B20, "CtrlPushPull_Box");
+      }
+      showNativeToolsResult(
+        "🧱 Push/Pull com Nova Face (Ctrl + Push/Pull)",
+        `Modificador Ctrl ativo: <b>${ex.ctrl_modifier_active ? "Sim (Face Base Preservada)" : "Não"}</b><br>` +
+        `Distância extrudada: <b>${ex.extrusion_distance_m}m</b> ao longo da normal [${ex.normal_vector.join(", ")}]<br>` +
+        `Área da base: <b>${ex.base_area_m2} m²</b> | Volume: <b>${ex.volume_m3} m³</b><br>` +
+        `Sólido gerado no Three.js: <b>${ex.total_vertices} vértices, ${ex.total_triangles} triângulos</b>`
+      );
+      setStatus("Push/Pull com nova face executado e malha adicionada à cena.");
+    }
+  } catch (err) {
+    setStatus(`Erro no Push/Pull: ${err.message}`, true);
+  }
+});
+
+// 40. Conjuntos de Propriedades BIM IFC (IFC Psets)
+document.getElementById("btn-native-ifc-pset")?.addEventListener("click", async () => {
+  setStatus("Gerando conjunto de propriedades buildingSMART (IFC Property Sets)...");
+  try {
+    const instId = (selectedMesh?.name || selectedMesh?.userData?.instanceId) || "inst_viga_01";
+    const props = {
+      Reference: "VIGA-PERFIL-W200x35",
+      LoadBearing: true,
+      FireRating: "2H",
+      Span: 6.0,
+      Pitch: 0.0
+    };
+    const res = await buildBimIfcPropertySet(instId, "IfcBeam", "Pset_BeamCommon", props, "IFC4", 500);
+    if (res?.pset) {
+      const ps = res.pset;
+      showNativeToolsResult(
+        "🏛️ Conjuntos de Propriedades BIM IFC (IFC Psets)",
+        `Instância: <b>${ps.instance_id}</b> | Classe: <b>${ps.ifc_class}</b><br>` +
+        `Conjunto: <b style="color: #2B6CB0;">${ps.pset_name}</b> (Schema: ${ps.schema_version})<br>` +
+        `Status de conformidade: <b style="color: #2F855A;">${ps.conformance_status}</b><br>` +
+        `Linhas STEP Physical File: <code>${ps.step_declarations.slice(0, 2).join("<br>")}...</code>`
+      );
+      setStatus("Conjunto de propriedades IFC gerado em conformidade buildingSMART.");
+    }
+  } catch (err) {
+    setStatus(`Erro no conjunto de propriedades IFC: ${err.message}`, true);
   }
 });
 
