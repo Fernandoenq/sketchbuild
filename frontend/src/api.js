@@ -1375,3 +1375,60 @@ export function generateCncCutlist(parts, sawKerfMm = 4.0, trimMarginMm = 15.0, 
     export_csv: exportCsv,
   });
 }
+
+/** Gera parede paramétrica 3D com vãos de portas e janelas (Frente 96). */
+export function generateWallWithOpenings(startPt, endPt, heightM = 2.80, thicknessM = 0.15, openings = null) {
+  return postJson("/api/v1/scene/architecture/wall", "POST", {
+    start_pt: startPt,
+    end_pt: endPt,
+    height_m: heightM,
+    thickness_m: thicknessM,
+    openings,
+  });
+}
+
+/** Calcula o blank planificado e linhas de dobra DIN 6935 (Frente 97). */
+export function unfoldSheetMetal(baseLengthMm, baseWidthMm, thicknessMm = 2.0, innerRadiusMm = 2.0, kFactor = 0.44, flanges = null) {
+  return postJson("/api/v1/scene/manufacturing/sheet-metal-unfold", "POST", {
+    base_length_mm: baseLengthMm,
+    base_width_mm: baseWidthMm,
+    thickness_mm: thicknessMm,
+    inner_radius_mm: innerRadiusMm,
+    k_factor: kFactor,
+    flanges,
+  });
+}
+
+/** Calcula projeção de sombra do oclusor sobre o solo ou superfície (Frente 98). */
+export function calculateProjectedShadow(occluderVertices, sunDirection, groundElevationZ = 0.0) {
+  return postJson("/api/v1/scene/shadows/projected-surface", "POST", {
+    occluder_vertices: occluderVertices,
+    sun_direction: sunDirection,
+    ground_elevation_z: groundElevationZ,
+  });
+}
+
+/** Configura shader PBR de água, ondas Gerstner e cáusticas (Frente 99). */
+export function configureWaterSurface(shallowColorHex = "#4db5ff", deepColorHex = "#004080", clarityPercent = 85.0, waveAmplitudeM = 0.05, waveWavelengthM = 1.2, waveSpeedMS = 1.0, ior = 1.333, causticsIntensity = 0.75, enableFoam = true) {
+  return postJson("/api/v1/scene/materials/water-pbr", "POST", {
+    shallow_color_hex: shallowColorHex,
+    deep_color_hex: deepColorHex,
+    clarity_percent: clarityPercent,
+    wave_amplitude_m: waveAmplitudeM,
+    wave_wavelength_m: waveWavelengthM,
+    wave_speed_m_s: waveSpeedMS,
+    ior,
+    caustics_intensity: causticsIntensity,
+    enable_foam: enableFoam,
+  });
+}
+
+/** Gera cadeia de 3 níveis de detalhe (LOD0, LOD1, LOD2) para Three.js (Frente 100). */
+export function generateMeshLodChain(vertices, triangles, lod1TargetRatio = 0.50, lod2TargetRatio = 0.25) {
+  return postJson("/api/v1/scene/geometry/lod-chain", "POST", {
+    vertices,
+    triangles,
+    lod1_target_ratio: lod1TargetRatio,
+    lod2_target_ratio: lod2TargetRatio,
+  });
+}

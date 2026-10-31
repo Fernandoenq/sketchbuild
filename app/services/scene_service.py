@@ -1593,3 +1593,97 @@ class SceneService:
             trim_margin_mm,
             export_csv
         )
+
+    async def generate_wall_with_openings(
+        self,
+        start_pt: list,
+        end_pt: list,
+        height_m: float = 2.80,
+        thickness_m: float = 0.15,
+        openings: list = None
+    ) -> dict:
+        """Gera parede paramétrica 3D com vãos de portas e janelas (Frente 96)."""
+        return await run_in_threadpool(
+            self._repository.generate_wall_with_openings,
+            start_pt,
+            end_pt,
+            height_m,
+            thickness_m,
+            openings
+        )
+
+    async def unfold_sheet_metal(
+        self,
+        base_length_mm: float,
+        base_width_mm: float,
+        thickness_mm: float = 2.0,
+        inner_radius_mm: float = 2.0,
+        k_factor: float = 0.44,
+        flanges: list = None
+    ) -> dict:
+        """Calcula o blank planificado e linhas de dobra DIN 6935 (Frente 97)."""
+        return await run_in_threadpool(
+            self._repository.unfold_sheet_metal,
+            base_length_mm,
+            base_width_mm,
+            thickness_mm,
+            inner_radius_mm,
+            k_factor,
+            flanges
+        )
+
+    async def calculate_projected_shadow(
+        self,
+        occluder_vertices: list,
+        sun_direction: list,
+        ground_elevation_z: float = 0.0
+    ) -> dict:
+        """Calcula projeção de sombra do oclusor sobre o solo ou superfície (Frente 98)."""
+        return await run_in_threadpool(
+            self._repository.calculate_projected_shadow,
+            occluder_vertices,
+            sun_direction,
+            ground_elevation_z
+        )
+
+    async def configure_water_surface(
+        self,
+        shallow_color_hex: str = "#4db5ff",
+        deep_color_hex: str = "#004080",
+        clarity_percent: float = 85.0,
+        wave_amplitude_m: float = 0.05,
+        wave_wavelength_m: float = 1.2,
+        wave_speed_m_s: float = 1.0,
+        ior: float = 1.333,
+        caustics_intensity: float = 0.75,
+        enable_foam: bool = True
+    ) -> dict:
+        """Configura shader PBR de água, ondas Gerstner e cáusticas (Frente 99)."""
+        return await run_in_threadpool(
+            self._repository.configure_water_surface,
+            shallow_color_hex,
+            deep_color_hex,
+            clarity_percent,
+            wave_amplitude_m,
+            wave_wavelength_m,
+            wave_speed_m_s,
+            ior,
+            caustics_intensity,
+            enable_foam
+        )
+
+    async def generate_mesh_lod_chain(
+        self,
+        vertices: list,
+        triangles: list,
+        lod1_target_ratio: float = 0.50,
+        lod2_target_ratio: float = 0.25
+    ) -> dict:
+        """Gera cadeia de 3 níveis de detalhe (LOD0, LOD1, LOD2) para Three.js (Frente 100)."""
+        return await run_in_threadpool(
+            self._repository.generate_mesh_lod_chain,
+            vertices,
+            triangles,
+            lod1_target_ratio,
+            lod2_target_ratio
+        )

@@ -1783,3 +1783,67 @@ A Frente 95 implementa a extração e parametrização industrial de listas de c
 - **Exportação CSV Industrial:** Layout delimitado por ponto-e-vírgula pronto para importação em softwares de nesting (Homag Cut Rite, Giben, SCM).
 - **Módulo:** `core/cam_cutlist_fabrication_engine.py` (`CamCutlistFabricationEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/factory/cutlist-cnc`.
+
+---
+
+## 123. Frente 96: Motor de Paredes Arquitetônicas com Aberturas Automáticas de Vãos (Walls & Openings - Zero DLL)
+
+A Frente 96 implementa a modelagem paramétrica de paredes arquitetônicas 3D com recorte e emolduramento automático de portas e janelas.
+
+### A. Algoritmo de Subdivisão em Blocos e Ombreiras
+- **Eixo e Espessura:** Extrusão da linha de centro no plano ortogonal $XY$ com espessura $T$ e altura de pé-direito $H$.
+- **Divisão por Vãos:** Varre a lista de aberturas ordenadas por distância inicial e sintetiza automaticamente blocos cheios, peitoris inferiores (sill) e vergas superiores (lintel).
+- **Módulo:** `core/architectural_wall_engine.py` (`ArchitecturalWallWindowEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/architecture/wall`.
+
+---
+
+## 124. Frente 97: Decodificador de Malhas de Deformação e Planificação de Chapa Metálica (Sheet Metal Unfold - Zero DLL)
+
+A Frente 97 reproduz o cálculo de desdobramento e planificação de chapas metálicas dobradas para corte e dobra industrial.
+
+### A. Fórmulas Normativas de Flexão DIN 6935
+- **Bend Allowance e Fator K:** Calcula $BA = \frac{\pi}{180} \cdot \theta \cdot (R + K \cdot T)$ e a dedução de dobra $BD = 2(R+T)\tan(\theta/2) - BA$.
+- **Dimensões do Blank Desenvolvido:** Gera as dimensões de chapa plana esticada para máquinas de corte a laser/plasma e as posições de linhas de dobra com indicação de sentido (UP/DOWN).
+- **Módulo:** `core/sheet_metal_unfold_engine.py` (`SheetMetalUnfoldEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/manufacturing/sheet-metal-unfold`.
+
+---
+
+## 125. Frente 98: Motor de Cálculo de Sombras Projetadas em Superfícies Vizinhas (Shadow Casting - Zero DLL)
+
+A Frente 98 implementa a projeção analítica de polígonos de sombra sobre planos de piso e superfícies receptoras.
+
+### A. Projeção Geométrica Solar
+- **Vetor Solar do Heliodon:** Utiliza o vetor diretor $\vec{S} = (s_x, s_y, s_z)$ com $s_z < 0$.
+- **Interseção Raio-Plano:** Calcula $P_{\text{proj}} = V + \frac{z_{\text{ground}} - V_z}{s_z} \cdot \vec{S}$, obtendo o envelope exato da mancha de sombra projetada, comprimento de alcance da sombra e área sombreada.
+- **Módulo:** `core/shadow_casting_surface_engine.py` (`ShadowCastingSurfaceEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/shadows/projected-surface`.
+
+---
+
+## 126. Frente 99: Decodificador de Renderização PBR de Superfícies de Água e Ondulações Caustics (PBR Water - Zero DLL)
+
+A Frente 99 implementa a física óptica e dinâmica ondulatória para simulação de água realista no Three.js.
+
+### A. Ondas Trocoidais de Gerstner e Óptica Fresnel
+- **Dinâmica Gerstner:** 3 trens de ondas com números de onda $k$ e dispersão em águas profundas $\omega = \sqrt{g \cdot k}$.
+- **Refração e Fresnel:** Coeficiente $R_0 = ((1 - n) / (1 + n))^2$ com $n=1.333$ (água), turbidez em profundidade e mapa de cáusticas.
+- **Módulo:** `core/water_caustics_shader_engine.py` (`WaterCausticsShaderEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/materials/water-pbr`.
+
+---
+
+## 127. Frente 100: Otimizador e Compactador de Geometria LOD para Baixa Latência Web (SkpLODOptimizer - Zero DLL)
+
+A Frente 100 celebra o marco de 100 frentes de engenharia reversa do SketchUp com um motor de otimização de malha multi-resolução para o Three.js.
+
+### A. Soldagem de Vértices e Cadeia LOD0/LOD1/LOD2
+- **Vertex Welding:** Agrupa vértices com tolerância nanométrica e purga triângulos degenerados.
+- **Cadeia LOD Multi-Nível:**
+  - `LOD0`: Malha original 100% limpa para vista próxima.
+  - `LOD1`: Redução de 50% de triângulos para média distância.
+  - `LOD2`: Redução de 75% de triângulos para visualização de longa distância.
+- **Distâncias Proporcionais:** Calcula as distâncias ideais de troca de nível baseadas na diagonal da Bounding Box do modelo.
+- **Módulo:** `core/skp_lod_optimizer_engine.py` (`SkpLODOptimizerEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/lod-chain`.
