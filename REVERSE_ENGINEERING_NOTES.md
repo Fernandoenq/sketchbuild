@@ -2534,3 +2534,26 @@ Esta seção documenta a terceira rodada de ferramentas centrais do **SketchUp D
 
 
 
+
+## 180. Correção Definitiva e Diagnóstico do Card "Simples" / Criação de Novo Modelo (Frontend & Backend)
+
+### Diagnóstico do Problema Original:
+1. **Comportamento Observado:** Ao clicar no card "Simples" (Metros ou Polegadas) em "Criar novo modelo" na tela inicial, a tela não fechava e parecia que "nada acontecia".
+2. **Causa Raiz Identificada:**
+   - O backend recebia `POST /api/v1/scene/new` com `{"template_id": "simple_meters"}` e respondia com sucesso `200 OK` (408 KB de geometria analítica do template `Temp01b - Simple.skp`).
+   - No frontend, o `#status` onde mensagens de erro eram exibidas ficava posicionado fisicamente atrás do `#welcome-screen` (que possui `z-index: 100`). Qualquer falha transitória ou alerta ficava completamente invisível para o usuário.
+   - Na função `hideWelcomeScreen()`, a ocultação dependia exclusivamente de `classList.add("hidden")`, que podia ser sobreposta por regras de especificidade de `display: flex` do diálogo ou por estilos de animação.
+   - Caso qualquer etapa auxiliar de montagem da cena (`inferenceEngine`, `updateBillboards`, `updateOutliner`) lançasse aviso ou erro, `handleNewFromTemplate()` caía no bloco `catch` e retornava `false`, impedindo `hideWelcomeScreen()` de ser executado.
+
+### Correções Cirúrgicas Aplicadas:
+1. **Blindagem do Modal (`hideWelcomeScreen` / `showWelcomeScreen`):**
+   - Regra CSS atualizada com `#welcome-screen.hidden { display: none !important; }`.
+   - `hideWelcomeScreen()` passa a aplicar explicitamente `welcomeScreenEl.style.display = "none"` e `welcomeScreenEl.classList.add("hidden")`.
+   - `showWelcomeScreen()` aplica `welcomeScreenEl.style.display = "flex"` e `welcomeScreenEl.classList.remove("hidden")`.
+2. **Resiliência e Tolerância a Falhas em `applySceneDTO`:**
+   - As chamadas a `inferenceEngine.updateGeometryIndex()`, `updateBillboards()` e `updateOutliner()` foram protegidas com blocos `try / catch` dedicados, garantindo que qualquer inconsistência em elementos secundários de UI nunca aborte a criação do modelo Three.js nem impeça a tela inicial de fechar.
+3. **Telemetria e Diagnóstico em Tempo Real (`/api/v1/debug-log`):**
+   - Criado endpoint `POST /api/v1/debug-log` no FastAPI para capturar logs, cliques e exceções (`window.onerror` e `unhandledrejection`) diretamente no console do servidor.
+   - Adicionado elemento visível `#welcome-error-msg` dentro do próprio diálogo de boas-vindas para apresentar feedback imediato ao usuário em caso de falha de rede ou validação.
+4. **Habilitação do Menu Superior:**
+   - Ativado o menu "Arquivo -> Novo a partir de um modelo..." (`data-action="new-from-template"`), permitindo invocar a seleção de templates a qualquer momento na aplicação.

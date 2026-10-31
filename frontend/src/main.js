@@ -220,6 +220,35 @@ import { buildOutlinerTree } from "./outliner.js";
 import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
 import { InferenceEngine } from "./inferenceEngine.js";
 
+function sendBrowserLog(type, msg, extra = {}) {
+  try {
+    fetch("/api/v1/debug-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, msg, ...extra }),
+    }).catch(() => {});
+  } catch {
+    // best-effort
+  }
+}
+
+window.addEventListener("error", (e) => {
+  sendBrowserLog("window.error", e.message, {
+    filename: e.filename,
+    lineno: e.lineno,
+    colno: e.colno,
+    stack: e.error?.stack,
+  });
+});
+
+window.addEventListener("unhandledrejection", (e) => {
+  sendBrowserLog("unhandledrejection", String(e.reason), {
+    stack: e.reason?.stack,
+  });
+});
+
+sendBrowserLog("boot", "main.js initialized successfully");
+
 const viewportEl = document.getElementById("viewport");
 const pathInputEl = document.getElementById("path-input");
 const openBtnEl = document.getElementById("open-btn");
@@ -1281,6 +1310,7 @@ async function captureAndUploadThumbnail(path) {
  * /scene/open ou /scene/new) -- compartilhado pelos dois fluxos de
  * abertura. Retorna as contagens pra compor a mensagem de status. */
 function applySceneDTO(sceneDTO) {
+  sendBrowserLog("applySceneDTO", "step 0: start", { hasDTO: !!sceneDTO });
   currentSceneDTO = sceneDTO; // usado por "Janela > Informacoes do modelo"
   if (currentGroup) {
     scene.remove(currentGroup);
@@ -1290,19 +1320,33 @@ function applySceneDTO(sceneDTO) {
   dimensionsGroup.clear();
   sectionPlane = null;
   setLassoSelection([]);
+
+  sendBrowserLog("applySceneDTO", "step 1: buildSceneGroup");
   currentGroup = buildSceneGroup(sceneDTO);
   scene.add(currentGroup);
-  if (inferenceEngine) inferenceEngine.updateGeometryIndex(currentGroup);
-  // componentes "sempre de frente pra camera" (ex.: a figura de escala dos
-  // templates) so recebem a rotacao correta de pitch/roll dentro do loop
-  // de animacao (updateBillboards(), chamado a cada frame) -- sem rodar
-  // isso aqui ANTES de enquadrar a camera, o Box3 usado por
-  // setStandardView() mede a malha ainda deitada (altura Y = 0), o que
-  // zera o raio calculado e deixa a camera colada na figura.
-  updateBillboards();
+
+  sendBrowserLog("applySceneDTO", "step 2: updateGeometryIndex");
+  if (inferenceEngine) {
+    try {
+      inferenceEngine.updateGeometryIndex(currentGroup);
+    } catch (infErr) {
+      sendBrowserLog("applySceneDTO.warning", "inferenceEngine failed", { error: infErr.message });
+    }
+  }
+
+  sendBrowserLog("applySceneDTO", "step 3: updateBillboards");
+  try {
+    updateBillboards();
+  } catch (bbErr) {
+    sendBrowserLog("applySceneDTO.warning", "updateBillboards failed", { error: bbErr.message });
+  }
+
+  sendBrowserLog("applySceneDTO", "step 4: camera");
   if (!applyRealCamera(sceneDTO)) {
     setStandardView("iso");
   }
+
+  sendBrowserLog("applySceneDTO", "step 5: editPanel & styles");
   editPanelEl.classList.remove("hidden");
   // o novo grupo traz material/overlay de arestas no estado padrao --
   // reaplica os toggles de "Visualizar" que estavam ativos antes de abrir
@@ -1310,12 +1354,19 @@ function applySceneDTO(sceneDTO) {
   setEdgesVisible(edgesVisible);
   setFaceStyle(faceStyle);
 
-  updateOutliner(sceneDTO);
+  sendBrowserLog("applySceneDTO", "step 6: outliner & scenes");
+  try {
+    updateOutliner(sceneDTO);
+  } catch (outErr) {
+    sendBrowserLog("applySceneDTO.warning", "updateOutliner failed", { error: outErr.message });
+  }
+
   sceneNameInputEl.disabled = false;
   sceneCreateBtnEl.disabled = false;
   refreshScenePages();
   refreshTags();
 
+  sendBrowserLog("applySceneDTO", "step 7: done");
   return {
     totalDefinitions: sceneDTO.definitions.length,
     totalInstances: sceneDTO.instances.length,
@@ -1427,20 +1478,36 @@ async function handleOpenUpload(file) {
 async function handleNewFromTemplate(templateId) {
   deselectMesh();
   setStatus("Criando novo modelo a partir do template...");
+  sendBrowserLog("template", "handleNewFromTemplate started", { templateId });
 
   try {
     const sceneDTO = await newSceneFromTemplate(templateId);
+    sendBrowserLog("template", "newSceneFromTemplate succeeded", {
+      hasDTO: !!sceneDTO,
+      defsCount: sceneDTO?.definitions?.length,
+      instsCount: sceneDTO?.instances?.length,
+    });
     const counts = applySceneDTO(sceneDTO);
     savePathInputEl.value = ""; // forca "Salvar Como" -- ainda nao ha arquivo no disco
     setStatus(
       `Novo modelo criado a partir do template -- ${counts.totalVertices} vertices, ` +
         `${counts.totalTriangles} triangulos. Use "Salvar Como" para escolher onde gravar.`
     );
+    sendBrowserLog("template", "template successfully applied to scene");
     return true;
   } catch (err) {
     console.error("Erro ao criar modelo a partir do template:", err);
     const detail = err instanceof ApiError ? err.message : String(err);
+    sendBrowserLog("template.error", detail, {
+      message: err?.message,
+      stack: err?.stack,
+    });
     setStatus(`Erro ao criar modelo: ${detail}`, true);
+    const welcomeErrorEl = document.getElementById("welcome-error-msg");
+    if (welcomeErrorEl) {
+      welcomeErrorEl.style.display = "block";
+      welcomeErrorEl.textContent = `Erro ao abrir template: ${detail}`;
+    }
     return false;
   }
 }
@@ -2266,7 +2333,8 @@ sceneCreateBtnEl.addEventListener("click", handleCreateScene);
 // `.disabled` (sem handler), igual o SketchUp real faz com itens
 // indisponiveis -- nunca escondidos, so inativos.
 const MENU_ACTIONS = {
-  new: () => welcomeScreenEl.classList.remove("hidden"),
+  new: () => showWelcomeScreen(),
+  "new-from-template": () => showWelcomeScreen(),
   open: () => handleChooseFile(),
   "open-binary": () => handleOpenBinary(),
   save: () => handleSave(),
@@ -2427,7 +2495,7 @@ function handleModelInfo() {
  * real da Fase 6 (nao e um dialogo separado, e a tela de boas-vindas
  * de verdade, igual o SketchUp real reabre via esse item de menu). */
 function handleWelcome() {
-  welcomeScreenEl.classList.remove("hidden");
+  showWelcomeScreen();
 }
 
 function closeAllMenus() {
@@ -2525,8 +2593,18 @@ animate();
 // app/controllers/scene_controller.py); as thumbnails sao snapshots reais
 // do canvas (ver captureAndUploadThumbnail acima), nao placeholders.
 
+function showWelcomeScreen() {
+  if (welcomeScreenEl) {
+    welcomeScreenEl.classList.remove("hidden");
+    welcomeScreenEl.style.display = "flex";
+  }
+}
+
 function hideWelcomeScreen() {
-  welcomeScreenEl.classList.add("hidden");
+  if (welcomeScreenEl) {
+    welcomeScreenEl.classList.add("hidden");
+    welcomeScreenEl.style.display = "none";
+  }
 }
 
 /** Abre um caminho a partir da Pagina Inicial (card de recente ou campo de
@@ -2617,8 +2695,17 @@ async function boot() {
 /** Cria o modelo a partir do template clicado e fecha a Pagina Inicial
  * (reusa handleNewFromTemplate, mesmo padrao de openFromWelcomeScreen). */
 async function newModelFromWelcomeScreen(templateId) {
+  sendBrowserLog("click", "newModelFromWelcomeScreen clicked", { templateId });
+  if (!templateId) {
+    sendBrowserLog("click.warning", "templateId is missing or empty!");
+    return;
+  }
   const created = await handleNewFromTemplate(templateId);
-  if (created) hideWelcomeScreen();
+  sendBrowserLog("click", "handleNewFromTemplate finished", { created });
+  if (created) {
+    hideWelcomeScreen();
+    sendBrowserLog("click", "hideWelcomeScreen executed");
+  }
 }
 
 welcomeTemplateCardEls.forEach((card) => {

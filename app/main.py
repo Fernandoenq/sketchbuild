@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
@@ -39,6 +39,15 @@ app.include_router(health_router.router)
 app.include_router(model_router.router, prefix=settings.api_prefix)
 app.include_router(scene_router.router, prefix=settings.api_prefix)
 app.include_router(recent_files_router.router, prefix=settings.api_prefix)
+
+@app.post("/api/v1/debug-log")
+async def client_debug_log(request: Request):
+    try:
+        data = await request.json()
+        print(f"[BROWSER LOG] {data}", flush=True)
+    except Exception as e:
+        print(f"[BROWSER LOG ERROR] {e}", flush=True)
+    return {"status": "ok"}
 
 # Thumbnails reais (PNG) dos arquivos recentes -- ver
 # app/repositories/recent_files_repository.py. Pasta criada sob demanda
