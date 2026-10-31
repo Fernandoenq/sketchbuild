@@ -5,7 +5,7 @@ path, metodo, schema de entrada/saida, e delega pro controller.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Response, UploadFile
 
 from app.controllers.scene_controller import SceneController
 from app.schemas.scene import (
@@ -417,6 +417,21 @@ async def save_scene(
     body: SaveSceneRequest, controller: SceneController = Depends(get_controller)
 ) -> SaveSceneResponse:
     return await controller.save_scene(body.path, body.overwrite_confirmed)
+
+
+@router.get(
+    "/download-skp",
+    summary="Exporta e baixa os bytes binários do modelo .skp ativo para gravação in-place via File System Access API",
+)
+async def download_current_skp(
+    controller: SceneController = Depends(get_controller),
+) -> Response:
+    content = await controller.get_skp_bytes()
+    return Response(
+        content=content,
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": 'attachment; filename="modelo.skp"'},
+    )
 
 
 @router.post(

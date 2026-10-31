@@ -527,9 +527,9 @@
         <div class="menu-dropdown-item" id="menu-item-undo" data-action="action-undo"><span>Desfazer</span><span class="menu-dropdown-shortcut">Ctrl+Z</span></div>
         <div class="menu-dropdown-item" id="menu-item-redo" data-action="action-redo"><span>Refazer</span><span class="menu-dropdown-shortcut">Ctrl+Y</span></div>
         <div class="menu-dropdown-sep"></div>
-        <div class="menu-dropdown-item disabled"><span>Recortar</span><span class="menu-dropdown-shortcut">Ctrl+X</span></div>
-        <div class="menu-dropdown-item disabled"><span>Copiar</span><span class="menu-dropdown-shortcut">Ctrl+C</span></div>
-        <div class="menu-dropdown-item disabled"><span>Colar</span><span class="menu-dropdown-shortcut">Ctrl+V</span></div>
+        <div class="menu-dropdown-item" id="menu-item-cut" data-action="action-cut"><span>Recortar</span><span class="menu-dropdown-shortcut">Ctrl+X</span></div>
+        <div class="menu-dropdown-item" id="menu-item-copy" data-action="action-copy"><span>Copiar</span><span class="menu-dropdown-shortcut">Ctrl+C</span></div>
+        <div class="menu-dropdown-item" id="menu-item-paste" data-action="action-paste"><span>Colar</span><span class="menu-dropdown-shortcut">Ctrl+V</span></div>
         <div class="menu-dropdown-item" data-action="delete"><span>Excluir</span><span class="menu-dropdown-shortcut">Del</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Selecionar tudo</span><span class="menu-dropdown-shortcut">Ctrl+A</span></div>
@@ -623,8 +623,8 @@
         <div class="menu-dropdown-item disabled"><span>Zoom na foto</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Posicionar a câmera</span></div>
-        <div class="menu-dropdown-item disabled"><span>Percorrer</span></div>
-        <div class="menu-dropdown-item disabled"><span>Girar</span></div>
+        <div class="menu-dropdown-item" id="menu-item-walk" data-action="camera-walk" title="Modo Primeira Pessoa: Clique para travar o mouse e use W/A/S/D para andar"><span>Percorrer</span></div>
+        <div class="menu-dropdown-item" id="menu-item-look" data-action="camera-look" title="Girar a visão do observador sem mover a posição dos pés"><span>Girar</span></div>
         <div class="menu-dropdown-item disabled"><span>Iglu de imagens</span><span class="menu-dropdown-shortcut">I</span></div>
       </div>
     </div>
@@ -897,7 +897,7 @@
       </button>
     </div>
     <div class="toolbar-group">
-      <button class="toolbar-btn disabled" title="Percorrer (fora de escopo)" aria-label="Percorrer" disabled>
+      <button class="toolbar-btn tool-icon-btn" id="toolbar-walk-btn" data-action="camera-walk" title="Percorrer em Primeira Pessoa (Pointer Lock / W-A-S-D)" aria-label="Percorrer">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2" /><path d="M12 8v6M12 14l-4 6M12 14l4 6M8 10l-3 3M16 10l3 3" /></svg>
       </button>
     </div>

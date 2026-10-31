@@ -1491,3 +1491,10 @@ export function exportIfc4Bim(projectName = "Projeto Executivo SketchBuild", ele
   });
 }
 
+/** Baixa os bytes brutos do modelo .skp atual para gravação in-place com File System Access API. */
+export async function downloadCurrentSkpBytes() {
+  const res = await fetch("/api/v1/scene/download-skp");
+  if (!res.ok) throw new ApiError(res.statusText, res.status);
+  return res.blob();
+}
+

@@ -27,6 +27,8 @@ from core.skp_binary_writer import SkpBinaryWriter
 
 import logging
 import os
+import tempfile
+import uuid
 from dataclasses import dataclass, field
 
 from app.domain.exceptions import (
@@ -279,6 +281,35 @@ class SkpEngineRepository:
         # sobrescrever o caminho escolhido aqui -- nunca mais o template.
         session.model_path = target_path
         return target_path
+
+    def get_skp_bytes(self) -> bytes:
+        """Exporta os bytes do modelo .skp ativo para download/gravação via File System Access API."""
+        bin_session = SkpBinaryWriter.get_session()
+        if bin_session is not None:
+            temp_path = os.path.join(tempfile.gettempdir(), f"sketchbuild_stream_{uuid.uuid4().hex[:8]}.skp")
+            try:
+                SkpBinaryWriter.save_session(temp_path, overwrite_confirmed=True)
+                with open(temp_path, "rb") as f:
+                    return f.read()
+            finally:
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except OSError:
+                        pass
+
+        session = self._require_session()
+        temp_path = os.path.join(tempfile.gettempdir(), f"sketchbuild_stream_{uuid.uuid4().hex[:8]}.skp")
+        try:
+            session.model.save(temp_path)
+            with open(temp_path, "rb") as f:
+                return f.read()
+        finally:
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
 
     def duplicate_instance(
         self,
