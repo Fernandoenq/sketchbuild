@@ -2641,3 +2641,27 @@ Consolidação da sétima rodada de implementação das ferramentas nativas ofic
 1. As variáveis `let isWalkMode = false;`, `const walkEuler`, `const walkKeys`, `const eyeHeightM` e a função `updateWalkMovement()` foram reposicionadas para **antes** da definição de `animate()`.
 2. Removida a declaração redundante que existia na seção posterior do arquivo.
 3. Com isso, `animate()` executa de forma limpa a 60 FPS, todos os listeners do diálogo de boas-vindas são registrados com sucesso e a rotina `boot()` executa normalmente, permitindo fechar o modal ou criar novos modelos imediatamente.
+
+---
+
+## 183. Alinhamento Canônico com SketchUp Pro Desktop: Menus Superiores Oficiais e Bandeja Padrão Clássica
+
+### 183.1 Separação Canônica entre Bandeja Padrão (Default Tray) e Janelas Flutuantes (HtmlDialog)
+- **Engenharia Reversa da UI Oficial:**
+  - No SketchUp Pro Desktop (Classic Win32 e Qt), a **Bandeja Padrão** (Default Tray) localizada na lateral direita nunca funciona como um painel de ações executáveis. Ela abriga exclusivamente os **inspetores passivos de propriedades**:
+    1. *Informações da Entidade (Entity Info)*
+    2. *Etiquetas (Tags / Layers)*
+    3. *Estrutura (Outliner)*
+    4. *Cenas (Scenes)*
+    5. *Estilos de Renderização (Styles)*
+    6. *Sombras (Shadows / Estudo Solar)*
+    7. *Névoa (Fog / Atmosfera)*
+  - Todas as ferramentas analíticas, geradores paramétricos e extensões externas operam canonicamente como **Janelas Flutuantes** (`UI::HtmlDialog` / diálogos de extensões).
+- **Implementação Realizada no SketchBuild:**
+  - Reestruturação do `#menu-bar` com submenus clássicos (*Arquivo*, *Editar*, *Visualizar*, *Câmera*, *Desenho*, *Ferramentas*, *Janela*, *Extensões*, *Ajuda*).
+  - Limpeza total da `#default-tray`, mantendo-a enxuta e fiel ao SketchUp Pro Desktop.
+  - Implementação da classe CSS `.su-dialog` para diálogos flutuantes modais e não-modais:
+    - Arraste pelo cabeçalho com restrição de tela via Pointer/Mouse events.
+    - Foco inteligente com elevação de `z-index`.
+    - Botão clássico de fechar (`&times;`).
+  - Mapeamento unificado de `data-action` e atalhos globais (como `H` para Ocultar, `Space` para Selecionar, `B` para Pintura, etc.).
