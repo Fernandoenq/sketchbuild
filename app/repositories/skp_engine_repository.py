@@ -1681,3 +1681,104 @@ class SkpEngineRepository:
             "sharp_edges_count": len(sharp_edges),
             "overshoot_mm": overshoot_mm,
         }
+
+    def generate_spiral_tube(
+        self,
+        radius_m: float = 1.20,
+        height_m: float = 2.40,
+        turns: float = 1.25,
+        tube_radius_m: float = 0.38,
+        segments_per_turn: int = 16,
+        tube_segments: int = 8,
+        is_open_gutter: bool = False
+    ) -> dict:
+        """Gera geometria 3D de tobogã espiral helicoidal (Frente 51)."""
+        from core.spiral_tube_generator import SpiralTubeGenerator
+        return SpiralTubeGenerator.generate_spiral(
+            radius_m=radius_m,
+            height_m=height_m,
+            turns=turns,
+            tube_radius_m=tube_radius_m,
+            segments_per_turn=segments_per_turn,
+            tube_segments=tube_segments,
+            is_open_gutter=is_open_gutter
+        )
+
+    def calculate_overturn_stability(
+        self,
+        total_mass_kg: float = 850.0,
+        cg_position: list = None,
+        base_support_points: list = None,
+        wind_speed_km_h: float = 100.0,
+        exposed_frontal_area_m2: float = 6.50,
+        lateral_live_load_n: float = 500.0,
+        live_load_height_m: float = 1.80
+    ) -> dict:
+        """Calcula estabilidade ao tombamento sob vento e empuxo (Frente 52)."""
+        from core.overturn_stability_calculator import OverturnStabilityCalculator
+        cg_tuple = tuple(cg_position) if cg_position else (1.50, 1.20, 1.45)
+        supports = [tuple(p) for p in base_support_points] if base_support_points else None
+        return OverturnStabilityCalculator.calculate_stability(
+            total_mass_kg=total_mass_kg,
+            cg_position=cg_tuple,
+            base_support_points=supports,
+            wind_speed_km_h=wind_speed_km_h,
+            exposed_frontal_area_m2=exposed_frontal_area_m2,
+            lateral_live_load_n=lateral_live_load_n,
+            live_load_height_m=live_load_height_m
+        )
+
+    def export_field_inspection_html(
+        self,
+        park_name: str,
+        inspector_name: str,
+        inspection_date: str,
+        equipment_list: list = None,
+        output_filename: str = "ficha_inspecao_nbr16071.html"
+    ) -> dict:
+        """Exporta checklist de inspeção de campo NBR 16071-7 em HTML5 offline (Frente 53)."""
+        from core.field_inspection_exporter import FieldInspectionExporter
+        import tempfile, os
+        out_dir = tempfile.gettempdir()
+        out_path = os.path.join(out_dir, output_filename)
+        return FieldInspectionExporter.generate_inspection_html(
+            park_name=park_name,
+            inspector_name=inspector_name,
+            inspection_date=inspection_date,
+            equipment_list=equipment_list,
+            output_path=out_path
+        )
+
+    def calculate_angle_dimension(
+        self,
+        vertex_point: list,
+        point_a: list,
+        point_b: list,
+        arc_radius_m: float = 0.60
+    ) -> dict:
+        """Calcula cota angular e arco gráfico 3D entre 3 pontos (Frente 54)."""
+        from core.angle_dimension_tool import AngleDimensionTool
+        return AngleDimensionTool.calculate_angle_dimension(
+            vertex_point=tuple(vertex_point),
+            point_a=tuple(point_a),
+            point_b=tuple(point_b),
+            arc_radius_m=arc_radius_m
+        )
+
+    def calculate_fastener_torque(
+        self,
+        timber_thickness_mm: float = 160.0,
+        steel_plate_thickness_mm: float = 4.75,
+        bolt_standard: str = "1/2_POL",
+        material_grade: str = "Inox_304",
+        friction_factor_k: float = 0.18
+    ) -> dict:
+        """Dimensiona fixador e calcula torque normativo NBR 7190 / ISO 898 (Frente 55)."""
+        from core.fastener_torque_optimizer import FastenerTorqueOptimizer
+        return FastenerTorqueOptimizer.calculate_connection_fasteners(
+            timber_thickness_mm=timber_thickness_mm,
+            steel_plate_thickness_mm=steel_plate_thickness_mm,
+            bolt_standard=bolt_standard,
+            material_grade=material_grade,
+            friction_factor_k=friction_factor_k
+        )
