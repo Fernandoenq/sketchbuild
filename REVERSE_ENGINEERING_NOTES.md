@@ -1720,3 +1720,66 @@ A Frente 90 implementa o cálculo exato de propriedades mecânicas e inerciais d
 - **Massa e Densidades Normativas:** Integração com catálogo de materiais (Madeiras, Aço, Alumínio, PEAD, Concreto, Vidro) e cálculo dos momentos principais de inércia $I_{xx}, I_{yy}, I_{zz}$ em relação ao CG.
 - **Módulo:** `core/mass_properties_engine.py` (`MassPropertiesCenterOfGravityEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/engineering/mass-properties`.
+
+---
+
+## 118. Frente 91: Motor de Espessura e Offset de Casca Sólida B-Rep (Joint Push/Pull & Solid Thickening - Zero DLL)
+
+A Frente 91 implementa a extrusão tridimensional de casca sólida (*solid shell thickening*) sobre malhas abertas ou fechadas, reproduzindo a ferramenta Joint Push/Pull do SketchUp.
+
+### A. Algoritmo de Offset Normal de Vértices e Costura de Bordas
+- **Normais Médias Ponderadas:** Calcula a normal média em cada vértice a partir das faces incidentes.
+- **Offset Vertex:** Desloca os vértices na direção da normal $V_{\text{offset}} = V + \vec{n} \cdot t$.
+- **Costura Automática de Bordas Livres:** Identifica arestas de contorno que pertencem a apenas uma face e costura a malha original à malha offset com quadriláteros perimetrais, garantindo que o sólido resultante seja 2-manifold estanque.
+- **Módulo:** `core/shell_solid_offset_engine.py` (`ShellSolidOffsetEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/solid-shell`.
+
+---
+
+## 119. Frente 92: Decodificador de Iluminação com Lâmpadas Fotométricas e Holofotes Spot (Photometric Spotlights - Zero DLL)
+
+A Frente 92 implementa a parametrização de iluminação artificial fotométrica direcional com perfis spot cônicos e espectro Kelvin.
+
+### A. Temperatura de Cor Kelvin e Atenuação Quadrática Inversa
+- **Corpo Negro de Tanner Helland:** Converte temperatura de cor em Kelvin ($1000\text{K}$ a $40000\text{K}$) para coordenadas RGB e hexadecimal.
+- **Geometria Cônica e Penumbra:** Calcula o vetor diretor, o ângulo de abertura total do feixe (*beam angle*), taxa de penumbra suave e atenuação física quadrática inversa ($1/d^2$).
+- **Compatibilidade Three.js:** Gera parâmetros canônicos diretos para instanciar `THREE.SpotLight`.
+- **Módulo:** `core/photometric_spot_light_engine.py` (`PhotometricSpotLightEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/lighting/spotlight`.
+
+---
+
+## 120. Frente 93: Motor de Tubulações e Dutos Paramétricos com Curvas e Conexões (Piping & Ductwork - Zero DLL)
+
+A Frente 93 implementa o roteamento analítico tridimensional de tubos cilíndricos e dutos de climatização ao longo de polilinhas 3D de centro.
+
+### A. Curvas de Raio Longo e Triedro de Frenet-Serret
+- **Detecção de Deflexões:** Identifica ângulos de dobra superiores a $5^\circ$ entre trechos retos e insere especificações de conexões e cotovelos de 90° e 45°.
+- **Extrusão com Triedro de Frenet:** Discretiza anéis radiais perpendiculares ao vetor tangente da curva, costura com polígonos quadriláteros e fecha extremidades com tampas circulares estanques.
+- **Módulo:** `core/piping_ductwork_engine.py` (`PipingDuctworkEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/mep/piping-route`.
+
+---
+
+## 121. Frente 94: Decodificador de Animação de Câmera em Percurso Orbit e Flythrough (Camera Spline - Zero DLL)
+
+A Frente 94 reproduz o subsistema de animações cinematográficas de passeio virtual e voo do SketchUp.
+
+### A. Modos Orbit 360° e Catmull-Rom Flythrough Spline
+- **Modo Órbita Circular:** Rotação elíptica/circular contínua ao redor de um alvo com suavização senoidal (ease-in/ease-out).
+- **Modo Flythrough Spline:** Interpolação cúbica contínua de Catmull-Rom através de uma lista de waypoints no espaço, garantindo suavidade de derivada primeira (velocidade contínua sem solavancos nas curvas).
+- **Módulo:** `core/orbit_flythrough_path_engine.py` (`OrbitFlythroughPathEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/animation/camera-path`.
+
+---
+
+## 122. Frente 95: Exportador de Tabela de Cutlist Otimizada em CSV / JSON de Fabricação CNC (CNC Cutlist - Zero DLL)
+
+A Frente 95 implementa a extração e parametrização industrial de listas de corte de marcenaria e perfis metálicos para serras seccionadoras e máquinas CNC.
+
+### A. Refilos, Sentido do Veio e Códigos de Barras
+- **Dimensões Finais vs. Brutas:** Aplica margens de refilo (*trimming allowance*) e espessura do disco de serra (*saw kerf*) para cálculo da área bruta e rendimento de chapa.
+- **Sentido do Veio (Grain Direction):** Especificação para corte no sentido do veio longitudinal ou transversal.
+- **Exportação CSV Industrial:** Layout delimitado por ponto-e-vírgula pronto para importação em softwares de nesting (Homag Cut Rite, Giben, SCM).
+- **Módulo:** `core/cam_cutlist_fabrication_engine.py` (`CamCutlistFabricationEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/factory/cutlist-cnc`.

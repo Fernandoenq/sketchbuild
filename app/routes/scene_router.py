@@ -131,6 +131,16 @@ from app.schemas.scene import (
     ClashDetectionResponse,
     MassPropertiesRequest,
     MassPropertiesResponse,
+    SolidShellRequest,
+    SolidShellResponse,
+    PhotometricSpotLightRequest,
+    PhotometricSpotLightResponse,
+    PipingRouteRequest,
+    PipingRouteResponse,
+    CameraAnimationPathRequest,
+    CameraAnimationPathResponse,
+    CamCutlistRequest,
+    CamCutlistResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1765,3 +1775,63 @@ async def calculate_mesh_mass_properties(
     controller: SceneController = Depends(get_controller),
 ) -> MassPropertiesResponse:
     return await controller.calculate_mesh_mass_properties(body)
+
+
+@router.post(
+    "/geometry/solid-shell",
+    response_model=SolidShellResponse,
+    summary="Gera casca sólida volumétrica B-Rep a partir de superfícies (Frente 91)",
+)
+async def create_solid_shell(
+    body: SolidShellRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SolidShellResponse:
+    return await controller.create_solid_shell(body)
+
+
+@router.post(
+    "/lighting/spotlight",
+    response_model=PhotometricSpotLightResponse,
+    summary="Configura parâmetros de holofote fotométrico spot Three.js (Frente 92)",
+)
+async def configure_spot_light(
+    body: PhotometricSpotLightRequest,
+    controller: SceneController = Depends(get_controller),
+) -> PhotometricSpotLightResponse:
+    return await controller.configure_spot_light(body)
+
+
+@router.post(
+    "/mep/piping-route",
+    response_model=PipingRouteResponse,
+    summary="Roteia tubulação e dutos paramétricos 3D com cotovelos e curvas (Frente 93)",
+)
+async def generate_pipe_route(
+    body: PipingRouteRequest,
+    controller: SceneController = Depends(get_controller),
+) -> PipingRouteResponse:
+    return await controller.generate_pipe_route(body)
+
+
+@router.post(
+    "/animation/camera-path",
+    response_model=CameraAnimationPathResponse,
+    summary="Gera trajetória cinematográfica contínua de câmera (Orbit ou Flythrough) (Frente 94)",
+)
+async def generate_camera_animation_path(
+    body: CameraAnimationPathRequest,
+    controller: SceneController = Depends(get_controller),
+) -> CameraAnimationPathResponse:
+    return await controller.generate_camera_animation_path(body)
+
+
+@router.post(
+    "/factory/cutlist-cnc",
+    response_model=CamCutlistResponse,
+    summary="Processa peças e produz tabela industrial de corte CNC com CSV (Frente 95)",
+)
+async def generate_cnc_cutlist(
+    body: CamCutlistRequest,
+    controller: SceneController = Depends(get_controller),
+) -> CamCutlistResponse:
+    return await controller.generate_cnc_cutlist(body)

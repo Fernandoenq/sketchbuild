@@ -140,6 +140,16 @@ from app.schemas.scene import (
     ClashDetectionResponse,
     MassPropertiesRequest,
     MassPropertiesResponse,
+    SolidShellRequest,
+    SolidShellResponse,
+    PhotometricSpotLightRequest,
+    PhotometricSpotLightResponse,
+    PipingRouteRequest,
+    PipingRouteResponse,
+    CameraAnimationPathRequest,
+    CameraAnimationPathResponse,
+    CamCutlistRequest,
+    CamCutlistResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1712,5 +1722,81 @@ class SceneController:
                 body.custom_density_kg_m3
             )
             return MassPropertiesResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_solid_shell(self, body: SolidShellRequest) -> SolidShellResponse:
+        """Gera casca sólida volumétrica B-Rep a partir de superfícies (Frente 91)."""
+        try:
+            res = await self._service.create_solid_shell(
+                body.vertices,
+                body.faces,
+                body.thickness_m,
+                body.inwards
+            )
+            return SolidShellResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def configure_spot_light(self, body: PhotometricSpotLightRequest) -> PhotometricSpotLightResponse:
+        """Configura parâmetros de holofote fotométrico spot Three.js (Frente 92)."""
+        try:
+            res = await self._service.configure_spot_light(
+                body.position,
+                body.target,
+                body.lumens,
+                body.color_temperature_k,
+                body.beam_angle_deg,
+                body.penumbra_percent,
+                body.max_distance_m,
+                body.cast_shadows
+            )
+            return PhotometricSpotLightResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_pipe_route(self, body: PipingRouteRequest) -> PipingRouteResponse:
+        """Roteia tubulação e dutos paramétricos 3D com cotovelos e curvas (Frente 93)."""
+        try:
+            res = await self._service.generate_pipe_route(
+                body.route_points,
+                body.outer_diameter_mm,
+                body.wall_thickness_mm,
+                body.radial_segments,
+                body.bend_radius_factor
+            )
+            return PipingRouteResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_camera_animation_path(self, body: CameraAnimationPathRequest) -> CameraAnimationPathResponse:
+        """Gera trajetória cinematográfica contínua de câmera (Orbit ou Flythrough) (Frente 94)."""
+        try:
+            res = await self._service.generate_camera_animation_path(
+                body.mode,
+                body.target_point,
+                body.radius_m,
+                body.height_m,
+                body.start_angle_deg,
+                body.total_rotation_deg,
+                body.waypoints,
+                body.duration_seconds,
+                body.fps,
+                body.fov_deg
+            )
+            return CameraAnimationPathResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_cnc_cutlist(self, body: CamCutlistRequest) -> CamCutlistResponse:
+        """Processa peças e produz tabela industrial de corte CNC com CSV (Frente 95)."""
+        try:
+            res = await self._service.generate_cnc_cutlist(
+                body.parts,
+                body.saw_kerf_mm,
+                body.trim_margin_mm,
+                body.export_csv
+            )
+            return CamCutlistResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

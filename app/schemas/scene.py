@@ -2562,3 +2562,151 @@ class MassPropertiesResponse(BaseModel):
     dimensions_bbox_m: list[float]
     moments_of_inertia_kg_m2: dict[str, float]
     status: str
+
+
+class SolidShellRequest(BaseModel):
+    """Entrada para espessura e casca sólida B-Rep (Frente 91)."""
+
+    vertices: list[list[float]] = Field(description="Vértices da malha original [[x, y, z], ...]")
+    faces: list[list[int]] = Field(description="Faces originais [[i1, i2, ...], ...]")
+    thickness_m: float = Field(default=0.05, ge=0.001, le=10.0, description="Espessura da parede sólida em metros")
+    inwards: bool = Field(default=False, description="Se verdadeiro, expande para dentro da normal")
+
+
+class SolidShellResponse(BaseModel):
+    """Resposta da casca sólida B-Rep gerada (Frente 91)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SolidShellResult"
+    thickness_m: float
+    inwards: bool
+    original_vertices_count: int
+    original_faces_count: int
+    total_vertices_count: int
+    total_faces_count: int
+    boundary_quads_count: int
+    triangles_count: int
+    vertices: list[list[float]]
+    faces: list[list[int]]
+    triangles: list[list[int]]
+    is_solid_manifold: bool
+    status: str
+
+
+class PhotometricSpotLightRequest(BaseModel):
+    """Entrada para parametrização de holofote fotométrico spot (Frente 92)."""
+
+    position: list[float] = Field(description="Posição da luminária [x, y, z]")
+    target: list[float] = Field(description="Ponto focal ou alvo [x, y, z]")
+    lumens: float = Field(default=1200.0, ge=10.0, le=500000.0, description="Fluxo luminoso em lúmens")
+    color_temperature_k: float = Field(default=3000.0, ge=1000.0, le=40000.0, description="Temperatura de cor em Kelvin")
+    beam_angle_deg: float = Field(default=45.0, ge=5.0, le=175.0, description="Ângulo de abertura do feixe")
+    penumbra_percent: float = Field(default=25.0, ge=0.0, le=100.0)
+    max_distance_m: float = Field(default=20.0, ge=0.5, le=500.0)
+    cast_shadows: bool = Field(default=True)
+
+
+class PhotometricSpotLightResponse(BaseModel):
+    """Resposta com configuração analítica de holofote fotométrico (Frente 92)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "PhotometricSpotLight"
+    position: list[float]
+    target: list[float]
+    direction: list[float]
+    photometrics: dict[str, Any]
+    beam_geometry: dict[str, Any]
+    three_config: dict[str, Any]
+    status: str
+
+
+class PipingRouteRequest(BaseModel):
+    """Entrada para geração de rota de tubulação paramétrica (Frente 93)."""
+
+    route_points: list[list[float]] = Field(description="Pontos de eixo da rota [[x, y, z], ...]")
+    outer_diameter_mm: float = Field(default=114.3, ge=10.0, le=2000.0, description="Diâmetro externo nominal em mm")
+    wall_thickness_mm: float = Field(default=6.02, ge=0.5, le=100.0)
+    radial_segments: int = Field(default=16, ge=6, le=64)
+    bend_radius_factor: float = Field(default=1.5, ge=0.5, le=10.0)
+
+
+class PipingRouteResponse(BaseModel):
+    """Resposta da malha de tubulação e conexões/cotovelos gerados (Frente 93)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "PipingRouteResult"
+    outer_diameter_mm: float
+    wall_thickness_mm: float
+    total_length_m: float
+    segments_count: int
+    fittings_count: int
+    fittings: list[dict[str, Any]]
+    vertices_count: int
+    faces_count: int
+    triangles_count: int
+    vertices: list[list[float]]
+    faces: list[list[int]]
+    triangles: list[list[int]]
+    status: str
+
+
+class CameraAnimationPathRequest(BaseModel):
+    """Entrada para geração de animação de trajetória de câmera (Frente 94)."""
+
+    mode: str = Field(default="ORBIT", description="'ORBIT' ou 'FLYTHROUGH'")
+    target_point: list[float] = Field(description="Ponto focal [x, y, z]")
+    radius_m: float = Field(default=10.0, ge=0.5, le=1000.0)
+    height_m: float = Field(default=3.5, ge=-100.0, le=1000.0)
+    start_angle_deg: float = Field(default=0.0)
+    total_rotation_deg: float = Field(default=360.0)
+    waypoints: list[list[float]] | None = Field(default=None, description="Waypoints para modo FLYTHROUGH")
+    duration_seconds: float = Field(default=10.0, ge=0.5, le=600.0)
+    fps: int = Field(default=30, ge=1, le=120)
+    fov_deg: float = Field(default=45.0, ge=10.0, le=120.0)
+
+
+class CameraAnimationPathResponse(BaseModel):
+    """Resposta com frames contínuos de animação de câmera (Frente 94)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "CameraAnimationPath"
+    mode: str
+    duration_seconds: float
+    fps: int
+    total_frames: int
+    radius_m: float | None = None
+    waypoints_count: int | None = None
+    target: list[float]
+    frames: list[dict[str, Any]]
+    status: str
+
+
+class CamCutlistRequest(BaseModel):
+    """Entrada para geração de lista de corte industrial CNC (Frente 95)."""
+
+    parts: list[dict[str, Any]] = Field(description="Lista de peças [{'name': str, 'length_mm': float, 'width_mm': float, 'thickness_mm': float, 'quantity': int}]")
+    saw_kerf_mm: float = Field(default=4.0, ge=0.5, le=20.0, description="Espessura do disco de serra")
+    trim_margin_mm: float = Field(default=15.0, ge=0.0, le=100.0, description="Margem de refilo por borda")
+    export_csv: bool = Field(default=True)
+
+
+class CamCutlistResponse(BaseModel):
+    """Resposta com lista de corte CNC, métricas de rendimento e CSV industrial (Frente 95)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "CamCutlistReport"
+    saw_kerf_mm: float
+    trim_margin_mm: float
+    unique_parts_count: int
+    total_items_count: int
+    total_finished_area_m2: float
+    total_raw_area_m2: float
+    cutting_yield_percent: float
+    parts: list[dict[str, Any]]
+    csv_data: str
+    status: str
