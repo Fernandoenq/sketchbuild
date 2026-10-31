@@ -1687,3 +1687,99 @@ class SceneService:
             lod1_target_ratio,
             lod2_target_ratio
         )
+
+    async def generate_stair(
+        self,
+        total_height_m: float = 2.80,
+        stair_width_m: float = 1.00,
+        stair_type: str = "STRAIGHT",
+        origin_xyz: list = None,
+        add_handrail: bool = True
+    ) -> dict:
+        """Gera escada paramétrica e dimensionamento ergonômico Blondel NBR 9050 (Frente 101)."""
+        return await run_in_threadpool(
+            self._repository.generate_stair,
+            total_height_m,
+            stair_width_m,
+            stair_type,
+            origin_xyz,
+            add_handrail
+        )
+
+    async def generate_voronoi_panel(
+        self,
+        width_m: float = 2.0,
+        height_m: float = 1.0,
+        thickness_m: float = 0.03,
+        num_seeds: int = 12,
+        seed_random_seed: int = 42,
+        cell_inset_ratio: float = 0.20
+    ) -> dict:
+        """Gera painel decorativo ou estrutural com perfurações Voronoi (Frente 102)."""
+        return await run_in_threadpool(
+            self._repository.generate_voronoi_panel,
+            width_m,
+            height_m,
+            thickness_m,
+            num_seeds,
+            seed_random_seed,
+            cell_inset_ratio
+        )
+
+    async def calculate_wind_pressure(
+        self,
+        basic_speed_v0_m_s: float = 45.0,
+        terrain_category: str = "IV",
+        building_height_m: float = 12.0,
+        facade_width_m: float = 20.0,
+        facade_length_m: float = 15.0,
+        topographic_s1: float = 1.0,
+        statistical_s3: float = 1.0
+    ) -> dict:
+        """Calcula pressão dinâmica e forças estáticas de vento NBR 6123 (Frente 103)."""
+        return await run_in_threadpool(
+            self._repository.calculate_wind_pressure,
+            basic_speed_v0_m_s,
+            terrain_category,
+            building_height_m,
+            facade_width_m,
+            facade_length_m,
+            topographic_s1,
+            statistical_s3
+        )
+
+    async def configure_atmospheric_sky(
+        self,
+        solar_elevation_deg: float = 35.0,
+        solar_azimuth_deg: float = 135.0,
+        turbidity: float = 3.0,
+        rayleigh: float = 1.2,
+        mie_coefficient: float = 0.005,
+        mie_directional_g: float = 0.82
+    ) -> dict:
+        """Configura céu físico Rayleigh/Mie e sol Three.js (Frente 104)."""
+        return await run_in_threadpool(
+            self._repository.configure_atmospheric_sky,
+            solar_elevation_deg,
+            solar_azimuth_deg,
+            turbidity,
+            rayleigh,
+            mie_coefficient,
+            mie_directional_g
+        )
+
+    async def export_ifc4_bim(
+        self,
+        project_name: str,
+        elements: list,
+        author: str = "SketchBuild Engineer",
+        organization: str = "Parkelo & SketchBuild"
+    ) -> dict:
+        """Compila modelo no formato texto físico STEP ISO-10303-21 IFC4 LOD 350 (Frente 105)."""
+        return await run_in_threadpool(
+            self._repository.export_ifc4_bim,
+            project_name,
+            elements,
+            author,
+            organization
+        )

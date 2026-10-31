@@ -2844,3 +2844,131 @@ class SkpLODChainResponse(BaseModel):
     lod_levels: list[dict[str, Any]]
     metrics: dict[str, Any]
     status: str
+
+
+class StairGeneratorRequest(BaseModel):
+    """Entrada para geração de escada paramétrica e cálculo de Blondel NBR 9050 (Frente 101)."""
+
+    total_height_m: float = Field(default=2.80, ge=0.3, le=50.0, description="Desnível total a vencer")
+    stair_width_m: float = Field(default=1.00, ge=0.5, le=10.0, description="Largura útil da escada")
+    stair_type: str = Field(default="STRAIGHT", description="'STRAIGHT', 'L_SHAPE', 'SPIRAL_HELICAL', 'SANTOS_DUMONT'")
+    origin_xyz: list[float] = Field(default_factory=lambda: [0.0, 0.0, 0.0])
+    add_handrail: bool = Field(default=True)
+
+
+class StairGeneratorResponse(BaseModel):
+    """Resposta com malha 3D de escada e caminho de corrimão (Frente 101)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "StairGeometryResult"
+    stair_type: str
+    total_height_m: float
+    stair_width_m: float
+    total_run_length_m: float
+    blondel_info: dict[str, Any]
+    steps_count: int
+    vertices_count: int
+    faces_count: int
+    triangles_count: int
+    vertices: list[list[float]]
+    faces: list[list[int]]
+    triangles: list[list[int]]
+    handrail_path: list[list[float]]
+    status: str
+
+
+class VoronoiPanelRequest(BaseModel):
+    """Entrada para geração de painel Voronoi vazado paramétrico (Frente 102)."""
+
+    width_m: float = Field(default=2.0, ge=0.1, le=50.0)
+    height_m: float = Field(default=1.0, ge=0.1, le=50.0)
+    thickness_m: float = Field(default=0.03, ge=0.005, le=1.0)
+    num_seeds: int = Field(default=12, ge=3, le=100)
+    seed_random_seed: int = Field(default=42)
+    cell_inset_ratio: float = Field(default=0.20, ge=0.05, le=0.80)
+
+
+class VoronoiPanelResponse(BaseModel):
+    """Resposta com células Voronoi e loops vazados (Frente 102)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "VoronoiPanelResult"
+    panel_dimensions_m: list[float]
+    seeds_count: int
+    seeds: list[list[float]]
+    cells: list[dict[str, Any]]
+    cell_inset_ratio: float
+    status: str
+
+
+class WindPressureRequest(BaseModel):
+    """Entrada para cálculo de vento normativo NBR 6123 (Frente 103)."""
+
+    basic_speed_v0_m_s: float = Field(default=45.0, ge=10.0, le=100.0, description="Velocidade básica V0 em m/s")
+    terrain_category: str = Field(default="IV", description="'I', 'II', 'III', 'IV', 'V'")
+    building_height_m: float = Field(default=12.0, ge=1.0, le=300.0)
+    facade_width_m: float = Field(default=20.0, ge=1.0, le=500.0)
+    facade_length_m: float = Field(default=15.0, ge=1.0, le=500.0)
+    topographic_s1: float = Field(default=1.0, ge=0.8, le=2.0)
+    statistical_s3: float = Field(default=1.0, ge=0.8, le=1.5)
+
+
+class WindPressureResponse(BaseModel):
+    """Resposta com pressão dinâmica e forças de arrasto de vento (Frente 103)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "WindPressureReport"
+    parameters: dict[str, Any]
+    aerodynamics: dict[str, Any]
+    facade_loads: dict[str, Any]
+    status: str
+
+
+class AtmosphericSkyRequest(BaseModel):
+    """Entrada para configuração de céu físico Rayleigh/Mie (Frente 104)."""
+
+    solar_elevation_deg: float = Field(default=35.0, ge=-10.0, le=90.0)
+    solar_azimuth_deg: float = Field(default=135.0, ge=0.0, le=360.0)
+    turbidity: float = Field(default=3.0, ge=1.0, le=20.0)
+    rayleigh: float = Field(default=1.2, ge=0.0, le=10.0)
+    mie_coefficient: float = Field(default=0.005, ge=0.0, le=0.1)
+    mie_directional_g: float = Field(default=0.82, ge=0.0, le=1.0)
+
+
+class AtmosphericSkyResponse(BaseModel):
+    """Resposta com parâmetros de espalhamento e Three.js Sky (Frente 104)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "AtmosphericSkyConfig"
+    solar_angles: dict[str, Any]
+    sun_position_vector: list[float]
+    atmospheric_parameters: dict[str, Any]
+    three_sky_uniforms: dict[str, Any]
+    status: str
+
+
+class IFC4BimExportRequest(BaseModel):
+    """Entrada para compilação física STEP ISO-10303-21 IFC4 LOD 350 (Frente 105)."""
+
+    project_name: str = Field(default="Projeto Executivo SketchBuild")
+    elements: list[dict[str, Any]] = Field(description="Lista de elementos [{'name': str, 'ifc_type': str, 'vertices': [...], 'triangles': [...]}]")
+    author: str = Field(default="SketchBuild Engineer")
+    organization: str = Field(default="Parkelo & SketchBuild")
+
+
+class IFC4BimExportResponse(BaseModel):
+    """Resposta com o documento STEP IFC4 em texto puro (Frente 105)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "IFC4StepExportResult"
+    project_name: str
+    elements_count: int
+    step_file_size_bytes: int
+    ifc_schema: str = "IFC4"
+    step_content: str
+    status: str

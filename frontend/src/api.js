@@ -1432,3 +1432,62 @@ export function generateMeshLodChain(vertices, triangles, lod1TargetRatio = 0.50
     lod2_target_ratio: lod2TargetRatio,
   });
 }
+
+/** Gera escada paramétrica 3D com ergonomia de Blondel NBR 9050 (Frente 101). */
+export function generateStair(totalHeightM = 2.80, stairWidthM = 1.0, stairType = "STRAIGHT", originXyz = [0, 0, 0], addHandrail = true) {
+  return postJson("/api/v1/scene/architecture/stair", "POST", {
+    total_height_m: totalHeightM,
+    stair_width_m: stairWidthM,
+    stair_type: stairType,
+    origin_xyz: originXyz,
+    add_handrail: addHandrail,
+  });
+}
+
+/** Gera painel arquitetônico vazado Voronoi 3D paramétrico (Frente 102). */
+export function generateVoronoiPanel(widthM = 2.0, heightM = 3.0, thicknessM = 0.05, numSeeds = 25, seedRandomSeed = 42, cellInsetRatio = 0.15) {
+  return postJson("/api/v1/scene/architecture/voronoi-panel", "POST", {
+    width_m: widthM,
+    height_m: heightM,
+    thickness_m: thicknessM,
+    num_seeds: numSeeds,
+    seed_random_seed: seedRandomSeed,
+    cell_inset_ratio: cellInsetRatio,
+  });
+}
+
+/** Calcula pressão dinâmica e forças de arrasto de vento normativo NBR 6123 (Frente 103). */
+export function calculateWindPressure(basicSpeedV0 = 45.0, terrainCategory = "IV", buildingHeightM = 12.0, facadeWidthM = 20.0, facadeLengthM = 15.0, s1 = 1.0, s3 = 1.0) {
+  return postJson("/api/v1/scene/engineering/wind-pressure", "POST", {
+    basic_speed_v0_m_s: basicSpeedV0,
+    terrain_category: terrainCategory,
+    building_height_m: buildingHeightM,
+    facade_width_m: facadeWidthM,
+    facade_length_m: facadeLengthM,
+    topographic_s1: s1,
+    statistical_s3: s3,
+  });
+}
+
+/** Configura céu físico Rayleigh/Mie e uniformes para Three.js Sky (Frente 104). */
+export function configureAtmosphericSky(solarElevationDeg = 35.0, solarAzimuthDeg = 135.0, turbidity = 3.0, rayleigh = 1.2, mieCoefficient = 0.005, mieDirectionalG = 0.82) {
+  return postJson("/api/v1/scene/environment/atmospheric-sky", "POST", {
+    solar_elevation_deg: solarElevationDeg,
+    solar_azimuth_deg: solarAzimuthDeg,
+    turbidity,
+    rayleigh,
+    mie_coefficient: mieCoefficient,
+    mie_directional_g: mieDirectionalG,
+  });
+}
+
+/** Compila modelo geométrico e emite arquivo STEP ISO-10303-21 IFC4 LOD 350 físico (Frente 105). */
+export function exportIfc4Bim(projectName = "Projeto Executivo SketchBuild", elements = [], author = "SketchBuild Engineer", organization = "Parkelo & SketchBuild") {
+  return postJson("/api/v1/scene/bim/export-ifc4", "POST", {
+    project_name: projectName,
+    elements,
+    author,
+    organization,
+  });
+}
+

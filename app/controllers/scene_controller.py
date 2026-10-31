@@ -160,6 +160,16 @@ from app.schemas.scene import (
     WaterMaterialConfigResponse,
     SkpLODChainRequest,
     SkpLODChainResponse,
+    StairGeneratorRequest,
+    StairGeneratorResponse,
+    VoronoiPanelRequest,
+    VoronoiPanelResponse,
+    WindPressureRequest,
+    WindPressureResponse,
+    AtmosphericSkyRequest,
+    AtmosphericSkyResponse,
+    IFC4BimExportRequest,
+    IFC4BimExportResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1880,5 +1890,78 @@ class SceneController:
                 body.lod2_target_ratio
             )
             return SkpLODChainResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_stair(self, body: StairGeneratorRequest) -> StairGeneratorResponse:
+        """Gera escada paramétrica e dimensionamento ergonômico Blondel NBR 9050 (Frente 101)."""
+        try:
+            res = await self._service.generate_stair(
+                body.total_height_m,
+                body.stair_width_m,
+                body.stair_type,
+                body.origin_xyz,
+                body.add_handrail
+            )
+            return StairGeneratorResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_voronoi_panel(self, body: VoronoiPanelRequest) -> VoronoiPanelResponse:
+        """Gera painel decorativo ou estrutural com perfurações Voronoi (Frente 102)."""
+        try:
+            res = await self._service.generate_voronoi_panel(
+                body.width_m,
+                body.height_m,
+                body.thickness_m,
+                body.num_seeds,
+                body.seed_random_seed,
+                body.cell_inset_ratio
+            )
+            return VoronoiPanelResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_wind_pressure(self, body: WindPressureRequest) -> WindPressureResponse:
+        """Calcula pressão dinâmica e forças estáticas de vento NBR 6123 (Frente 103)."""
+        try:
+            res = await self._service.calculate_wind_pressure(
+                body.basic_speed_v0_m_s,
+                body.terrain_category,
+                body.building_height_m,
+                body.facade_width_m,
+                body.facade_length_m,
+                body.topographic_s1,
+                body.statistical_s3
+            )
+            return WindPressureResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def configure_atmospheric_sky(self, body: AtmosphericSkyRequest) -> AtmosphericSkyResponse:
+        """Configura céu físico Rayleigh/Mie e sol Three.js (Frente 104)."""
+        try:
+            res = await self._service.configure_atmospheric_sky(
+                body.solar_elevation_deg,
+                body.solar_azimuth_deg,
+                body.turbidity,
+                body.rayleigh,
+                body.mie_coefficient,
+                body.mie_directional_g
+            )
+            return AtmosphericSkyResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def export_ifc4_bim(self, body: IFC4BimExportRequest) -> IFC4BimExportResponse:
+        """Compila modelo no formato texto físico STEP ISO-10303-21 IFC4 LOD 350 (Frente 105)."""
+        try:
+            res = await self._service.export_ifc4_bim(
+                body.project_name,
+                body.elements,
+                body.author,
+                body.organization
+            )
+            return IFC4BimExportResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
