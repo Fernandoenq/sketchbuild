@@ -71,6 +71,11 @@ import {
   generateMaintenancePlan,
   applyMirror,
   exportQrTagSvg,
+  simulateSwingKinematics,
+  generateArtPdf,
+  inspectWallThickness,
+  optimizeCargoLoad,
+  generateTechnicalSketch,
   ApiError,
 } from "./api.js";
 import {
@@ -2045,6 +2050,8 @@ const MENU_ACTIONS = {
   "export-cam-dxf": () => handleExportCamDxf(),
   "export-point-cloud": () => handleExportPointCloud(),
   "export-qr-tag": () => handleExportQrTag(),
+  "export-art-pdf": () => handleExportArtPdf(),
+  "export-technical-sketch": () => handleExportTechnicalSketch(),
   "tool-mirror": () => handleMirrorTool(),
   "draw-terrain": () => handleDrawTerrain(),
   "import-dxf": () => {
@@ -3343,3 +3350,99 @@ async function handleExportQrTag() {
 
 // Listener para botão de manutenção preventiva
 document.getElementById("btn-calc-maintenance")?.addEventListener("click", handleMaintenancePlan);
+
+
+// --- Frente 46: Simulação de Cinemática de Balanço NBR 16071 ---
+async function handleSwingKinematics() {
+  setStatus("Simulando dinâmica e zona de impacto de balanço NBR 16071...");
+  try {
+    const res = await simulateSwingKinematics(2.20, 50.0, 45.0, 0.45);
+    const badge = document.getElementById("swing-status-badge");
+    const details = document.getElementById("swing-details");
+    const box = document.getElementById("swing-result");
+    if (badge && details && box) {
+      box.style.display = "block";
+      badge.textContent = `${res.safety_status} | Vmax: ${res.max_tangential_speed_m_s} m/s`;
+      details.innerHTML = `• <strong>Tração Máx. Corrente:</strong> ${res.max_chain_tension_kn} kN<br/>` +
+        `• <strong>Zona de Queda Requerida:</strong> ${res.required_impact_zone_length_m} m<br/>` +
+        `• <strong>Folga do Assento:</strong> ${res.seat_clearance_at_rest_m} m (${res.seat_clearance_compliant ? "OK" : "Revisar"})`;
+    }
+    setStatus(`Simulação concluída: ${res.safety_status} (${res.trajectory_points_count} frames calculados).`);
+  } catch (err) {
+    setStatus(`Erro na simulação do balanço: ${err.message}`, true);
+  }
+}
+
+// --- Frente 47: Minuta de ART / RRT em PDF ---
+async function handleExportArtPdf() {
+  setStatus("Gerando minuta executiva de ART / RRT em PDF...");
+  try {
+    const res = await generateArtPdf();
+    setStatus(`Minuta de ART/RRT gerada com sucesso: ${res.file_path} (${res.size_bytes} bytes).`);
+  } catch (err) {
+    setStatus(`Erro ao gerar ART/RRT: ${err.message}`, true);
+  }
+}
+
+// --- Frente 48: Inspeção de Espessura de Parede (PEAD) ---
+async function handleInspectWallThickness() {
+  setStatus("Inspecionando espessura de paredes de peças rotomoldadas...");
+  try {
+    const res = await inspectWallThickness(6.0, 14.0);
+    const badge = document.getElementById("thickness-status-badge");
+    const details = document.getElementById("thickness-details");
+    const box = document.getElementById("thickness-result");
+    if (badge && details && box) {
+      box.style.display = "block";
+      badge.textContent = `${res.status} | Média: ${res.avg_thickness_mm} mm`;
+      details.innerHTML = `• <strong>Mínima Encontrada:</strong> ${res.min_thickness_mm} mm (Limite: 6.0 mm)<br/>` +
+        `• <strong>Máxima Encontrada:</strong> ${res.max_thickness_mm} mm (Limite: 14.0 mm)<br/>` +
+        `• <strong>Defeitos Casca Fina:</strong> ${res.thin_wall_defects_count} ocorrências`;
+    }
+    setStatus(`Inspeção de espessura concluída: ${res.status}.`);
+  } catch (err) {
+    setStatus(`Erro na inspeção de espessura: ${err.message}`, true);
+  }
+}
+
+// --- Frente 49: Otimização de Cubagem de Transporte 3D ---
+async function handleCargoLoad() {
+  setStatus("Calculando cubagem 3D e carregamento no caminhão...");
+  try {
+    const packages = [
+      { name: "Colunas Eucalipto 16cm Amarradas", length_m: 3.0, width_m: 0.8, height_m: 0.6, weight_kg: 650.0, quantity: 2 },
+      { name: "Decks e Plataformas Pré-Montadas", length_m: 1.2, width_m: 1.2, height_m: 0.5, weight_kg: 220.0, quantity: 4 },
+      { name: "Pallet Ferragens Inox", length_m: 1.0, width_m: 1.0, height_m: 0.8, weight_kg: 400.0, quantity: 1 },
+    ];
+    const res = await optimizeCargoLoad(packages, "caminhao_truck");
+    const badge = document.getElementById("cargo-status-badge");
+    const details = document.getElementById("cargo-details");
+    const box = document.getElementById("cargo-result");
+    if (badge && details && box) {
+      box.style.display = "block";
+      badge.textContent = `${res.status} | Ocupação: ${res.volumetric_occupancy_pct}%`;
+      details.innerHTML = `• <strong>Veículo:</strong> Caminhão Truck (${res.vehicle_dimensions_m.join(" x ")}m)<br/>` +
+        `• <strong>Peso Total Carga:</strong> ${res.total_cargo_weight_kg} kg (${res.weight_occupancy_pct}% cap)<br/>` +
+        `• <strong>Volumes Alocados:</strong> ${res.packed_items_count} de ${res.packed_items_count + res.unpacked_items_count}`;
+    }
+    setStatus(`Cubagem 3D concluída: ${res.status} (${res.packed_items_count} volumes acomodados).`);
+  } catch (err) {
+    setStatus(`Erro na cubagem de transporte: ${err.message}`, true);
+  }
+}
+
+// --- Frente 50: Esboço Arquitetônico Estilizado (NPR Cartoon) ---
+async function handleExportTechnicalSketch() {
+  setStatus("Gerando prancha de esboço arquitetônico com overshoot em SVG...");
+  try {
+    const res = await generateTechnicalSketch(25.0, 8.0, "esboco_arquitetura_parkelo.svg");
+    setStatus(`Prancha de esboço arquitetônico gerada: ${res.file_path} (${res.size_bytes} bytes, ${res.sharp_edges_count} arestas).`);
+  } catch (err) {
+    setStatus(`Erro ao gerar esboço arquitetônico: ${err.message}`, true);
+  }
+}
+
+// Listeners adicionais
+document.getElementById("btn-calc-swing")?.addEventListener("click", handleSwingKinematics);
+document.getElementById("btn-inspect-thickness")?.addEventListener("click", handleInspectWallThickness);
+document.getElementById("btn-calc-cargo")?.addEventListener("click", handleCargoLoad);

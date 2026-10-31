@@ -1353,3 +1353,135 @@ class QrTagExportResponse(BaseModel):
     file_path: str
     size_bytes: int
     serial_number: str
+
+
+class SwingKinematicsRequest(BaseModel):
+    """Entrada para simulação de cinemática e envelope de segurança de balanço NBR 16071."""
+
+    chain_length_m: float = Field(default=2.20, ge=0.5, le=5.0, description="Comprimento da corrente/tirante em metros")
+    user_mass_kg: float = Field(default=50.0, ge=15.0, le=120.0, description="Massa do usuário em kg")
+    initial_angle_deg: float = Field(default=45.0, ge=10.0, le=75.0, description="Ângulo de lançamento em graus")
+    seat_height_at_rest_m: float = Field(default=0.45, ge=0.2, le=1.0, description="Altura do assento ao solo em repouso em metros")
+    damping_ratio: float = Field(default=0.05, ge=0.01, le=0.3, description="Coeficiente de amortecimento aerodinâmico/atrito")
+    total_time_s: float = Field(default=4.0, ge=1.0, le=20.0, description="Tempo total de simulação em segundos")
+    fps: int = Field(default=24, ge=12, le=60, description="Taxa de amostragem de frames")
+
+
+class SwingKinematicsResponse(BaseModel):
+    """Resposta com cinemática, tração máxima e zona de impacto do balanço."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SwingKinematicsAnalysis"
+    chain_length_m: float
+    suspension_height_m: float
+    user_mass_kg: float
+    initial_angle_deg: float
+    max_tangential_speed_m_s: float
+    max_chain_tension_kn: float
+    seat_clearance_at_rest_m: float
+    seat_clearance_compliant: bool
+    required_impact_zone_length_m: float
+    trajectory_points_count: int
+    trajectory_points: list[dict[str, Any]]
+    safety_status: str
+
+
+class ArtReportRequest(BaseModel):
+    """Entrada para geração de Minuta de ART / RRT em PDF."""
+
+    professional_name: str = Field(default="Eng. Fernando Henrique", description="Nome do Responsável Técnico")
+    crea_cau: str = Field(default="CREA-SP 5060708090/D", description="Registro no CREA/CAU")
+    rnp: str = Field(default="2619087654", description="Registro Nacional Profissional")
+    contractor: str = Field(default="Condomínio Residencial Parque das Árvores", description="Nome do Contratante")
+    location: str = Field(default="Av. das Nações Unidas, 14261 - São Paulo/SP", description="Endereço da Instalação")
+    project_name: str = Field(default="Playground Modular Parkelô NBR 16071", description="Nome da Obra/Equipamento")
+    output_filename: str = Field(default="minuta_art_rrt.pdf", description="Nome do arquivo PDF gerado")
+
+
+class ArtReportResponse(BaseModel):
+    """Resposta da geração da Minuta de ART / RRT."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "ArtReportPdf"
+    file_path: str
+    size_bytes: int
+    professional_name: str
+    crea_cau: str
+    project_name: str
+    contractor: str
+
+
+class WallThicknessRequest(BaseModel):
+    """Entrada para inspeção de espessura de parede em peças rotomoldadas."""
+
+    min_thickness_mm: float = Field(default=6.0, ge=1.0, le=30.0, description="Espessura mínima admissível em mm")
+    max_thickness_mm: float = Field(default=14.0, ge=3.0, le=50.0, description="Espessura máxima admissível em mm")
+
+
+class WallThicknessResponse(BaseModel):
+    """Resposta da inspeção de espessura de parede."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "WallThicknessInspection"
+    samples_count: int
+    min_thickness_mm: float
+    max_thickness_mm: float
+    avg_thickness_mm: float
+    specified_range_mm: list[float]
+    thin_wall_defects_count: int
+    thick_wall_defects_count: int
+    thin_wall_defects: list[dict[str, Any]]
+    is_compliant: bool
+    status: str
+
+
+class CargoLoadRequest(BaseModel):
+    """Entrada para otimização de cubagem e carregamento de carga 3D."""
+
+    packages: list[dict[str, Any]] = Field(description="Lista de pacotes [{'name': str, 'length_m': float, 'width_m': float, 'height_m': float, 'weight_kg': float, 'quantity': int}]")
+    vehicle_type: str = Field(default="caminhao_truck", description="'caminhao_toco', 'caminhao_truck' ou 'carreta_bau'")
+
+
+class CargoLoadResponse(BaseModel):
+    """Resposta com o plano de carregamento 3D e cubagem."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "CargoLoadPlan"
+    vehicle_type: str
+    vehicle_dimensions_m: list[float]
+    vehicle_volume_m3: float
+    vehicle_max_payload_kg: float
+    packed_items_count: int
+    unpacked_items_count: int
+    total_cargo_weight_kg: float
+    total_cargo_volume_m3: float
+    volumetric_occupancy_pct: float
+    weight_occupancy_pct: float
+    center_of_gravity: list[float]
+    packed_items: list[dict[str, Any]]
+    unpacked_items: list[dict[str, Any]]
+    status: str
+
+
+class TechnicalSketchRequest(BaseModel):
+    """Entrada para geração de esboço técnico com traço arquitetônico em SVG."""
+
+    dihedral_angle_threshold_deg: float = Field(default=25.0, ge=5.0, le=80.0, description="Ângulo diedro para filtro de arestas vivas")
+    overshoot_mm: float = Field(default=8.0, ge=0.0, le=30.0, description="Extensão das pontas das arestas (nanquim)")
+    output_filename: str = Field(default="esboco_tecnico_arquitetura.svg", description="Nome do arquivo SVG gerado")
+
+
+class TechnicalSketchResponse(BaseModel):
+    """Resposta da geração do esboço técnico estilizado."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "TechnicalSketchSvg"
+    file_path: str
+    size_bytes: int
+    sharp_edges_count: int
+    overshoot_mm: float

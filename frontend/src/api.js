@@ -708,3 +708,55 @@ export function exportQrTagSvg(serialNumber = "PKL-2026-X84", productName = "Pla
     output_filename: outputFilename,
   });
 }
+
+
+/** Simula cinematica e envelope de impacto de balanco NBR 16071 (Frente 46). */
+export function simulateSwingKinematics(chainLengthM = 2.20, userMassKg = 50.0, initialAngleDeg = 45.0, seatHeightAtRestM = 0.45) {
+  return postJson("/api/v1/scene/engineering/swing-kinematics", "POST", {
+    chain_length_m: chainLengthM,
+    user_mass_kg: userMassKg,
+    initial_angle_deg: initialAngleDeg,
+    seat_height_at_rest_m: seatHeightAtRestM,
+    damping_ratio: 0.05,
+    total_time_s: 4.0,
+    fps: 24,
+  });
+}
+
+/** Gera minuta executiva de ART / RRT em PDF vetorial (Frente 47). */
+export function generateArtPdf(professionalName = "Eng. Fernando Henrique", creaCau = "CREA-SP 5060708090/D", rnp = "2619087654", contractor = "Condominio Residencial Parque das Arvores", location = "Av. das Nacoes Unidas, 14261 - SP", projectName = "Playground Parkelo NBR 16071", outputFilename = "minuta_art_rrt.pdf") {
+  return postJson("/api/v1/scene/export/art-report-pdf", "POST", {
+    professional_name: professionalName,
+    crea_cau: creaCau,
+    rnp: rnp,
+    contractor: contractor,
+    location: location,
+    project_name: projectName,
+    output_filename: outputFilename,
+  });
+}
+
+/** Inspeciona espessura de paredes de pecas rotomoldadas (Frente 48). */
+export function inspectWallThickness(minThicknessMm = 6.0, maxThicknessMm = 14.0) {
+  return postJson("/api/v1/scene/engineering/wall-thickness", "POST", {
+    min_thickness_mm: minThicknessMm,
+    max_thickness_mm: maxThicknessMm,
+  });
+}
+
+/** Otimiza a cubagem e alocacao 3D de volumes no transporte (Frente 49). */
+export function optimizeCargoLoad(packages, vehicleType = "caminhao_truck") {
+  return postJson("/api/v1/scene/factory/cargo-load", "POST", {
+    packages: packages,
+    vehicle_type: vehicleType,
+  });
+}
+
+/** Gera prancha em SVG com traco arquitetonico estilizado e overshoot (Frente 50). */
+export function generateTechnicalSketch(dihedralAngleThresholdDeg = 25.0, overshootMm = 8.0, outputFilename = "esboco_tecnico_arquitetura.svg") {
+  return postJson("/api/v1/scene/export/technical-sketch-svg", "POST", {
+    dihedral_angle_threshold_deg: dihedralAngleThresholdDeg,
+    overshoot_mm: overshootMm,
+    output_filename: outputFilename,
+  });
+}
