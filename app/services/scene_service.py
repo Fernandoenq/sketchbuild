@@ -1192,3 +1192,126 @@ class SceneService:
             desired_world_matrix,
             parent_world_matrix
         )
+
+
+    async def create_dimension_radial(
+        self,
+        center: list,
+        radius: float,
+        normal: list = None,
+        angle_deg: float = 45.0,
+        is_diameter: bool = False,
+        leader_length: float = 0.3,
+        unit: str = "m",
+        precision: int = 2
+    ) -> dict:
+        """Calcula cota radial ou diamétrica SUDimensionRadialRef (Frente 76)."""
+        return await run_in_threadpool(
+            self._repository.create_dimension_radial,
+            center,
+            radius,
+            normal,
+            angle_deg,
+            is_diameter,
+            leader_length,
+            unit,
+            precision
+        )
+
+    async def configure_fog_style(
+        self,
+        enabled: bool = True,
+        start_dist_m: float = 10.0,
+        end_dist_m: float = 100.0,
+        color_hex: str = "#dcdde1"
+    ) -> dict:
+        """Configura parâmetros de névoa de cena SUStyleFog (Frente 77)."""
+        return await run_in_threadpool(
+            self._repository.configure_fog_style,
+            enabled,
+            start_dist_m,
+            end_dist_m,
+            color_hex
+        )
+
+    async def calculate_auto_fog_from_bbox(
+        self,
+        min_point: list,
+        max_point: list,
+        color_hex: str = "#dcdde1"
+    ) -> dict:
+        """Calcula parâmetros ideais de névoa a partir da Bounding Box (Frente 77)."""
+        return await run_in_threadpool(
+            self._repository.calculate_auto_fog_from_bbox,
+            min_point,
+            max_point,
+            color_hex
+        )
+
+    async def process_mesh_smoothing(
+        self,
+        vertices: list,
+        faces: list,
+        angle_threshold_deg: float = 35.0
+    ) -> dict:
+        """Calcula suavização de arestas Soft & Smooth e normais de vértices (Frente 78)."""
+        return await run_in_threadpool(
+            self._repository.process_mesh_smoothing,
+            vertices,
+            faces,
+            angle_threshold_deg
+        )
+
+    async def generate_section_hatch_lines(
+        self,
+        closed_loop_3d: list,
+        pattern: str = "WOOD",
+        spacing_m: float = 0.05,
+        angle_deg: float = 45.0
+    ) -> dict:
+        """Gera hachuras gráficas normativas NBR 6492 / ISO 128 em cortes (Frente 79)."""
+        return await run_in_threadpool(
+            self._repository.generate_section_hatch_lines,
+            closed_loop_3d,
+            pattern,
+            spacing_m,
+            angle_deg
+        )
+
+    async def set_geo_location(
+        self,
+        latitude: float,
+        longitude: float,
+        altitude_m: float = 0.0,
+        north_angle_deg: float = 0.0,
+        city: str = "São Paulo",
+        country: str = "Brasil"
+    ) -> dict:
+        """Define georreferenciamento e calcula coordenadas UTM WGS84 (Frente 80)."""
+        return await run_in_threadpool(
+            self._repository.set_geo_location,
+            latitude,
+            longitude,
+            altitude_m,
+            north_angle_deg,
+            city,
+            country
+        )
+
+    async def local_point_to_wgs84(
+        self,
+        local_xyz_m: list,
+        origin_lat: float,
+        origin_lon: float,
+        origin_alt_m: float = 0.0,
+        north_angle_deg: float = 0.0
+    ) -> dict:
+        """Converte ponto 3D local em coordenadas geográficas WGS84 (Frente 80)."""
+        return await run_in_threadpool(
+            self._repository.local_point_to_wgs84,
+            local_xyz_m,
+            origin_lat,
+            origin_lon,
+            origin_alt_m,
+            north_angle_deg
+        )

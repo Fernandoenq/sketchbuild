@@ -2429,3 +2429,129 @@ class SkpEngineRepository:
             },
             "status": "MATRIZ LOCAL CALCULADA A PARTIR DO ESPAÇO MUNDIAL"
         }
+
+
+    def create_dimension_radial(
+        self,
+        center: list,
+        radius: float,
+        normal: list = None,
+        angle_deg: float = 45.0,
+        is_diameter: bool = False,
+        leader_length: float = 0.3,
+        unit: str = "m",
+        precision: int = 2
+    ) -> dict:
+        """Calcula cota radial ou diamétrica SUDimensionRadialRef (Frente 76)."""
+        from core.dimension_radial_engine import DimensionRadialEngine
+        norm = tuple(normal) if normal else (0.0, 0.0, 1.0)
+        res = DimensionRadialEngine.create_radial_dimension(
+            center=tuple(center),
+            radius=radius,
+            normal=norm,
+            angle_deg=angle_deg,
+            is_diameter=is_diameter,
+            leader_length=leader_length,
+            unit=unit,
+            precision=precision
+        )
+        return {
+            "entity_type": "SUDimensionRadialRef",
+            "radial_data": res,
+            "status": res["status"]
+        }
+
+    def configure_fog_style(
+        self,
+        enabled: bool = True,
+        start_dist_m: float = 10.0,
+        end_dist_m: float = 100.0,
+        color_hex: str = "#dcdde1"
+    ) -> dict:
+        """Configura parâmetros de névoa de cena SUStyleFog (Frente 77)."""
+        from core.fog_depth_engine import FogDepthEngine
+        res = FogDepthEngine.configure_fog(enabled, start_dist_m, end_dist_m, color_hex)
+        return {
+            "entity_type": "SUStyleFog",
+            "fog_data": res,
+            "status": res["status"]
+        }
+
+    def calculate_auto_fog_from_bbox(self, min_point: list, max_point: list, color_hex: str = "#dcdde1") -> dict:
+        """Calcula parâmetros ideais de névoa a partir da Bounding Box (Frente 77)."""
+        from core.fog_depth_engine import FogDepthEngine
+        res = FogDepthEngine.calculate_auto_fog_from_bbox(tuple(min_point), tuple(max_point), color_hex)
+        return {
+            "entity_type": "SUStyleFog",
+            "fog_data": res,
+            "status": res["status"]
+        }
+
+    def process_mesh_smoothing(self, vertices: list, faces: list, angle_threshold_deg: float = 35.0) -> dict:
+        """Calcula suavização de arestas Soft & Smooth e normais de vértices (Frente 78)."""
+        from core.smooth_soft_edges_engine import SmoothSoftEdgesEngine
+        verts = [tuple(v) for v in vertices]
+        res = SmoothSoftEdgesEngine.process_mesh_smoothing(verts, faces, angle_threshold_deg)
+        return {
+            "entity_type": "MeshSmoothingResult",
+            "smoothing_data": res,
+            "status": res["status"]
+        }
+
+    def generate_section_hatch_lines(
+        self,
+        closed_loop_3d: list,
+        pattern: str = "WOOD",
+        spacing_m: float = 0.05,
+        angle_deg: float = 45.0
+    ) -> dict:
+        """Gera hachuras gráficas normativas NBR 6492 / ISO 128 em cortes (Frente 79)."""
+        from core.section_hatch_engine import SectionHatchPatternEngine
+        loop = [tuple(p) for p in closed_loop_3d]
+        res = SectionHatchPatternEngine.generate_hatch_lines(loop, pattern, spacing_m, angle_deg)
+        return {
+            "entity_type": "SectionHatchResult",
+            "hatch_data": res,
+            "status": res["status"]
+        }
+
+    def set_geo_location(
+        self,
+        latitude: float,
+        longitude: float,
+        altitude_m: float = 0.0,
+        north_angle_deg: float = 0.0,
+        city: str = "São Paulo",
+        country: str = "Brasil"
+    ) -> dict:
+        """Define georreferenciamento e calcula coordenadas UTM WGS84 (Frente 80)."""
+        from core.geo_reference_engine import GeoReferenceEngine
+        res = GeoReferenceEngine.set_geo_location(latitude, longitude, altitude_m, north_angle_deg, city, country)
+        return {
+            "entity_type": "SUGeoReferenceRef",
+            "geo_data": res,
+            "status": res["status"]
+        }
+
+    def local_point_to_wgs84(
+        self,
+        local_xyz_m: list,
+        origin_lat: float,
+        origin_lon: float,
+        origin_alt_m: float = 0.0,
+        north_angle_deg: float = 0.0
+    ) -> dict:
+        """Converte ponto 3D local em coordenadas geográficas WGS84 (Frente 80)."""
+        from core.geo_reference_engine import GeoReferenceEngine
+        res = GeoReferenceEngine.local_point_to_wgs84(
+            tuple(local_xyz_m),
+            origin_lat,
+            origin_lon,
+            origin_alt_m,
+            north_angle_deg
+        )
+        return {
+            "entity_type": "SUGeoReferenceRef",
+            "geo_data": res,
+            "status": res["status"]
+        }

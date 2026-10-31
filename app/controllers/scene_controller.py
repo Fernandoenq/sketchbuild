@@ -107,6 +107,18 @@ from app.schemas.scene import (
     NestedHierarchyResolveRequest,
     WorldToLocalRequest,
     NestedHierarchyResponse,
+    DimensionRadialRequest,
+    DimensionRadialResponse,
+    FogStyleRequest,
+    AutoFogRequest,
+    FogStyleResponse,
+    MeshSmoothingRequest,
+    MeshSmoothingResponse,
+    SectionHatchRequest,
+    SectionHatchResponse,
+    GeoReferenceRequest,
+    LocalToGeoRequest,
+    GeoReferenceResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1433,5 +1445,95 @@ class SceneController:
                 body.parent_world_matrix
             )
             return NestedHierarchyResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+
+    async def create_dimension_radial(self, body: DimensionRadialRequest) -> DimensionRadialResponse:
+        try:
+            res = await self._service.create_dimension_radial(
+                body.center,
+                body.radius,
+                body.normal,
+                body.angle_deg,
+                body.is_diameter,
+                body.leader_length,
+                body.unit,
+                body.precision
+            )
+            return DimensionRadialResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def configure_fog_style(self, body: FogStyleRequest) -> FogStyleResponse:
+        try:
+            res = await self._service.configure_fog_style(
+                body.enabled,
+                body.start_dist_m,
+                body.end_dist_m,
+                body.color_hex
+            )
+            return FogStyleResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_auto_fog_from_bbox(self, body: AutoFogRequest) -> FogStyleResponse:
+        try:
+            res = await self._service.calculate_auto_fog_from_bbox(
+                body.min_point,
+                body.max_point,
+                body.color_hex
+            )
+            return FogStyleResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def process_mesh_smoothing(self, body: MeshSmoothingRequest) -> MeshSmoothingResponse:
+        try:
+            res = await self._service.process_mesh_smoothing(
+                body.vertices,
+                body.faces,
+                body.angle_threshold_deg
+            )
+            return MeshSmoothingResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_section_hatch_lines(self, body: SectionHatchRequest) -> SectionHatchResponse:
+        try:
+            res = await self._service.generate_section_hatch_lines(
+                body.closed_loop_3d,
+                body.pattern,
+                body.spacing_m,
+                body.angle_deg
+            )
+            return SectionHatchResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def set_geo_location(self, body: GeoReferenceRequest) -> GeoReferenceResponse:
+        try:
+            res = await self._service.set_geo_location(
+                body.latitude,
+                body.longitude,
+                body.altitude_m,
+                body.north_angle_deg,
+                body.city,
+                body.country
+            )
+            return GeoReferenceResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def local_point_to_wgs84(self, body: LocalToGeoRequest) -> GeoReferenceResponse:
+        try:
+            res = await self._service.local_point_to_wgs84(
+                body.local_xyz_m,
+                body.origin_lat,
+                body.origin_lon,
+                body.origin_alt_m,
+                body.north_angle_deg
+            )
+            return GeoReferenceResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

@@ -98,6 +98,18 @@ from app.schemas.scene import (
     NestedHierarchyResolveRequest,
     WorldToLocalRequest,
     NestedHierarchyResponse,
+    DimensionRadialRequest,
+    DimensionRadialResponse,
+    FogStyleRequest,
+    AutoFogRequest,
+    FogStyleResponse,
+    MeshSmoothingRequest,
+    MeshSmoothingResponse,
+    SectionHatchRequest,
+    SectionHatchResponse,
+    GeoReferenceRequest,
+    LocalToGeoRequest,
+    GeoReferenceResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1495,3 +1507,87 @@ async def convert_world_transform_to_local(
     controller: SceneController = Depends(get_controller),
 ) -> NestedHierarchyResponse:
     return await controller.convert_world_transform_to_local(body)
+
+
+@router.post(
+    "/dimensions/radial",
+    response_model=DimensionRadialResponse,
+    summary="Calcula cota radial ou diametrica SUDimensionRadialRef (Frente 76)",
+)
+async def create_dimension_radial(
+    body: DimensionRadialRequest,
+    controller: SceneController = Depends(get_controller),
+) -> DimensionRadialResponse:
+    return await controller.create_dimension_radial(body)
+
+
+@router.post(
+    "/styles/fog",
+    response_model=FogStyleResponse,
+    summary="Configura parametros de nevoa de cena SUStyleFog (Frente 77)",
+)
+async def configure_fog_style(
+    body: FogStyleRequest,
+    controller: SceneController = Depends(get_controller),
+) -> FogStyleResponse:
+    return await controller.configure_fog_style(body)
+
+
+@router.post(
+    "/styles/auto-fog",
+    response_model=FogStyleResponse,
+    summary="Calcula parametros ideais de nevoa a partir da Bounding Box (Frente 77)",
+)
+async def calculate_auto_fog_from_bbox(
+    body: AutoFogRequest,
+    controller: SceneController = Depends(get_controller),
+) -> FogStyleResponse:
+    return await controller.calculate_auto_fog_from_bbox(body)
+
+
+@router.post(
+    "/geometry/smoothing",
+    response_model=MeshSmoothingResponse,
+    summary="Calcula suavizacao de arestas Soft & Smooth e normais de vertices (Frente 78)",
+)
+async def process_mesh_smoothing(
+    body: MeshSmoothingRequest,
+    controller: SceneController = Depends(get_controller),
+) -> MeshSmoothingResponse:
+    return await controller.process_mesh_smoothing(body)
+
+
+@router.post(
+    "/section-planes/hatch",
+    response_model=SectionHatchResponse,
+    summary="Gera hachuras graficas normativas NBR 6492 / ISO 128 em cortes (Frente 79)",
+)
+async def generate_section_hatch_lines(
+    body: SectionHatchRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SectionHatchResponse:
+    return await controller.generate_section_hatch_lines(body)
+
+
+@router.post(
+    "/geo/reference",
+    response_model=GeoReferenceResponse,
+    summary="Define georreferenciamento e calcula coordenadas UTM WGS84 (Frente 80)",
+)
+async def set_geo_location(
+    body: GeoReferenceRequest,
+    controller: SceneController = Depends(get_controller),
+) -> GeoReferenceResponse:
+    return await controller.set_geo_location(body)
+
+
+@router.post(
+    "/geo/local-to-wgs84",
+    response_model=GeoReferenceResponse,
+    summary="Converte ponto 3D local em coordenadas geograficas WGS84 (Frente 80)",
+)
+async def local_point_to_wgs84(
+    body: LocalToGeoRequest,
+    controller: SceneController = Depends(get_controller),
+) -> GeoReferenceResponse:
+    return await controller.local_point_to_wgs84(body)
