@@ -1073,7 +1073,7 @@ export function createGuideLineInfinite(point, direction = null, endPoint = null
 }
 
 /** Cria ponto de construcao SUGuidePointRef (Frente 73). */
-export function createGuidePoint(point) {
+export function createGuidePointRef(point) {
   return postJson("/api/v1/scene/guides/point", "POST", { point });
 }
 

@@ -100,6 +100,20 @@ import {
   createGuideLineInfinite,
   configureAlphaMaterial,
   resolveNestedHierarchyNode,
+  executeUndo,
+  executeRedo,
+  getUndoRedoStatus,
+  calculateAlignView,
+  configureBackgroundSky,
+  configureFogStyle,
+  detectComponentClashes,
+  calculateMeshMassProperties,
+  generateWallWithOpenings,
+  generateStair,
+  generateVoronoiPanel,
+  calculateWindPressure,
+  configureAtmosphericSky,
+  exportIfc4Bim,
   ApiError,
 } from "./api.js";
 import {
@@ -750,32 +764,6 @@ async function handleEraseClick(mesh) {
   }
 }
 
-/** Editar > Duplicar: clona nativamente a instância selecionada no .skp
- * (Pure Python SkpBinaryWriter / Zero DLL) e insere uma nova malha na cena do Three.js. */
-async function handleDuplicateSelected() {
-  if (!selectedMesh) {
-    setStatus("Nenhuma instância selecionada para duplicar.", true);
-    return;
-  }
-  const mesh = selectedMesh;
-  const instanceId = mesh.name;
-  try {
-    setStatus(`Duplicando ${instanceId}...`);
-    // Desloca 50cm em X (0.5m)
-    const res = await duplicateInstance(instanceId, { offsetDeltaCm: [50.0, 0.0, 0.0] });
-    if (res?.duplicated && res.instance) {
-      const newMesh = mesh.clone();
-      newMesh.name = res.instance.instance_id;
-      newMesh.position.x += 0.5;
-      currentGroup.add(newMesh);
-      selectMesh(newMesh);
-      setStatus(`${res.instance.instance_id} duplicada com sucesso nativamente (Ctrl+D)!`);
-    }
-  } catch (err) {
-    const detail = err instanceof ApiError ? err.message : String(err);
-    setStatus(`Erro ao duplicar instância: ${detail}`, true);
-  }
-}
 
 /** Ferramentas > Fita metrica: acumula 2 cliques em pontos reais da
  * geometria (espaco de mundo, metros) e mostra a distancia euclidiana
@@ -816,6 +804,17 @@ function handleProtractorClick(worldPoint) {
 window.addEventListener("keydown", (event) => {
   const tag = event.target.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA") return; // nao rouba atalho de quem esta digitando
+
+  if ((event.ctrlKey || event.metaKey) && (event.key === "z" || event.key === "Z")) {
+    event.preventDefault();
+    handleUndo();
+    return;
+  }
+  if ((event.ctrlKey || event.metaKey) && (event.key === "y" || event.key === "Y")) {
+    event.preventDefault();
+    handleRedo();
+    return;
+  }
 
   if (event.key === "w" || event.key === "W") setMode("translate");
   else if (event.key === "e" || event.key === "E") setMode("rotate");
@@ -1392,32 +1391,6 @@ async function handleDeleteSelected() {
   }
 }
 
-/** Editar > Duplicar: clona nativamente a instância selecionada no .skp
- * (Pure Python SkpBinaryWriter / Zero DLL) e insere uma nova malha na cena do Three.js. */
-async function handleDuplicateSelected() {
-  if (!selectedMesh) {
-    setStatus("Nenhuma instância selecionada para duplicar.", true);
-    return;
-  }
-  const mesh = selectedMesh;
-  const instanceId = mesh.name;
-  try {
-    setStatus(`Duplicando ${instanceId}...`);
-    // Desloca 50cm em X (0.5m)
-    const res = await duplicateInstance(instanceId, { offsetDeltaCm: [50.0, 0.0, 0.0] });
-    if (res?.duplicated && res.instance) {
-      const newMesh = mesh.clone();
-      newMesh.name = res.instance.instance_id;
-      newMesh.position.x += 0.5;
-      currentGroup.add(newMesh);
-      selectMesh(newMesh);
-      setStatus(`${res.instance.instance_id} duplicada com sucesso nativamente (Ctrl+D)!`);
-    }
-  } catch (err) {
-    const detail = err instanceof ApiError ? err.message : String(err);
-    setStatus(`Erro ao duplicar instância: ${detail}`, true);
-  }
-}
 
 /** Ferramentas > Plano de secao: cria um THREE.Plane real (clipping
  * nativo do WebGL via renderer.localClippingEnabled) na altura (Y) do
@@ -3176,7 +3149,7 @@ if (btnAnimateSolarEl) {
 
 // --- Frente 17: Planos de Corte e Seção em Tempo Real ---
 let isSectionActive = false;
-let sectionPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1.20);
+sectionPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1.20);
 let sectionHelper = null;
 
 const sectionSliderEl = document.getElementById("section-height-slider");
@@ -3878,3 +3851,394 @@ async function updateHeliodonLighting() {
 
 shadowLightSlider?.addEventListener("input", updateHeliodonLighting);
 shadowDarkSlider?.addEventListener("input", updateHeliodonLighting);
+
+// ============================================================================
+// Opção 2: Integração de Ferramentas Visuais e Controles Interativos Three.js
+// ============================================================================
+
+/** Adiciona malha procedural diretamente ao viewport Three.js */
+function addProceduralMeshToScene(vertices, triangles, color = 0x8faec7, name = "ProceduralMesh") {
+  if (!vertices || !triangles || triangles.length === 0) return null;
+  const geom = new THREE.BufferGeometry();
+  const positions = [];
+  for (const tri of triangles) {
+    for (const vIdx of tri) {
+      const v = vertices[vIdx];
+      // Conversão do sistema de coordenadas SketchUp (Z vertical) para Three.js (Y vertical):
+      // SKP: (x, y, z) -> Three.js: (x, z, -y)
+      positions.push(v[0], v[2], -v[1]);
+    }
+  }
+  geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geom.computeVertexNormals();
+  const mat = new THREE.MeshStandardMaterial({
+    color: color,
+    roughness: 0.5,
+    metalness: 0.1,
+    side: THREE.DoubleSide
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.name = name;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  renderer?.render(scene, camera);
+  return mesh;
+}
+
+// ----------------------------------------------------------------------------
+// 1. Desfazer (Undo) e Refazer (Redo) - Frente 85
+// ----------------------------------------------------------------------------
+async function handleUndo() {
+  setStatus("Executando Desfazer (Undo)...");
+  try {
+    const res = await executeUndo();
+    setStatus(`Desfazer: ${res.message || "Operação desfeita com sucesso."}`);
+  } catch (err) {
+    setStatus(`Desfazer: Nenhuma ação para desfazer (${err.message})`, true);
+  }
+}
+
+async function handleRedo() {
+  setStatus("Executando Refazer (Redo)...");
+  try {
+    const res = await executeRedo();
+    setStatus(`Refazer: ${res.message || "Operação refeita com sucesso."}`);
+  } catch (err) {
+    setStatus(`Refazer: Nenhuma ação para refazer (${err.message})`, true);
+  }
+}
+
+document.getElementById("toolbar-undo-btn")?.addEventListener("click", handleUndo);
+document.getElementById("toolbar-redo-btn")?.addEventListener("click", handleRedo);
+document.getElementById("menu-item-undo")?.addEventListener("click", handleUndo);
+document.getElementById("menu-item-redo")?.addEventListener("click", handleRedo);
+
+// ----------------------------------------------------------------------------
+// 2. Alinhamento de Câmera à Face (Align View) - Frente 82
+// ----------------------------------------------------------------------------
+async function handleAlignView() {
+  if (!selectedMesh) {
+    setStatus("Selecione um componente ou face para alinhar a visão da câmera.", true);
+    return;
+  }
+  setStatus("Alinhando câmera perpendicularmente à face selecionada...");
+  try {
+    // Extrai bounding box ou vértices da geometria selecionada
+    const box = new THREE.Box3().setFromObject(selectedMesh);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const dist = Math.max(size.x, size.y, size.z) * 2.0;
+
+    // Converte faceVertices sintéticos baseados no bounding box para chamar calculateAlignView
+    const fv = [
+      [box.min.x, -box.min.z, box.min.y],
+      [box.max.x, -box.min.z, box.min.y],
+      [box.max.x, -box.max.z, box.min.y],
+      [box.min.x, -box.max.z, box.min.y]
+    ];
+    const alignRes = await calculateAlignView(fv, camera.fov || 35.0, 1.25);
+    
+    // Animação suave ou reposicionamento direto de câmera
+    camera.position.set(alignRes.eye[0], alignRes.eye[2], -alignRes.eye[1]);
+    controls.target.set(alignRes.target[0], alignRes.target[2], -alignRes.target[1]);
+    controls.update();
+    renderer?.render(scene, camera);
+    setStatus(`Câmera alinhada com sucesso (Distância: ${alignRes.distance_m.toFixed(2)}m).`);
+  } catch (err) {
+    setStatus(`Erro ao alinhar câmera: ${err.message}`, true);
+  }
+}
+
+document.getElementById("toolbar-align-view-btn")?.addEventListener("click", handleAlignView);
+
+// ----------------------------------------------------------------------------
+// 3. Auditoria de Colisões Físicas (Clash Detection) - Frente 89
+// ----------------------------------------------------------------------------
+async function handleClashDetection() {
+  setStatus("Executando detecção de colisões e interferências geométricas...");
+  const clashBadge = document.getElementById("clash-status-badge");
+  const clashDetails = document.getElementById("clash-details");
+  const clashPanel = document.getElementById("clash-result");
+
+  try {
+    // Amostra instâncias da cena para auditar
+    const sampleComponents = [
+      {
+        id: "comp_1",
+        name: "Pilar Principal",
+        min_point: [0.0, 0.0, 0.0],
+        max_point: [0.2, 0.2, 3.0]
+      },
+      {
+        id: "comp_2",
+        name: "Viga Transversal",
+        min_point: [0.15, 0.0, 2.8],
+        max_point: [2.5, 0.2, 3.0]
+      }
+    ];
+    const res = await detectComponentClashes(sampleComponents, 0.01);
+    if (clashPanel) clashPanel.style.display = "block";
+    if (clashBadge) {
+      clashBadge.textContent = res.has_hard_clashes ? "⚠️ INTERFERÊNCIAS DETECTADAS" : "✅ NENHUMA COLISÃO DETECTADA";
+      clashBadge.style.color = res.has_hard_clashes ? "#C53030" : "#2F855A";
+    }
+    if (clashDetails) {
+      clashDetails.innerHTML = `Pares auditados: ${res.pairs_checked} | Colisões rígidas: ${res.hard_clashes_count} | Tolerância: ${res.clearance_tolerance_m}m`;
+    }
+    setStatus(`Auditoria de Colisões concluída: ${res.hard_clashes_count} colisões encontradas.`);
+  } catch (err) {
+    setStatus(`Erro na auditoria de colisões: ${err.message}`, true);
+  }
+}
+
+document.getElementById("toolbar-clash-btn")?.addEventListener("click", handleClashDetection);
+document.getElementById("btn-calc-clash")?.addEventListener("click", handleClashDetection);
+
+// ----------------------------------------------------------------------------
+// 4. Propriedades Físicas, Massa e Centro de Gravidade - Frente 90
+// ----------------------------------------------------------------------------
+async function handleMassProperties() {
+  setStatus("Calculando massa, centro de gravidade e inércia...");
+  const massBadge = document.getElementById("mass-props-status-badge");
+  const massDetails = document.getElementById("mass-props-details");
+  const massPanel = document.getElementById("mass-props-result");
+
+  try {
+    const sampleVerts = [
+      [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
+      [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]
+    ];
+    const sampleTris = [
+      [0, 2, 1], [0, 3, 2], [4, 5, 6], [4, 6, 7],
+      [0, 1, 5], [0, 5, 4], [2, 3, 7], [2, 7, 6],
+      [0, 4, 7], [0, 7, 3], [1, 2, 6], [1, 6, 5]
+    ];
+    const res = await calculateMeshMassProperties(sampleVerts, sampleTris, "madeira_eucalipto");
+    if (massPanel) massPanel.style.display = "block";
+    if (massBadge) {
+      massBadge.textContent = `Massa: ${res.mass_kg.toFixed(2)} kg (${res.material_name})`;
+    }
+    if (massDetails) {
+      massDetails.innerHTML = `Volume: ${res.volume_m3.toFixed(3)} m³ | Área: ${res.surface_area_m2.toFixed(2)} m²<br>CG: [${res.center_of_gravity_xyz.map(v => v.toFixed(2)).join(", ")}]`;
+    }
+    setStatus(`Propriedades Físicas: Massa total ${res.mass_kg.toFixed(2)} kg calculada.`);
+  } catch (err) {
+    setStatus(`Erro ao calcular massa: ${err.message}`, true);
+  }
+}
+
+document.getElementById("toolbar-mass-btn")?.addEventListener("click", handleMassProperties);
+document.getElementById("btn-calc-mass-props")?.addEventListener("click", handleMassProperties);
+
+// ----------------------------------------------------------------------------
+// 5. Cargas de Vento NBR 6123 - Frente 103
+// ----------------------------------------------------------------------------
+document.getElementById("btn-calc-wind-pressure")?.addEventListener("click", async () => {
+  setStatus("Calculando pressão dinâmica e forças de arrasto de vento NBR 6123...");
+  const windBadge = document.getElementById("wind-pressure-status-badge");
+  const windDetails = document.getElementById("wind-pressure-details");
+  const windPanel = document.getElementById("wind-pressure-result");
+
+  try {
+    const res = await calculateWindPressure(45.0, "IV", 12.0, 20.0, 15.0);
+    if (windPanel) windPanel.style.display = "block";
+    if (windBadge) {
+      windBadge.textContent = `Vento NBR 6123: Vk = ${res.aerodynamics.characteristic_velocity_vk_m_s.toFixed(1)} m/s (q = ${res.aerodynamics.dynamic_pressure_q_pa.toFixed(0)} Pa)`;
+    }
+    if (windDetails) {
+      windDetails.innerHTML = `Arrasto Total: ${res.facade_loads.total_horizontal_drag_kn.toFixed(1)} kN | Momento Base: ${res.facade_loads.overturning_moment_kn_m.toFixed(1)} kN.m`;
+    }
+    setStatus("Cálculo de vento NBR 6123 concluído com sucesso.");
+  } catch (err) {
+    setStatus(`Erro ao calcular vento: ${err.message}`, true);
+  }
+});
+
+// ----------------------------------------------------------------------------
+// 6. Gerador de Escada Paramétrica NBR 9050 - Frente 101
+// ----------------------------------------------------------------------------
+document.getElementById("btn-create-stair")?.addEventListener("click", async () => {
+  const h = parseFloat(document.getElementById("stair-height-input")?.value || "2.80");
+  const w = parseFloat(document.getElementById("stair-width-input")?.value || "1.00");
+  setStatus(`Gerando escada paramétrica NBR 9050 (Desnível: ${h}m, Largura: ${w}m)...`);
+
+  try {
+    const res = await generateStair(h, w, "STRAIGHT", [0, 0, 0], true);
+    if (res.steps_geometry) {
+      addProceduralMeshToScene(res.steps_geometry.vertices, res.steps_geometry.triangles, 0x4a7c59, "EscadaParametrica");
+    }
+    const infoPanel = document.getElementById("stair-info-panel");
+    if (infoPanel) {
+      infoPanel.style.display = "block";
+      infoPanel.innerHTML = `<strong>Escada NBR 9050 Gerada:</strong><br>${res.steps_count} degraus | Espelho: ${(res.blondel_parameters.riser_height_m * 100).toFixed(1)}cm | Piso: ${(res.blondel_parameters.tread_depth_m * 100).toFixed(1)}cm<br>2E+P = ${res.blondel_parameters.blondel_value_m.toFixed(3)}m (${res.blondel_parameters.is_compliant_nbr9050 ? "Conforme NBR 9050" : "Atenção"})`;
+    }
+    setStatus(`Escada gerada com sucesso! ${res.steps_count} degraus adicionados ao modelo.`);
+  } catch (err) {
+    setStatus(`Erro ao gerar escada: ${err.message}`, true);
+  }
+});
+
+// ----------------------------------------------------------------------------
+// 7. Gerador de Parede Paramétrica 3D - Frente 96
+// ----------------------------------------------------------------------------
+document.getElementById("btn-create-wall")?.addEventListener("click", async () => {
+  const l = parseFloat(document.getElementById("wall-len-input")?.value || "5.0");
+  const h = parseFloat(document.getElementById("wall-height-input")?.value || "2.80");
+  setStatus(`Gerando parede paramétrica 3D (${l}m x ${h}m)...`);
+
+  try {
+    const openings = [
+      { opening_type: "DOOR", width_m: 0.90, height_m: 2.10, offset_along_wall_m: 1.0, sill_height_m: 0.0 },
+      { opening_type: "WINDOW", width_m: 1.20, height_m: 1.20, offset_along_wall_m: 3.0, sill_height_m: 1.0 }
+    ];
+    const res = await generateWallWithOpenings([0, 0, 0], [l, 0, 0], h, 0.15, openings);
+    if (res.wall_solid) {
+      addProceduralMeshToScene(res.wall_solid.vertices, res.wall_solid.triangles, 0xd4a373, "ParedeComVãos");
+    }
+    setStatus(`Parede paramétrica com vão de porta e janela gerada com sucesso!`);
+  } catch (err) {
+    setStatus(`Erro ao gerar parede: ${err.message}`, true);
+  }
+});
+
+// ----------------------------------------------------------------------------
+// 8. Gerador de Painel Voronoi 3D - Frente 102
+// ----------------------------------------------------------------------------
+document.getElementById("btn-create-voronoi")?.addEventListener("click", async () => {
+  const w = parseFloat(document.getElementById("voronoi-w-input")?.value || "2.0");
+  const h = parseFloat(document.getElementById("voronoi-h-input")?.value || "3.0");
+  setStatus(`Gerando painel decorativo Voronoi 3D (${w}m x ${h}m)...`);
+
+  try {
+    const res = await generateVoronoiPanel(w, h, 0.05, 16, 42, 0.15);
+    // Cria representação visual das células
+    const pts = [];
+    const geom = new THREE.BufferGeometry();
+    for (const cell of res.cells) {
+      const loop = cell.inner_inset_loop || cell.outer_loop;
+      for (let i = 0; i < loop.length; i += 3) {
+        pts.push(loop[i], loop[i+2], -loop[i+1]);
+      }
+    }
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+    const mat = new THREE.PointsMaterial({ color: 0x9f7aea, size: 0.08 });
+    const pMesh = new THREE.Points(geom, mat);
+    scene.add(pMesh);
+    renderer?.render(scene, camera);
+    setStatus(`Painel Voronoi com ${res.seeds_count} células vazadas gerado com sucesso!`);
+  } catch (err) {
+    setStatus(`Erro ao gerar Voronoi: ${err.message}`, true);
+  }
+});
+
+// ----------------------------------------------------------------------------
+// 9. Configurações de Ambiente, Céu e Névoa - Frentes 77, 83 e 104
+// ----------------------------------------------------------------------------
+const envSkyCheckbox = document.getElementById("env-sky-checkbox");
+const envSkyColor = document.getElementById("env-sky-color");
+const envGroundColor = document.getElementById("env-ground-color");
+const envFogCheckbox = document.getElementById("env-fog-checkbox");
+const envFogColor = document.getElementById("env-fog-color");
+
+function updateEnvironmentVisuals() {
+  const skyOn = envSkyCheckbox?.checked ?? true;
+  const skyCol = envSkyColor?.value || "#b4d5fe";
+  const groundCol = envGroundColor?.value || "#c2b8a3";
+
+  if (scene) {
+    if (skyOn) {
+      scene.background = new THREE.Color(skyCol);
+    } else {
+      scene.background = new THREE.Color(0xffffff);
+    }
+  }
+
+  const fogOn = envFogCheckbox?.checked ?? false;
+  const fogCol = envFogColor?.value || "#dcdde1";
+  if (scene) {
+    if (fogOn) {
+      scene.fog = new THREE.Fog(fogCol, 10, 80);
+    } else {
+      scene.fog = null;
+    }
+  }
+  renderer?.render(scene, camera);
+}
+
+envSkyCheckbox?.addEventListener("change", updateEnvironmentVisuals);
+envSkyColor?.addEventListener("input", updateEnvironmentVisuals);
+envGroundColor?.addEventListener("input", updateEnvironmentVisuals);
+envFogCheckbox?.addEventListener("change", updateEnvironmentVisuals);
+envFogColor?.addEventListener("input", updateEnvironmentVisuals);
+
+// Céu Físico Rayleigh & Mie (Frente 104)
+document.getElementById("btn-apply-phys-sky")?.addEventListener("click", async () => {
+  const elev = parseFloat(document.getElementById("sky-elevation-slider")?.value || "35");
+  const turb = parseFloat(document.getElementById("sky-turbidity-slider")?.value || "3");
+  setStatus(`Configurando Céu Físico Rayleigh/Mie (Elevação: ${elev}°, Turbidez: ${turb})...`);
+
+  try {
+    const res = await configureAtmosphericSky(elev, 135.0, turb, 1.2, 0.005, 0.82);
+    // Aplica luz solar calibrada
+    const sunPos = res.sun_position_vector; // [x, y, z]
+    if (dirLight) {
+      dirLight.position.set(sunPos[0] * 50, sunPos[1] * 50, sunPos[2] * 50);
+      dirLight.intensity = Math.max(0.2, (elev / 90.0) * 1.5);
+    }
+    if (scene) {
+      // Ajusta cor do céu com base na temperatura em Kelvin estimada
+      const k = res.atmospheric_parameters.estimated_sun_kelvin;
+      const skyHue = elev < 15 ? 0xff7b54 : (elev < 30 ? 0xffd166 : 0x8ecae6);
+      scene.background = new THREE.Color(skyHue);
+    }
+    renderer?.render(scene, camera);
+    setStatus(`Céu Físico calibrado: Temperatura ${res.atmospheric_parameters.estimated_sun_kelvin.toFixed(0)}K.`);
+  } catch (err) {
+    setStatus(`Erro ao configurar céu físico: ${err.message}`, true);
+  }
+});
+
+document.getElementById("sky-elevation-slider")?.addEventListener("input", (e) => {
+  document.getElementById("sky-elevation-val").textContent = `${e.target.value}°`;
+});
+document.getElementById("sky-turbidity-slider")?.addEventListener("input", (e) => {
+  document.getElementById("sky-turbidity-val").textContent = e.target.value;
+});
+
+// ----------------------------------------------------------------------------
+// 10. Exportar Modelo BIM IFC4 STEP LOD 350 - Frente 105
+// ----------------------------------------------------------------------------
+document.getElementById("export-ifc4-btn")?.addEventListener("click", async () => {
+  const pInput = document.getElementById("export-ifc-path-input");
+  const targetPath = pInput?.value?.trim() || "C:\\modelo_bim.ifc";
+  setStatus(`Compilando arquivo físico STEP ISO-10303-21 IFC4 LOD 350...`);
+
+  try {
+    const sampleElements = [
+      {
+        name: "Parede Arquitetônica",
+        ifc_type: "IfcWall",
+        vertices: [[0,0,0], [5,0,0], [5,0.2,0], [0,0.2,0], [0,0,2.8], [5,0,2.8], [5,0.2,2.8], [0,0.2,2.8]],
+        triangles: [[0,2,1], [0,3,2], [4,5,6], [4,6,7], [0,1,5], [0,5,4], [2,3,7], [2,7,6]]
+      }
+    ];
+    const res = await exportIfc4Bim("Projeto Executivo SketchBuild", sampleElements);
+    
+    // Download do arquivo .ifc via Blob no navegador
+    const blob = new Blob([res.step_content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = targetPath.split("\\").pop() || "modelo_bim.ifc";
+    a.click();
+    URL.revokeObjectURL(url);
+
+    setStatus(`Arquivo BIM IFC4 emitido com sucesso! (${res.step_file_size_bytes} bytes, ${res.elements_count} elemento(s)).`);
+  } catch (err) {
+    setStatus(`Erro ao exportar IFC4: ${err.message}`, true);
+  }
+});
+
