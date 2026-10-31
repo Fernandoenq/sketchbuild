@@ -1498,3 +1498,123 @@ export async function downloadCurrentSkpBytes() {
   return res.blob();
 }
 
+/** Simulação temporal de física newtoniana de corpos rígidos (Frente 106). */
+export function simulateRigidBodyPhysics(bodies, steps = 60, timeStep = 0.016, gravity = [0, 0, -9.81]) {
+  return postJson("/api/v1/scene/physics/simulate-rigid-body", "POST", {
+    bodies,
+    steps,
+    time_step: timeStep,
+    gravity,
+  });
+}
+
+/** Fatiamento 3D FDM e exportação STL/3MF para impressão 3D (Frente 107). */
+export function slice3dPrintFdm(geometry, layerHeightMm = 0.2, nozzleDiamMm = 0.4, printSpeedMmS = 50.0, infillPercent = 20.0, infillPattern = "grid", filamentDiamMm = 1.75, exportFormat = "stl_ascii") {
+  return postJson("/api/v1/scene/manufacturing/slice-3d-print", "POST", {
+    geometry,
+    layer_height_mm: layerHeightMm,
+    nozzle_diam_mm: nozzleDiamMm,
+    print_speed_mm_s: printSpeedMmS,
+    infill_percent: infillPercent,
+    infill_pattern: infillPattern,
+    filament_diam_mm: filamentDiamMm,
+    export_format: exportFormat,
+  });
+}
+
+/** Análise de estabilidade e B-Rep de muro de arrimo NBR 11682 (Frente 108). */
+export function calculateRetainingWallStability(wallHeightM = 3.0, topWidthM = 0.3, baseWidthM = 1.8, stemThicknessM = 0.4, toeWidthM = 0.5, heelWidthM = 0.9, soilFrictionAngleDeg = 30.0, soilUnitWeightKnM3 = 18.0, soilCohesionKpa = 0.0, concreteUnitWeightKnM3 = 24.0, surchargeKpa = 5.0, baseFrictionAngleDeg = 25.0) {
+  return postJson("/api/v1/scene/geotechnics/retaining-wall", "POST", {
+    wall_height_m: wallHeightM,
+    top_width_m: topWidthM,
+    base_width_m: baseWidthM,
+    stem_thickness_m: stemThicknessM,
+    toe_width_m: toeWidthM,
+    heel_width_m: heelWidthM,
+    soil_friction_angle_deg: soilFrictionAngleDeg,
+    soil_unit_weight_kn_m3: soilUnitWeightKnM3,
+    soil_cohesion_kpa: soilCohesionKpa,
+    concrete_unit_weight_kn_m3: concreteUnitWeightKnM3,
+    surcharge_kpa: surchargeKpa,
+    base_friction_angle_deg: baseFrictionAngleDeg,
+  });
+}
+
+/** Dimensionamento de rede hidráulica predial NBR 5626 (Frente 109). */
+export function calculateHydraulicPiping(pipeSegments = [], fittings = [], waterTempC = 20.0, roughnessC = 140.0, staticPressureMca = 15.0) {
+  return postJson("/api/v1/scene/mep/hydraulic-piping", "POST", {
+    pipe_segments: pipeSegments,
+    fittings,
+    water_temp_c: waterTempC,
+    roughness_c: roughnessC,
+    static_pressure_mca: staticPressureMca,
+  });
+}
+
+/** Dimensionamento de eletroduto e taxa de ocupação NBR 5410 (Frente 110). */
+export function calculateElectricalConduit(conductors = [], conduitNominalMm = 25.0, circuitType = "three_phase", voltageV = 220.0, powerW = 5000.0, powerFactor = 0.92, lengthM = 15.0, maxVoltageDropPct = 4.0, ambientTempC = 30.0) {
+  return postJson("/api/v1/scene/mep/electrical-conduit", "POST", {
+    conductors,
+    conduit_nominal_mm: conduitNominalMm,
+    circuit_type: circuitType,
+    voltage_v: voltageV,
+    power_w: powerW,
+    power_factor: powerFactor,
+    length_m: lengthM,
+    max_voltage_drop_pct: maxVoltageDropPct,
+    ambient_temp_c: ambientTempC,
+  });
+}
+
+/** Conforto térmico, transmitância U e capacidade térmica NBR 15220 (Frente 111). */
+export function calculateThermalComfort(envelopeElements = [], roomVolumeM3 = 60.0, airChangesPerHour = 1.5, bioclimaticZone = 3) {
+  return postJson("/api/v1/scene/environment/thermal-comfort", "POST", {
+    envelope_elements: envelopeElements,
+    room_volume_m3: roomVolumeM3,
+    air_changes_per_hour: airChangesPerHour,
+    bioclimatic_zone: bioclimaticZone,
+  });
+}
+
+/** Tempo de reverberação RT60 e acústica de salas NBR 10152 (Frente 112). */
+export function calculateRoomAcoustics(roomDimensions = [6.0, 4.0, 2.8], surfaceAbsorptions = {}, occupancyPersons = 4, roomUsageType = "classroom") {
+  return postJson("/api/v1/scene/environment/room-acoustics", "POST", {
+    room_dimensions: roomDimensions,
+    surface_absorptions: surfaceAbsorptions,
+    occupancy_persons: occupancyPersons,
+    room_usage_type: roomUsageType,
+  });
+}
+
+/** Fator de Luz Diurna FLD % e iluminância natural NBR 15215 (Frente 113). */
+export function calculateDaylightFactor(roomDimensions = [5.0, 4.0, 2.8], windows = [], internalReflectances = {}, externalObstructions = {}) {
+  return postJson("/api/v1/scene/environment/daylight-factor", "POST", {
+    room_dimensions: roomDimensions,
+    windows,
+    internal_reflectances: internalReflectances,
+    external_obstructions: externalObstructions,
+  });
+}
+
+/** Geração de perfil estrutural metálico NBR 8800 (Frente 114). */
+export function generateSteelProfile(profileType = "w_shape", depthMm = 200.0, widthMm = 100.0, webThicknessMm = 5.5, flangeThicknessMm = 8.0, lengthMm = 3000.0, steelGrade = "ASTM A572 Gr 50") {
+  return postJson("/api/v1/scene/structures/steel-profile", "POST", {
+    profile_type: profileType,
+    depth_mm: depthMm,
+    width_mm: widthMm,
+    web_thickness_mm: webThicknessMm,
+    flange_thickness_mm: flangeThicknessMm,
+    length_mm: lengthMm,
+    steel_grade: steelGrade,
+  });
+}
+
+/** Orçamento paramétrico BIM 5D com SINAPI e curva ABC (Frente 115). */
+export function calculateBim5dSinapiBudget(budgetItems = [], bdiRatePct = 24.5, uf = "SP") {
+  return postJson("/api/v1/scene/bim/5d-sinapi-budget", "POST", {
+    budget_items: budgetItems,
+    bdi_rate_pct: bdiRatePct,
+    uf,
+  });
+}
+

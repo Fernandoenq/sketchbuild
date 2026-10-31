@@ -1928,3 +1928,158 @@ A Frente 105 estabelece a capacidade máxima de interoperabilidade industrial BI
 - **Módulo:** `core/ifc4_bim_export_engine.py` (`IFC4BimExportEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/bim/export-ifc4`.
 
+---
+
+## 133. Frente 106: Simulação de Física Newtoniana de Corpos Rígidos (RigidBodyPhysicsEngine - Zero DLL)
+
+A Frente 106 implementa a cinemática e dinâmica newtoniana de corpos rígidos em Python puro, permitindo testar estabilidade gravitacional, empilhamento, tombamento e colisões elásticas/inelásticas com solo ou obstáculos.
+
+### A. Integração Temporal e Colisões
+- **Integração Numérica:**
+  Esquema de Euler semi-implícito com passo de tempo típico $\Delta t = 0.016\text{s}$ (60 FPS):
+  $$v_{t+\Delta t} = v_t + \left(g + \frac{F_{\text{ext}}}{m}\right)\Delta t$$
+  $$p_{t+\Delta t} = p_t + v_{t+\Delta t}\Delta t$$
+- **Colisão e Resposta com Solo:**
+  Detecção de penetração de envelopes AABB e esferas contra plano horizontal $Z = Z_{\text{chão}}$, aplicando coeficiente de restituição $e \in [0, 1]$ para velocidade normal e amortecimento por atrito de Coulomb $\mu$ para velocidade tangencial.
+- **Módulo:** `core/rigid_body_physics_engine.py` (`RigidBodyPhysicsEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/physics/simulate-rigid-body`.
+
+---
+
+## 134. Frente 107: Fatiamento FDM e Estimativa de Manufatura Aditiva 3D (Slicing3DPrintEngine - Zero DLL)
+
+A Frente 107 dota a plataforma de capacidade de manufatura aditiva direta (impressão 3D FDM), fatiando a geometria em camadas horizontais planares e estimando consumo e tempo de fabricação.
+
+### A. Discretização de Camadas e Métricas
+- **Fatiamento Planar:**
+  Discretização da altura $Z$ em camadas de espessura nominal (ex: $0.20\text{mm}$), interceptando faces triangulares com planos de corte horizontais.
+- **Cálculo de Filamento e Tempo:**
+  Estimativa de preenchimento (infill linear/grid) e perímetros, convertendo comprimento de filamento consumido ($1.75\text{mm}$) em massa equivalente (PLA $\rho \approx 1.24\text{ g/cm}^3$) e tempo de impressão à velocidade nominal de bocal ($50\text{ mm/s}$).
+- **Módulo:** `core/slicing_3d_print_engine.py` (`Slicing3DPrintEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/manufacturing/slice-3d-print`.
+
+---
+
+## 135. Frente 108: Estabilidade Geotécnica de Muros de Arrimo ABNT NBR 11682 (RetainingWallEngine - Zero DLL)
+
+A Frente 108 implementa o dimensionamento geotécnico e estrutural de muros de contenção por gravidade/flexão em concreto armado, atendendo aos critérios da ABNT NBR 11682.
+
+### A. Formulação de Rankine e Fatores de Segurança
+- **Coeficiente de Empuxo Ativo ($K_a$):**
+  $$K_a = \tan^2\left(45^\circ - \frac{\phi}{2}\right)$$
+  Calculando a distribuição triangular do empuxo de terra e sobrecarga horizontalizada.
+- **Fatores de Segurança:**
+  - Tombamento: $FS_{\text{tomb}} = \frac{M_{\text{estabilizante}}}{M_{\text{tombamento}}} \ge 1.50$
+  - Deslizamento: $FS_{\text{desl}} = \frac{\sum V \cdot \tan(\delta)}{E_a} \ge 1.20$
+- **Módulo:** `core/retaining_wall_engine.py` (`RetainingWallEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geotechnics/retaining-wall`.
+
+---
+
+## 136. Frente 109: Dimensionamento de Redes Hidráulicas Prediais ABNT NBR 5626 (HydraulicPipingEngine - Zero DLL)
+
+A Frente 109 traz a engenharia predial MEP para dentro do SketchBuild, com dimensionamento analítico de escoamento sob pressão em tubulações plásticas (PVC/PPR).
+
+### A. Perda de Carga por Hazen-Williams
+- **Gradiente Hidráulico ($J$):**
+  $$J = 10.643 \cdot Q^{1.852} \cdot C^{-1.852} \cdot D^{-4.87}$$
+- **Perdas Localizadas:**
+  Soma de comprimentos equivalentes para curvas de 90°, 45°, tês de passagem/derivação e válvulas de esfera.
+- **Critérios NBR 5626:**
+  Velocidade de escoamento restrita a $v \le 3.0\text{ m/s}$ (para evitar ruídos e golpe de aríete) e pressão dinâmica terminal mínima de $1.0\text{ m.c.a.}$.
+- **Módulo:** `core/hydraulic_piping_engine.py` (`HydraulicPipingEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/mep/hydraulic-piping`.
+
+---
+
+## 137. Frente 110: Dimensionamento de Eletrodutos e Cablagem ABNT NBR 5410 (ElectricalConduitEngine - Zero DLL)
+
+A Frente 110 atende à engenharia elétrica predial de baixa tensão conforme a norma ABNT NBR 5410.
+
+### A. Taxa de Ocupação e Queda de Tensão
+- **Taxa Máxima de Ocupação:**
+  Para 3 ou mais condutores no mesmo eletroduto, a taxa máxima de ocupação transversal é estritamente limitada a $40\%$:
+  $$\frac{\sum A_{\text{cabos}}}{A_{\text{eletroduto}}} \le 0.40$$
+- **Queda de Tensão Admissível:**
+  Queda percentual $\Delta V\% \le 4.0\%$ no trecho terminal, calculada com base na resistividade do cobre ($\rho = 0.0172\,\Omega\cdot\text{mm}^2/\text{m}$) e corrente corrigida por fator de agrupamento.
+- **Módulo:** `core/electrical_conduit_engine.py` (`ElectricalConduitEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/mep/electrical-conduit`.
+
+---
+
+## 138. Frente 111: Conforto Térmico e Envoltória ABNT NBR 15220 / PBE Edifica (ThermalComfortEngine - Zero DLL)
+
+A Frente 111 analisa a eficiência termoenergética da edificação de acordo com as 8 zonas bioclimáticas brasileiras.
+
+### A. Transmitância e Capacidade Térmica
+- **Transmitância Térmica Total ($U$):**
+  $$U = \frac{1}{R_{\text{se}} + \sum \frac{e_i}{\lambda_i} + R_{\text{si}}}$$
+- **Capacidade Térmica ($C_T$):**
+  $$C_T = \sum (e_i \cdot \rho_i \cdot c_i) \ge 130\text{ kJ/m}^2\text{K}$$
+- **Atraso Térmico ($\phi$):**
+  Cálculo das horas de inércia para amortecimento da onda de calor solar diária.
+- **Módulo:** `core/thermal_comfort_engine.py` (`ThermalComfortEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/environment/thermal-comfort`.
+
+---
+
+## 139. Frente 112: Acústica de Salas e Tempo de Reverberação RT60 ABNT NBR 10152 (RoomAcousticsEngine - Zero DLL)
+
+A Frente 112 provê modelagem acústica arquitetônica de recintos fechados (salas de aula, auditórios, escritórios e salas de reunião).
+
+### A. Formulação de Sabine em Frequências Normalizadas
+- **Equação de Sabine:**
+  $$RT_{60} = \frac{0.161 \cdot V}{A_{\text{total}} + 4mV}$$
+- **Espectro de 6 Oitavas:**
+  Cálculo discreto nas bandas de $125\text{Hz}, 250\text{Hz}, 500\text{Hz}, 1000\text{Hz}, 2000\text{Hz}$ e $4000\text{Hz}$, comparando o tempo de reverberação médio com a faixa ideal normativa da ABNT NBR 10152 para inteligibilidade da fala.
+- **Módulo:** `core/room_acoustics_engine.py` (`RoomAcousticsEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/environment/room-acoustics`.
+
+---
+
+## 140. Frente 113: Iluminação Natural e Fator de Luz Diurna FLD ABNT NBR 15215 (DaylightFactorEngine - Zero DLL)
+
+A Frente 113 calcula o aproveitamento de iluminação natural e a penetração de luz difusa em ambientes internos conforme a ABNT NBR 15215.
+
+### A. Componentes do FLD e Amostragem Espacial
+- **Fator de Luz Diurna ($FLD$):**
+  Composto pelas 3 parcelas físicas:
+  $$FLD = CC + CEI + CRI$$
+  onde $CC$ é a componente celeste, $CEI$ é a reflexão externa e $CRI$ é a reflexão interna das paredes, piso e teto.
+- **Grelha de Trabalho e Iluminância Lux:**
+  Amostragem em matriz de pontos sobre o plano de trabalho a $0.75\text{m}$ do piso sob condição de céu encoberto padrão CIE ($10.000\text{ lux}$ externo).
+- **Módulo:** `core/daylight_factor_engine.py` (`DaylightFactorEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/environment/daylight-factor`.
+
+---
+
+## 141. Frente 114: Perfis Estruturais de Aço e Propriedades de Seção ABNT NBR 8800 (SteelProfileEngine - Zero DLL)
+
+A Frente 114 gera perfis metálicos estruturais laminados e soldados (vigas I/W, perfis U, cantoneiras e tubos retangulares/circulares) com cálculo analítico rigoroso de propriedades geométricas de seção.
+
+### A. Propriedades Mecânicas e B-Rep 3D
+- **Propriedades da Seção Transversal:**
+  Área total $A$, momento de inércia $I_x, I_y$, raio de giração $r_x, r_y$, módulo de resistência elástico $W_x, W_y$ e módulo plástico $Z_x, Z_y$.
+- **Malha B-Rep Sólida:**
+  Geração do prisma 3D indexado com mesa superior, alma e mesa inferior para renderização em tempo real no Three.js e exportação IFC4.
+- **Módulo:** `core/steel_profile_engine.py` (`SteelProfileEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/structures/steel-profile`.
+
+---
+
+## 142. Frente 115: Orçamento Paramétrico BIM 5D com Tabela Oficial SINAPI e Curva ABC (Bim5dSinapiCostEngine - Zero DLL)
+
+A Frente 115 introduz a dimensão BIM 5D ao sistema, integrando dados quantitativos da modelagem paramétrica a composições de custo unitário oficiais (SINAPI/Caixa Econômica Federal).
+
+### A. Custo Direto, BDI e Curva ABC
+- **Cálculo de BDI (Bonificação e Despesas Indiretas):**
+  Aplicação da taxa de BDI regulamentar (padrão $24.50\%$) sobre o custo direto total dos serviços e insumos:
+  $$\text{Preço de Venda} = \text{Custo Direto} \cdot (1 + \text{BDI})$$
+- **Curva ABC (Pareto):**
+  Ordenação decrescente de relevância financeira e acumulação percentual:
+  - **Classe A:** Itens de maior impacto (acumulado até $80\%$).
+  - **Classe B:** Itens intermediários (acumulado de $80\%$ a $95\%$).
+  - **Classe C:** Itens de menor impacto individual (acumulado de $95\%$ a $100\%$).
+- **Módulo:** `core/bim_5d_sinapi_cost_engine.py` (`Bim5dSinapiCostEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/bim/5d-sinapi-budget`.
+

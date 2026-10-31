@@ -1430,6 +1430,89 @@
       </div>
     </div><!-- /tray-environment -->
 
+    <!-- Frentes 106 a 115: Engenharia Especializada, MEP, Conforto e BIM 5D -->
+    <div class="tray-section collapsed" id="tray-advanced-engineering">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">Engenharia Especializada &amp; MEP</span>
+        <span class="tray-arrow">&#9662;</span>
+      </div>
+      <div class="tray-body">
+        <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">
+          Física Newtoniana, Fatiamento 3D FDM, Geotecnia NBR 11682, MEP NBR 5626/5410, Conforto NBR 15220/10152/15215, Aço NBR 8800 e BIM 5D SINAPI.
+        </div>
+
+        <!-- Frente 106: Física Newtoniana -->
+        <button id="btn-simulate-physics" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #2B6CB0; color: white;">Simular Física &amp; Queda (Frente 106)</button>
+        <div id="physics-result" style="display: none; padding: 6px; background: #EBF8FF; border: 1px solid #BEE3F8; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="physics-status-badge" style="font-weight: bold; color: #2B6CB0;"></div>
+          <div id="physics-details" style="color: var(--text);"></div>
+        </div>
+
+        <!-- Frente 107: Fatiamento FDM / Impressão 3D -->
+        <button id="btn-slice-fdm" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #4A5568; color: white;">Fatiamento FDM &amp; Impressão 3D (Frente 107)</button>
+        <div id="slicing-result" style="display: none; padding: 6px; background: #EDF2F7; border: 1px solid #CBD5E0; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="slicing-status-badge" style="font-weight: bold; color: #2D3748;"></div>
+          <div id="slicing-details" style="color: var(--text);"></div>
+        </div>
+
+        <!-- Frente 108: Muro de Arrimo NBR 11682 -->
+        <button id="btn-calc-retaining-wall" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #744210; color: white;">Muro de Arrimo NBR 11682 (Frente 108)</button>
+        <div id="retaining-wall-result" style="display: none; padding: 6px; background: #FEFCBF; border: 1px solid #FAF089; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="retaining-wall-status-badge" style="font-weight: bold; color: #744210;"></div>
+          <div id="retaining-wall-details" style="color: var(--text);"></div>
+        </div>
+
+        <!-- Frente 109: Hidráulica Predial NBR 5626 -->
+        <button id="btn-calc-hydraulic-piping" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #2B6CB0; color: white;">Rede Hidráulica NBR 5626 (Frente 109)</button>
+        <div id="hydraulic-result" style="display: none; padding: 6px; background: #EBF8FF; border: 1px solid #BEE3F8; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="hydraulic-status-badge" style="font-weight: bold; color: #2B6CB0;"></div>
+          <div id="hydraulic-details" style="color: var(--text);"></div>
+        </div>
+
+        <!-- Frente 110: Eletrodutos NBR 5410 -->
+        <button id="btn-calc-electrical-conduit" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #D69E2E; color: white;">Eletrodutos NBR 5410 (Frente 110)</button>
+        <div id="electrical-result" style="display: none; padding: 6px; background: #FEFCBF; border: 1px solid #FAF089; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="electrical-status-badge" style="font-weight: bold; color: #975A16;"></div>
+          <div id="electrical-details" style="color: var(--text);"></div>
+        </div>
+
+        <!-- Frente 111: Conforto Térmico NBR 15220 -->
+        <button id="btn-calc-thermal-comfort" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #C53030; color: white;">Conforto Térmico NBR 15220 (Frente 111)</button>
+        <div id="thermal-result" style="display: none; padding: 6px; background: #FFF5F5; border: 1px solid #FEB2B2; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="thermal-status-badge" style="font-weight: bold; color: #C53030;"></div>
+          <div id="thermal-details" style="color: var(--text);"></div>
+        </div>
+
+        <!-- Frente 112: Acústica NBR 10152 RT60 -->
+        <button id="btn-calc-room-acoustics" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #6B46C1; color: white;">Acústica de Salas NBR 10152 (Frente 112)</button>
+        <div id="acoustics-result" style="display: none; padding: 6px; background: #FAF5FF; border: 1px solid #E9D8FD; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="acoustics-status-badge" style="font-weight: bold; color: #6B46C1;"></div>
+          <div id="acoustics-details" style="color: var(--text);"></div>
+        </div>
+
+        <!-- Frente 113: Iluminação Natural NBR 15215 -->
+        <button id="btn-calc-daylight-factor" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #DD6B20; color: white;">Fator Luz Diurna FLD NBR 15215 (Frente 113)</button>
+        <div id="daylight-result" style="display: none; padding: 6px; background: #FFFAF0; border: 1px solid #FEEBC8; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="daylight-status-badge" style="font-weight: bold; color: #DD6B20;"></div>
+          <div id="daylight-details" style="color: var(--text);"></div>
+        </div>
+
+        <!-- Frente 114: Perfil de Aço NBR 8800 -->
+        <button id="btn-gen-steel-profile" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #2D3748; color: white;">Perfil Metálico NBR 8800 (Frente 114)</button>
+        <div id="steel-result" style="display: none; padding: 6px; background: #EDF2F7; border: 1px solid #CBD5E0; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="steel-status-badge" style="font-weight: bold; color: #2D3748;"></div>
+          <div id="steel-details" style="color: var(--text);"></div>
+        </div>
+
+        <!-- Frente 115: BIM 5D Orçamento SINAPI -->
+        <button id="btn-calc-bim-5d-sinapi" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #22543D; color: white;">Orçamento 5D SINAPI &amp; Curva ABC (Frente 115)</button>
+        <div id="sinapi-result" style="display: none; padding: 6px; background: #F0FFF4; border: 1px solid #9AE6B4; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="sinapi-status-badge" style="font-weight: bold; color: #22543D;"></div>
+          <div id="sinapi-details" style="color: var(--text);"></div>
+        </div>
+      </div>
+    </div><!-- /tray-advanced-engineering -->
+
   </div>
 
   <div id="status">Clique em "Escolher arquivo..." pra abrir pelo seletor do Windows, ou cole o caminho completo e clique em Abrir.</div>

@@ -170,6 +170,26 @@ from app.schemas.scene import (
     AtmosphericSkyResponse,
     IFC4BimExportRequest,
     IFC4BimExportResponse,
+    RigidBodyPhysicsRequest,
+    RigidBodyPhysicsResponse,
+    Slicing3dPrintRequest,
+    Slicing3dPrintResponse,
+    RetainingWallRequest,
+    RetainingWallResponse,
+    HydraulicPipingRequest,
+    HydraulicPipingResponse,
+    ElectricalConduitRequest,
+    ElectricalConduitResponse,
+    ThermalComfortRequest,
+    ThermalComfortResponse,
+    RoomAcousticsRequest,
+    RoomAcousticsResponse,
+    DaylightFactorRequest,
+    DaylightFactorResponse,
+    SteelProfileRequest,
+    SteelProfileResponse,
+    Bim5dSinapiCostRequest,
+    Bim5dSinapiCostResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1969,5 +1989,120 @@ class SceneController:
                 body.organization
             )
             return IFC4BimExportResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    # ========================================================================
+    # Frentes 106 a 115: Física, Fatiamento 3D, MEP, Conforto, Aço e SINAPI 5D
+    # ========================================================================
+
+    async def simulate_rigid_body_physics(self, body: RigidBodyPhysicsRequest) -> RigidBodyPhysicsResponse:
+        """Simula dinâmica Newtoniana e colisões de corpos rígidos (Frente 106)."""
+        try:
+            res = await self._service.simulate_rigid_body_physics(
+                body.bodies, body.gravity_z, body.ground_z,
+                body.total_time_s, body.time_step_s, body.restitution, body.friction_coeff
+            )
+            return RigidBodyPhysicsResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def slice_3d_print_fdm(self, body: Slicing3dPrintRequest) -> Slicing3dPrintResponse:
+        """Calcula métricas de fatiamento FDM e fatiador planar (Frente 107)."""
+        try:
+            res = await self._service.slice_3d_print_fdm(
+                body.vertices, body.triangles,
+                body.layer_height_mm, body.infill_percent, body.print_speed_mm_s
+            )
+            return Slicing3dPrintResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_retaining_wall_stability(self, body: RetainingWallRequest) -> RetainingWallResponse:
+        """Calcula estabilidade ao tombamento/deslizamento de muro de arrimo NBR 11682 (Frente 108)."""
+        try:
+            res = await self._service.calculate_retaining_wall_stability(
+                body.wall_height_m, body.stem_top_thickness_m, body.stem_bottom_thickness_m,
+                body.base_width_m, body.base_thickness_m, body.soil_friction_angle_deg,
+                body.soil_unit_weight_kn_m3, body.concrete_unit_weight_kn_m3, body.surcharge_kpa
+            )
+            return RetainingWallResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_hydraulic_piping(self, body: HydraulicPipingRequest) -> HydraulicPipingResponse:
+        """Calcula perda de carga contínua/localizada Hazen-Williams NBR 5626 (Frente 109)."""
+        try:
+            res = await self._service.calculate_hydraulic_piping(
+                body.pipe_diameter_dn_mm, body.flow_rate_l_s, body.pipe_roughness_c,
+                body.inlet_pressure_mca, body.waypoints, body.fittings
+            )
+            return HydraulicPipingResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_electrical_conduit(self, body: ElectricalConduitRequest) -> ElectricalConduitResponse:
+        """Dimensiona taxa de ocupação e queda de tensão em eletrodutos NBR 5410 (Frente 110)."""
+        try:
+            res = await self._service.calculate_electrical_conduit(
+                body.conduit_nominal_dn_mm, body.circuit_current_amperes, body.cable_gauge_mm2,
+                body.cables_count, body.circuit_length_m, body.voltage_v, body.power_factor
+            )
+            return ElectricalConduitResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_thermal_comfort(self, body: ThermalComfortRequest) -> ThermalComfortResponse:
+        """Calcula transmitância U e capacidade Ct de envoltória NBR 15220 (Frente 111)."""
+        try:
+            res = await self._service.calculate_thermal_comfort(
+                body.layers, body.rsi_m2_k_w, body.rse_m2_k_w, body.target_bioclimatic_zone
+            )
+            return ThermalComfortResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_room_acoustics(self, body: RoomAcousticsRequest) -> RoomAcousticsResponse:
+        """Calcula espectro RT60 e absorção acústica de Sabine NBR 10152 (Frente 112)."""
+        try:
+            res = await self._service.calculate_room_acoustics(
+                body.room_width_m, body.room_length_m, body.room_height_m,
+                body.surfaces, body.room_type
+            )
+            return RoomAcousticsResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_daylight_factor(self, body: DaylightFactorRequest) -> DaylightFactorResponse:
+        """Calcula Fator de Luz Diurna (FLD %) e iluminância interna NBR 15215 (Frente 113)."""
+        try:
+            res = await self._service.calculate_daylight_factor(
+                body.room_width_m, body.room_depth_m, body.room_height_m,
+                body.window_width_m, body.window_height_m, body.window_sill_height_m,
+                body.glass_transmittance, body.external_horizontal_lux,
+                body.average_internal_reflectance, body.obstruction_angle_deg
+            )
+            return DaylightFactorResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_steel_profile(self, body: SteelProfileRequest) -> SteelProfileResponse:
+        """Gera perfil metálico I/W e calcula propriedades geométricas NBR 8800 (Frente 114)."""
+        try:
+            res = await self._service.generate_steel_profile(
+                body.depth_d_mm, body.flange_width_bf_mm, body.web_thickness_tw_mm,
+                body.flange_thickness_tf_mm, body.length_m
+            )
+            return SteelProfileResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_bim_5d_sinapi_budget(self, body: Bim5dSinapiCostRequest) -> Bim5dSinapiCostResponse:
+        """Calcula orçamento analítico BIM 5D, BDI e Curva ABC com base SINAPI (Frente 115)."""
+        try:
+            res = await self._service.calculate_bim_5d_sinapi_budget(
+                body.elements, body.bdi_percent, body.social_charges_percent
+            )
+            return Bim5dSinapiCostResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

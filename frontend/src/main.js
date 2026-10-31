@@ -114,6 +114,16 @@ import {
   calculateWindPressure,
   configureAtmosphericSky,
   exportIfc4Bim,
+  simulateRigidBodyPhysics,
+  slice3dPrintFdm,
+  calculateRetainingWallStability,
+  calculateHydraulicPiping,
+  calculateElectricalConduit,
+  calculateThermalComfort,
+  calculateRoomAcoustics,
+  calculateDaylightFactor,
+  generateSteelProfile,
+  calculateBim5dSinapiBudget,
   downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
@@ -4365,6 +4375,238 @@ document.getElementById("export-ifc4-btn")?.addEventListener("click", async () =
     setStatus(`Arquivo BIM IFC4 emitido com sucesso! (${res.step_file_size_bytes} bytes, ${res.elements_count} elemento(s)).`);
   } catch (err) {
     setStatus(`Erro ao exportar IFC4: ${err.message}`, true);
+  }
+});
+
+// ============================================================================
+// Frentes 106 a 115: Engenharia Especializada, MEP, Conforto e BIM 5D
+// ============================================================================
+
+// 1. Frente 106: Simulação de Física Newtoniana
+document.getElementById("btn-simulate-physics")?.addEventListener("click", async () => {
+  setStatus("Executando simulação de física newtoniana e colisões...");
+  const badge = document.getElementById("physics-status-badge");
+  const details = document.getElementById("physics-details");
+  const panel = document.getElementById("physics-result");
+
+  try {
+    const bodies = [
+      { id: "box_1", name: "Cubo A", mass_kg: 5.0, initial_pos: [0, 0, 4.0], initial_vel: [0.5, 0, 0], dimensions: [0.5, 0.5, 0.5] },
+      { id: "box_2", name: "Cubo B", mass_kg: 10.0, initial_pos: [1.2, 0, 6.0], initial_vel: [-0.2, 0, 0], dimensions: [0.6, 0.6, 0.6] },
+    ];
+    const res = await simulateRigidBodyPhysics(bodies, 60, 0.016, [0, 0, -9.81]);
+    if (panel) panel.style.display = "block";
+    if (badge) badge.textContent = `Física: ${res.bodies_count} corpo(s) simulados (${res.parameters.total_time_s}s a dt=${res.parameters.time_step_s}s)`;
+    if (details) {
+      details.innerHTML = res.final_summary.map(b => `Corpo <strong>${b.name}</strong>: Z_final = ${b.final_position[2].toFixed(2)}m (Repouso: ${b.settled_at_ground ? "Sim" : "Não"})`).join("<br>");
+    }
+    setStatus("Simulação de física newtoniana concluída com sucesso.");
+  } catch (err) {
+    setStatus(`Erro na física: ${err.message}`, true);
+  }
+});
+
+// 2. Frente 107: Fatiamento FDM & Manufatura Aditiva
+document.getElementById("btn-slice-fdm")?.addEventListener("click", async () => {
+  setStatus("Fatiando geometria 3D para impressão FDM e estimando filamento...");
+  const badge = document.getElementById("slicing-status-badge");
+  const details = document.getElementById("slicing-details");
+  const panel = document.getElementById("slicing-result");
+
+  try {
+    const geom = {
+      vertices: [[0,0,0], [20,0,0], [20,20,0], [0,20,0], [0,0,20], [20,0,20], [20,20,20], [0,20,20]],
+      triangles: [[0,1,2], [0,2,3], [4,6,5], [4,7,6], [0,5,1], [0,4,5], [1,6,2], [1,5,6], [2,7,3], [2,6,7], [3,4,0], [3,7,4]]
+    };
+    const res = await slice3dPrintFdm(geom, 0.20, 0.40, 50.0, 20.0, "grid");
+    if (panel) panel.style.display = "block";
+    const sm = res.slicing_metrics;
+    if (badge) badge.textContent = `FDM: ${sm.total_layers} camadas | ${sm.estimated_time_minutes.toFixed(0)} min`;
+    if (details) {
+      details.innerHTML = `Filamento: ${sm.filament_length_m.toFixed(2)}m (${sm.filament_weight_grams.toFixed(1)}g ${sm.material_type})<br>Dimensões: ${res.dimensions_mm.width_x_mm.toFixed(1)}x${res.dimensions_mm.depth_y_mm.toFixed(1)}x${res.dimensions_mm.height_z_mm.toFixed(1)}mm`;
+    }
+    setStatus("Fatiamento FDM concluído com sucesso.");
+  } catch (err) {
+    setStatus(`Erro no fatiamento FDM: ${err.message}`, true);
+  }
+});
+
+// 3. Frente 108: Estabilidade de Muro de Arrimo NBR 11682
+document.getElementById("btn-calc-retaining-wall")?.addEventListener("click", async () => {
+  setStatus("Calculando estabilidade e B-Rep 3D do muro de arrimo NBR 11682...");
+  const badge = document.getElementById("retaining-wall-status-badge");
+  const details = document.getElementById("retaining-wall-details");
+  const panel = document.getElementById("retaining-wall-result");
+
+  try {
+    const res = await calculateRetainingWallStability(3.0, 0.25, 2.0, 0.45, 0.5, 1.05, 30.0, 18.0, 0.0, 25.0, 5.0, 25.0);
+    if (panel) panel.style.display = "block";
+    const st = res.stability_analysis;
+    if (badge) badge.textContent = `Muro de Arrimo: ${st.status_label}`;
+    if (details) {
+      details.innerHTML = `FS Tombamento: <strong>${st.safety_factor_overturning.toFixed(2)}</strong> (Mín 1.50)<br>FS Deslizamento: <strong>${st.safety_factor_sliding.toFixed(2)}</strong> (Mín 1.20)<br>Empuxo Total: ${st.total_horizontal_thrust_kn.toFixed(1)} kN (Ka=${st.rankine_ka.toFixed(3)})`;
+    }
+    if (res.geometry_3d && res.geometry_3d.vertices) {
+      addProceduralMeshToScene(res.geometry_3d.vertices, res.geometry_3d.triangles, 0x8c7853, "MuroDeArrimo");
+    }
+    setStatus("Muro de arrimo NBR 11682 gerado e analisado com sucesso.");
+  } catch (err) {
+    setStatus(`Erro no muro de arrimo: ${err.message}`, true);
+  }
+});
+
+// 4. Frente 109: Dimensionamento Hidráulico NBR 5626
+document.getElementById("btn-calc-hydraulic-piping")?.addEventListener("click", async () => {
+  setStatus("Dimensionando tubulação predial e perda de carga NBR 5626...");
+  const badge = document.getElementById("hydraulic-status-badge");
+  const details = document.getElementById("hydraulic-details");
+  const panel = document.getElementById("hydraulic-result");
+
+  try {
+    const res = await calculateHydraulicPiping();
+    if (panel) panel.style.display = "block";
+    const hr = res.hydraulic_results;
+    if (badge) badge.textContent = `Hidráulica: ${hr.status_label}`;
+    if (details) {
+      details.innerHTML = `Extensão: ${hr.pipe_total_length_m.toFixed(1)}m | Velocidade: <strong>${hr.flow_velocity_m_s.toFixed(2)} m/s</strong> (Máx 3.0)<br>Perda de Carga Total: ${hr.total_head_loss_mca.toFixed(2)} mca | Pressão Saída: <strong>${hr.outlet_pressure_mca.toFixed(2)} mca</strong>`;
+    }
+    if (res.geometry_3d && res.geometry_3d.vertices) {
+      addProceduralMeshToScene(res.geometry_3d.vertices, res.geometry_3d.triangles, 0x3182ce, "TubulacaoHidraulica");
+    }
+    setStatus("Rede hidráulica NBR 5626 dimensionada com sucesso.");
+  } catch (err) {
+    setStatus(`Erro na hidráulica: ${err.message}`, true);
+  }
+});
+
+// 5. Frente 110: Dimensionamento de Eletrodutos NBR 5410
+document.getElementById("btn-calc-electrical-conduit")?.addEventListener("click", async () => {
+  setStatus("Calculando taxa de ocupação e queda de tensão em eletrodutos NBR 5410...");
+  const badge = document.getElementById("electrical-status-badge");
+  const details = document.getElementById("electrical-details");
+  const panel = document.getElementById("electrical-result");
+
+  try {
+    const res = await calculateElectricalConduit();
+    if (panel) panel.style.display = "block";
+    const oc = res.conduit_occupancy;
+    const vd = res.voltage_drop;
+    if (badge) badge.textContent = `Elétrica: ${res.diagnostic.status_label}`;
+    if (details) {
+      details.innerHTML = `Ocupação: <strong>${oc.occupancy_percent.toFixed(1)}%</strong> (Máx ${oc.max_allowed_percent}%)<br>Queda de Tensão: <strong>${vd.voltage_drop_percent.toFixed(2)}%</strong> (${vd.voltage_drop_volts.toFixed(1)}V - Limite ${vd.max_allowed_percent}%)`;
+    }
+    setStatus("Eletrodutos NBR 5410 dimensionados com sucesso.");
+  } catch (err) {
+    setStatus(`Erro na elétrica: ${err.message}`, true);
+  }
+});
+
+// 6. Frente 111: Conforto Térmico NBR 15220
+document.getElementById("btn-calc-thermal-comfort")?.addEventListener("click", async () => {
+  setStatus("Avaliando transmitância térmica U e capacidade Ct NBR 15220...");
+  const badge = document.getElementById("thermal-status-badge");
+  const details = document.getElementById("thermal-details");
+  const panel = document.getElementById("thermal-result");
+
+  try {
+    const res = await calculateThermalComfort();
+    if (panel) panel.style.display = "block";
+    const tm = res.thermal_metrics;
+    if (badge) badge.textContent = `Térmica: ${tm.efficiency_label}`;
+    if (details) {
+      details.innerHTML = `Transmitância U: <strong>${tm.transmittance_u_w_m2_k.toFixed(2)} W/m²K</strong> (Máx ${tm.max_allowed_u_w_m2_k})<br>Capacidade Ct: <strong>${tm.heat_capacity_ct_kj_m2_k.toFixed(0)} kJ/m²K</strong> | Atraso: ${tm.thermal_lag_hours.toFixed(1)}h`;
+    }
+    setStatus("Conforto térmico NBR 15220 calculado com sucesso.");
+  } catch (err) {
+    setStatus(`Erro no conforto térmico: ${err.message}`, true);
+  }
+});
+
+// 7. Frente 112: Acústica de Salas NBR 10152 RT60
+document.getElementById("btn-calc-room-acoustics")?.addEventListener("click", async () => {
+  setStatus("Calculando tempo de reverberação RT60 de Sabine NBR 10152...");
+  const badge = document.getElementById("acoustics-status-badge");
+  const details = document.getElementById("acoustics-details");
+  const panel = document.getElementById("acoustics-result");
+
+  try {
+    const res = await calculateRoomAcoustics();
+    if (panel) panel.style.display = "block";
+    const ac = res.acoustic_metrics;
+    if (badge) badge.textContent = `Acústica: ${ac.status_label}`;
+    if (details) {
+      details.innerHTML = `RT60 Médio (500-1000Hz): <strong>${ac.rt60_mid_seconds.toFixed(2)}s</strong> (Faixa Recomendada: ${ac.target_range_seconds.join(" - ")}s)<br>Volume: ${res.parameters.room_dimensions_m.join("x")}m | Espectro: 125Hz=${res.rt60_frequency_spectrum["125Hz"].toFixed(2)}s, 1kHz=${res.rt60_frequency_spectrum["1000Hz"].toFixed(2)}s`;
+    }
+    setStatus("Acústica de salas NBR 10152 calculada com sucesso.");
+  } catch (err) {
+    setStatus(`Erro na acústica: ${err.message}`, true);
+  }
+});
+
+// 8. Frente 113: Iluminação Natural & Fator de Luz Diurna FLD NBR 15215
+document.getElementById("btn-calc-daylight-factor")?.addEventListener("click", async () => {
+  setStatus("Calculando Fator de Luz Diurna FLD % e iluminância NBR 15215...");
+  const badge = document.getElementById("daylight-status-badge");
+  const details = document.getElementById("daylight-details");
+  const panel = document.getElementById("daylight-result");
+
+  try {
+    const res = await calculateDaylightFactor();
+    if (panel) panel.style.display = "block";
+    const dm = res.daylight_metrics;
+    if (badge) badge.textContent = `Iluminação Natural: ${dm.status_label}`;
+    if (details) {
+      details.innerHTML = `FLD Médio: <strong>${dm.average_fld_percent.toFixed(2)}%</strong> (Mín ${dm.min_recommended_fld_percent}%)<br>Iluminância Média: <strong>${dm.average_lux.toFixed(0)} lux</strong> (${res.workplane_grid_points.length} pontos amostrados)`;
+    }
+    setStatus("Iluminação natural NBR 15215 calculada com sucesso.");
+  } catch (err) {
+    setStatus(`Erro na iluminação natural: ${err.message}`, true);
+  }
+});
+
+// 9. Frente 114: Perfis de Aço Estrutural NBR 8800
+document.getElementById("btn-gen-steel-profile")?.addEventListener("click", async () => {
+  setStatus("Gerando perfil metálico I/W e calculando propriedades de seção NBR 8800...");
+  const badge = document.getElementById("steel-status-badge");
+  const details = document.getElementById("steel-details");
+  const panel = document.getElementById("steel-result");
+
+  try {
+    const res = await generateSteelProfile("w_shape", 200.0, 100.0, 6.0, 9.0, 3000.0);
+    if (panel) panel.style.display = "block";
+    const sp = res.section_properties;
+    if (badge) badge.textContent = `Aço NBR 8800: ${res.nominal_designation} (${res.profile_type})`;
+    if (details) {
+      details.innerHTML = `Área: ${sp.area_cm2.toFixed(1)} cm² | Peso Linear: <strong>${sp.weight_kg_m.toFixed(1)} kg/m</strong><br>Inércia Ix: <strong>${sp.ix_cm4.toFixed(0)} cm⁴</strong> | Módulo Wx: ${sp.wx_cm3.toFixed(1)} cm³`;
+    }
+    if (res.geometry_3d && res.geometry_3d.vertices) {
+      addProceduralMeshToScene(res.geometry_3d.vertices, res.geometry_3d.triangles, 0x4a5568, "VigaMetalicaW");
+    }
+    setStatus("Perfil metálico NBR 8800 gerado com sucesso.");
+  } catch (err) {
+    setStatus(`Erro no perfil de aço: ${err.message}`, true);
+  }
+});
+
+// 10. Frente 115: BIM 5D SINAPI e Curva ABC
+document.getElementById("btn-calc-bim-5d-sinapi")?.addEventListener("click", async () => {
+  setStatus("Calculando orçamento analítico BIM 5D, BDI e Curva ABC com SINAPI...");
+  const badge = document.getElementById("sinapi-status-badge");
+  const details = document.getElementById("sinapi-details");
+  const panel = document.getElementById("sinapi-result");
+
+  try {
+    const res = await calculateBim5dSinapiBudget();
+    if (panel) panel.style.display = "block";
+    const fs = res.financial_summary;
+    const abc = res.abc_classification_summary;
+    if (badge) badge.textContent = `Orçamento 5D SINAPI: ${fs.currency} ${fs.total_budget_with_bdi_brl.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+    if (details) {
+      details.innerHTML = `Custo Direto: ${fs.currency} ${fs.total_direct_cost_brl.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | BDI: ${fs.bdi_percent.toFixed(1)}%<br>Curva ABC: Classe A (${abc.class_a_items_count}), Classe B (${abc.class_b_items_count}), Classe C (${abc.class_c_items_count})`;
+    }
+    setStatus("Orçamento paramétrico BIM 5D SINAPI gerado com sucesso.");
+  } catch (err) {
+    setStatus(`Erro no orçamento 5D: ${err.message}`, true);
   }
 });
 

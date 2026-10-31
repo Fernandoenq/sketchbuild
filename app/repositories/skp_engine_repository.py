@@ -3031,3 +3031,166 @@ class SkpEngineRepository:
             "step_content": step_content,
             "status": "ARQUIVO IFC4 STEP EXPORTADO COM SUCESSO"
         }
+
+    # ========================================================================
+    # Frentes 106 a 115: Física, Fatiamento 3D, MEP, Conforto, Aço e SINAPI 5D
+    # ========================================================================
+
+    def simulate_rigid_body_physics(
+        self,
+        bodies: list,
+        gravity_z: float = -9.81,
+        ground_z: float = 0.0,
+        total_time_s: float = 2.0,
+        time_step_s: float = 0.016,
+        restitution: float = 0.45,
+        friction_coeff: float = 0.35,
+    ) -> dict:
+        """Simula dinâmica Newtoniana e colisões de corpos rígidos (Frente 106)."""
+        from core.rigid_body_physics_engine import RigidBodyPhysicsEngine
+        return RigidBodyPhysicsEngine.simulate_drop(
+            bodies, gravity_z, ground_z, time_step_s, total_time_s, restitution, friction_coeff
+        )
+
+    def slice_3d_print_fdm(
+        self,
+        vertices: list,
+        triangles: list,
+        layer_height_mm: float = 0.20,
+        infill_percent: float = 20.0,
+        print_speed_mm_s: float = 50.0,
+    ) -> dict:
+        """Calcula métricas de fatiamento FDM e fatiador planar (Frente 107)."""
+        from core.slicing_3d_print_engine import Slicing3DPrintEngine
+        return Slicing3DPrintEngine.slice_model_fdm(
+            vertices, triangles, layer_height_mm, infill_percent, print_speed_mm_s
+        )
+
+    def calculate_retaining_wall_stability(
+        self,
+        wall_height_m: float = 3.0,
+        stem_top_thickness_m: float = 0.25,
+        stem_bottom_thickness_m: float = 0.45,
+        base_width_m: float = 1.80,
+        base_thickness_m: float = 0.40,
+        soil_friction_angle_deg: float = 30.0,
+        soil_unit_weight_kn_m3: float = 18.0,
+        concrete_unit_weight_kn_m3: float = 25.0,
+        surcharge_kpa: float = 5.0,
+    ) -> dict:
+        """Calcula estabilidade ao tombamento/deslizamento de muro de arrimo NBR 11682 (Frente 108)."""
+        from core.retaining_wall_engine import RetainingWallEngine
+        return RetainingWallEngine.calculate_wall_stability(
+            wall_height_m, stem_top_thickness_m, stem_bottom_thickness_m,
+            base_width_m, base_thickness_m, soil_friction_angle_deg,
+            soil_unit_weight_kn_m3, concrete_unit_weight_kn_m3, surcharge_kpa
+        )
+
+    def calculate_hydraulic_piping(
+        self,
+        pipe_diameter_dn_mm: float = 25.0,
+        flow_rate_l_s: float = 0.50,
+        pipe_roughness_c: float = 140.0,
+        inlet_pressure_mca: float = 15.0,
+        waypoints: list | None = None,
+        fittings: list | None = None,
+    ) -> dict:
+        """Calcula perda de carga contínua/localizada Hazen-Williams NBR 5626 (Frente 109)."""
+        from core.hydraulic_piping_engine import HydraulicPipingEngine
+        return HydraulicPipingEngine.calculate_piping_run(
+            pipe_diameter_dn_mm, flow_rate_l_s, pipe_roughness_c,
+            inlet_pressure_mca, waypoints, fittings
+        )
+
+    def calculate_electrical_conduit(
+        self,
+        conduit_nominal_dn_mm: float = 25.0,
+        circuit_current_amperes: float = 16.0,
+        cable_gauge_mm2: float = 2.5,
+        cables_count: int = 3,
+        circuit_length_m: float = 18.0,
+        voltage_v: float = 127.0,
+        power_factor: float = 0.95,
+    ) -> dict:
+        """Dimensiona taxa de ocupação e queda de tensão em eletrodutos NBR 5410 (Frente 110)."""
+        from core.electrical_conduit_engine import ElectricalConduitEngine
+        return ElectricalConduitEngine.calculate_conduit_run(
+            conduit_nominal_dn_mm, circuit_current_amperes, cable_gauge_mm2,
+            cables_count, circuit_length_m, voltage_v, power_factor
+        )
+
+    def calculate_thermal_comfort(
+        self,
+        layers: list | None = None,
+        rsi_m2_k_w: float = 0.13,
+        rse_m2_k_w: float = 0.04,
+        target_bioclimatic_zone: int = 3,
+    ) -> dict:
+        """Calcula transmitância U e capacidade Ct de envoltória NBR 15220 (Frente 111)."""
+        from core.thermal_comfort_engine import ThermalComfortEngine
+        return ThermalComfortEngine.calculate_envelope_thermal_performance(
+            layers, rsi_m2_k_w, rse_m2_k_w, target_bioclimatic_zone
+        )
+
+    def calculate_room_acoustics(
+        self,
+        room_width_m: float = 6.0,
+        room_length_m: float = 8.0,
+        room_height_m: float = 3.0,
+        surfaces: list | None = None,
+        room_type: str = "CLASSROOM",
+    ) -> dict:
+        """Calcula espectro RT60 e absorção acústica de Sabine NBR 10152 (Frente 112)."""
+        from core.room_acoustics_engine import RoomAcousticsEngine
+        return RoomAcousticsEngine.calculate_room_reverberation(
+            room_width_m, room_length_m, room_height_m, surfaces, room_type
+        )
+
+    def calculate_daylight_factor(
+        self,
+        room_width_m: float = 4.0,
+        room_depth_m: float = 6.0,
+        room_height_m: float = 2.80,
+        window_width_m: float = 2.0,
+        window_height_m: float = 1.20,
+        window_sill_height_m: float = 1.0,
+        glass_transmittance: float = 0.85,
+        external_horizontal_lux: float = 10000.0,
+        average_internal_reflectance: float = 0.50,
+        obstruction_angle_deg: float = 15.0,
+    ) -> dict:
+        """Calcula Fator de Luz Diurna (FLD %) e iluminância interna NBR 15215 (Frente 113)."""
+        from core.daylight_factor_engine import DaylightFactorEngine
+        return DaylightFactorEngine.calculate_daylight_factor(
+            room_width_m, room_depth_m, room_height_m,
+            window_width_m, window_height_m, window_sill_height_m,
+            glass_transmittance, external_horizontal_lux,
+            average_internal_reflectance, obstruction_angle_deg
+        )
+
+    def generate_steel_profile(
+        self,
+        depth_d_mm: float = 200.0,
+        flange_width_bf_mm: float = 100.0,
+        web_thickness_tw_mm: float = 6.0,
+        flange_thickness_tf_mm: float = 9.0,
+        length_m: float = 3.0,
+    ) -> dict:
+        """Gera perfil metálico I/W e calcula propriedades geométricas NBR 8800 (Frente 114)."""
+        from core.steel_profile_engine import SteelProfileEngine
+        return SteelProfileEngine.generate_i_beam(
+            depth_d_mm, flange_width_bf_mm, web_thickness_tw_mm,
+            flange_thickness_tf_mm, length_m
+        )
+
+    def calculate_bim_5d_sinapi_budget(
+        self,
+        elements: list | None = None,
+        bdi_percent: float = 24.50,
+        social_charges_percent: float = 84.0,
+    ) -> dict:
+        """Calcula orçamento analítico BIM 5D, BDI e Curva ABC com base SINAPI (Frente 115)."""
+        from core.bim_5d_sinapi_cost_engine import Bim5dSinapiCostEngine
+        return Bim5dSinapiCostEngine.calculate_5d_budget(
+            elements, bdi_percent, social_charges_percent
+        )

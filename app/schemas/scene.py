@@ -2972,3 +2972,246 @@ class IFC4BimExportResponse(BaseModel):
     ifc_schema: str = "IFC4"
     step_content: str
     status: str
+
+
+# ============================================================================
+# Frentes 106 a 115: Física, Fatiamento 3D, MEP, Conforto, Aço e SINAPI 5D
+# ============================================================================
+
+class RigidBodyPhysicsRequest(BaseModel):
+    """Entrada para simulação de física de corpos rígidos (Frente 106)."""
+
+    bodies: list[dict[str, Any]] = Field(default_factory=list, description="Lista de corpos [{'id', 'name', 'mass_kg', 'initial_pos', 'initial_vel', 'dimensions'}]")
+    gravity_z: float = Field(default=-9.81, description="Aceleração gravitacional em m/s2")
+    ground_z: float = Field(default=0.0)
+    total_time_s: float = Field(default=2.0, ge=0.1, le=10.0)
+    time_step_s: float = Field(default=0.016, ge=0.001, le=0.1)
+    restitution: float = Field(default=0.45, ge=0.0, le=1.0)
+    friction_coeff: float = Field(default=0.35, ge=0.0, le=1.0)
+
+
+class RigidBodyPhysicsResponse(BaseModel):
+    """Resposta com trajetórias de corpos rígidos (Frente 106)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "RigidBodyPhysicsReport"
+    parameters: dict[str, Any]
+    bodies_count: int
+    final_summary: list[dict[str, Any]]
+    trajectories: dict[str, list[dict[str, Any]]]
+    status: str
+
+
+class Slicing3dPrintRequest(BaseModel):
+    """Entrada para fatiamento FDM e estimativa de impressão 3D (Frente 107)."""
+
+    vertices: list[list[float]] = Field(description="Vértices 3D da malha")
+    triangles: list[list[int]] = Field(description="Triângulos indexados")
+    layer_height_mm: float = Field(default=0.20, ge=0.05, le=1.0)
+    infill_percent: float = Field(default=20.0, ge=0.0, le=100.0)
+    print_speed_mm_s: float = Field(default=50.0, ge=10.0, le=300.0)
+
+
+class Slicing3dPrintResponse(BaseModel):
+    """Resposta com métricas de fatiamento FDM (Frente 107)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "FdmSlicingReport"
+    parameters: dict[str, Any]
+    dimensions_mm: dict[str, Any]
+    slicing_metrics: dict[str, Any]
+    layers_sample: list[dict[str, Any]]
+    status: str
+
+
+class RetainingWallRequest(BaseModel):
+    """Entrada para dimensionamento de muro de arrimo NBR 11682 (Frente 108)."""
+
+    wall_height_m: float = Field(default=3.0, ge=0.5, le=15.0)
+    stem_top_thickness_m: float = Field(default=0.25, ge=0.15, le=2.0)
+    stem_bottom_thickness_m: float = Field(default=0.45, ge=0.20, le=3.0)
+    base_width_m: float = Field(default=1.80, ge=0.5, le=10.0)
+    base_thickness_m: float = Field(default=0.40, ge=0.2, le=2.0)
+    soil_friction_angle_deg: float = Field(default=30.0, ge=15.0, le=45.0)
+    soil_unit_weight_kn_m3: float = Field(default=18.0, ge=10.0, le=25.0)
+    concrete_unit_weight_kn_m3: float = Field(default=25.0, ge=20.0, le=30.0)
+    surcharge_kpa: float = Field(default=5.0, ge=0.0, le=50.0)
+
+
+class RetainingWallResponse(BaseModel):
+    """Resposta com fatores de segurança e malha 3D do muro (Frente 108)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "RetainingWallReport"
+    parameters: dict[str, Any]
+    stability_analysis: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+
+class HydraulicPipingRequest(BaseModel):
+    """Entrada para cálculo de rede hidráulica NBR 5626 (Frente 109)."""
+
+    pipe_diameter_dn_mm: float = Field(default=25.0, ge=15.0, le=150.0)
+    flow_rate_l_s: float = Field(default=0.50, ge=0.01, le=50.0)
+    pipe_roughness_c: float = Field(default=140.0, ge=80.0, le=160.0)
+    inlet_pressure_mca: float = Field(default=15.0, ge=1.0, le=100.0)
+    waypoints: list[list[float]] | None = Field(default=None)
+    fittings: list[str] | None = Field(default=None)
+
+
+class HydraulicPipingResponse(BaseModel):
+    """Resposta com perda de carga e pressão residual NBR 5626 (Frente 109)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "HydraulicPipingReport"
+    parameters: dict[str, Any]
+    hydraulic_results: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+
+class ElectricalConduitRequest(BaseModel):
+    """Entrada para dimensionamento de eletrodutos NBR 5410 (Frente 110)."""
+
+    conduit_nominal_dn_mm: float = Field(default=25.0, ge=16.0, le=110.0)
+    circuit_current_amperes: float = Field(default=16.0, ge=1.0, le=200.0)
+    cable_gauge_mm2: float = Field(default=2.5, ge=1.5, le=120.0)
+    cables_count: int = Field(default=3, ge=1, le=24)
+    circuit_length_m: float = Field(default=18.0, ge=1.0, le=300.0)
+    voltage_v: float = Field(default=127.0, ge=100.0, le=500.0)
+    power_factor: float = Field(default=0.95, ge=0.5, le=1.0)
+
+
+class ElectricalConduitResponse(BaseModel):
+    """Resposta com taxa de ocupação e queda de tensão NBR 5410 (Frente 110)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "ElectricalConduitReport"
+    parameters: dict[str, Any]
+    conduit_occupancy: dict[str, Any]
+    voltage_drop: dict[str, Any]
+    diagnostic: dict[str, Any]
+    waypoints_3d: list[list[float]]
+    status: str
+
+
+class ThermalComfortRequest(BaseModel):
+    """Entrada para avaliação térmica NBR 15220 (Frente 111)."""
+
+    layers: list[dict[str, Any]] | None = Field(default=None)
+    rsi_m2_k_w: float = Field(default=0.13)
+    rse_m2_k_w: float = Field(default=0.04)
+    target_bioclimatic_zone: int = Field(default=3, ge=1, le=8)
+
+
+class ThermalComfortResponse(BaseModel):
+    """Resposta com transmitância térmica U e capacidade Ct NBR 15220 (Frente 111)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "ThermalComfortReport"
+    parameters: dict[str, Any]
+    thermal_metrics: dict[str, Any]
+    layers: list[dict[str, Any]]
+    status: str
+
+
+class RoomAcousticsRequest(BaseModel):
+    """Entrada para acústica de salas NBR 10152 (Frente 112)."""
+
+    room_width_m: float = Field(default=6.0, ge=1.0, le=100.0)
+    room_length_m: float = Field(default=8.0, ge=1.0, le=100.0)
+    room_height_m: float = Field(default=3.0, ge=1.0, le=30.0)
+    surfaces: list[dict[str, Any]] | None = Field(default=None)
+    room_type: str = Field(default="CLASSROOM")
+
+
+class RoomAcousticsResponse(BaseModel):
+    """Resposta com espectro RT60 e diagnóstico de inteligibilidade (Frente 112)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "RoomAcousticsReport"
+    parameters: dict[str, Any]
+    acoustic_metrics: dict[str, Any]
+    rt60_frequency_spectrum: dict[str, float]
+    total_absorption_sabins: list[float]
+    status: str
+
+
+class DaylightFactorRequest(BaseModel):
+    """Entrada para cálculo do Fator de Luz Diurna FLD NBR 15215 (Frente 113)."""
+
+    room_width_m: float = Field(default=4.0, ge=1.0, le=50.0)
+    room_depth_m: float = Field(default=6.0, ge=1.0, le=50.0)
+    room_height_m: float = Field(default=2.80, ge=1.5, le=10.0)
+    window_width_m: float = Field(default=2.0, ge=0.5, le=30.0)
+    window_height_m: float = Field(default=1.20, ge=0.3, le=5.0)
+    window_sill_height_m: float = Field(default=1.0, ge=0.0, le=3.0)
+    glass_transmittance: float = Field(default=0.85, ge=0.1, le=1.0)
+    external_horizontal_lux: float = Field(default=10000.0, ge=1000.0, le=100000.0)
+    average_internal_reflectance: float = Field(default=0.50, ge=0.1, le=0.9)
+    obstruction_angle_deg: float = Field(default=15.0, ge=0.0, le=75.0)
+
+
+class DaylightFactorResponse(BaseModel):
+    """Resposta com FLD médio e grelha no plano de trabalho NBR 15215 (Frente 113)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "DaylightFactorReport"
+    parameters: dict[str, Any]
+    daylight_metrics: dict[str, Any]
+    workplane_grid_points: list[dict[str, Any]]
+    status: str
+
+
+class SteelProfileRequest(BaseModel):
+    """Entrada para geração de perfil metálico NBR 8800 (Frente 114)."""
+
+    depth_d_mm: float = Field(default=200.0, ge=50.0, le=1200.0)
+    flange_width_bf_mm: float = Field(default=100.0, ge=25.0, le=600.0)
+    web_thickness_tw_mm: float = Field(default=6.0, ge=1.5, le=50.0)
+    flange_thickness_tf_mm: float = Field(default=9.0, ge=2.0, le=80.0)
+    length_m: float = Field(default=3.0, ge=0.1, le=20.0)
+
+
+class SteelProfileResponse(BaseModel):
+    """Resposta com propriedades de seção NBR 8800 e B-Rep 3D (Frente 114)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SteelProfileReport"
+    profile_type: str
+    nominal_designation: str
+    dimensions_mm: dict[str, Any]
+    section_properties: dict[str, Any]
+    geometry_3d: dict[str, Any]
+    status: str
+
+
+class Bim5dSinapiCostRequest(BaseModel):
+    """Entrada para orçamento paramétrico 5D com tabela SINAPI (Frente 115)."""
+
+    elements: list[dict[str, Any]] | None = Field(default=None)
+    bdi_percent: float = Field(default=24.50, ge=0.0, le=60.0)
+    social_charges_percent: float = Field(default=84.0, ge=0.0, le=150.0)
+
+
+class Bim5dSinapiCostResponse(BaseModel):
+    """Resposta com orçamento detalhado, BDI e Curva ABC SINAPI (Frente 115)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "Bim5dSinapiReport"
+    financial_summary: dict[str, Any]
+    items_count: int
+    abc_classification_summary: dict[str, Any]
+    items: list[dict[str, Any]]
+    status: str
