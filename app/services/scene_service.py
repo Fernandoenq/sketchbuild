@@ -522,3 +522,23 @@ class SceneService:
     async def import_obj_geometry(self, file_path: str, scale: float = 1.0) -> dict:
         """Importa arquivo Wavefront OBJ e converte para entidades B-Rep do .SKP (Frente 35)."""
         return await run_in_threadpool(self._repository.import_obj_geometry, file_path, scale)
+
+    async def calculate_nesting_optimizer(self, demanded_pieces: list, stock_bar_length_m: float = 3.00) -> dict:
+        """Calcula otimização de plano de corte de barras (Frente 36)."""
+        return await run_in_threadpool(self._repository.calculate_nesting_optimizer, demanded_pieces, stock_bar_length_m)
+
+    async def create_terrain_geometry(self, width_m: float = 10.0, length_m: float = 10.0, grid_res: float = 1.0, slope_x: float = 0.0, slope_y: float = 5.0) -> dict:
+        """Gera terreno paramétrico e malha topográfica Sandbox (Frente 37)."""
+        return await run_in_threadpool(self._repository.create_terrain_geometry, width_m, length_m, grid_res, slope_x, slope_y)
+
+    async def calculate_structural_analysis(self, span_m: float, load_kn_m: float, section_type: str = "circular", diameter_m: float = 0.16, width_m: float = 0.08, height_m: float = 0.16) -> dict:
+        """Calcula tensões, flecha e estabilidade de viga segundo NBR 7190 (Frente 38)."""
+        return await run_in_threadpool(self._repository.calculate_structural_analysis, span_m, load_kn_m, section_type, diameter_m, width_m, height_m)
+
+    async def apply_scale_transform(self, instance_id: str, scale_factors: list, pivot: list) -> dict:
+        """Aplica escala paramétrica à instância (Frente 39)."""
+        return await run_in_threadpool(self._repository.apply_scale_transform, instance_id, scale_factors, pivot)
+
+    async def export_cam_dxf(self, parts: list, output_filename: str) -> dict:
+        """Exporta contornos para máquinas CNC e Corte a Laser em DXF (Frente 40)."""
+        return await run_in_threadpool(self._repository.export_cam_dxf, parts, output_filename)

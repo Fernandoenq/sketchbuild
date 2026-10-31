@@ -18,6 +18,17 @@ from app.domain.exceptions import (
     SceneSessionError,
 )
 from app.schemas.scene import (
+    NestingRequest,
+    NestingResponse,
+    TerrainRequest,
+    TerrainResponse,
+    StructuralAnalysisRequest,
+    StructuralAnalysisResponse,
+    ScaleRequest,
+    ScaleResponse,
+    ExportCamDxfRequest,
+    ExportCamDxfResponse,
+
     FollowMeRequest,
     FollowMeResponse,
     ArcRequest,
@@ -750,5 +761,45 @@ class SceneController:
         try:
             res = await self._service.import_obj_geometry(body.file_path, body.scale)
             return ImportObjResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_nesting_optimizer(self, body: NestingRequest) -> NestingResponse:
+        """Calcula otimização de plano de corte de barras (Frente 36)."""
+        try:
+            res = await self._service.calculate_nesting_optimizer(body.demanded_pieces, body.stock_bar_length_m)
+            return NestingResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_terrain_geometry(self, body: TerrainRequest) -> TerrainResponse:
+        """Gera terreno paramétrico e malha topográfica Sandbox (Frente 37)."""
+        try:
+            res = await self._service.create_terrain_geometry(body.width_m, body.length_m, body.grid_resolution_m, body.slope_x_pct, body.slope_y_pct)
+            return TerrainResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_structural_analysis(self, body: StructuralAnalysisRequest) -> StructuralAnalysisResponse:
+        """Calcula tensões, flecha e estabilidade de viga segundo NBR 7190 (Frente 38)."""
+        try:
+            res = await self._service.calculate_structural_analysis(body.span_length_m, body.load_kn_per_m, body.section_type, body.diameter_m, body.width_m, body.height_m)
+            return StructuralAnalysisResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def apply_scale_transform(self, body: ScaleRequest) -> ScaleResponse:
+        """Aplica escala paramétrica à instância (Frente 39)."""
+        try:
+            res = await self._service.apply_scale_transform(body.instance_id, body.scale_factors, body.pivot)
+            return ScaleResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def export_cam_dxf(self, body: ExportCamDxfRequest) -> ExportCamDxfResponse:
+        """Exporta contornos para máquinas CNC e Corte a Laser em DXF (Frente 40)."""
+        try:
+            res = await self._service.export_cam_dxf(body.parts, body.output_filename)
+            return ExportCamDxfResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

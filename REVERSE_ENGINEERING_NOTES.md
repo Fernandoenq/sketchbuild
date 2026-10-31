@@ -949,3 +949,71 @@ A Frente 35 cria o canal de ingestão direta de geometrias tridimensionais exter
 - Injeção das faces fechadas na sessão binária `SkpBinaryWriter`, integrando malhas de bibliotecas externas diretamente ao ecossistema SketchBuild sem necessidade de conversores comerciais.
 - **Módulo:** `core/obj_to_skp_importer.py` (`ObjToSkpImporter`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/import-obj`.
+
+
+---
+
+## 63. Frente 36: Otimizador de Plano de Corte de Estoque (Nesting 1D e 2D - Zero DLL)
+
+A Frente 36 implementa o algoritmo de empacotamento linear e de chapas (*Cutting Stock Problem*) para a manufatura industrial de estruturas de madeira e polietileno da Parkelô.
+
+### A. Algoritmo Heurístico FFD (First Fit Decreasing) com Kerf
+- Agrupa todas as peças de madeira da lista de corte e ordena pelo comprimento decrescente.
+- Empacota sequencialmente em barras comerciais padrão (3.00m, 4.00m ou 6.00m) descontando a perda por disco de corte (*saw kerf* de 3mm).
+- Calcula métricas industriais: taxa de aproveitamento líquido ($\ge 85\%$), volume de refugo (*scrap rate* em metros e porcentagem) e lista de corte por barra para os operadores de serra.
+- **Módulo:** `core/nesting_optimizer.py` (`NestingOptimizer`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/factory/nesting-optimizer`.
+
+---
+
+## 64. Frente 37: Gerador de Terrenos Paramétricos e Curvas de Nível 3D (*Sandbox Mesh* - Zero DLL)
+
+A Frente 37 recria as ferramentas da Sandbox (*Caixa de Areia*) do SketchUp para modelagem de relevos e implantação de parques e playgrounds em terrenos acidentados.
+
+### A. Malha Topográfica TIN e Cálculo de Terraplenagem
+- Discretização de grid paramétrico $N_x 	imes N_y$ com declividades percentuais configuráveis em $X$ e $Y$.
+- Geração automática de triângulos coplanares e faces B-Rep.
+- Estimativa analítica de terraplenagem em relação à cota média: volume de corte ($m^3$) e volume de aterro ($m^3$).
+- **Módulo:** `core/terrain_generator.py` (`TerrainGenerator`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/terrain`.
+
+---
+
+## 65. Frente 38: Analisador Estrutural de Estabilidade e Cargas Estáticas (NBR 7190 - Zero DLL)
+
+A Frente 38 implementa cálculos de resistência dos materiais e engenharia de estruturas de madeira segundo a norma brasileira ABNT NBR 7190 (Projeto de Estruturas de Madeira).
+
+### A. Formulação Mecânica em Vigas de Eucalipto
+1. **Momento Fletor Máximo:** $M_{\max} = \frac{q L^2}{8}$ para carga distribuída $q$ e vão livre $L$.
+2. **Tensão Normal de Flexão:** $\sigma = \frac{M_{\max}}{W}$, onde $W = \frac{\pi D^3}{32}$ para toras circulares ou $W = \frac{b h^2}{6}$ para vigas retangulares.
+3. **Flecha Elástica Máxima:** $\delta = \frac{5 q L^4}{384 E I}$, com módulo de elasticidade do eucalipto Citriodora $E = 14500\text{ MPa}$.
+4. **Verificação de Deformação Admissível:** $\delta \le \frac{L}{300}$ e Fator de Segurança $FS = \frac{\sigma_{\text{adm}}}{\sigma} \ge 1.5$.
+- **Módulo:** `core/structural_analyzer.py` (`StructuralAnalyzer`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/engineering/structural-analysis`.
+
+---
+
+## 66. Frente 39: Ferramenta de Escala Paramétrica e Redimensionamento (*Scale Tool* - Zero DLL)
+
+A Frente 39 implementa a ferramenta clássica de Escala (*Scale Tool*, atalho `S`) para instâncias, grupos e sólidos 3D.
+
+### A. Matriz Afim de Escala 4x4
+- Permite fatores de escala não-uniformes $(s_x, s_y, s_z)$ com pivô arbitrário $\vec{P}_{\text{pivô}}$ (centroide ou canto de ancoragem).
+- Composição analítica: $T(\vec{P}) \cdot S(s_x, s_y, s_z) \cdot T(-\vec{P})$ com injeção na matriz de instância e recálculo de malha no Three.js e `.skp`.
+- **Módulo:** `core/scale_tool.py` (`ScaleTool`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/scale`.
+
+---
+
+## 67. Frente 40: Exportador de Arquivos para Fabricação Digital CNC e Corte a Laser em DXF (Zero DLL)
+
+A Frente 40 fecha o ciclo de engenharia permitindo exportar peças para corte automatizado em máquinas CNC router e laser.
+
+### A. Formato DXF R12 CAM Otimizado
+- Entidades `POLYLINE` fechadas com flag `70 1` em milímetros ($INSUNITS = 4$).
+- Camadas separadas para controle de usinagem:
+  - `CAM_CORTE_EXTERNO` (contornos externos)
+  - `CAM_FUROS_INTERNOS` (furações para parafusos)
+- Compatível diretamente com Aspire, SheetCAM, ArtCAM e Fusion 360 CAM.
+- **Módulo:** `core/cam_dxf_exporter.py` (`CamDxfExporter`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/export/cam-dxf`.

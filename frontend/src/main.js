@@ -61,6 +61,11 @@ import {
   applyRotation,
   auditNbr16071Safety,
   importObj,
+  calculateNesting,
+  createTerrain,
+  calculateStructuralAnalysis,
+  applyScale,
+  exportCamDxf,
   ApiError,
 } from "./api.js";
 import {
@@ -2032,6 +2037,8 @@ const MENU_ACTIONS = {
   "tool-follow-me": () => handleFollowMeTool(),
   "draw-arc": () => handleDrawArc(),
   "import-obj": () => handleImportObj(),
+  "export-cam-dxf": () => handleExportCamDxf(),
+  "draw-terrain": () => handleDrawTerrain(),
   "import-dxf": () => {
     setToolMode("dxf");
     dxfPathInputEl?.focus();
@@ -3180,5 +3187,87 @@ async function handleImportObj() {
     setStatus(`OBJ importado com sucesso: ${res.imported_vertices} vértices, ${res.imported_faces} faces.`);
   } catch (err) {
     setStatus(`Erro ao importar OBJ: ${err.message}`, true);
+  }
+}
+
+// --- Frentes 36 e 38: Engenharia Estrutural e Nesting ---
+const btnCalcStructuralEl = document.getElementById("btn-calc-structural");
+const structuralResultEl = document.getElementById("structural-result");
+const structuralStatusBadgeEl = document.getElementById("structural-status-badge");
+const structuralDetailsEl = document.getElementById("structural-details");
+
+if (btnCalcStructuralEl) {
+  btnCalcStructuralEl.addEventListener("click", async () => {
+    setStatus("Calculando estabilidade e tensões em vigas de madeira (NBR 7190)...");
+    try {
+      const res = await calculateStructuralAnalysis(2.20, 3.0, "circular", 0.16);
+      if (structuralResultEl) {
+        structuralResultEl.style.display = "block";
+        structuralStatusBadgeEl.textContent = res.structural_status;
+        structuralDetailsEl.textContent = `Tensão: ${res.bending_stress_mpa} MPa | Flecha: ${res.max_deflection_mm}mm (Limite: ${res.deflection_limit_mm}mm) | FS=${res.safety_factor}`;
+      }
+      setStatus(`Análise Estrutural concluída: ${res.structural_status} (FS=${res.safety_factor})`);
+    } catch (err) {
+      setStatus(`Erro no cálculo estrutural: ${err.message}`, true);
+    }
+  });
+}
+
+const btnCalcNestingEl = document.getElementById("btn-calc-nesting");
+const nestingResultEl = document.getElementById("nesting-result");
+const nestingStatusBadgeEl = document.getElementById("nesting-status-badge");
+const nestingDetailsEl = document.getElementById("nesting-details");
+
+if (btnCalcNestingEl) {
+  btnCalcNestingEl.addEventListener("click", async () => {
+    setStatus("Otimizando plano de corte de barras e toras de eucalipto...");
+    try {
+      const pieces = [
+        { name: "Pilar Deck", length_m: 1.40, quantity: 4 },
+        { name: "Travessa", length_m: 0.90, quantity: 4 },
+        { name: "Guarda-corpo", length_m: 0.70, quantity: 6 },
+      ];
+      const res = await calculateNesting(pieces, 3.00);
+      if (nestingResultEl) {
+        nestingResultEl.style.display = "block";
+        nestingStatusBadgeEl.textContent = `Aproveitamento: ${res.efficiency_percent}% (Perda: ${res.scrap_percent}%)`;
+        nestingDetailsEl.textContent = `Total: ${res.total_pieces_cut} peças alocadas em ${res.total_bars_required} barras de ${res.stock_bar_length_m}m.`;
+      }
+      setStatus(`Nesting 1D concluído: ${res.total_bars_required} barras brutas necessárias (${res.efficiency_percent}% de rendimento).`);
+    } catch (err) {
+      setStatus(`Erro no cálculo de nesting: ${err.message}`, true);
+    }
+  });
+}
+
+// --- Frente 37: Terreno Sandbox ---
+async function handleDrawTerrain() {
+  setStatus("Gerando malha topográfica 3D Sandbox...");
+  try {
+    const res = await createTerrain(10.0, 10.0, 1.0, 0.0, 5.0);
+    setStatus(`Terreno Sandbox criado: ${res.vertex_count} vértices, ${res.triangle_count} triângulos (Corte: ${res.earthwork_cut_m3}m³, Aterro: ${res.earthwork_fill_m3}m³).`);
+  } catch (err) {
+    setStatus(`Erro ao criar terreno: ${err.message}`, true);
+  }
+}
+
+// --- Frente 40: Exportação CAM DXF para CNC ---
+async function handleExportCamDxf() {
+  setStatus("Exportando contornos e furos para máquina CNC / Corte a Laser em DXF...");
+  try {
+    const parts = [
+      {
+        name: "Lateral Escorregador PEAD",
+        outer_loop: [[0, 0], [2000, 0], [2000, 500], [0, 500]],
+        holes: [
+          [[100, 100], [120, 100], [120, 120], [100, 120]],
+          [[1900, 100], [1920, 100], [1920, 120], [1900, 120]],
+        ]
+      }
+    ];
+    const res = await exportCamDxf(parts, "pecas_cnc_parkelo.dxf");
+    setStatus(`Arquivo DXF para CNC exportado com sucesso: ${res.file_path} (${res.size_bytes} bytes).`);
+  } catch (err) {
+    setStatus(`Erro ao exportar DXF CAM: ${err.message}`, true);
   }
 }

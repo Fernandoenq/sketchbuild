@@ -9,6 +9,17 @@ from fastapi import APIRouter, Depends, File, UploadFile
 
 from app.controllers.scene_controller import SceneController
 from app.schemas.scene import (
+    NestingRequest,
+    NestingResponse,
+    TerrainRequest,
+    TerrainResponse,
+    StructuralAnalysisRequest,
+    StructuralAnalysisResponse,
+    ScaleRequest,
+    ScaleResponse,
+    ExportCamDxfRequest,
+    ExportCamDxfResponse,
+
     FollowMeRequest,
     FollowMeResponse,
     ArcRequest,
@@ -813,3 +824,67 @@ async def import_obj_geometry(
     controller: SceneController = Depends(get_controller),
 ) -> ImportObjResponse:
     return await controller.import_obj_geometry(body)
+
+
+# ============================================================================
+# Frentes 36 a 40: Nesting 1D/2D, Terrenos, FEA Estrutural, Escala e CAM DXF
+# ============================================================================
+
+@router.post(
+    "/factory/nesting-optimizer",
+    response_model=NestingResponse,
+    summary="Calcula otimização de plano de corte de barras e toras (Frente 36)",
+)
+async def calculate_nesting_optimizer(
+    body: NestingRequest,
+    controller: SceneController = Depends(get_controller),
+) -> NestingResponse:
+    return await controller.calculate_nesting_optimizer(body)
+
+
+@router.post(
+    "/geometry/terrain",
+    response_model=TerrainResponse,
+    summary="Gera terreno paramétrico e malha topográfica Sandbox (Frente 37)",
+)
+async def create_terrain_geometry(
+    body: TerrainRequest,
+    controller: SceneController = Depends(get_controller),
+) -> TerrainResponse:
+    return await controller.create_terrain_geometry(body)
+
+
+@router.post(
+    "/engineering/structural-analysis",
+    response_model=StructuralAnalysisResponse,
+    summary="Calcula tensões, flecha e estabilidade de viga NBR 7190 (Frente 38)",
+)
+async def calculate_structural_analysis(
+    body: StructuralAnalysisRequest,
+    controller: SceneController = Depends(get_controller),
+) -> StructuralAnalysisResponse:
+    return await controller.calculate_structural_analysis(body)
+
+
+@router.post(
+    "/geometry/scale",
+    response_model=ScaleResponse,
+    summary="Aplica escala paramétrica à instância (Frente 39)",
+)
+async def apply_scale_transform(
+    body: ScaleRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ScaleResponse:
+    return await controller.apply_scale_transform(body)
+
+
+@router.post(
+    "/export/cam-dxf",
+    response_model=ExportCamDxfResponse,
+    summary="Exporta contornos para máquinas CNC e Corte a Laser em DXF (Frente 40)",
+)
+async def export_cam_dxf(
+    body: ExportCamDxfRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ExportCamDxfResponse:
+    return await controller.export_cam_dxf(body)
