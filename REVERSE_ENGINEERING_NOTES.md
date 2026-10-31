@@ -2378,3 +2378,21 @@ Esta seção documenta a terceira rodada de ferramentas centrais do **SketchUp D
 - **Módulo Core:** `core/ground_sky_style_engine.py` (`GroundSkyStyleEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/styles/ground-sky`.
 
+---
+
+## 177. Auditoria de Code Review Global e Blindagem de Integridade (Frontend & Backend)
+
+### 177.1 Diagnóstico e Correções de Referência de Escopo
+- **`material is not defined` em `sceneBuilder.js`:** Corrigido para `group.userData.sharedMaterial = defaultMaterial;` evitando falhas silenciosas na criação de templates como o "Simples (Metros)".
+- **`getJson(url)` em `frontend/src/api.js`:** Implementada a função utilitária HTTP GET assíncrona com tratamento padrão `ApiError` e tipagem de resposta, atendendo a chamadas como `getSectionPlanes`, `getGuides`, `auditNbr16071Safety` e `getUndoRedoStatus`.
+- **`handleDuplicateSelected()` em `frontend/src/main.js`:** Implementada a rotina de duplicação por teclado (`Ctrl+D`) invocando `duplicateInstance(instId, { offsetDeltaCm: [50.0, 0.0, 0.0] })` e clonando a malha no Three.js.
+- **`updateOutliner(sceneDTO)` em `frontend/src/main.js`:** Unificada a função de renderização da árvore do Outliner com limpeza prévia e atualização de estado, consumida tanto no carregamento do modelo quanto em criações procedurais (`handleCreateBox` e `handleConvertDxf`).
+- **Luzes `dirLight` e `ambientLight`:** Expostas no escopo do módulo para calibragem física solar (Heliodon e Céu Físico).
+- **Resolução de `selectedInstanceId`:** Tratada resiliência para `(selectedMesh?.name || selectedMesh?.userData?.instanceId)` em componentes dinâmicos, IFC e seleção avançada.
+- **Elemento `#tag-folder-create-btn` no DOM:** Integrado no `#tray-tags` em `index.html` para criação de pastas de camadas (TagFolder).
+- **Métricas Globais de Confiabilidade:**
+  - ESLint no Frontend JS: 0 erros, 0 warnings em todos os arquivos de `frontend/src/`.
+  - Python AST / Sintaxe: 190 arquivos validados, 0 erros.
+  - Testes Unitários: 186/186 testes aprovados com sucesso.
+
+

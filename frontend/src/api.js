@@ -34,6 +34,22 @@ async function postJson(url, method, body) {
   return res.json();
 }
 
+async function getJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const errorBody = await res.json();
+      detail = errorBody.detail ?? detail;
+    } catch {
+      // resposta nao era JSON -- mantem o statusText
+    }
+    const message = typeof detail === "string" ? detail : detail?.message || res.statusText;
+    throw new ApiError(message, res.status, detail);
+  }
+  return res.json();
+}
+
 export function openScene(path) {
   return postJson("/api/v1/scene/open", "POST", { path });
 }
