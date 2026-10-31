@@ -161,6 +161,26 @@ from app.schemas.scene import (
     AtmosphericSkyResponse,
     IFC4BimExportRequest,
     IFC4BimExportResponse,
+    RigidBodyPhysicsRequest,
+    RigidBodyPhysicsResponse,
+    Slicing3dPrintRequest,
+    Slicing3dPrintResponse,
+    RetainingWallRequest,
+    RetainingWallResponse,
+    HydraulicPipingRequest,
+    HydraulicPipingResponse,
+    ElectricalConduitRequest,
+    ElectricalConduitResponse,
+    ThermalComfortRequest,
+    ThermalComfortResponse,
+    RoomAcousticsRequest,
+    RoomAcousticsResponse,
+    DaylightFactorRequest,
+    DaylightFactorResponse,
+    SteelProfileRequest,
+    SteelProfileResponse,
+    Bim5dSinapiCostRequest,
+    Bim5dSinapiCostResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1990,3 +2010,123 @@ async def export_ifc4_bim(
     controller: SceneController = Depends(get_controller),
 ) -> IFC4BimExportResponse:
     return await controller.export_ifc4_bim(body)
+
+
+@router.post(
+    "/physics/simulate-rigid-body",
+    response_model=RigidBodyPhysicsResponse,
+    summary="Simulação de física newtoniana de corpos rígidos e colisões (Frente 106)",
+)
+async def simulate_rigid_body_physics(
+    body: RigidBodyPhysicsRequest,
+    controller: SceneController = Depends(get_controller),
+) -> RigidBodyPhysicsResponse:
+    return await controller.simulate_rigid_body_physics(body)
+
+
+@router.post(
+    "/manufacturing/slice-3d-print",
+    response_model=Slicing3dPrintResponse,
+    summary="Fatiamento 3D FDM, estimativa de filamento e exportação STL/3MF (Frente 107)",
+)
+async def slice_3d_print_fdm(
+    body: Slicing3dPrintRequest,
+    controller: SceneController = Depends(get_controller),
+) -> Slicing3dPrintResponse:
+    return await controller.slice_3d_print_fdm(body)
+
+
+@router.post(
+    "/geotechnics/retaining-wall",
+    response_model=RetainingWallResponse,
+    summary="Cálculo geotécnico e B-Rep de muro de arrimo com estabilidade NBR 11682 (Frente 108)",
+)
+async def calculate_retaining_wall_stability(
+    body: RetainingWallRequest,
+    controller: SceneController = Depends(get_controller),
+) -> RetainingWallResponse:
+    return await controller.calculate_retaining_wall_stability(body)
+
+
+@router.post(
+    "/mep/hydraulic-piping",
+    response_model=HydraulicPipingResponse,
+    summary="Dimensionamento de tubulação predial e perda de carga NBR 5626 (Frente 109)",
+)
+async def calculate_hydraulic_piping(
+    body: HydraulicPipingRequest,
+    controller: SceneController = Depends(get_controller),
+) -> HydraulicPipingResponse:
+    return await controller.calculate_hydraulic_piping(body)
+
+
+@router.post(
+    "/mep/electrical-conduit",
+    response_model=ElectricalConduitResponse,
+    summary="Dimensionamento de eletrodutos e taxa de ocupação NBR 5410 (Frente 110)",
+)
+async def calculate_electrical_conduit(
+    body: ElectricalConduitRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ElectricalConduitResponse:
+    return await controller.calculate_electrical_conduit(body)
+
+
+@router.post(
+    "/environment/thermal-comfort",
+    response_model=ThermalComfortResponse,
+    summary="Transmitância e capacidade térmica de envoltória NBR 15220 / PBE Edifica (Frente 111)",
+)
+async def calculate_thermal_comfort(
+    body: ThermalComfortRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ThermalComfortResponse:
+    return await controller.calculate_thermal_comfort(body)
+
+
+@router.post(
+    "/environment/room-acoustics",
+    response_model=RoomAcousticsResponse,
+    summary="Tempo de reverberação RT60 e acústica de salas NBR 10152 (Frente 112)",
+)
+async def calculate_room_acoustics(
+    body: RoomAcousticsRequest,
+    controller: SceneController = Depends(get_controller),
+) -> RoomAcousticsResponse:
+    return await controller.calculate_room_acoustics(body)
+
+
+@router.post(
+    "/environment/daylight-factor",
+    response_model=DaylightFactorResponse,
+    summary="Fator de Luz Diurna (FLD %) e iluminância natural NBR 15215 (Frente 113)",
+)
+async def calculate_daylight_factor(
+    body: DaylightFactorRequest,
+    controller: SceneController = Depends(get_controller),
+) -> DaylightFactorResponse:
+    return await controller.calculate_daylight_factor(body)
+
+
+@router.post(
+    "/structures/steel-profile",
+    response_model=SteelProfileResponse,
+    summary="Geração de perfil metálico e propriedades de seção NBR 8800 (Frente 114)",
+)
+async def generate_steel_profile(
+    body: SteelProfileRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SteelProfileResponse:
+    return await controller.generate_steel_profile(body)
+
+
+@router.post(
+    "/bim/5d-sinapi-budget",
+    response_model=Bim5dSinapiCostResponse,
+    summary="Orçamento paramétrico BIM 5D, curva ABC e BDI com tabela SINAPI (Frente 115)",
+)
+async def calculate_bim_5d_sinapi_budget(
+    body: Bim5dSinapiCostRequest,
+    controller: SceneController = Depends(get_controller),
+) -> Bim5dSinapiCostResponse:
+    return await controller.calculate_bim_5d_sinapi_budget(body)
