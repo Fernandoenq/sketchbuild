@@ -502,3 +502,23 @@ class SceneService:
     async def export_executive_pdf(self, project_name: str, author: str, client_name: str, output_path: str) -> dict:
         """Exporta Proposta Executiva e Prancha Técnica em PDF Nativo (Frente 29)."""
         return await run_in_threadpool(self._repository.export_executive_pdf, project_name, author, client_name, output_path)
+
+    async def create_follow_me_geometry(self, path_points: list, profile_type: str = "circle", radius: float = 0.10, profile_points: list | None = None, close_caps: bool = True) -> dict:
+        """Gera sólido extrudado ao longo de caminho 3D Follow Me (Frente 31)."""
+        return await run_in_threadpool(self._repository.create_follow_me_geometry, path_points, profile_type, radius, profile_points, close_caps)
+
+    async def create_arc_geometry(self, start: list, end: list, sagitta: float = 0.30, num_segments: int = 12) -> dict:
+        """Gera arco circular 3D paramétrico (Frente 32)."""
+        return await run_in_threadpool(self._repository.create_arc_geometry, start, end, sagitta, num_segments)
+
+    async def apply_rotation_transform(self, instance_id: str, pivot: list, axis: list, angle_degrees: float) -> dict:
+        """Aplica rotação analítica com transferidor (Frente 33)."""
+        return await run_in_threadpool(self._repository.apply_rotation_transform, instance_id, pivot, axis, angle_degrees)
+
+    async def audit_nbr16071_safety(self) -> dict:
+        """Audita conformidade normativa de segurança infantil NBR 16071 (Frente 34)."""
+        return await run_in_threadpool(self._repository.audit_nbr16071_safety)
+
+    async def import_obj_geometry(self, file_path: str, scale: float = 1.0) -> dict:
+        """Importa arquivo Wavefront OBJ e converte para entidades B-Rep do .SKP (Frente 35)."""
+        return await run_in_threadpool(self._repository.import_obj_geometry, file_path, scale)

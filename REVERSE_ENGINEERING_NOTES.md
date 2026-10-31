@@ -881,3 +881,71 @@ A Frente 30 recria o algoritmo analítico de equidistância para contornos polig
 5. **Geração de Molduras:** Cria anéis quadriláteros conectando o contorno externo ao interno (perfeito para perfis de tubos ocos, molduras e guarnições).
 6. **Módulo:** `core/offset_calculator.py` (`OffsetCalculator`).
 7. **Endpoint FastAPI:** `POST /api/v1/scene/geometry/offset`.
+
+
+---
+
+## 58. Frente 31: Ferramenta Siga-me / Extrusão por Caminho 3D (*Follow Me* & RMF - Zero DLL)
+
+A Frente 31 implementa o motor analítico da ferramenta clássica **Siga-me** (*Follow Me*) do SketchUp para extrudar seções transversais 2D ao longo de polilinhas e curvas 3D espaciais.
+
+### A. Formulação Matemática: Rotation Minimizing Frames (RMF)
+- Para evitar a torção patológica da malha ao longo de curvas espaciais (*gimbal lock* e deformação em torção), o motor calcula uma sequência de referenciais ortonormais $(\vec{u}_i, \vec{v}_i, \vec{t}_i)$ via **Parallel Transport** (técnica RMF).
+- Rotação mínima entre passos sucessivos via formulação de Rodrigues:
+  $$\vec{u}_{i+1} = \vec{u}_i \cos\theta + (\vec{k} \times \vec{u}_i) \sin\theta + \vec{k} (\vec{k} \cdot \vec{u}_i)(1 - \cos\theta)$$
+- Conecta anéis sucessivos de vértices em faces quadriláteras e injeta tampas (*caps*) planares nas extremidades, gerando uma malha B-Rep 2-manifold fechada.
+- **Módulo:** `core/follow_me_engine.py` (`FollowMeEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/follow-me`.
+
+---
+
+## 59. Frente 32: Ferramenta Arco e Curvas Bézier 3D (*Arc Tool* - Zero DLL)
+
+A Frente 32 recria a ferramenta analítica de arcos circulares e curvas espaciais do SketchUp.
+
+### A. Geometria Analítica do Arco Circular
+- Dado um ponto inicial $P_1$, final $P_2$ e a flecha máxima $s$ (*sagitta/bulge*), o raio $R$ da curva circular é obtido analiticamente por:
+  $$R = \frac{L^2}{8s} + \frac{s}{2}, \quad L = \|P_2 - P_1\|$$
+- O centro do círculo $C$ é posicionado a uma distância $d = R - s$ do ponto médio da corda, e a curvatura é discretizada em $N$ segmentos regulares.
+- Suporta também curvas cúbicas de Bézier com 4 pontos de controle $P_0, P_1, P_2, P_3$ para rampas orgânicas e pontes de playground.
+- **Módulo:** `core/arc_generator.py` (`ArcGenerator`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/arc`.
+
+---
+
+## 60. Frente 33: Ferramenta Rotacionar com Transferidor Interativo (*Rotate Tool* - Zero DLL)
+
+A Frente 33 implementa a rotação 3D com transferidor paramétrico (*Protractor*) em torno de qualquer eixo e ponto pivô arbitrário no espaço.
+
+### A. Matriz de Rotação de Rodrigues 4x4
+- Dado o pivô $\vec{C}$, eixo unitário $\vec{k}$ e ângulo $\theta$, constrói diretamente a matriz afim $4 \times 4$ no formato *column-major* consumida tanto pelo Three.js (`Matrix4.fromArray`) quanto pelo formato binário nativo `.skp` (`Tag 0x1966` em instâncias e grupos).
+- **Módulo:** `core/transformation_engine.py` (`TransformationEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/rotate`.
+
+---
+
+## 61. Frente 34: Validador Automático de Segurança ABNT NBR 16071 para Playgrounds (Zero DLL)
+
+A Frente 34 implementa um auditor automático de engenharia de segurança conforme a norma brasileira ABNT NBR 16071:2021 (Playgrounds Infantis).
+
+### A. Requisitos Normativos Auditados
+1. **Altura de Queda Livre (Cláusula 4.2.8):** Limite máximo rígido de 3.00m.
+2. **Prevenção de Aprisionamento de Cabeça e Pescoço (Cláusula 4.2.7.2):** Verificação de aberturas críticas proibidas entre 89mm e 230mm acima de 600mm do solo.
+3. **Guarda-Corpos Obrigatórios (Cláusula 4.2.4):** Altura mínima de 700mm para decks e patamares superiores a 600mm.
+4. **Zona de Impacto Amortecedora (Cláusula 4.2.8.2):** Raio perimetral contínuo de 1.50m com piso amortecedor.
+5. **Madeira Preservada e Arestas:** Eucalipto tratado em autoclave sob vácuo-pressão (CCA Classe IV) com arestas chanfradas/arredondadas (raio $\ge$ 3mm).
+- **Módulo:** `core/nbr16071_auditor.py` (`NBR16071Auditor`).
+- **Endpoint FastAPI:** `GET /api/v1/scene/safety-audit-nbr16071`.
+
+---
+
+## 62. Frente 35: Importador Nativo de Modelos 3D Wavefront OBJ (Zero DLL)
+
+A Frente 35 cria o canal de ingestão direta de geometrias tridimensionais externas (arquivos `.obj`) convertendo-as para malha B-Rep nativa do `.skp`.
+
+### A. Pipeline de Conversão OBJ $\to$ B-Rep SKP
+- Varredura de tokens `v` (vértices 3D) e `f` (faces poligonais com suporte a índices positivos e relativos negativos).
+- Cálculo analítico de equações de planos $Ax + By + Cz + D = 0$ para cada face.
+- Injeção das faces fechadas na sessão binária `SkpBinaryWriter`, integrando malhas de bibliotecas externas diretamente ao ecossistema SketchBuild sem necessidade de conversores comerciais.
+- **Módulo:** `core/obj_to_skp_importer.py` (`ObjToSkpImporter`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/import-obj`.

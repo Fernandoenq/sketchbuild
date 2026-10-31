@@ -56,6 +56,11 @@ import {
   applyBooleanOperation,
   createOffsetFace,
   exportExecutivePdf,
+  createFollowMe,
+  createArc,
+  applyRotation,
+  auditNbr16071Safety,
+  importObj,
   ApiError,
 } from "./api.js";
 import {
@@ -2024,6 +2029,9 @@ const MENU_ACTIONS = {
   "export-drawing-2d": () => handleExportDrawing2D(),
   "export-assembly-manual": () => handleExportAssemblyManual(),
   "export-executive-pdf": () => handleExportExecutivePdf(),
+  "tool-follow-me": () => handleFollowMeTool(),
+  "draw-arc": () => handleDrawArc(),
+  "import-obj": () => handleImportObj(),
   "import-dxf": () => {
     setToolMode("dxf");
     dxfPathInputEl?.focus();
@@ -3113,5 +3121,64 @@ async function handleExportExecutivePdf() {
     setStatus(`Proposta Executiva PDF exportada com sucesso: ${res.file_path} (${(res.size_bytes / 1024).toFixed(1)} KB)`);
   } catch (err) {
     setStatus(`Erro ao exportar PDF: ${err.message}`, true);
+  }
+}
+
+// --- Frente 34: Auditoria de Segurança NBR 16071 ---
+const btnRunSafetyAuditEl = document.getElementById("btn-run-safety-audit");
+const safetyAuditResultEl = document.getElementById("safety-audit-result");
+const safetySealBadgeEl = document.getElementById("safety-seal-badge");
+const safetyChecksDetailEl = document.getElementById("safety-checks-detail");
+
+if (btnRunSafetyAuditEl) {
+  btnRunSafetyAuditEl.addEventListener("click", async () => {
+    setStatus("Auditando modelo conforme a ABNT NBR 16071:2021...");
+    try {
+      const res = await auditNbr16071Safety();
+      if (safetyAuditResultEl) {
+        safetyAuditResultEl.style.display = "block";
+        safetySealBadgeEl.textContent = `${res.safety_seal} (Score: ${res.safety_score}%)`;
+        safetyChecksDetailEl.textContent = `Aprovados: ${res.approved_checks}/${res.total_checks} requisitos. Norma: ${res.standard}`;
+      }
+      setStatus(`Auditoria NBR 16071 concluída: ${res.safety_seal} (${res.safety_score}% aprovado).`);
+    } catch (err) {
+      setStatus(`Erro ao executar auditoria NBR 16071: ${err.message}`, true);
+    }
+  });
+}
+
+// --- Frente 31: Siga-me (Follow Me) ---
+async function handleFollowMeTool() {
+  setStatus("Executando extrusão Siga-me (Follow Me) ao longo do caminho 3D...");
+  try {
+    const path = [[0, 0, 0], [1, 0.4, 0.5], [2, 1.0, 1.0], [3, 1.2, 1.5]];
+    const res = await createFollowMe(path, "circle", 0.12, null, true);
+    setStatus(`Siga-me concluído: Tubo extrudado com ${res.faces_count} faces B-Rep manifold.`);
+  } catch (err) {
+    setStatus(`Erro no Siga-me: ${err.message}`, true);
+  }
+}
+
+// --- Frente 32: Arco 3D ---
+async function handleDrawArc() {
+  setStatus("Criando arco 3D paramétrico...");
+  try {
+    const res = await createArc([0, 0, 1.0], [2.0, 0, 1.0], 0.35, 16);
+    setStatus(`Arco 3D criado: Raio=${res.radius}m, Flecha=${res.sagitta}m, Corda=${res.chord_length}m (${res.segments_count} segmentos).`);
+  } catch (err) {
+    setStatus(`Erro ao criar arco 3D: ${err.message}`, true);
+  }
+}
+
+// --- Frente 35: Importador OBJ ---
+async function handleImportObj() {
+  const filePath = prompt("Informe o caminho absoluto do arquivo .obj para importação:");
+  if (!filePath) return;
+  setStatus(`Importando arquivo Wavefront OBJ: ${filePath}...`);
+  try {
+    const res = await importObj(filePath, 1.0);
+    setStatus(`OBJ importado com sucesso: ${res.imported_vertices} vértices, ${res.imported_faces} faces.`);
+  } catch (err) {
+    setStatus(`Erro ao importar OBJ: ${err.message}`, true);
   }
 }

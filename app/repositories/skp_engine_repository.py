@@ -1396,3 +1396,70 @@ class SkpEngineRepository:
             "project_name": project_name,
             "pages": 1,
         }
+
+    def create_follow_me_geometry(self, path_points: list, profile_type: str = "circle", radius: float = 0.10, profile_points: list | None = None, close_caps: bool = True) -> dict:
+        """Gera sólido extrudado ao longo de caminho 3D Follow Me (Frente 31)."""
+        from core.follow_me_engine import FollowMeEngine
+        if profile_type == "circle":
+            prof_2d = FollowMeEngine.generate_circular_profile(radius=radius, segments=12)
+        else:
+            prof_2d = [tuple(p) for p in (profile_points or [(-0.1, -0.1), (0.1, -0.1), (0.1, 0.1), (-0.1, 0.1)])]
+
+        path_3d = [tuple(p) for p in path_points]
+        res = FollowMeEngine.extrude_profile_along_path(prof_2d, path_3d, close_caps=close_caps)
+
+        # Injeta as faces resultantes se sessão binária ativa
+        session = SkpBinaryWriter.get_session()
+        if session is not None:
+            for face_pts in res.get("faces", []):
+                try:
+                    SkpBinaryWriter.add_polygon_face(face_pts)
+                except Exception:
+                    pass
+            self._autosave()
+
+        return res
+
+    def create_arc_geometry(self, start: list, end: list, sagitta: float = 0.30, num_segments: int = 12) -> dict:
+        """Gera arco circular 3D paramétrico (Frente 32)."""
+        from core.arc_generator import ArcGenerator
+        res = ArcGenerator.create_arc_2_points(tuple(start), tuple(end), sagitta, num_segments=num_segments)
+
+        session = SkpBinaryWriter.get_session()
+        if session is not None:
+            pts = res.get("points", [])
+            for i in range(len(pts) - 1):
+                try:
+                    SkpBinaryWriter.add_line_edge(pts[i], pts[i + 1])
+                except Exception:
+                    pass
+            self._autosave()
+
+        # Converte tuplas para listas
+        res["points"] = [list(p) for p in res["points"]]
+        res["center"] = list(res.get("center", [0, 0, 0]))
+        return res
+
+    def apply_rotation_transform(self, instance_id: str, pivot: list, axis: list, angle_degrees: float) -> dict:
+        """Aplica rotação analítica com transferidor (Frente 33)."""
+        from core.transformation_engine import TransformationEngine
+        rot_mat = TransformationEngine.create_rotation_matrix_around_axis(tuple(pivot), tuple(axis), angle_degrees)
+        self.set_instance_transform(instance_id, rot_mat)
+        return {
+            "instance_id": instance_id,
+            "angle_degrees": angle_degrees,
+            "pivot": list(pivot),
+            "axis": list(axis),
+            "transform_matrix_16": rot_mat,
+        }
+
+    def audit_nbr16071_safety(self) -> dict:
+        """Audita conformidade normativa de segurança infantil NBR 16071 (Frente 34)."""
+        from core.nbr16071_auditor import NBR16071Auditor
+        scene_dto = self._get_export_scene_data()
+        return NBR16071Auditor.audit_scene(scene_dto)
+
+    def import_obj_geometry(self, file_path: str, scale: float = 1.0) -> dict:
+        """Importa arquivo Wavefront OBJ e converte para entidades B-Rep do .SKP (Frente 35)."""
+        from core.obj_to_skp_importer import ObjToSkpImporter
+        return ObjToSkpImporter.import_obj_to_skp(file_path, scale=scale)

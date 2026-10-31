@@ -9,6 +9,16 @@ from fastapi import APIRouter, Depends, File, UploadFile
 
 from app.controllers.scene_controller import SceneController
 from app.schemas.scene import (
+    FollowMeRequest,
+    FollowMeResponse,
+    ArcRequest,
+    ArcResponse,
+    RotateTransformRequest,
+    RotateTransformResponse,
+    SafetyAuditResponse,
+    ImportObjRequest,
+    ImportObjResponse,
+
     SectionPlaneRequest,
     SectionPlaneResponse,
     GuideLineRequest,
@@ -740,3 +750,66 @@ async def add_offset_face(
     controller: SceneController = Depends(get_controller),
 ) -> OffsetFaceResponse:
     return await controller.add_offset_face(body)
+
+
+# ============================================================================
+# Frentes 31 a 35: Follow Me, Arcos 3D, Rotação, Auditoria NBR 16071 e OBJ
+# ============================================================================
+
+@router.post(
+    "/geometry/follow-me",
+    response_model=FollowMeResponse,
+    summary="Extrusão 3D Follow Me ao longo de caminho (Frente 31)",
+)
+async def create_follow_me_geometry(
+    body: FollowMeRequest,
+    controller: SceneController = Depends(get_controller),
+) -> FollowMeResponse:
+    return await controller.create_follow_me_geometry(body)
+
+
+@router.post(
+    "/geometry/arc",
+    response_model=ArcResponse,
+    summary="Gera arco circular 3D paramétrico (Frente 32)",
+)
+async def create_arc_geometry(
+    body: ArcRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ArcResponse:
+    return await controller.create_arc_geometry(body)
+
+
+@router.post(
+    "/geometry/rotate",
+    response_model=RotateTransformResponse,
+    summary="Aplica rotação analítica com transferidor (Frente 33)",
+)
+async def apply_rotation_transform(
+    body: RotateTransformRequest,
+    controller: SceneController = Depends(get_controller),
+) -> RotateTransformResponse:
+    return await controller.apply_rotation_transform(body)
+
+
+@router.get(
+    "/safety-audit-nbr16071",
+    response_model=SafetyAuditResponse,
+    summary="Audita conformidade normativa de segurança infantil NBR 16071 (Frente 34)",
+)
+async def audit_nbr16071_safety(
+    controller: SceneController = Depends(get_controller),
+) -> SafetyAuditResponse:
+    return await controller.audit_nbr16071_safety()
+
+
+@router.post(
+    "/import-obj",
+    response_model=ImportObjResponse,
+    summary="Importa modelo Wavefront OBJ e converte para B-Rep no .SKP (Frente 35)",
+)
+async def import_obj_geometry(
+    body: ImportObjRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ImportObjResponse:
+    return await controller.import_obj_geometry(body)

@@ -1038,3 +1038,103 @@ class OffsetFaceResponse(BaseModel):
     inside: bool
     face_id: str | None = None
     frame_faces_count: int | None = None
+
+
+# ============================================================================
+# Frentes 31 a 35: Follow Me, Arcos 3D, Rotação, Auditoria NBR 16071 e OBJ
+# ============================================================================
+
+class FollowMeRequest(BaseModel):
+    """Entrada para extrusão Follow Me ao longo de caminho 3D."""
+
+    path_points: list[list[float]] = Field(description="Sequência de pontos 3D [[x, y, z], ...] do caminho guia")
+    profile_type: str = Field(default="circle", description="'circle' para tubos ou 'custom' para perfil poligonal")
+    radius: float = Field(default=0.10, description="Raio se perfil for circular")
+    profile_points: list[list[float]] | None = Field(default=None, description="Pontos 2D [(u, v), ...] se customizado")
+    close_caps: bool = Field(default=True, description="Fechar tampas nas extremidades")
+
+
+class FollowMeResponse(BaseModel):
+    """Resposta da extrusão Follow Me."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "FollowMeExtrusion"
+    path_points_count: int
+    profile_points_count: int
+    faces_count: int
+
+
+class ArcRequest(BaseModel):
+    """Entrada para geração de arco circular 3D."""
+
+    start: list[float] = Field(description="Ponto inicial [x, y, z]")
+    end: list[float] = Field(description="Ponto final [x, y, z]")
+    sagitta: float = Field(default=0.30, description="Altura da flecha / curvatura em metros")
+    num_segments: int = Field(default=12, ge=3, le=64, description="Número de segmentos da curva")
+
+
+class ArcResponse(BaseModel):
+    """Resposta do arco circular 3D gerado."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "Arc"
+    points: list[list[float]]
+    radius: float
+    sagitta: float
+    chord_length: float
+    segments_count: int
+
+
+class RotateTransformRequest(BaseModel):
+    """Entrada para rotação com transferidor de instância ou geometria."""
+
+    instance_id: str = Field(description="ID da instância a rotacionar")
+    pivot: list[float] = Field(default=[0.0, 0.0, 0.0], description="Centro de rotação [cx, cy, cz]")
+    axis: list[float] = Field(default=[0.0, 0.0, 1.0], description="Eixo normal de rotação [kx, ky, kz]")
+    angle_degrees: float = Field(default=45.0, description="Ângulo de rotação em graus")
+
+
+class RotateTransformResponse(BaseModel):
+    """Resposta da transformação de rotação aplicada."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    instance_id: str
+    angle_degrees: float
+    pivot: list[float]
+    axis: list[float]
+    transform_matrix_16: list[float]
+
+
+class SafetyAuditResponse(BaseModel):
+    """Relatório estruturado de auditoria NBR 16071 para playgrounds."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    compliant: bool
+    safety_score: int
+    standard: str
+    total_checks: int
+    approved_checks: int
+    safety_seal: str
+    tests: list[dict[str, Any]]
+
+
+class ImportObjRequest(BaseModel):
+    """Entrada para importação de malha 3D Wavefront OBJ."""
+
+    file_path: str = Field(description="Caminho completo do arquivo .obj no disco")
+    scale: float = Field(default=1.0, description="Fator de escala de importação")
+
+
+class ImportObjResponse(BaseModel):
+    """Resposta com resumo da importação do arquivo OBJ."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    success: bool
+    imported_vertices: int
+    imported_faces: int
+    scale: float
