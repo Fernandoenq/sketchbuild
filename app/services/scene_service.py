@@ -1315,3 +1315,105 @@ class SceneService:
             origin_alt_m,
             north_angle_deg
         )
+
+    async def triangulate_face_with_holes(
+        self,
+        outer_loop_3d: list,
+        inner_loops_3d: list = None
+    ) -> dict:
+        """Triangula face plana com furos internos SUPolyMeshRef (Frente 81)."""
+        return await run_in_threadpool(
+            self._repository.triangulate_face_with_holes,
+            outer_loop_3d,
+            inner_loops_3d
+        )
+
+    async def calculate_align_view(
+        self,
+        face_vertices: list,
+        fov_deg: float = 35.0,
+        margin_factor: float = 1.25
+    ) -> dict:
+        """Calcula parâmetros de câmera perpendicular à face (Align View) (Frente 82)."""
+        return await run_in_threadpool(
+            self._repository.calculate_align_view,
+            face_vertices,
+            fov_deg,
+            margin_factor
+        )
+
+    async def configure_background_sky(
+        self,
+        sky_enabled: bool = True,
+        ground_enabled: bool = True,
+        sky_color: str = "#b4d5fe",
+        ground_color: str = "#c2b8a3",
+        horizon_color: str = "#95afc0",
+        background_color: str = "#ffffff",
+        ground_transparency_percent: int = 50,
+        show_horizon: bool = True
+    ) -> dict:
+        """Configura estilos de céu, solo e horizonte SUStyleRef (Frente 83)."""
+        return await run_in_threadpool(
+            self._repository.configure_background_sky,
+            sky_enabled,
+            ground_enabled,
+            sky_color,
+            ground_color,
+            horizon_color,
+            background_color,
+            ground_transparency_percent,
+            show_horizon
+        )
+
+    async def calculate_dimension_tolerance(
+        self,
+        nominal_val: float,
+        unit: str = "mm",
+        tolerance_type: str = "BILATERAL",
+        upper_tol: float = 0.1,
+        lower_tol: float = 0.1,
+        iso_class: str = "m",
+        precision: int = 2
+    ) -> dict:
+        """Calcula tolerâncias dimensionais ISO 2768 / NBR 6492 (Frente 84)."""
+        return await run_in_threadpool(
+            self._repository.calculate_dimension_tolerance,
+            nominal_val,
+            unit,
+            tolerance_type,
+            upper_tol,
+            lower_tol,
+            iso_class,
+            precision
+        )
+
+    async def record_undo_operation(
+        self,
+        name: str,
+        action_type: str,
+        target_id: str,
+        before_state: dict,
+        after_state: dict
+    ) -> dict:
+        """Registra operação reversível na pilha transacional (Frente 85)."""
+        return await run_in_threadpool(
+            self._repository.record_undo_operation,
+            name,
+            action_type,
+            target_id,
+            before_state,
+            after_state
+        )
+
+    async def execute_undo(self) -> dict:
+        """Desfaz a última operação registrada (Frente 85)."""
+        return await run_in_threadpool(self._repository.execute_undo)
+
+    async def execute_redo(self) -> dict:
+        """Refaz a última operação desfeita (Frente 85)."""
+        return await run_in_threadpool(self._repository.execute_redo)
+
+    async def get_undo_redo_history(self) -> dict:
+        """Retorna histórico e profundidade das pilhas de Undo e Redo (Frente 85)."""
+        return await run_in_threadpool(self._repository.get_undo_redo_history)

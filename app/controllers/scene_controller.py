@@ -119,6 +119,17 @@ from app.schemas.scene import (
     GeoReferenceRequest,
     LocalToGeoRequest,
     GeoReferenceResponse,
+    PolyMeshHolesRequest,
+    PolyMeshResponse,
+    AlignViewRequest,
+    AlignViewResponse,
+    BackgroundSkyStyleRequest,
+    BackgroundSkyStyleResponse,
+    DimensionToleranceRequest,
+    DimensionToleranceResponse,
+    UndoRedoRecordRequest,
+    UndoRedoActionResponse,
+    UndoRedoStatusResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1535,5 +1546,99 @@ class SceneController:
                 body.north_angle_deg
             )
             return GeoReferenceResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def triangulate_face_with_holes(self, body: PolyMeshHolesRequest) -> PolyMeshResponse:
+        """Triangula face plana com furos internos SUPolyMeshRef (Frente 81)."""
+        try:
+            res = await self._service.triangulate_face_with_holes(
+                body.outer_loop_3d,
+                body.inner_loops_3d
+            )
+            return PolyMeshResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_align_view(self, body: AlignViewRequest) -> AlignViewResponse:
+        """Calcula parâmetros de câmera perpendicular à face (Align View) (Frente 82)."""
+        try:
+            res = await self._service.calculate_align_view(
+                body.face_vertices,
+                body.fov_deg,
+                body.margin_factor
+            )
+            return AlignViewResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def configure_background_sky(self, body: BackgroundSkyStyleRequest) -> BackgroundSkyStyleResponse:
+        """Configura estilos de céu, solo e horizonte SUStyleRef (Frente 83)."""
+        try:
+            res = await self._service.configure_background_sky(
+                body.sky_enabled,
+                body.ground_enabled,
+                body.sky_color,
+                body.ground_color,
+                body.horizon_color,
+                body.background_color,
+                body.ground_transparency_percent,
+                body.show_horizon
+            )
+            return BackgroundSkyStyleResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_dimension_tolerance(self, body: DimensionToleranceRequest) -> DimensionToleranceResponse:
+        """Calcula tolerâncias dimensionais ISO 2768 / NBR 6492 (Frente 84)."""
+        try:
+            res = await self._service.calculate_dimension_tolerance(
+                body.nominal_val,
+                body.unit,
+                body.tolerance_type,
+                body.upper_tol,
+                body.lower_tol,
+                body.iso_class,
+                body.precision
+            )
+            return DimensionToleranceResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def record_undo_operation(self, body: UndoRedoRecordRequest) -> UndoRedoActionResponse:
+        """Registra operação reversível na pilha transacional (Frente 85)."""
+        try:
+            res = await self._service.record_undo_operation(
+                body.name,
+                body.action_type,
+                body.target_id,
+                body.before_state,
+                body.after_state
+            )
+            return UndoRedoActionResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def execute_undo(self) -> UndoRedoActionResponse:
+        """Desfaz a última operação registrada (Frente 85)."""
+        try:
+            res = await self._service.execute_undo()
+            return UndoRedoActionResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def execute_redo(self) -> UndoRedoActionResponse:
+        """Refaz a última operação desfeita (Frente 85)."""
+        try:
+            res = await self._service.execute_redo()
+            return UndoRedoActionResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def get_undo_redo_history(self) -> UndoRedoStatusResponse:
+        """Retorna histórico e profundidade das pilhas de Undo e Redo (Frente 85)."""
+        try:
+            res = await self._service.get_undo_redo_history()
+            return UndoRedoStatusResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

@@ -110,6 +110,17 @@ from app.schemas.scene import (
     GeoReferenceRequest,
     LocalToGeoRequest,
     GeoReferenceResponse,
+    PolyMeshHolesRequest,
+    PolyMeshResponse,
+    AlignViewRequest,
+    AlignViewResponse,
+    BackgroundSkyStyleRequest,
+    BackgroundSkyStyleResponse,
+    DimensionToleranceRequest,
+    DimensionToleranceResponse,
+    UndoRedoRecordRequest,
+    UndoRedoActionResponse,
+    UndoRedoStatusResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1591,3 +1602,96 @@ async def local_point_to_wgs84(
     controller: SceneController = Depends(get_controller),
 ) -> GeoReferenceResponse:
     return await controller.local_point_to_wgs84(body)
+
+
+@router.post(
+    "/polymesh/triangulate",
+    response_model=PolyMeshResponse,
+    summary="Triangula face plana com furos internos SUPolyMeshRef (Frente 81)",
+)
+async def triangulate_face_with_holes(
+    body: PolyMeshHolesRequest,
+    controller: SceneController = Depends(get_controller),
+) -> PolyMeshResponse:
+    return await controller.triangulate_face_with_holes(body)
+
+
+@router.post(
+    "/camera/align-view",
+    response_model=AlignViewResponse,
+    summary="Calcula parâmetros de câmera perpendicular à face (Align View) (Frente 82)",
+)
+async def calculate_align_view(
+    body: AlignViewRequest,
+    controller: SceneController = Depends(get_controller),
+) -> AlignViewResponse:
+    return await controller.calculate_align_view(body)
+
+
+@router.post(
+    "/styles/background-sky",
+    response_model=BackgroundSkyStyleResponse,
+    summary="Configura estilos de céu, solo e horizonte SUStyleRef (Frente 83)",
+)
+async def configure_background_sky(
+    body: BackgroundSkyStyleRequest,
+    controller: SceneController = Depends(get_controller),
+) -> BackgroundSkyStyleResponse:
+    return await controller.configure_background_sky(body)
+
+
+@router.post(
+    "/dimensions/tolerance",
+    response_model=DimensionToleranceResponse,
+    summary="Calcula tolerâncias dimensionais ISO 2768 / NBR 6492 (Frente 84)",
+)
+async def calculate_dimension_tolerance(
+    body: DimensionToleranceRequest,
+    controller: SceneController = Depends(get_controller),
+) -> DimensionToleranceResponse:
+    return await controller.calculate_dimension_tolerance(body)
+
+
+@router.post(
+    "/history/record",
+    response_model=UndoRedoActionResponse,
+    summary="Registra operação reversível na pilha transacional (Frente 85)",
+)
+async def record_undo_operation(
+    body: UndoRedoRecordRequest,
+    controller: SceneController = Depends(get_controller),
+) -> UndoRedoActionResponse:
+    return await controller.record_undo_operation(body)
+
+
+@router.post(
+    "/history/undo",
+    response_model=UndoRedoActionResponse,
+    summary="Desfaz a última operação registrada (Frente 85)",
+)
+async def execute_undo(
+    controller: SceneController = Depends(get_controller),
+) -> UndoRedoActionResponse:
+    return await controller.execute_undo()
+
+
+@router.post(
+    "/history/redo",
+    response_model=UndoRedoActionResponse,
+    summary="Refaz a última operação desfeita (Frente 85)",
+)
+async def execute_redo(
+    controller: SceneController = Depends(get_controller),
+) -> UndoRedoActionResponse:
+    return await controller.execute_redo()
+
+
+@router.get(
+    "/history/status",
+    response_model=UndoRedoStatusResponse,
+    summary="Retorna histórico e profundidade das pilhas de Undo e Redo (Frente 85)",
+)
+async def get_undo_redo_history(
+    controller: SceneController = Depends(get_controller),
+) -> UndoRedoStatusResponse:
+    return await controller.get_undo_redo_history()

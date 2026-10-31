@@ -1588,3 +1588,70 @@ A Frente 80 implementa a persistência e cálculo de coordenadas geográficas gl
 - Conversão bidirecional entre coordenadas locais $(x, y, z)$ em metros do modelo e coordenadas geográficas reais (Lat, Lon, Alt) rotacionadas pelo ângulo do Norte verdadeiro.
 - **Módulo:** `core/geo_reference_engine.py` (`GeoReferenceEngine`).
 - **Endpoints FastAPI:** `POST /api/v1/scene/geo/reference` e `POST /api/v1/scene/geo/local-to-wgs84`.
+
+---
+
+## 108. Frente 81: Decodificador de Malhas com Furos e Hierarquia de Loops (SULoopRef & SUPolyMeshRef - Zero DLL)
+
+A Frente 81 implementa a triangulação analítica de faces poligonais complexas com múltiplos furos internos vazados (*inner loops*), reproduzindo a estrutura topológica B-Rep do SketchUp (`SULoopRef`, `SUFaceGetOuterLoop`, `SUFaceGetInnerLoops`, `SUPolyMeshRef`).
+
+### A. Algoritmo de Triangulação via Ponte de Emenda (Seam Bridge Ear-Clipping)
+- **Normal e Projeção 2D:** Determina o plano da face via produto vetorial de Newell e projeta todos os vértices 3D num sistema de eixos 2D ortonormais $(u, v)$ no plano da face.
+- **Orientação Canônica:** O contorno externo (*outer loop*) é normalizado para sentido anti-horário (área positiva), enquanto os furos internos (*inner loops*) são orientados para o sentido horário (área negativa).
+- **Corte de Ponte (*Seam Cut*):** Conecta cada furo interno ao contorno externo pelo par de vértices mais próximo com linha de visada desobstruída, gerando um polígono simples conexo.
+- **Ear-Clipping Robusto:** Triangulação por eliminação de orelhas com teste baricêntrico que ignora vértices coincidentes da emenda de ponte, prevenindo falso-positivos de colisão interna.
+- **Módulo:** `core/polymesh_loop_engine.py` (`PolyMeshLoopEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/polymesh/triangulate`.
+
+---
+
+## 109. Frente 82: Motor de Alinhamento de Câmera à Face (Align Camera to Face - Zero DLL)
+
+A Frente 82 implementa a ferramenta nativa de viewport do SketchUp "Alinhar Vista" (*Align View* / "Context Menu > Align View"), permitindo posicionar a câmera perfeitamente ortogonal à normal de qualquer face selecionada.
+
+### A. Cálculo Vetorial de Câmera e Enquadramento Ótimo
+- **Normal e Baricentro:** Calcula a normal unitária $\vec{N}$ da face e o centroide médio $\vec{C}$.
+- **Vetor Up Estável:** Quando a normal é horizontal ou inclinada, projeta o vetor vertical mundial $Z (0, 0, 1)$ no plano da face para manter o horizonte nivelado. Quando a face é horizontal (pisos/tetos, onde $|\vec{N}_z| \approx 1$), alinha o vetor `up` com o eixo $Y$ do mundo $(0, 1, 0)$ ou $(0, -1, 0)$, evitando indeterminação matemática.
+- **Distância de Enquadramento:** Calcula a esfera delimitadora da face de raio $R$ e posiciona o olho da câmera a uma distância $D = \frac{R}{\tan(\text{FOV} / 2)} \times \text{margin\_factor}$, garantindo que a geometria caiba integralmente no frustum.
+- **Módulo:** `core/align_view_engine.py` (`AlignViewEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/camera/align-view`.
+
+---
+
+## 110. Frente 83: Estilos de Céu, Solo e Horizonte Gradiente (SUStyleRef Sky/Ground - Zero DLL)
+
+A Frente 83 implementa a parametrização do estilo de renderização de fundo do SketchUp (`SUStyleRef`, `SUStyleGetProperty`), cobrindo o plano infinito de solo, transparência e gradiente de horizonte.
+
+### A. Configuração Canônica de Cores e Gradientes Three.js
+- **Parâmetros:** `sky_enabled`, `ground_enabled`, `sky_color`, `ground_color`, `horizon_color`, `background_color`, `ground_transparency_percent`, `show_horizon`.
+- **Compatibilidade Three.js:** Gera gradiente CSS linear triplo de 3 cores (`sky_color` $\to$ `horizon_color` $\to$ `ground_color`) para o `canvas.style.background` e parâmetros numéricos de opacidade para renderização de plano infinito Three.js.
+- **Módulo:** `core/background_sky_style_engine.py` (`BackgroundSkyStyleEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/styles/background-sky`.
+
+---
+
+## 111. Frente 84: Cotas com Tolerâncias Dimensionais (ISO 2768 & NBR 6492 - Zero DLL)
+
+A Frente 84 implementa o sistema de dimensionamento técnico com tolerâncias geométricas e dimensionais para desenho de fabricação mecânica e marcenaria de precisão.
+
+### A. Tipos de Tolerância e Classes Normativas
+- **Bilateral:** Cota nominal com desvios simétricos (ex: $50.00 \pm 0.05\text{ mm}$).
+- **Desvio Unilateral (Deviation):** Desvios superior e inferior independentes (ex: $50.00^{+0.10}_{-0.05}\text{ mm}$).
+- **Limites (Limits):** Exibição direta das dimensões máxima e mínima admissíveis (ex: $50.10 / 49.95\text{ mm}$).
+- **Norma ISO 2768:** Tabela analítica de classes de precisão linear ($f$ - fina, $m$ - média, $c$ - grossa, $v$ - muito grossa) baseada nas faixas nominais de $0.5$ a $4000\text{ mm}$.
+- **Módulo:** `core/dimension_tolerance_engine.py` (`DimensionToleranceEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/dimensions/tolerance`.
+
+---
+
+## 112. Frente 85: Histórico de Operações Atômicas e Undo/Redo (SUModelStartOperation - Zero DLL)
+
+A Frente 85 reproduz o subsistema transacional de histórico de comandos do SketchUp (`SUModelStartOperation`, `SUModelCommitOperation`, `SUModelAbortOperation`), garantindo suporte total a desfazimento (Ctrl+Z) e refazimento (Ctrl+Y).
+
+### A. Estrutura Transacional e Invalidação de Pilha
+- **Operação Atômica:** Cada entrada encapsula `op_id`, `name`, `action_type`, `target_id`, `before_state`, `after_state` e `timestamp`.
+- **Desfazer (Undo):** Desempilha a última operação de `_undo_stack`, transfere para `_redo_stack` e retorna o estado anterior (`before_state`) para restauração na cena.
+- **Refazer (Redo):** Desempilha de `_redo_stack`, empilha de volta em `_undo_stack` e retorna o estado novo (`after_state`).
+- **Invalidação de Histórico:** Qualquer nova modificação na cena limpa automaticamente a pilha de Redo.
+- **Módulo:** `core/undo_redo_engine.py` (`UndoRedoCommandEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/history/record`, `POST /api/v1/scene/history/undo`, `POST /api/v1/scene/history/redo` e `GET /api/v1/scene/history/status`.
