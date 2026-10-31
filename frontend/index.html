@@ -506,7 +506,8 @@
         <div class="menu-dropdown-item" data-action="export-glb"><span>Exportar &gt; Modelo glTF 2.0 (.glb)...</span></div>
         <div class="menu-dropdown-item" data-action="export-ifc"><span>Exportar &gt; Modelo BIM IFC4 (.ifc)...</span></div>
         <div class="menu-dropdown-item" data-action="export-cutlist"><span>Exportar &gt; Lista de Corte Parkelô (.xlsx)...</span></div>
-        <div class="menu-dropdown-item disabled"><span>Exportar &gt; Gráfico 2D...</span></div>
+        <div class="menu-dropdown-item" data-action="export-drawing-2d"><span>Exportar &gt; Desenho Técnico 2D (.svg)...</span></div>
+        <div class="menu-dropdown-item" data-action="export-assembly-manual"><span>Exportar &gt; Manual de Montagem HTML...</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Enviar para o LayOut...</span></div>
         <div class="menu-dropdown-item disabled"><span>Imprimir...</span><span class="menu-dropdown-shortcut">Ctrl+P</span></div>
@@ -1119,6 +1120,68 @@
         </div>
       </div>
     </div>
+
+    <!-- Frente 26: Manual de Montagem Passo a Passo -->
+    <div class="tray-section collapsed" id="tray-assembly">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">Etapas de Montagem (Manual 3D)</span>
+        <span class="tray-arrow">&#9662;</span>
+      </div>
+      <div class="tray-body">
+        <button id="btn-load-assembly" class="panel-btn" style="width: 100%; margin-bottom: 8px;">Carregar Sequência de Montagem</button>
+        <div id="assembly-controls-panel" style="display: none;">
+          <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+            <button id="btn-step-prev" class="panel-btn" style="flex: 1;">&laquo; Anterior</button>
+            <span id="assembly-step-indicator" style="font-size: 11px; font-weight: bold; color: var(--accent); white-space: nowrap;">Etapa 1 de 1</span>
+            <button id="btn-step-next" class="panel-btn" style="flex: 1;">Próximo &raquo;</button>
+          </div>
+          <div style="background: #F8F9FA; border: 1px solid var(--border); border-radius: 3px; padding: 6px; font-size: 11px; margin-bottom: 8px;">
+            <div id="assembly-step-title" style="font-weight: bold; color: #1B365D; margin-bottom: 4px;">Etapa 1</div>
+            <div id="assembly-step-desc" style="color: var(--muted); margin-bottom: 6px; font-size: 10px;">Instrução de montagem.</div>
+            <div id="assembly-hardware-info" style="color: #744210; background: #FEFCBF; padding: 4px; border-radius: 2px; font-size: 10px;">Fixadores necessários</div>
+          </div>
+          <button id="btn-export-manual-html" class="panel-btn" style="width: 100%; background: #1B365D; color: white;">Gerar Manual HTML Imprimível</button>
+        </div>
+      </div>
+    </div><!-- /tray-assembly -->
+
+    <!-- Frente 28: Estudo Solar e Heliodon -->
+    <div class="tray-section collapsed" id="tray-solar">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">Estudo Solar &amp; Sombras (NBR 16071)</span>
+        <span class="tray-arrow">&#9662;</span>
+      </div>
+      <div class="tray-body">
+        <div class="row" style="margin-bottom: 6px;">
+          <label style="font-size: 10px; color: var(--muted); display: block; margin-bottom: 2px;">Hora Solar: <span id="solar-hour-val" style="font-weight: bold; color: var(--text);">14:00</span></label>
+          <input id="solar-hour-slider" type="range" min="6" max="18" step="0.25" value="14" style="width: 100%;" />
+        </div>
+        <div class="row" style="margin-bottom: 8px;">
+          <label style="font-size: 10px; color: var(--muted); display: block; margin-bottom: 2px;">Data / Estação:</label>
+          <select id="solar-season-select" style="width: 100%; padding: 4px; font-size: 11px; border: 1px solid var(--border); border-radius: 2px;">
+            <option value="80">21 de Março (Equinócio de Outono)</option>
+            <option value="172">21 de Junho (Solstício de Inverno)</option>
+            <option value="266">23 de Setembro (Equinócio de Primavera)</option>
+            <option value="355">21 de Dezembro (Solstício de Verão)</option>
+          </select>
+        </div>
+        <div id="solar-info-panel" style="background: #F8F9FA; border: 1px solid var(--border); border-radius: 3px; padding: 6px; font-size: 11px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span style="color: var(--muted);">Altitude Solar:</span>
+            <strong id="solar-alt-val">55.5°</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span style="color: var(--muted);">Azimute Solar:</span>
+            <strong id="solar-az-val">308.3°</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--muted);">Conforto Infantil:</span>
+            <strong id="solar-confort-val" style="color: #C53030;">NBR 16071</strong>
+          </div>
+        </div>
+        <button id="btn-animate-solar" class="panel-btn" style="width: 100%;">Animar Dia Solar (06h - 18h)</button>
+      </div>
+    </div><!-- /tray-solar -->
   </div>
 
   <div id="status">Clique em "Escolher arquivo..." pra abrir pelo seletor do Windows, ou cole o caminho completo e clique em Abrir.</div>

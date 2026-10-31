@@ -44,6 +44,10 @@ import {
   addCircleGeometry,
   addCylinderGeometry,
   extrudeFaceGeometry,
+  getAssemblySteps,
+  exportAssemblyManual,
+  exportDrawing2D,
+  calculateSolarStudy,
   ApiError,
 } from "./api.js";
 import {
@@ -121,6 +125,25 @@ const circleRadiusInputEl = document.getElementById("circle-radius-input");
 const circleHeightInputEl = document.getElementById("circle-height-input");
 const circleCreateBtnEl = document.getElementById("circle-create-btn");
 const btnExportCutlistEl = document.getElementById("btn-export-cutlist");
+
+// Frentes 26, 27 e 28
+const btnLoadAssemblyEl = document.getElementById("btn-load-assembly");
+const assemblyControlsPanelEl = document.getElementById("assembly-controls-panel");
+const btnStepPrevEl = document.getElementById("btn-step-prev");
+const btnStepNextEl = document.getElementById("btn-step-next");
+const assemblyStepIndicatorEl = document.getElementById("assembly-step-indicator");
+const assemblyStepTitleEl = document.getElementById("assembly-step-title");
+const assemblyStepDescEl = document.getElementById("assembly-step-desc");
+const assemblyHardwareInfoEl = document.getElementById("assembly-hardware-info");
+const btnExportManualHtmlEl = document.getElementById("btn-export-manual-html");
+
+const solarHourSliderEl = document.getElementById("solar-hour-slider");
+const solarHourValEl = document.getElementById("solar-hour-val");
+const solarSeasonSelectEl = document.getElementById("solar-season-select");
+const solarAltValEl = document.getElementById("solar-alt-val");
+const solarAzValEl = document.getElementById("solar-az-val");
+const solarConfortValEl = document.getElementById("solar-confort-val");
+const btnAnimateSolarEl = document.getElementById("btn-animate-solar");
 const vcbLineEl = document.getElementById("vcb-line");
 const lineLengthInputEl = document.getElementById("line-length-input");
 const lineSnapInfoEl = document.getElementById("line-snap-info");
@@ -1990,6 +2013,8 @@ const MENU_ACTIONS = {
     circleHeightInputEl?.focus();
   },
   "export-cutlist": () => handleExportCutlist(),
+  "export-drawing-2d": () => handleExportDrawing2D(),
+  "export-assembly-manual": () => handleExportAssemblyManual(),
   "import-dxf": () => {
     setToolMode("dxf");
     dxfPathInputEl?.focus();
@@ -2830,4 +2855,173 @@ async function handleApplyPushPull() {
 
 if (pushpullApplyBtnEl) {
   pushpullApplyBtnEl.addEventListener("click", handleApplyPushPull);
+}
+
+
+// ============================================================================
+// Frente 26: Sequenciador de Montagem Passo a Passo (Manual 3D)
+// ============================================================================
+
+let assemblyStepsData = null;
+let currentAssemblyStep = 0;
+
+async function handleLoadAssemblySteps() {
+  setStatus("Calculando etapas lógicas de montagem 3D...");
+  try {
+    const res = await getAssemblySteps();
+    if (!res || !res.steps || res.steps.length === 0) {
+      setStatus("Nenhuma instância encontrada para sequenciar montagem.", true);
+      return;
+    }
+    assemblyStepsData = res;
+    currentAssemblyStep = 0;
+    if (assemblyControlsPanelEl) assemblyControlsPanelEl.style.display = "block";
+    if (btnLoadAssemblyEl) btnLoadAssemblyEl.textContent = "Reiniciar Montagem";
+    applyAssemblyStep(0);
+    setStatus(`Sequência de montagem calculada: ${res.total_steps} etapas.`);
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Falha ao calcular etapas de montagem: ${detail}`, true);
+  }
+}
+
+function applyAssemblyStep(idx) {
+  if (!assemblyStepsData || !assemblyStepsData.steps.length) return;
+  idx = Math.max(0, Math.min(idx, assemblyStepsData.steps.length - 1));
+  currentAssemblyStep = idx;
+
+  const step = assemblyStepsData.steps[idx];
+  if (assemblyStepIndicatorEl) {
+    assemblyStepIndicatorEl.textContent = `Etapa ${idx + 1} de ${assemblyStepsData.total_steps}`;
+  }
+  if (assemblyStepTitleEl) assemblyStepTitleEl.textContent = step.title;
+  if (assemblyStepDescEl) assemblyStepDescEl.textContent = step.instruction;
+  if (assemblyHardwareInfoEl) assemblyHardwareInfoEl.textContent = `Fixadores: ${step.hardware_estimate}`;
+
+  // Controle de visibilidade das peças no Three.js
+  // Peças montadas até a etapa atual ficam visíveis; peças de etapas futuras ficam ocultas
+  const activeIds = new Set();
+  for (let i = 0; i <= idx; i++) {
+    for (const iid of assemblyStepsData.steps[i].instance_ids) {
+      activeIds.add(iid);
+    }
+  }
+
+  if (currentGroup) {
+    currentGroup.traverse((child) => {
+      if (child.isMesh && child.name) {
+        // Se a malha pertence a uma instância
+        const isMounted = activeIds.has(child.name);
+        child.visible = isMounted;
+      }
+    });
+  }
+}
+
+if (btnLoadAssemblyEl) btnLoadAssemblyEl.addEventListener("click", handleLoadAssemblySteps);
+if (btnStepPrevEl) btnStepPrevEl.addEventListener("click", () => applyAssemblyStep(currentAssemblyStep - 1));
+if (btnStepNextEl) btnStepNextEl.addEventListener("click", () => applyAssemblyStep(currentAssemblyStep + 1));
+
+async function handleExportAssemblyManual() {
+  const currentPath = savePathInputEl ? savePathInputEl.value.trim() : "";
+  const defaultTarget = currentPath
+    ? currentPath.replace(/\.skp$/i, "_manual_montagem.html")
+    : "C:\\Users\\Fernando\\Desktop\\manual_montagem.html";
+
+  const targetPath = prompt("Informe o caminho de destino para o Manual de Montagem HTML:", defaultTarget);
+  if (!targetPath || !targetPath.trim()) return;
+
+  setStatus(`Gerando Manual de Montagem Técnico para ${targetPath}...`);
+  try {
+    const res = await exportAssemblyManual("Playground Parkelô Oficial", targetPath.trim());
+    setStatus(`Manual de Montagem gerado com sucesso: ${res.path}`);
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Falha ao exportar manual: ${detail}`, true);
+  }
+}
+
+if (btnExportManualHtmlEl) btnExportManualHtmlEl.addEventListener("click", handleExportAssemblyManual);
+
+// ============================================================================
+// Frente 27: Desenho Técnico Vetorial 2D (Plantas Baixas e Elevações SVG)
+// ============================================================================
+
+async function handleExportDrawing2D() {
+  const currentPath = savePathInputEl ? savePathInputEl.value.trim() : "";
+  const defaultTarget = currentPath
+    ? currentPath.replace(/\.skp$/i, "_planta_baixa.svg")
+    : "C:\\Users\\Fernando\\Desktop\\planta_baixa_parkelo.svg";
+
+  const targetPath = prompt("Informe o caminho para salvar o Desenho Técnico Vetorial (.svg):", defaultTarget);
+  if (!targetPath || !targetPath.trim()) return;
+
+  const viewType = prompt("Tipo de vista: 'top' (Planta Baixa), 'front' (Elevação Frontal), 'side' (Lateral):", "top") || "top";
+
+  setStatus(`Exportando desenho técnico 2D vetorial para ${targetPath}...`);
+  try {
+    const res = await exportDrawing2D(targetPath.trim(), viewType.trim(), "Playground Parkelô - Prancha Técnica", "1:50");
+    setStatus(`Desenho técnico SVG exportado com sucesso: ${res.path} (${(res.file_size_bytes / 1024).toFixed(1)} KB)`);
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Falha ao exportar desenho SVG: ${detail}`, true);
+  }
+}
+
+// ============================================================================
+// Frente 28: Estudo Solar e Sombras Analíticas (Heliodon & NBR 16071)
+// ============================================================================
+
+async function updateSolarStudy() {
+  const hour = parseFloat(solarHourSliderEl?.value || "14.0");
+  const dayOfYear = parseInt(solarSeasonSelectEl?.value || "80", 10);
+  if (solarHourValEl) {
+    const hh = Math.floor(hour);
+    const mm = Math.round((hour - hh) * 60);
+    solarHourValEl.textContent = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  }
+
+  try {
+    const res = await calculateSolarStudy(dayOfYear, hour);
+    if (!res || !res.position) return;
+    const pos = res.position;
+
+    if (solarAltValEl) solarAltValEl.textContent = `${pos.altitude_deg.toFixed(1)}°`;
+    if (solarAzValEl) solarAzValEl.textContent = `${pos.azimuth_deg.toFixed(1)}°`;
+    if (solarConfortValEl && res.day_curve) {
+      solarConfortValEl.textContent = res.day_curve.conforto_termico_status || "Adequado";
+    }
+
+    // Reposiciona a luz direcional solar da cena Three.js
+    if (keyLight && pos.light_direction_3d) {
+      const dir = pos.light_direction_3d;
+      keyLight.position.set(dir[0] * 25, Math.max(dir[1] * 25, 1.0), dir[2] * 25);
+      keyLight.intensity = pos.is_daylight ? 1.4 : 0.1;
+    }
+  } catch {
+    // Modo offline/silencioso caso API demore
+  }
+}
+
+if (solarHourSliderEl) solarHourSliderEl.addEventListener("input", updateSolarStudy);
+if (solarSeasonSelectEl) solarSeasonSelectEl.addEventListener("change", updateSolarStudy);
+
+let solarAnimInterval = null;
+if (btnAnimateSolarEl) {
+  btnAnimateSolarEl.addEventListener("click", () => {
+    if (solarAnimInterval) {
+      clearInterval(solarAnimInterval);
+      solarAnimInterval = null;
+      btnAnimateSolarEl.textContent = "Animar Dia Solar (06h - 18h)";
+      return;
+    }
+    btnAnimateSolarEl.textContent = "Parar Animação Solar";
+    let curH = 6.0;
+    solarAnimInterval = setInterval(() => {
+      curH += 0.25;
+      if (curH > 18.0) curH = 6.0;
+      if (solarHourSliderEl) solarHourSliderEl.value = curH;
+      updateSolarStudy();
+    }, 150);
+  });
 }

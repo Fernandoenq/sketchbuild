@@ -448,3 +448,50 @@ export function extrudeFaceGeometry(pointsM, distanceM, normal = null) {
     normal: normal,
   });
 }
+
+// ============================================================================
+// Frente 26: Sequenciador de Montagem e Manual Técnico 3D
+// ============================================================================
+
+/** Obtém as etapas sequenciais de montagem (Frente 26). */
+export async function getAssemblySteps() {
+  const res = await fetch("/api/v1/scene/assembly-steps");
+  if (!res.ok) throw new ApiError(res.statusText, res.status);
+  return res.json();
+}
+
+/** Gera e salva manual de montagem em HTML (Frente 26). */
+export function exportAssemblyManual(projectName = "Playground Parkelô", path = null) {
+  return postJson("/api/v1/scene/export/assembly-manual", "POST", {
+    project_name: projectName,
+    path: path,
+  });
+}
+
+// ============================================================================
+// Frente 27: Desenho Técnico Vetorial 2D (Plantas Baixas e Elevações)
+// ============================================================================
+
+/** Exporta desenho técnico 2D vetorial em SVG (Frente 27). */
+export function exportDrawing2D(path, viewType = "top", title = "Prancha Técnica de Engenharia", scale = "1:50") {
+  return postJson("/api/v1/scene/export/drawing-2d", "POST", {
+    path: path,
+    view_type: viewType,
+    title: title,
+    scale: scale,
+  });
+}
+
+// ============================================================================
+// Frente 28: Estudo Solar e Sombras Analíticas (Heliodon)
+// ============================================================================
+
+/** Calcula o estudo solar, vetor de iluminação e conformidade NBR 16071 (Frente 28). */
+export function calculateSolarStudy(dayOfYear = 80, hour = 14.0, latitude = -23.5505, longitude = -46.6333) {
+  return postJson("/api/v1/scene/solar-study", "POST", {
+    day_of_year: dayOfYear,
+    hour: hour,
+    latitude: latitude,
+    longitude: longitude,
+  });
+}

@@ -747,3 +747,61 @@ A Frente 24 entrega a ferramenta clássica de modelagem do SketchUp: **Empurrar/
    - Injeção das Tags `0x1389`, `0x138a`, `0x138b`, contêiner `0x138e` e contadores pais `0x1388`, `0x01f6`, `0x00f4`.
 2. **Validação Ground Truth:** Testado via `test_frentes_23_24_14.py` e validado na `SketchUpAPI.dll` oficial com 5 faces e 9 arestas para face triangular extrudada e status `SU_ERROR_NONE`.
 3. **Endpoint FastAPI:** `POST /api/v1/scene/geometry/pushpull`.
+
+---
+
+## 50. Frente 26: Sequenciador de Montagem Passo a Passo e Manual Técnico 3D (Desmontador Parkelô)
+
+A Frente 26 transforma a hierarquia espacial e de componentes do modelo em um roteiro cronológico de montagem técnica para instaladores de campo e equipes de produção da Parkelô.
+
+### A. Algoritmo de Sequenciamento Cronológico (`core/assembly_sequencer.py`)
+1. **Classificação Topológica e Altura Vertical ($Z$):**
+   - Agrupa as peças por categoria construtiva e cota vertical ascendente:
+     - *Etapa 1 (Fundação / Fixação):* Sapatas de concreto, chumbadores e placas de base ($Z_{min} pprox 0.0$).
+     - *Etapa 2 (Estrutura Primária):* Colunas principais de madeira/alumínio e vigas de sustentação.
+     - *Etapa 3 (Nível de Piso):* Decks modulares, assoalhos e painéis de fechamento.
+     - *Etapa 4 (Circulação):* Escadas, rampas acessíveis e passarelas retas/curvas.
+     - *Etapa 5 (Brinquedos / Rotomoldagem):* Escorregadores ondulados, tubos e telhados.
+     - *Etapa 6 (Acabamento):* Ponteiras, tampões plásticos e verificação de torque de fixação.
+2. **Quantitativo de Fixadores por Etapa:**
+   - Calcula automaticamente o kit de ferragens exigido em cada etapa (4 parafusos sextavados de inox com porca travante por junta).
+3. **Gerador de Manual HTML Imprimível:**
+   - Módulo `generate_html_manual()` que compila um documento HTML autônomo, limpo e responsivo com cartões passo a passo, tabelas de peças e avisos de segurança.
+4. **Endpoint FastAPI:** `GET /api/v1/scene/assembly-steps` e `POST /api/v1/scene/export/assembly-manual`.
+
+---
+
+## 51. Frente 27: Exportador de Plantas Baixas e Elevações Técnicas Vetoriais 2D (SVG)
+
+A Frente 27 provê geração de pranchas técnicas vetoriais bidimensionais sem depender do software LayOut da Trimble.
+
+### A. Projeção Ortográfica B-Rep (`core/technical_drawing_exporter.py`)
+1. **Tipos de Vista Padronizados:**
+   - `top`: Planta Baixa técnica projetada no plano horizontal $X-Y$ (corte na cota padrão 1.20m ABNT NBR 6492).
+   - `front`: Elevação Frontal projetada no plano $X-Z$.
+   - `side`: Elevação Lateral projetada no plano $Y-Z$.
+2. **Elementos Gráficos Vetoriais Gerados:**
+   - Grid milimetrado e margens normalizadas A3/A4.
+   - Contorno das arestas das malhas com filtragem de duplicatas.
+   - Linhas de cota lineares com setas delimitadoras e indicação métrica centralizada (`X.XX m`).
+   - Carimbo profissional de engenharia no padrão da indústria: Nome do Projeto, Desenho, Escala (1:25 / 1:50 / 1:100), Responsável Técnico (*Fernando Filho*), Data e Versão.
+3. **Endpoint FastAPI:** `POST /api/v1/scene/export/drawing-2d`.
+
+---
+
+## 52. Frente 28: Motor Astronômico de Estudo Solar e Sombras Analíticas (Heliodon & NBR 16071)
+
+A Frente 28 implementa um simulador heliodônico astronômico exato no visualizador Three.js e backend Python para estudos de insolação e segurança térmica infantil.
+
+### A. Formulação Astronômica Solar (NOAA / ASHRAE / Spencer)
+1. **Declinação Solar ($\delta$):**
+   $$\delta = 23.45^\circ \cdot \sin\left(\frac{360^\circ}{365} (284 + n)\right)$$
+2. **Equação do Tempo (EoT) e Hora Solar Verdadeira:**
+   Corrige a variação de excentricidade orbital da Terra e obliqüidade da eclíptica.
+3. **Altitude Solar (Ângulo de Elevação $\alpha$) e Azimute ($\gamma$):**
+   $$\sin\alpha = \sin\phi \sin\delta + \cos\phi \cos\delta \cos H$$
+4. **Vetor de Luz Solar 3D Normalizado:**
+   Calcula as componentes $(x, y, z)$ da luz direcional solar sincronizada com o sol real para alimentar a sombra em tempo real na cena Three.js.
+5. **Conformidade com Norma de Playgrounds (ABNT NBR 16071):**
+   Mapeia as horas de pico solar (10h às 15h) e emite alertas automáticos quando a altitude solar ultrapassa $65^\circ$ exigindo cobertura sobre escorregadores plásticos para prevenção de queimaduras em crianças.
+6. **Endpoint FastAPI:** `POST /api/v1/scene/solar-study`.

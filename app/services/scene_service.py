@@ -454,3 +454,19 @@ class SceneService:
     async def extrude_face_geometry(self, points_m: list, distance_m: float, normal: list | None = None) -> dict:
         """Extrude face coplanar para sólido 3D Push/Pull (Frente 24)."""
         return await run_in_threadpool(self._repository.extrude_face_geometry, points_m, distance_m, normal)
+
+    async def get_assembly_steps(self) -> dict:
+        """Calcula etapas sequenciais de montagem (Frente 26)."""
+        return await run_in_threadpool(self._repository.get_assembly_steps)
+
+    async def export_assembly_manual(self, project_name: str = "Playground Parkelô", path: str | None = None) -> dict:
+        """Gera manual de montagem em HTML (Frente 26)."""
+        return await run_in_threadpool(self._repository.export_assembly_manual, project_name, path)
+
+    async def export_drawing_2d(self, file_path: str, view_type: str = "top", title: str = "Prancha Técnica", scale: str = "1:50") -> dict:
+        """Exporta desenho técnico 2D vetorial em SVG (Frente 27)."""
+        return await run_in_threadpool(self._repository.export_drawing_2d, file_path, view_type, title, scale)
+
+    async def calculate_solar_study(self, day_of_year: int = 80, hour: float = 14.0, latitude: float = -23.5505, longitude: float = -46.6333) -> dict:
+        """Calcula estudo solar e insolação NBR 16071 (Frente 28)."""
+        return await run_in_threadpool(self._repository.calculate_solar_study, day_of_year, hour, latitude, longitude)

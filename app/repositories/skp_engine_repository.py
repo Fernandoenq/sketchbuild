@@ -1284,3 +1284,34 @@ class SkpEngineRepository:
             self._autosave()
             return {"success": True, "entity": res}
         raise SceneSessionError("nenhuma sessão binária ativa")
+
+    def get_assembly_steps(self) -> dict:
+        """Calcula as etapas sequenciais de montagem (Frente 26)."""
+        from core.assembly_sequencer import AssemblySequencer
+        scene_dto = self._get_export_scene_data()
+        return AssemblySequencer.generate_steps(scene_dto)
+
+    def export_assembly_manual(self, project_name: str = "Playground Parkelô", path: str | None = None) -> dict:
+        """Gera manual de montagem em HTML (Frente 26)."""
+        from core.assembly_sequencer import AssemblySequencer
+        scene_dto = self._get_export_scene_data()
+        html = AssemblySequencer.generate_html_manual(scene_dto, project_name=project_name)
+        if path:
+            import os
+            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(html)
+        return {"saved": bool(path), "path": path, "html_content": html}
+
+    def export_drawing_2d(self, file_path: str, view_type: str = "top", title: str = "Prancha Técnica", scale: str = "1:50") -> dict:
+        """Exporta desenho técnico 2D vetorial em SVG (Frente 27)."""
+        from core.technical_drawing_exporter import TechnicalDrawingExporter
+        scene_dto = self._get_export_scene_data()
+        return TechnicalDrawingExporter.export_svg(scene_dto, file_path, view_type=view_type, title=title, scale=scale)
+
+    def calculate_solar_study(self, day_of_year: int = 80, hour: float = 14.0, latitude: float = -23.5505, longitude: float = -46.6333) -> dict:
+        """Calcula estudo solar, heliodon e insolação NBR 16071 (Frente 28)."""
+        from core.solar_calculator import SolarCalculator
+        pos = SolarCalculator.calculate_sun_position(day_of_year=day_of_year, solar_hour=hour, latitude_deg=latitude, longitude_deg=longitude)
+        curve = SolarCalculator.generate_day_curve(day_of_year=day_of_year, latitude_deg=latitude, longitude_deg=longitude)
+        return {"position": pos, "day_curve": curve}

@@ -832,3 +832,80 @@ class ExtrudeFaceGeometryRequest(BaseModel):
     points_m: list[list[float]] = Field(..., min_length=3, description="Vertices da face a ser extrudada")
     distance_m: float = Field(..., description="Distancia de extrusao ao longo da normal em metros")
     normal: list[float] | None = Field(default=None, min_length=3, max_length=3, description="Vetor normal")
+
+# ============================================================================
+# Frente 26: Sequenciador de Montagem e Manual Tecnico 3D
+# ============================================================================
+
+class AssemblyStepsResponse(BaseModel):
+    """Resposta de GET /scene/assembly-steps."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    steps: list[dict[str, Any]]
+    total_steps: int
+    total_instances: int
+
+
+class ExportAssemblyManualRequest(BaseModel):
+    """Entrada para exportacao do manual de montagem em HTML."""
+
+    project_name: str = "Playground Parkelo"
+    path: str | None = None
+
+
+class ExportAssemblyManualResponse(BaseModel):
+    """Resposta da exportacao do manual de montagem em HTML."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    saved: bool = True
+    path: str | None = None
+    html_content: str
+
+
+# ============================================================================
+# Frente 27: Desenho Tecnico Vetorial 2D (Plantas Baixas e Elevacoes)
+# ============================================================================
+
+class ExportDrawing2DRequest(BaseModel):
+    """Entrada para exportacao de desenho tecnico 2D vetorial em SVG."""
+
+    path: str = Field(..., min_length=1, description="Caminho de destino .svg")
+    view_type: str = Field(default="top", description="Tipo de vista: top (planta), front (elevacao frontal), side (lateral)")
+    title: str = Field(default="Prancha Tecnica de Engenharia", description="Titulo do carimbo")
+    scale: str = Field(default="1:50", description="Escala arquitetonica")
+
+
+class ExportDrawing2DResponse(BaseModel):
+    """Resposta da exportacao de desenho tecnico 2D vetorial."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    saved: bool = True
+    path: str
+    view_type: str
+    scale: str
+    file_size_bytes: int
+
+
+# ============================================================================
+# Frente 28: Estudo Solar e Sombras Analiticas (Heliodon)
+# ============================================================================
+
+class SolarStudyRequest(BaseModel):
+    """Entrada para calculo de posicao solar e insolação."""
+
+    day_of_year: int = Field(default=80, ge=1, le=365, description="Dia do ano (1 a 365)")
+    hour: float = Field(default=14.0, ge=0.0, le=24.0, description="Hora solar (0.0 a 24.0)")
+    latitude: float = Field(default=-23.5505, description="Latitude em graus")
+    longitude: float = Field(default=-46.6333, description="Longitude em graus")
+
+
+class SolarStudyResponse(BaseModel):
+    """Resposta do estudo solar com posicao atual e curva horaria."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    position: dict[str, Any]
+    day_curve: dict[str, Any]

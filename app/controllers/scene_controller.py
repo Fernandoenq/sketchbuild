@@ -35,6 +35,13 @@ from app.schemas.scene import (
     AddGeometryEntityResponse,
     ExportCutlistRequest,
     ExportCutlistResponse,
+    AssemblyStepsResponse,
+    ExportAssemblyManualRequest,
+    ExportAssemblyManualResponse,
+    ExportDrawing2DRequest,
+    ExportDrawing2DResponse,
+    SolarStudyRequest,
+    SolarStudyResponse,
     AddCircleGeometryRequest,
     AddCylinderGeometryRequest,
     ExtrudeFaceGeometryRequest,
@@ -577,5 +584,38 @@ class SceneController:
             return AddGeometryEntityResponse(**res)
         except SceneSessionError as e:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+
+    async def get_assembly_steps(self) -> AssemblyStepsResponse:
+        """Retorna etapas sequenciais de montagem (Frente 26)."""
+        try:
+            res = await self._service.get_assembly_steps()
+            return AssemblyStepsResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def export_assembly_manual(self, body: ExportAssemblyManualRequest) -> ExportAssemblyManualResponse:
+        """Gera manual de montagem em HTML (Frente 26)."""
+        try:
+            res = await self._service.export_assembly_manual(body.project_name, body.path)
+            return ExportAssemblyManualResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def export_drawing_2d(self, body: ExportDrawing2DRequest) -> ExportDrawing2DResponse:
+        """Exporta desenho técnico 2D vetorial em SVG (Frente 27)."""
+        try:
+            res = await self._service.export_drawing_2d(body.path, body.view_type, body.title, body.scale)
+            return ExportDrawing2DResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_solar_study(self, body: SolarStudyRequest) -> SolarStudyResponse:
+        """Calcula estudo solar e insolação NBR 16071 (Frente 28)."""
+        try:
+            res = await self._service.calculate_solar_study(body.day_of_year, body.hour, body.latitude, body.longitude)
+            return SolarStudyResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
