@@ -524,8 +524,8 @@
     <div class="menu-top-item" data-menu="editar">
       Editar
       <div class="menu-dropdown">
-        <div class="menu-dropdown-item disabled"><span>Desfazer</span><span class="menu-dropdown-shortcut">Ctrl+Z</span></div>
-        <div class="menu-dropdown-item disabled"><span>Refazer</span><span class="menu-dropdown-shortcut">Ctrl+Y</span></div>
+        <div class="menu-dropdown-item" id="menu-item-undo" data-action="action-undo"><span>Desfazer</span><span class="menu-dropdown-shortcut">Ctrl+Z</span></div>
+        <div class="menu-dropdown-item" id="menu-item-redo" data-action="action-redo"><span>Refazer</span><span class="menu-dropdown-shortcut">Ctrl+Y</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Recortar</span><span class="menu-dropdown-shortcut">Ctrl+X</span></div>
         <div class="menu-dropdown-item disabled"><span>Copiar</span><span class="menu-dropdown-shortcut">Ctrl+C</span></div>
@@ -774,6 +774,27 @@
       </button>
     </div>
     <div class="toolbar-group">
+      <button class="toolbar-btn" id="toolbar-undo-btn" title="Desfazer (Ctrl+Z)" aria-label="Desfazer">
+        <svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 20v-7a4 4 0 0 0-4-4H4" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="toolbar-btn" id="toolbar-redo-btn" title="Refazer (Ctrl+Y)" aria-label="Refazer">
+        <svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20v-7a4 4 0 0 1 4-4h12" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-btn" id="toolbar-align-view-btn" title="Alinhar Câmera Perpendicular à Face Selecionada (Frente 82)" aria-label="Alinhar Câmera">
+        <svg viewBox="0 0 24 24"><polygon points="3,6 12,2 21,6 12,10" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="12" y1="10" x2="12" y2="22" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="22" r="2" fill="currentColor"/></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
+      <button class="toolbar-btn" id="toolbar-clash-btn" title="Auditoria de Colisões Físicas / Clash Detection (Frente 89)" aria-label="Auditoria de Colisões">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="15" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="12" y1="8" x2="12" y2="16" stroke="#e53e3e" stroke-width="2"/></svg>
+      </button>
+      <button class="toolbar-btn" id="toolbar-mass-btn" title="Propriedades Físicas, Volume e Centro de Gravidade (Frente 90)" aria-label="Propriedades Físicas">
+        <svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" fill="#3182ce"/><line x1="12" y1="3" x2="12" y2="6" stroke="currentColor" stroke-width="1.6"/></svg>
+      </button>
+    </div>
+    <div class="toolbar-group">
       <button class="toolbar-btn" id="toolbar-save-btn" title="Salvar" aria-label="Salvar">
         <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z" /><rect x="8" y="4" width="7" height="5" /><rect x="7" y="14" width="10" height="6" /></svg>
       </button>
@@ -973,6 +994,10 @@
           <div class="row" style="margin-top: 6px;">
             <input id="export-obj-path-input" type="text" placeholder="C:\caminho\para\modelo.obj" />
             <button id="export-obj-btn" class="panel-btn" title="Arquivo &gt; Exportar &gt; Modelo 3D (.obj)">Exportar .obj</button>
+          </div>
+          <div class="row" style="margin-top: 6px;">
+            <input id="export-ifc-path-input" type="text" placeholder="C:\caminho\para\modelo.ifc" />
+            <button id="export-ifc4-btn" class="panel-btn" style="background: #2b6cb0; color: white;" title="Arquivo &gt; Exportar &gt; Modelo BIM IFC4 STEP ISO 10303-21 (Frente 105)">Exportar IFC4 BIM</button>
           </div>
         </div>
       </div>
@@ -1197,6 +1222,21 @@
           <div id="structural-status-badge" style="font-weight: bold; color: var(--accent);"></div>
           <div id="structural-details" style="color: var(--text);"></div>
         </div>
+        <button id="btn-calc-wind-pressure" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #319795; color: white;">Pressão Dinâmica e Cargas de Vento NBR 6123</button>
+        <div id="wind-pressure-result" style="display: none; padding: 6px; background: #E6FFFA; border: 1px solid #81E6D9; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="wind-pressure-status-badge" style="font-weight: bold; color: #234E52;"></div>
+          <div id="wind-pressure-details" style="color: var(--text);"></div>
+        </div>
+        <button id="btn-calc-clash" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #DD6B20; color: white;">Auditoria de Colisões Físicas (Clash Detection)</button>
+        <div id="clash-result" style="display: none; padding: 6px; background: #FFFAF0; border: 1px solid #FBD38D; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="clash-status-badge" style="font-weight: bold; color: #7B341E;"></div>
+          <div id="clash-details" style="color: var(--text);"></div>
+        </div>
+        <button id="btn-calc-mass-props" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #4A5568; color: white;">Propriedades Físicas, Massa e Centro de Gravidade</button>
+        <div id="mass-props-result" style="display: none; padding: 6px; background: #EDF2F7; border: 1px solid #CBD5E0; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="mass-props-status-badge" style="font-weight: bold; color: #2D3748;"></div>
+          <div id="mass-props-details" style="color: var(--text);"></div>
+        </div>
         <button id="btn-calc-overturn" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #2B6CB0; color: white;">Estabilidade ao Tombamento / Vento NBR 6123</button>
         <div id="overturn-result" style="display: none; padding: 6px; background: #EBF8FF; border: 1px solid #BEE3F8; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
           <div id="overturn-status-badge" style="font-weight: bold; color: #2B6CB0;"></div>
@@ -1312,6 +1352,84 @@
         <button id="btn-animate-solar" class="panel-btn" style="width: 100%;">Animar Dia Solar (06h - 18h)</button>
       </div>
     </div><!-- /tray-solar -->
+
+    <!-- Frentes 96, 101 e 102: Arquitetura Paramétrica (NBR 9050 & Voronoi) -->
+    <div class="tray-section collapsed" id="tray-architecture">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">Arquitetura Paramétrica (NBR 9050)</span>
+        <span class="tray-arrow">&#9662;</span>
+      </div>
+      <div class="tray-body">
+        <div style="font-size: 11px; font-weight: 600; color: #1B365D; margin-bottom: 4px;">Escada Paramétrica Blondel (NBR 9050)</div>
+        <div class="row" style="display: flex; gap: 4px; margin-bottom: 6px;">
+          <input id="stair-height-input" class="dim-input" type="number" step="0.1" min="0.5" value="2.80" style="flex: 1;" title="Desnível Total (m)" placeholder="Altura (m)" />
+          <input id="stair-width-input" class="dim-input" type="number" step="0.1" min="0.8" value="1.00" style="flex: 1;" title="Largura da Escada (m)" placeholder="Largura (m)" />
+          <button id="btn-create-stair" class="panel-btn" style="background: #2B6CB0; color: white;">Gerar Escada</button>
+        </div>
+        <div id="stair-info-panel" style="display: none; background: #EBF8FF; border: 1px solid #BEE3F8; border-radius: 3px; padding: 6px; font-size: 10.5px; margin-bottom: 10px;"></div>
+
+        <div style="font-size: 11px; font-weight: 600; color: #1B365D; margin-bottom: 4px; border-top: 1px solid var(--border); padding-top: 6px;">Parede Paramétrica 3D com Vãos</div>
+        <div class="row" style="display: flex; gap: 4px; margin-bottom: 6px;">
+          <input id="wall-len-input" class="dim-input" type="number" step="0.5" min="1.0" value="5.0" style="flex: 1;" placeholder="Comprimento (m)" />
+          <input id="wall-height-input" class="dim-input" type="number" step="0.1" min="1.0" value="2.80" style="flex: 1;" placeholder="Altura (m)" />
+          <button id="btn-create-wall" class="panel-btn" style="background: #319795; color: white;">Gerar Parede</button>
+        </div>
+
+        <div style="font-size: 11px; font-weight: 600; color: #1B365D; margin-bottom: 4px; border-top: 1px solid var(--border); padding-top: 6px;">Painel Vazado Voronoi 3D</div>
+        <div class="row" style="display: flex; gap: 4px; margin-bottom: 6px;">
+          <input id="voronoi-w-input" class="dim-input" type="number" step="0.5" min="1.0" value="2.0" style="flex: 1;" placeholder="Largura (m)" />
+          <input id="voronoi-h-input" class="dim-input" type="number" step="0.5" min="1.0" value="3.0" style="flex: 1;" placeholder="Altura (m)" />
+          <button id="btn-create-voronoi" class="panel-btn" style="background: #805AD5; color: white;">Gerar Voronoi</button>
+        </div>
+      </div>
+    </div><!-- /tray-architecture -->
+
+    <!-- Frentes 77, 83 e 104: Ambiente, Céu Físico & Névoa -->
+    <div class="tray-section collapsed" id="tray-environment">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">Ambiente, Céu Físico &amp; Névoa</span>
+        <span class="tray-arrow">&#9662;</span>
+      </div>
+      <div class="tray-body">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+            <input type="checkbox" id="env-sky-checkbox" checked />
+            <span>Exibir Céu e Solo (Frente 83)</span>
+          </label>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+            <span>Cor do Céu:</span>
+            <input type="color" id="env-sky-color" value="#b4d5fe" style="width: 40px; height: 22px; padding: 0; border: none; cursor: pointer;" />
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+            <span>Cor do Solo:</span>
+            <input type="color" id="env-ground-color" value="#c2b8a3" style="width: 40px; height: 22px; padding: 0; border: none; cursor: pointer;" />
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; margin-bottom: 6px;">
+              <input type="checkbox" id="env-fog-checkbox" />
+              <span>Névoa Atmosférica (Fog / Frente 77)</span>
+            </label>
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+              <span>Cor da Névoa:</span>
+              <input type="color" id="env-fog-color" value="#dcdde1" style="width: 40px; height: 22px; padding: 0; border: none; cursor: pointer;" />
+            </div>
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px;">
+            <div style="font-size: 11px; font-weight: 600; margin-bottom: 4px;">Céu Físico Rayleigh &amp; Mie (Frente 104)</div>
+            <div class="row" style="margin-bottom: 4px;">
+              <label style="font-size: 10px; color: var(--muted); display: block;">Elevação Solar: <span id="sky-elevation-val">35°</span></label>
+              <input id="sky-elevation-slider" type="range" min="0" max="90" step="1" value="35" style="width: 100%;" />
+            </div>
+            <div class="row" style="margin-bottom: 6px;">
+              <label style="font-size: 10px; color: var(--muted); display: block;">Turbidez Atmosférica: <span id="sky-turbidity-val">3.0</span></label>
+              <input id="sky-turbidity-slider" type="range" min="1" max="15" step="0.5" value="3" style="width: 100%;" />
+            </div>
+            <button id="btn-apply-phys-sky" class="panel-btn" style="width: 100%; background: #2C5282; color: white;">Aplicar Céu Físico Rayleigh</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- /tray-environment -->
+
   </div>
 
   <div id="status">Clique em "Escolher arquivo..." pra abrir pelo seletor do Windows, ou cole o caminho completo e clique em Abrir.</div>
