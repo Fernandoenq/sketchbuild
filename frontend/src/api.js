@@ -1741,3 +1741,115 @@ export function calculateLcaEmissions(grossFloorAreaM2 = 850.0, buildingLifespan
   return postJson("/api/v1/scene/sustainability/lca-emissions", "POST", { gross_floor_area_m2: grossFloorAreaM2, building_lifespan_years: buildingLifespanYears });
 }
 
+
+// ============================================================================
+// OPÇÃO A: FUNÇÕES NATIVAS DO SKETCHUP
+// ============================================================================
+
+export function positionCameraNative(eyeX = 0.0, eyeY = -5.0, eyeZ = 0.0, targetX = 0.0, targetY = 0.0, targetZ = 1.0, eyeHeightM = 1.68) {
+  return postJson("/api/v1/scene/camera/position-camera", "POST", {
+    eye_x: eyeX, eye_y: eyeY, eye_z: eyeZ,
+    target_x: targetX, target_y: targetY, target_z: targetZ,
+    eye_height_m: eyeHeightM, use_eye_height_offset: true
+  });
+}
+
+export function lookAroundNative(eye = [0.0, -5.0, 1.68], currentYawDeg = 0.0, currentPitchDeg = 0.0, deltaYawDeg = 5.0, deltaPitchDeg = 0.0) {
+  return postJson("/api/v1/scene/camera/look-around", "POST", {
+    eye: eye,
+    current_yaw_deg: currentYawDeg,
+    current_pitch_deg: currentPitchDeg,
+    delta_yaw_deg: deltaYawDeg,
+    delta_pitch_deg: deltaPitchDeg,
+    target_distance_m: 10.0
+  });
+}
+
+export function walkStepNative(currentEye = [0.0, -5.0, 1.68], yawDeg = 0.0, moveForward = 0.5, moveStrafe = 0.0, obstaclesAabb = null, terrainZ = null, eyeHeightM = 1.68) {
+  return postJson("/api/v1/scene/camera/walk-step", "POST", {
+    current_eye: currentEye,
+    yaw_deg: yawDeg,
+    move_forward: moveForward,
+    move_strafe: moveStrafe,
+    obstacles_aabb: obstaclesAabb,
+    terrain_elevation_z: terrainZ,
+    eye_height_m: eyeHeightM,
+    enable_collision: true
+  });
+}
+
+export function sandboxSmoove(vertices = [], centerX = 0.0, centerY = 0.0, radiusM = 5.0, offsetZM = 1.5) {
+  return postJson("/api/v1/scene/sandbox/smoove", "POST", {
+    vertices: vertices,
+    center_x: centerX,
+    center_y: centerY,
+    radius_m: radiusM,
+    offset_z_m: offsetZM
+  });
+}
+
+export function sandboxStamp(vertices = [], footprintPoly = [], plateauElevationZ = 1.0, skirtOffsetM = 1.5) {
+  return postJson("/api/v1/scene/sandbox/stamp", "POST", {
+    vertices: vertices,
+    footprint_poly: footprintPoly,
+    plateau_elevation_z: plateauElevationZ,
+    skirt_offset_m: skirtOffsetM
+  });
+}
+
+export function sandboxDrape(pathPoints2d = [], triangles = []) {
+  return postJson("/api/v1/scene/sandbox/drape", "POST", {
+    path_points_2d: pathPoints2d,
+    triangles: triangles
+  });
+}
+
+export function sandboxFlipEdge(triA, triB) {
+  return postJson("/api/v1/scene/sandbox/flip-edge", "POST", {
+    tri_a: triA,
+    tri_b: triB
+  });
+}
+
+export function matchPhotoCalibrate(imageWidthPx = 1920, imageHeightPx = 1080, redLine1, redLine2, greenLine1, greenLine2, refHeightM = 3.0) {
+  return postJson("/api/v1/scene/match-photo/calibrate", "POST", {
+    image_width_px: imageWidthPx,
+    image_height_px: imageHeightPx,
+    red_line_1: redLine1,
+    red_line_2: redLine2,
+    green_line_1: greenLine1,
+    green_line_2: greenLine2,
+    reference_height_m: refHeightM
+  });
+}
+
+export function watermarkStyleConfigure(name = "Selo Oficial", imageUrl = "/static/watermarks/parkelo_stamp.png", layer = "overlay", placement = "screen_position", anchor = "bottom-right", opacityPct = 85.0) {
+  return postJson("/api/v1/scene/styles/watermark", "POST", {
+    name: name,
+    image_url: imageUrl,
+    layer: layer,
+    placement: placement,
+    anchor: anchor,
+    opacity_pct: opacityPct,
+    scale_pct: 100.0,
+    lock_aspect_ratio: true,
+    blend_mode: "normal",
+    offset_px: [20, 20]
+  });
+}
+
+export function dynamicComponentInteract(instanceId = "inst_1", dynamicAttributes = {}, onclickFormula = null) {
+  return postJson("/api/v1/scene/components/interact", "POST", {
+    instance_id: instanceId,
+    dynamic_attributes: dynamicAttributes,
+    onclick_formula: onclickFormula
+  });
+}
+
+export function trimbleSolidToolsExecute(operation = "subtract", solidA, solidB) {
+  return postJson("/api/v1/scene/solid-tools/execute", "POST", {
+    operation: operation,
+    solid_a: solidA,
+    solid_b: solidB
+  });
+}

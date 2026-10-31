@@ -3693,3 +3693,162 @@ class LifeCycleAssessmentResponse(BaseModel):
     lca_metrics: dict[str, Any]
     materials_breakdown: list[dict[str, Any]]
     status: str
+
+
+# ==============================================================================
+# OPÇÃO A: FERRAMENTAS NATIVAS OFICIAIS DO SKETCHUP
+# ==============================================================================
+
+# Walk & Look Around & Position Camera
+class PositionCameraNativeRequest(BaseModel):
+    eye_x: float = Field(default=0.0)
+    eye_y: float = Field(default=-5.0)
+    eye_z: float = Field(default=0.0)
+    target_x: float = Field(default=0.0)
+    target_y: float = Field(default=0.0)
+    target_z: float = Field(default=1.0)
+    eye_height_m: float = Field(default=1.68, ge=0.1, le=5.0)
+    use_eye_height_offset: bool = Field(default=True)
+
+class PositionCameraNativeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_position_camera"
+    camera: dict[str, Any]
+    status: str = "success"
+
+class LookAroundNativeRequest(BaseModel):
+    eye: tuple[float, float, float] = Field(default=(0.0, -5.0, 1.68))
+    current_yaw_deg: float = Field(default=0.0)
+    current_pitch_deg: float = Field(default=0.0)
+    delta_yaw_deg: float = Field(default=5.0)
+    delta_pitch_deg: float = Field(default=0.0)
+    target_distance_m: float = Field(default=10.0, ge=0.5)
+
+class LookAroundNativeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_look_around"
+    camera: dict[str, Any]
+    status: str = "success"
+
+class WalkStepNativeRequest(BaseModel):
+    current_eye: tuple[float, float, float] = Field(default=(0.0, -5.0, 1.68))
+    yaw_deg: float = Field(default=0.0)
+    move_forward: float = Field(default=0.5)
+    move_strafe: float = Field(default=0.0)
+    obstacles_aabb: list[dict[str, Any]] | None = Field(default=None)
+    terrain_elevation_z: float | None = Field(default=None)
+    eye_height_m: float = Field(default=1.68, ge=0.1, le=5.0)
+    enable_collision: bool = Field(default=True)
+
+class WalkStepNativeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_walk_step"
+    walk_result: dict[str, Any]
+    status: str = "success"
+
+# Sandbox Tools
+class SandboxSmooveRequest(BaseModel):
+    vertices: list[tuple[float, float, float]] = Field(default_factory=list)
+    center_x: float = Field(default=0.0)
+    center_y: float = Field(default=0.0)
+    radius_m: float = Field(default=5.0, ge=0.1)
+    offset_z_m: float = Field(default=1.5)
+
+class SandboxSmooveResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_sandbox_smoove"
+    smoove_result: dict[str, Any]
+    status: str = "success"
+
+class SandboxStampRequest(BaseModel):
+    vertices: list[tuple[float, float, float]] = Field(default_factory=list)
+    footprint_poly: list[tuple[float, float]] = Field(default_factory=list)
+    plateau_elevation_z: float = Field(default=1.0)
+    skirt_offset_m: float = Field(default=1.5, ge=0.0)
+
+class SandboxStampResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_sandbox_stamp"
+    stamp_result: dict[str, Any]
+    status: str = "success"
+
+class SandboxDrapeRequest(BaseModel):
+    path_points_2d: list[tuple[float, float]] = Field(default_factory=list)
+    triangles: list[list[tuple[float, float, float]]] = Field(default_factory=list)
+
+class SandboxDrapeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_sandbox_drape"
+    drape_result: dict[str, Any]
+    status: str = "success"
+
+class SandboxFlipEdgeRequest(BaseModel):
+    tri_a: list[tuple[float, float, float]]
+    tri_b: list[tuple[float, float, float]]
+
+class SandboxFlipEdgeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_sandbox_flip_edge"
+    flip_result: dict[str, Any]
+    status: str = "success"
+
+# Match Photo
+class MatchPhotoCalibrateRequest(BaseModel):
+    image_width_px: int = Field(default=1920, ge=100)
+    image_height_px: int = Field(default=1080, ge=100)
+    red_line_1: tuple[tuple[float, float], tuple[float, float]]
+    red_line_2: tuple[tuple[float, float], tuple[float, float]]
+    green_line_1: tuple[tuple[float, float], tuple[float, float]]
+    green_line_2: tuple[tuple[float, float], tuple[float, float]]
+    origin_screen_px: tuple[float, float] | None = Field(default=None)
+    reference_height_m: float = Field(default=3.0, ge=0.1)
+    reference_segment_px: tuple[tuple[float, float], tuple[float, float]] | None = Field(default=None)
+
+class MatchPhotoCalibrateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_match_photo"
+    calibration: dict[str, Any]
+    status: str = "success"
+
+# Watermark Style
+class WatermarkStyleConfigureRequest(BaseModel):
+    name: str = Field(default="Selo Oficial")
+    image_url: str = Field(default="/static/watermarks/parkelo_stamp.png")
+    layer: str = Field(default="overlay")  # 'overlay' ou 'background'
+    placement: str = Field(default="screen_position")  # 'screen_position', 'tiled', 'stretched'
+    anchor: str = Field(default="bottom-right")
+    opacity_pct: float = Field(default=85.0, ge=0.0, le=100.0)
+    scale_pct: float = Field(default=100.0, ge=10.0, le=500.0)
+    lock_aspect_ratio: bool = Field(default=True)
+    blend_mode: str = Field(default="normal")
+    offset_px: tuple[int, int] = Field(default=(20, 20))
+
+class WatermarkStyleConfigureResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_watermark_style"
+    watermark_config: dict[str, Any]
+    status: str = "success"
+
+# Dynamic Component Interaction
+class DynamicComponentInteractRequest(BaseModel):
+    instance_id: str = Field(default="inst_1")
+    dynamic_attributes: dict[str, Any] = Field(default_factory=dict)
+    onclick_formula: str | None = Field(default=None)
+
+class DynamicComponentInteractResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_dynamic_component_interact"
+    interaction_result: dict[str, Any]
+    status: str = "success"
+
+# Trimble Solid Tools
+class TrimbleSolidToolsRequest(BaseModel):
+    operation: str = Field(default="subtract")  # 'intersect', 'union', 'subtract', 'trim', 'split'
+    solid_a: dict[str, Any]
+    solid_b: dict[str, Any]
+
+class TrimbleSolidToolsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_trimble_solid_tools"
+    operation_result: dict[str, Any]
+    status: str = "success"

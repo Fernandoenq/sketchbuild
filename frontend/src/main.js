@@ -154,6 +154,17 @@ import {
   calculateSiteLogistics,
   auditUniversalAccessibility,
   calculateLcaEmissions,
+  positionCameraNative,
+  lookAroundNative,
+  walkStepNative,
+  sandboxSmoove,
+  sandboxStamp,
+  sandboxDrape,
+  sandboxFlipEdge,
+  matchPhotoCalibrate,
+  watermarkStyleConfigure,
+  dynamicComponentInteract,
+  trimbleSolidToolsExecute,
   downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
@@ -5286,3 +5297,330 @@ renderer?.domElement?.addEventListener("webglcontextrestored", () => {
 });
 
 
+
+
+// ============================================================================
+// OPÇÃO A: LISTENERS DAS FERRAMENTAS NATIVAS OFICIAIS DO SKETCHUP
+// ============================================================================
+
+function showNativeToolsResult(badgeText, detailsText, isError = false) {
+  const resBox = document.getElementById("native-tools-result");
+  const badgeEl = document.getElementById("native-tools-badge");
+  const detailsEl = document.getElementById("native-tools-details");
+  if (!resBox || !badgeEl || !detailsEl) return;
+
+  resBox.style.display = "block";
+  badgeEl.textContent = badgeText;
+  badgeEl.style.color = isError ? "#E53E3E" : "#C53030";
+  detailsEl.innerHTML = detailsText;
+}
+
+// 1. Posicionar Câmera (Position Camera)
+document.getElementById("btn-native-pos-camera")?.addEventListener("click", async () => {
+  setStatus("Posicionando câmera com altura do observador oficial (1.68m)...");
+  try {
+    const res = await positionCameraNative(0.0, -6.0, 0.0, 0.0, 0.0, 1.2, 1.68);
+    if (res?.camera) {
+      const c = res.camera;
+      camera.position.set(c.eye[0], c.eye[1], c.eye[2]);
+      controls.target.set(c.target[0], c.target[1], c.target[2]);
+      camera.fov = c.fov_deg || 35.0;
+      camera.updateProjectionMatrix();
+      controls.update();
+
+      showNativeToolsResult(
+        "📷 Posicionar Câmera (Position Camera)",
+        `Olho do observador fixado em <b>(${c.eye.join(", ")})</b><br>` +
+        `Altura do VCB: <b>${c.eye_height_m}m</b> | FOV: <b>${c.fov_deg}°</b> | Yaw: <b>${c.yaw_deg}°</b>`
+      );
+      setStatus("Câmera posicionada no nível dos olhos (1.68m).");
+    }
+  } catch (err) {
+    setStatus(`Erro ao posicionar câmera: ${err.message}`, true);
+  }
+});
+
+// 2. Olhar em Volta (Look Around)
+document.getElementById("btn-native-look-around")?.addEventListener("click", async () => {
+  setStatus("Girando ângulo de visada (Look Around)...");
+  try {
+    const curEye = [camera.position.x, camera.position.y, camera.position.z];
+    const res = await lookAroundNative(curEye, 0.0, 0.0, 20.0, -5.0);
+    if (res?.camera) {
+      const c = res.camera;
+      controls.target.set(c.target[0], c.target[1], c.target[2]);
+      controls.update();
+
+      showNativeToolsResult(
+        "👀 Olhar em Volta (Look Around)",
+        `Ângulo de visada rotacionado em <b>+20° Yaw, -5° Pitch</b><br>` +
+        `Posição dos pés mantida intacta em <b>(${c.eye.join(", ")})</b>`
+      );
+      setStatus("Visão rotacionada pelo observador.");
+    }
+  } catch (err) {
+    setStatus(`Erro no Look Around: ${err.message}`, true);
+  }
+});
+
+// 3. Caminhar em 1ª Pessoa com Colisão (Walk)
+document.getElementById("btn-native-walk-step")?.addEventListener("click", async () => {
+  setStatus("Executando passo de caminhada em primeira pessoa (Walk)...");
+  try {
+    const curEye = [camera.position.x, camera.position.y, camera.position.z];
+    // Obstáculos simulados para teste de colisão
+    const testAabbs = [{ min_x: 2.0, max_x: 4.0, min_y: 2.0, max_y: 4.0, max_z: 2.5 }];
+    const res = await walkStepNative(curEye, 0.0, 1.0, 0.0, testAabbs, 0.0, 1.68);
+    if (res?.walk_result) {
+      const w = res.walk_result;
+      camera.position.set(w.eye[0], w.eye[1], w.eye[2]);
+      controls.target.set(w.target[0], w.target[1], w.target[2]);
+      controls.update();
+
+      showNativeToolsResult(
+        "🚶 Caminhar (Walk Tool)",
+        `Passo efetuado para frente: <b>1.0m</b><br>` +
+        `Nova posição: <b>(${w.eye.join(", ")})</b><br>` +
+        `Colisão detectada: <b>${w.collision_detected ? "SIM (Bloqueado)" : "NÃO (Livre)"}</b> | Subida degrau: <b>${w.step_up_applied ? "SIM" : "NÃO"}</b>`
+      );
+      setStatus(`Passo Walk efetuado para (${w.eye.join(", ")}).`);
+    }
+  } catch (err) {
+    setStatus(`Erro no Walk: ${err.message}`, true);
+  }
+});
+
+// 4. Caixa de Areia: Modelar Relevo (Smoove)
+document.getElementById("btn-native-smoove")?.addEventListener("click", async () => {
+  setStatus("Aplicando deformação orgânica de relevo Smoove...");
+  try {
+    // Gera malha de teste 5x5
+    const testVertices = [];
+    for (let j = -2; j <= 2; j++) {
+      for (let i = -2; i <= 2; i++) {
+        testVertices.push([i * 1.5, j * 1.5, 0.0]);
+      }
+    }
+    const res = await sandboxSmoove(testVertices, 0.0, 0.0, 4.0, 1.8);
+    if (res?.smoove_result) {
+      const s = res.smoove_result;
+      // Cria malha 3D visual para representar o morro gerado
+      const geom = new THREE.BufferGeometry();
+      const pos = [];
+      s.vertices.forEach(v => pos.push(v[0], v[1], v[2]));
+      geom.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      const mat = new THREE.MeshStandardMaterial({ color: 0x48BB78, wireframe: true });
+      const ptsMesh = new THREE.Points(geom, new THREE.PointsMaterial({ color: 0x22543D, size: 0.15 }));
+      currentGroup.add(ptsMesh);
+
+      showNativeToolsResult(
+        "🏖️ Caixa de Areia: Modelar (Smoove)",
+        `Raio de influência: <b>${s.radius_m}m</b> | Deslocamento central: <b>+${s.offset_z_m}m</b><br>` +
+        `Vértices deformados com curva cossenoidal: <b>${s.affected_vertices_count} de ${s.total_vertices}</b>`
+      );
+      setStatus("Deformação orgânica Smoove aplicada.");
+    }
+  } catch (err) {
+    setStatus(`Erro no Smoove: ${err.message}`, true);
+  }
+});
+
+// 5. Caixa de Areia: Estampar Platô (Stamp)
+document.getElementById("btn-native-stamp")?.addEventListener("click", async () => {
+  setStatus("Estampando platô de edificação no terreno (Stamp)...");
+  try {
+    const testVertices = [];
+    for (let j = -3; j <= 3; j++) {
+      for (let i = -3; i <= 3; i++) {
+        testVertices.push([i * 1.2, j * 1.2, (i + j) * 0.15]);
+      }
+    }
+    const footprint = [[-1.5, -1.5], [1.5, -1.5], [1.5, 1.5], [-1.5, 1.5]];
+    const res = await sandboxStamp(testVertices, footprint, 1.2, 1.5);
+    if (res?.stamp_result) {
+      const st = res.stamp_result;
+      showNativeToolsResult(
+        "🏛️ Caixa de Areia: Estampar (Stamp)",
+        `Cota do platô nivelado: <b>${st.plateau_elevation_z}m</b><br>` +
+        `Vértices internos nivelados: <b>${st.plateau_vertices_count}</b> | Vértices na saia de talude: <b>${st.skirt_vertices_count}</b>`
+      );
+      setStatus("Platô de fundação estampado com saia de talude.");
+    }
+  } catch (err) {
+    setStatus(`Erro no Stamp: ${err.message}`, true);
+  }
+});
+
+// 6. Caixa de Areia: Projetar Caminho (Drape)
+document.getElementById("btn-native-drape")?.addEventListener("click", async () => {
+  setStatus("Projetando contorno 2D sobre o terreno (Drape)...");
+  try {
+    const road2D = [[-3.0, -2.0], [-1.0, 0.0], [1.0, -0.5], [3.0, 2.0]];
+    const terrainTriangles = [
+      [[-4.0, -4.0, 0.2], [4.0, -4.0, 0.5], [4.0, 4.0, 1.2]],
+      [[-4.0, -4.0, 0.2], [4.0, 4.0, 1.2], [-4.0, 4.0, 0.8]]
+    ];
+    const res = await sandboxDrape(road2D, terrainTriangles);
+    if (res?.drape_result) {
+      const d = res.drape_result;
+      // Adiciona linha 3D projetada na cena Three.js
+      const linePts = d.draped_path_3d.map(p => new THREE.Vector3(p[0], p[1], p[2] + 0.05));
+      const lineGeom = new THREE.BufferGeometry().setFromPoints(linePts);
+      const lineMat = new THREE.LineBasicMaterial({ color: 0xE53E3E, linewidth: 3 });
+      const line = new THREE.Line(lineGeom, lineMat);
+      currentGroup.add(line);
+
+      showNativeToolsResult(
+        "🛤️ Caixa de Areia: Projetar (Drape)",
+        `Caminho 2D projetado verticalmente sobre as faces 3D do relevo.<br>` +
+        `Pontos projetados: <b>${d.draped_points_count}</b> | Comprimento real 3D sobre o relevo: <b>${d.total_3d_length_m}m</b>`
+      );
+      setStatus("Caminho Drape projetado sobre o relevo com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro no Drape: ${err.message}`, true);
+  }
+});
+
+// 7. Caixa de Areia: Virar Aresta (Flip Edge)
+document.getElementById("btn-native-flip-edge")?.addEventListener("click", async () => {
+  setStatus("Invertendo diagonal da malha topográfica (Flip Edge)...");
+  try {
+    const triA = [[0.0, 0.0, 0.0], [2.0, 0.0, 0.2], [2.0, 2.0, 0.5]];
+    const triB = [[0.0, 0.0, 0.0], [2.0, 2.0, 0.5], [0.0, 2.0, 0.3]];
+    const res = await sandboxFlipEdge(triA, triB);
+    if (res?.flip_result) {
+      const f = res.flip_result;
+      showNativeToolsResult(
+        "🔀 Caixa de Areia: Virar Aresta (Flip Edge)",
+        `Diagonal invertida com sucesso.<br>` +
+        `Aresta anterior: <b>(${f.old_shared_edge[0].join(", ")}) -> (${f.old_shared_edge[1].join(", ")})</b><br>` +
+        `Nova aresta topográfica: <b>(${f.new_shared_edge[0].join(", ")}) -> (${f.new_shared_edge[1].join(", ")})</b>`
+      );
+      setStatus("Aresta Flip Edge invertida com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro no Flip Edge: ${err.message}`, true);
+  }
+});
+
+// 8. Adequar Fotografia (Match Photo)
+document.getElementById("btn-native-match-photo")?.addEventListener("click", async () => {
+  setStatus("Calibrando câmera e perspectiva fotográfica (Match Photo)...");
+  try {
+    const red1 = [[200.0, 400.0], [600.0, 450.0]];
+    const red2 = [[200.0, 700.0], [600.0, 680.0]];
+    const green1 = [[700.0, 450.0], [1200.0, 390.0]];
+    const green2 = [[700.0, 680.0], [1200.0, 710.0]];
+    const res = await matchPhotoCalibrate(1920, 1080, red1, red2, green1, green2, 3.0);
+    if (res?.calibration) {
+      const c = res.calibration;
+      if (c.recommended_camera) {
+        camera.fov = c.fov_vertical_deg;
+        camera.updateProjectionMatrix();
+      }
+      showNativeToolsResult(
+        "📸 Adequar Fotografia (Match Photo)",
+        `Distância focal: <b>${c.focal_length_px}px</b> | FOV vertical: <b>${c.fov_vertical_deg}°</b><br>` +
+        `Pontos de Fuga: VP_X=<b>(${c.vanishing_points.vp_x.join(", ")})</b>, VP_Y=<b>(${c.vanishing_points.vp_y.join(", ")})</b><br>` +
+        `Inclinação do Horizonte (Roll): <b>${c.camera_angles.roll_deg}°</b> | Pitch: <b>${c.camera_angles.pitch_deg}°</b>`
+      );
+      setStatus("Câmera calibrada pelas linhas de fuga fotográficas.");
+    }
+  } catch (err) {
+    setStatus(`Erro no Match Photo: ${err.message}`, true);
+  }
+});
+
+// 9. Marca d'Água (Watermark Overlay)
+document.getElementById("btn-native-watermark")?.addEventListener("click", async () => {
+  setStatus("Configurando marca d'água no viewport...");
+  try {
+    const res = await watermarkStyleConfigure("Selo Homologação Parkelô", "/static/logo.png", "overlay", "screen_position", "bottom-right", 85.0);
+    if (res?.watermark_config) {
+      const wm = res.watermark_config;
+
+      // Injeta ou atualiza elemento DOM de marca d'água sobre o canvas
+      let wmDiv = document.getElementById("viewport-watermark-overlay");
+      if (!wmDiv) {
+        wmDiv = document.createElement("div");
+        wmDiv.id = "viewport-watermark-overlay";
+        viewportEl.appendChild(wmDiv);
+      }
+      wmDiv.textContent = `★ ${wm.name} (SketchUp Style)`;
+      wmDiv.style.position = wm.css_styles.position || "absolute";
+      wmDiv.style.bottom = wm.css_styles.bottom || "20px";
+      wmDiv.style.right = wm.css_styles.right || "20px";
+      wmDiv.style.padding = "6px 12px";
+      wmDiv.style.background = "rgba(197, 48, 48, 0.85)";
+      wmDiv.style.color = "white";
+      wmDiv.style.fontWeight = "bold";
+      wmDiv.style.fontSize = "11px";
+      wmDiv.style.borderRadius = "4px";
+      wmDiv.style.pointerEvents = "none";
+      wmDiv.style.zIndex = "15";
+
+      showNativeToolsResult(
+        "🏷️ Marca d'Água (Watermark Style)",
+        `Marca d'água posicionada na âncora: <b>${wm.anchor}</b><br>` +
+        `Camada: <b>${wm.layer}</b> | Opacidade: <b>${wm.opacity_pct}%</b>`
+      );
+      setStatus("Marca d'água fixada no viewport.");
+    }
+  } catch (err) {
+    setStatus(`Erro na Marca d'Água: ${err.message}`, true);
+  }
+});
+
+// 10. Interagir com Componentes Dinâmicos (Trimble DC Click)
+document.getElementById("btn-native-interact-dc")?.addEventListener("click", async () => {
+  setStatus("Executando fórmula interativa onClick em Componente Dinâmico...");
+  try {
+    const instId = selectedInstanceId || "porta_principal_01";
+    const dynamicAttrs = {
+      onclick: 'ANIMATE("roty", 0, 90); ALERT("Porta aberta com sucesso!")',
+      roty: 0
+    };
+    const res = await dynamicComponentInteract(instId, dynamicAttrs);
+    if (res?.interaction_result) {
+      const ir = res.interaction_result;
+      if (selectedMesh) {
+        // Aplica rotação animada na mesh selecionada
+        const rotY = ir.target_transform?.rotation_deg?.[1] || 0.0;
+        selectedMesh.rotation.y = THREE.MathUtils.degToRad(rotY);
+      }
+      const alertMsg = ir.alerts?.length ? ir.alerts.join("; ") : "Nenhum";
+      showNativeToolsResult(
+        "👆 Interagir com Comp. Dinâmicos (DC Click)",
+        `Fórmula executada: <code>${ir.formula_executed}</code><br>` +
+        `Nova rotação: <b>${JSON.stringify(ir.target_transform?.rotation_deg)}</b><br>` +
+        `Alerta do componente: <b>${alertMsg}</b>`
+      );
+      setStatus(`Interação executada: ${alertMsg}`);
+    }
+  } catch (err) {
+    setStatus(`Erro ao interagir com componente: ${err.message}`, true);
+  }
+});
+
+// 11. Solid Tools Nativas (Trimble Solid Tools)
+document.getElementById("btn-native-solid-tools")?.addEventListener("click", async () => {
+  setStatus("Executando operação booleana de sólidos oficial (Trim / Split)...");
+  try {
+    const solidA = { name: "Viga Principal", origin: [0, 0, 0], size: [2.0, 0.2, 0.4] };
+    const solidB = { name: "Pilar de Apoio", origin: [0.5, 0, -0.2], size: [0.2, 0.2, 0.8] };
+    const res = await trimbleSolidToolsExecute("trim", solidA, solidB);
+    if (res?.operation_result) {
+      const opRes = res.operation_result;
+      showNativeToolsResult(
+        "🧊 Solid Tools Nativas (Trim / Recortar)",
+        `Operação: <b>${opRes.operation.toUpperCase()}</b><br>` +
+        `Interseção detectada: <b>${opRes.has_intersection ? "SIM" : "NÃO"}</b> (Volume inter: ${opRes.intersection_volume_m3}m³)<br>` +
+        `Sólidos resultantes na cena: <b>${opRes.resulting_solids_count}</b> (peça recortada + ferramenta preservada)`
+      );
+      setStatus("Operação Solid Tools executada com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro no Solid Tools: ${err.message}`, true);
+  }
+});
