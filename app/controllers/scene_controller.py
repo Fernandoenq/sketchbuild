@@ -58,6 +58,16 @@ from app.schemas.scene import (
     AngleDimensionResponse,
     FastenerTorqueRequest,
     FastenerTorqueResponse,
+    HipRoofRequest,
+    HipRoofResponse,
+    HicRequest,
+    HicResponse,
+    ZebraLabelRequest,
+    ZebraLabelResponse,
+    ExplodedTrailsRequest,
+    ExplodedTrailsResponse,
+    CarbonFootprintRequest,
+    CarbonFootprintResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1004,5 +1014,71 @@ class SceneController:
                 body.friction_factor_k
             )
             return FastenerTorqueResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_hip_roof(self, body: HipRoofRequest) -> HipRoofResponse:
+        """Gera geometria 3D de telhado de 4 aguas ou piramidal (Frente 56)."""
+        try:
+            res = await self._service.generate_hip_roof(
+                body.base_width_m,
+                body.base_length_m,
+                body.base_height_m,
+                body.pitch_deg,
+                body.overhang_m
+            )
+            return HipRoofResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def simulate_hic_impact(self, body: HicRequest) -> HicResponse:
+        """Simula impacto HIC e piso amortecedor NBR 16071-3 (Frente 57)."""
+        try:
+            res = await self._service.simulate_hic_impact(
+                body.fall_height_m,
+                body.surface_type,
+                body.installed_thickness_mm
+            )
+            return HicResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def export_zebra_label(self, body: ZebraLabelRequest) -> ZebraLabelResponse:
+        """Exporta etiqueta termica industrial Zebra ZPL II e SVG (Frente 58)."""
+        try:
+            res = await self._service.export_zebra_label(
+                body.part_name,
+                body.part_sku,
+                body.dimensions_mm,
+                body.lot_batch,
+                body.output_zpl_filename,
+                body.output_svg_filename
+            )
+            return ZebraLabelResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_exploded_trails(self, body: ExplodedTrailsRequest) -> ExplodedTrailsResponse:
+        """Calcula linhas tracejadas de trajetoria para vista explodida (Frente 59)."""
+        try:
+            res = await self._service.calculate_exploded_trails(
+                body.parts,
+                body.dash_size_m,
+                body.gap_size_m
+            )
+            return ExplodedTrailsResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_carbon_footprint(self, body: CarbonFootprintRequest) -> CarbonFootprintResponse:
+        """Calcula balanco de carbono e sustentabilidade florestal (Frente 60)."""
+        try:
+            res = await self._service.calculate_carbon_footprint(
+                body.timber_volume_m3,
+                body.steel_weight_kg,
+                body.plastic_weight_kg,
+                body.transport_distance_km
+            )
+            return CarbonFootprintResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

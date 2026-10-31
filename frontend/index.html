@@ -515,6 +515,7 @@
         <div class="menu-dropdown-item" data-action="export-art-pdf"><span>Exportar &gt; Minuta de ART / RRT (.pdf)...</span></div>
         <div class="menu-dropdown-item" data-action="export-technical-sketch"><span>Exportar &gt; Esboço Arquitetônico NPR (.svg)...</span></div>
         <div class="menu-dropdown-item" data-action="export-inspection-checklist"><span>Exportar &gt; Ficha de Inspeção de Campo (.html)...</span></div>
+        <div class="menu-dropdown-item" data-action="export-zebra-label"><span>Exportar &gt; Etiqueta Térmica Zebra (.zpl)...</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Enviar para o LayOut...</span></div>
         <div class="menu-dropdown-item disabled"><span>Imprimir...</span><span class="menu-dropdown-shortcut">Ctrl+P</span></div>
@@ -1235,6 +1236,16 @@
         <div id="swing-result" style="display: none; padding: 6px; background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
           <div id="swing-status-badge" style="font-weight: bold; color: #B45309;"></div>
           <div id="swing-details" style="color: var(--text);"></div>
+        </div>
+        <button id="btn-calc-hic" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #DC2626; color: white;">Simular Impacto HIC &amp; Piso (NBR 16071-3)</button>
+        <div id="hic-result" style="display: none; padding: 6px; background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="hic-status-badge" style="font-weight: bold; color: #DC2626;"></div>
+          <div id="hic-details" style="color: var(--text);"></div>
+        </div>
+        <button id="btn-calc-carbon" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #059669; color: white;">Balanço de Carbono &amp; Selo Verde</button>
+        <div id="carbon-result" style="display: none; padding: 6px; background: #ECFDF5; border: 1px solid #6EE7B7; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="carbon-status-badge" style="font-weight: bold; color: #059669;"></div>
+          <div id="carbon-details" style="color: var(--text);"></div>
         </div>
         <div id="maintenance-result" style="display: none; padding: 6px; background: #E6F4F8; border: 1px solid #99D5E8; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
           <div id="maintenance-status-badge" style="font-weight: bold; color: #007791;"></div>
