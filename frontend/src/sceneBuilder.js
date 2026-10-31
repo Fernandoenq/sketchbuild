@@ -239,7 +239,7 @@ export function buildSceneGroup(sceneDTO) {
     group.add(mesh);
   }
 
-  group.userData.sharedMaterial = material;
+  group.userData.sharedMaterial = defaultMaterial;
   return group;
 }
 
