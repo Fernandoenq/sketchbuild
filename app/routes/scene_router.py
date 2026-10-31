@@ -59,6 +59,16 @@ from app.schemas.scene import (
     ExplodedTrailsResponse,
     CarbonFootprintRequest,
     CarbonFootprintResponse,
+    AttributeDictionaryRequest,
+    AttributeDictionaryResponse,
+    TagFolderRequest,
+    TagFolderResponse,
+    EdgeStylesRequest,
+    EdgeStylesResponse,
+    TwoPointPerspectiveRequest,
+    TwoPointPerspectiveResponse,
+    TextureProjectionRequest,
+    TextureProjectionResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1168,3 +1178,63 @@ async def calculate_carbon_footprint(
     controller: SceneController = Depends(get_controller),
 ) -> CarbonFootprintResponse:
     return await controller.calculate_carbon_footprint(body)
+
+
+@router.post(
+    "/attributes/dictionary",
+    response_model=AttributeDictionaryResponse,
+    summary="Manipula dicionarios de atributos nativos e componentes dinamicos (Frente 61)",
+)
+async def manage_attribute_dictionary(
+    body: AttributeDictionaryRequest,
+    controller: SceneController = Depends(get_controller),
+) -> AttributeDictionaryResponse:
+    return await controller.manage_attribute_dictionary(body)
+
+
+@router.post(
+    "/tags/folder",
+    response_model=TagFolderResponse,
+    summary="Cria e gerencia pastas de tags hierarquicas (Frente 62)",
+)
+async def manage_tag_folder(
+    body: TagFolderRequest,
+    controller: SceneController = Depends(get_controller),
+) -> TagFolderResponse:
+    return await controller.manage_tag_folder(body)
+
+
+@router.post(
+    "/styles/edge-rendering",
+    response_model=EdgeStylesResponse,
+    summary="Configura opcoes nativas de estilos de arestas do SketchUp (Frente 63)",
+)
+async def configure_edge_styles(
+    body: EdgeStylesRequest,
+    controller: SceneController = Depends(get_controller),
+) -> EdgeStylesResponse:
+    return await controller.configure_edge_styles(body)
+
+
+@router.post(
+    "/camera/two-point-perspective",
+    response_model=TwoPointPerspectiveResponse,
+    summary="Calcula matriz de camera com Perspectiva de Dois Pontos (Frente 64)",
+)
+async def calculate_two_point_perspective(
+    body: TwoPointPerspectiveRequest,
+    controller: SceneController = Depends(get_controller),
+) -> TwoPointPerspectiveResponse:
+    return await controller.calculate_two_point_perspective(body)
+
+
+@router.post(
+    "/materials/project-uv",
+    response_model=TextureProjectionResponse,
+    summary="Calcula coordenadas UV analiticas para projecao planar ou cilindrica (Frente 65)",
+)
+async def project_texture_uv(
+    body: TextureProjectionRequest,
+    controller: SceneController = Depends(get_controller),
+) -> TextureProjectionResponse:
+    return await controller.project_texture_uv(body)

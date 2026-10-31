@@ -806,3 +806,79 @@ class SceneService:
             plastic_weight_kg,
             transport_distance_km
         )
+
+    async def manage_attribute_dictionary(
+        self,
+        dict_name: str = "dynamic_attributes",
+        key: str = "_lenx_formula",
+        value: Any = "=100 * 2",
+        evaluate_formula: bool = False,
+        context_vars: dict = None
+    ) -> dict:
+        """Manipula dicionários de atributos nativos e componentes dinâmicos (Frente 61)."""
+        return await run_in_threadpool(
+            self._repository.manage_attribute_dictionary,
+            dict_name,
+            key,
+            value,
+            evaluate_formula,
+            context_vars
+        )
+
+    async def manage_tag_folder(
+        self,
+        folder_id: str,
+        name: str,
+        parent_id: str | None = None,
+        visible: bool = True,
+        tags_to_add: list = None
+    ) -> dict:
+        """Cria e gerencia pastas de tags hierárquicas (Frente 62)."""
+        return await run_in_threadpool(
+            self._repository.manage_tag_folder,
+            folder_id,
+            name,
+            parent_id,
+            visible,
+            tags_to_add
+        )
+
+    async def configure_edge_styles(self, settings: dict) -> dict:
+        """Configura opções nativas de estilos de arestas do SketchUp (Frente 63)."""
+        return await run_in_threadpool(self._repository.configure_edge_styles, settings)
+
+    async def calculate_two_point_perspective(
+        self,
+        eye: list,
+        target: list,
+        fov_deg: float = 35.0,
+        aspect_ratio: float = 16.0 / 9.0
+    ) -> dict:
+        """Calcula matriz de câmera com Perspectiva de Dois Pontos (Frente 64)."""
+        return await run_in_threadpool(
+            self._repository.calculate_two_point_perspective,
+            eye,
+            target,
+            fov_deg,
+            aspect_ratio
+        )
+
+    async def project_texture_uv(
+        self,
+        vertices: list,
+        projection_type: str = "planar",
+        plane_normal: list = None,
+        scale_u_m: float = 1.0,
+        scale_v_m: float = 1.0,
+        rotation_deg: float = 0.0
+    ) -> dict:
+        """Calcula coordenadas UV analíticas para projeção planar ou cilíndrica (Frente 65)."""
+        return await run_in_threadpool(
+            self._repository.project_texture_uv,
+            vertices,
+            projection_type,
+            plane_normal,
+            scale_u_m,
+            scale_v_m,
+            rotation_deg
+        )

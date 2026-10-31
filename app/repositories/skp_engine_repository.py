@@ -68,6 +68,9 @@ _SESSION: _Session | None = None
 class SkpEngineRepository:
     def __init__(self, autosave_repository: AutosaveRepository | None = None):
         self._autosave_repo = autosave_repository or AutosaveRepository()
+        self._active_dictionaries: dict = {}
+        self._tag_folder_engine = None
+        self._edge_styles_engine = None
 
     def open(self, file_path: str) -> dict:
         # abertura EXPLICITA a partir do arquivo real -- o usuario esta
@@ -1868,3 +1871,126 @@ class SkpEngineRepository:
             plastic_weight_kg=plastic_weight_kg,
             transport_distance_km=transport_distance_km
         )
+
+    def manage_attribute_dictionary(
+        self,
+        dict_name: str = "dynamic_attributes",
+        key: str = "_lenx_formula",
+        value: Any = "=100 * 2",
+        evaluate_formula: bool = False,
+        context_vars: dict = None
+    ) -> dict:
+        """Manipula dicionários de atributos nativos e componentes dinâmicos (Frente 61)."""
+        from core.attribute_dictionary_engine import AttributeDictionaryEngine
+        AttributeDictionaryEngine.set_attribute(self._active_dictionaries, dict_name, key, value)
+
+        evaluated = None
+        if evaluate_formula and isinstance(value, str) and value.startswith("="):
+            evaluated = AttributeDictionaryEngine.evaluate_dynamic_formula(value, context_vars or {})
+
+        return {
+            "entity_type": "AttributeDictionaryResult",
+            "dict_name": dict_name,
+            "key": key,
+            "value": value,
+            "evaluated_result": evaluated,
+            "status": "ATRIBUTO REGISTRADO COM SUCESSO"
+        }
+
+    def manage_tag_folder(
+        self,
+        folder_id: str,
+        name: str,
+        parent_id: str | None = None,
+        visible: bool = True,
+        tags_to_add: list = None
+    ) -> dict:
+        """Cria e gerencia pastas de tags hierárquicas (Frente 62)."""
+        from core.tag_folder_engine import TagFolderEngine
+        if self._tag_folder_engine is None:
+            self._tag_folder_engine = TagFolderEngine()
+
+        self._tag_folder_engine.create_folder(folder_id, name, parent_id, visible)
+        if tags_to_add:
+            for t in tags_to_add:
+                self._tag_folder_engine.move_tag_to_folder(t, folder_id)
+
+        info = self._tag_folder_engine.get_folder_info(folder_id)
+        tree = self._tag_folder_engine.get_full_tree()
+        return {
+            "entity_type": "TagFolderHierarchy",
+            "folder_id": info["id"],
+            "name": info["name"],
+            "parent_id": info["parent_id"],
+            "visible": info["visible"],
+            "tags_count": info["tags_count"],
+            "tags": info["tags"],
+            "tree_summary": tree
+        }
+
+    def configure_edge_styles(self, settings: dict) -> dict:
+        """Configura opções nativas de estilos de arestas do SketchUp (Frente 63)."""
+        from core.edge_styles_engine import EdgeStylesEngine
+        if self._edge_styles_engine is None:
+            self._edge_styles_engine = EdgeStylesEngine()
+
+        updated = self._edge_styles_engine.update_settings(settings)
+        return {
+            "entity_type": "EdgeStylesConfiguration",
+            "settings": updated,
+            "back_edges_shortcut_active": updated.get("back_edges_enabled", False),
+            "status": "ESTILOS DE ARESTAS ATUALIZADOS"
+        }
+
+    def calculate_two_point_perspective(
+        self,
+        eye: list,
+        target: list,
+        fov_deg: float = 35.0,
+        aspect_ratio: float = 16.0 / 9.0
+    ) -> dict:
+        """Calcula matriz de câmera com Perspectiva de Dois Pontos (Frente 64)."""
+        from core.two_point_perspective_engine import TwoPointPerspectiveEngine
+        return TwoPointPerspectiveEngine.calculate_two_point_camera(
+            eye=tuple(eye),
+            target=tuple(target),
+            fov_deg=fov_deg,
+            aspect_ratio=aspect_ratio
+        )
+
+    def project_texture_uv(
+        self,
+        vertices: list,
+        projection_type: str = "planar",
+        plane_normal: list = None,
+        scale_u_m: float = 1.0,
+        scale_v_m: float = 1.0,
+        rotation_deg: float = 0.0
+    ) -> dict:
+        """Calcula coordenadas UV analíticas para projeção planar ou cilíndrica (Frente 65)."""
+        from core.texture_projection_engine import TextureProjectionEngine
+        vert_tuples = [tuple(v) for v in vertices]
+        if projection_type == "cylindrical":
+            uvs = TextureProjectionEngine.project_cylindrical_uv(
+                vertices=vert_tuples,
+                cylinder_center=(0.0, 0.0),
+                cylinder_height_m=scale_v_m
+            )
+        else:
+            normal_tuple = tuple(plane_normal) if plane_normal else (0.0, 0.0, 1.0)
+            uvs = TextureProjectionEngine.project_planar_uv(
+                vertices=vert_tuples,
+                plane_normal=normal_tuple,
+                scale_u_m=scale_u_m,
+                scale_v_m=scale_v_m,
+                rotation_deg=rotation_deg
+            )
+
+        uv_list = [[u, v] for u, v in uvs]
+        return {
+            "entity_type": "TextureProjectionResult",
+            "projection_type": projection_type,
+            "vertices_count": len(vertices),
+            "uv_coordinates": uv_list,
+            "status": f"MAPEAMENTO UV {projection_type.upper()} CALCULADO COM SUCESSO"
+        }

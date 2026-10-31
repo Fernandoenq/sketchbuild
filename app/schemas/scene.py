@@ -1777,3 +1777,125 @@ class CarbonFootprintResponse(BaseModel):
     equivalent_trees_planted_years: float
     sustainability_badge: str
     status: str
+
+
+class AttributeDictionaryRequest(BaseModel):
+    """Entrada para manipulação de Dicionários de Atributos e Componentes Dinâmicos."""
+
+    dict_name: str = Field(default="dynamic_attributes", description="Nome do dicionário (ex: dynamic_attributes)")
+    key: str = Field(default="_lenx_formula", description="Chave do atributo")
+    value: Any = Field(default="=100 * 2", description="Valor ou fórmula paramétrica")
+    evaluate_formula: bool = False
+    context_vars: dict[str, float] = Field(default_factory=dict, description="Variáveis para avaliação de fórmula")
+
+
+class AttributeDictionaryResponse(BaseModel):
+    """Resposta com dados do atributo e valor avaliado."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "AttributeDictionaryResult"
+    dict_name: str
+    key: str
+    value: Any
+    evaluated_result: float | None = None
+    status: str
+
+
+class TagFolderRequest(BaseModel):
+    """Entrada para criação e organização de Pastas de Tags."""
+
+    folder_id: str = Field(description="Identificador único da pasta")
+    name: str = Field(description="Nome de exibição da pasta de tags")
+    parent_id: str | None = Field(default=None, description="ID da pasta pai para aninhamento")
+    visible: bool = True
+    tags_to_add: list[str] = Field(default_factory=list, description="Lista de tags a mover para esta pasta")
+
+
+class TagFolderResponse(BaseModel):
+    """Resposta com a árvore hierárquica de pastas e visibilidade em cascata."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "TagFolderHierarchy"
+    folder_id: str
+    name: str
+    parent_id: str | None
+    visible: bool
+    tags_count: int
+    tags: list[str]
+    tree_summary: dict[str, Any]
+
+
+class EdgeStylesRequest(BaseModel):
+    """Entrada para configuração das opções de renderização de arestas nativas."""
+
+    profiles_enabled: bool = True
+    profile_width: int = Field(default=2, ge=1, le=8, description="Espessura das arestas de silhueta (1-8px)")
+    depth_cue_enabled: bool = False
+    extensions_enabled: bool = False
+    extension_length_px: int = Field(default=4, ge=1, le=20)
+    endpoints_enabled: bool = False
+    endpoint_size_px: int = Field(default=5, ge=1, le=15)
+    jitter_enabled: bool = False
+    back_edges_enabled: bool = False  # Atalho K
+
+
+class EdgeStylesResponse(BaseModel):
+    """Resposta com as configurações ativas de estilo de arestas."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "EdgeStylesConfiguration"
+    settings: dict[str, Any]
+    back_edges_shortcut_active: bool
+    status: str
+
+
+class TwoPointPerspectiveRequest(BaseModel):
+    """Entrada para enquadramento em Perspectiva de Dois Pontos (sem convergência vertical)."""
+
+    eye: list[float] = Field(description="Posição da câmera [X, Y, Z]")
+    target: list[float] = Field(description="Ponto focal observado [X, Y, Z]")
+    fov_deg: float = Field(default=35.0, ge=5.0, le=90.0, description="Campo de visão em graus")
+    aspect_ratio: float = Field(default=16.0 / 9.0, ge=0.5, le=3.0)
+
+
+class TwoPointPerspectiveResponse(BaseModel):
+    """Resposta com matriz de projeção oblíqua e alvo horizontalizado."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "TwoPointPerspectiveCamera"
+    camera_type: str
+    original_eye: list[float]
+    original_target: list[float]
+    corrected_target: list[float]
+    original_pitch_deg: float
+    lens_shift_y: float
+    fov_deg: float
+    vertical_lines_parallel: bool
+    projection_matrix_16: list[float]
+
+
+class TextureProjectionRequest(BaseModel):
+    """Entrada para projeção analítica de coordenadas UV."""
+
+    vertices: list[list[float]] = Field(description="Lista de vértices 3D [[x,y,z], ...]")
+    projection_type: str = Field(default="planar", description="'planar' ou 'cylindrical'")
+    plane_normal: list[float] = Field(default=[0.0, 0.0, 1.0], description="Normal do plano projetado")
+    scale_u_m: float = Field(default=1.0, ge=0.01, le=50.0, description="Escala horizontal da textura em metros")
+    scale_v_m: float = Field(default=1.0, ge=0.01, le=50.0, description="Escala vertical da textura em metros")
+    rotation_deg: float = Field(default=0.0, ge=-360.0, le=360.0, description="Rotação angular do mapeamento UV")
+
+
+class TextureProjectionResponse(BaseModel):
+    """Resposta com o buffer de coordenadas UV calculadas."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "TextureProjectionResult"
+    projection_type: str
+    vertices_count: int
+    uv_coordinates: list[list[float]]
+    status: str

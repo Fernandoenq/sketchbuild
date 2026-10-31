@@ -68,6 +68,16 @@ from app.schemas.scene import (
     ExplodedTrailsResponse,
     CarbonFootprintRequest,
     CarbonFootprintResponse,
+    AttributeDictionaryRequest,
+    AttributeDictionaryResponse,
+    TagFolderRequest,
+    TagFolderResponse,
+    EdgeStylesRequest,
+    EdgeStylesResponse,
+    TwoPointPerspectiveRequest,
+    TwoPointPerspectiveResponse,
+    TextureProjectionRequest,
+    TextureProjectionResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1080,5 +1090,69 @@ class SceneController:
                 body.transport_distance_km
             )
             return CarbonFootprintResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def manage_attribute_dictionary(self, body: AttributeDictionaryRequest) -> AttributeDictionaryResponse:
+        """Manipula dicionarios de atributos nativos e componentes dinamicos (Frente 61)."""
+        try:
+            res = await self._service.manage_attribute_dictionary(
+                body.dict_name,
+                body.key,
+                body.value,
+                body.evaluate_formula,
+                body.context_vars
+            )
+            return AttributeDictionaryResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def manage_tag_folder(self, body: TagFolderRequest) -> TagFolderResponse:
+        """Cria e gerencia pastas de tags hierarquicas (Frente 62)."""
+        try:
+            res = await self._service.manage_tag_folder(
+                body.folder_id,
+                body.name,
+                body.parent_id,
+                body.visible,
+                body.tags_to_add
+            )
+            return TagFolderResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def configure_edge_styles(self, body: EdgeStylesRequest) -> EdgeStylesResponse:
+        """Configura opcoes nativas de estilos de arestas do SketchUp (Frente 63)."""
+        try:
+            res = await self._service.configure_edge_styles(body.model_dump())
+            return EdgeStylesResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_two_point_perspective(self, body: TwoPointPerspectiveRequest) -> TwoPointPerspectiveResponse:
+        """Calcula matriz de camera com Perspectiva de Dois Pontos (Frente 64)."""
+        try:
+            res = await self._service.calculate_two_point_perspective(
+                body.eye,
+                body.target,
+                body.fov_deg,
+                body.aspect_ratio
+            )
+            return TwoPointPerspectiveResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def project_texture_uv(self, body: TextureProjectionRequest) -> TextureProjectionResponse:
+        """Calcula coordenadas UV analiticas para projecao planar ou cilindrica (Frente 65)."""
+        try:
+            res = await self._service.project_texture_uv(
+                body.vertices,
+                body.projection_type,
+                body.plane_normal,
+                body.scale_u_m,
+                body.scale_v_m,
+                body.rotation_deg
+            )
+            return TextureProjectionResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
