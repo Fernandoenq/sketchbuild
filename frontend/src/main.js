@@ -208,6 +208,13 @@ import {
   configureGraphicExport2D,
   weldCurveEdges,
   flipAlongAxes,
+  createLeaderTextCallout,
+  generateFromContoursSandbox,
+  checkSolidInspector,
+  createConstructionGuide,
+  createAlignedDimension,
+  createRadialArcDimension,
+  applySoftSmoothAngle,
   downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
@@ -6999,6 +7006,169 @@ document.getElementById("btn-native-weld-edges")?.addEventListener("click", asyn
     }
   } catch (err) {
     setStatus(`Erro ao soldar arestas: ${err.message}`, true);
+  }
+});
+
+// 50. Rótulo de Área e Texto Líder (Leader Text & Area Callout)
+document.getElementById("btn-native-leader-area")?.addEventListener("click", async () => {
+  setStatus("Calculando área de face 3D e gerando rótulo líder...");
+  try {
+    const sampleFace = [
+      [0.0, 0.0, 0.0],
+      [4.0, 0.0, 0.0],
+      [4.0, 3.0, 0.0],
+      [0.0, 3.0, 0.0]
+    ];
+    const res = await createLeaderTextCallout(null, null, sampleFace);
+    if (res?.callout) {
+      const c = res.callout;
+      showNativeToolsResult(
+        "📐 Rótulo de Área e Texto Líder (SUTextRef)",
+        `Texto Formatado: <b>${c.text}</b><br>` +
+        `Área da Face Calculada: <b>${c.face_area_m2} m²</b> | Vértices: <b>${c.vertex_count}</b><br>` +
+        `Ponto de Ancoragem (Baricentro): <code>[${c.anchor_point.join(", ")}]</code><br>` +
+        `Posição 3D do Texto (Billboard): <code>[${c.text_position.join(", ")}]</code> | Extensão: <b>${c.leader_length_m}m</b>`
+      );
+      setStatus("Rótulo líder de área gerado com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao gerar rótulo líder: ${err.message}`, true);
+  }
+});
+
+// 51. Relevo a partir de Contornos TIN (From Contours Sandbox)
+document.getElementById("btn-native-from-contours")?.addEventListener("click", async () => {
+  setStatus("Executando triangulação TIN de curvas de nível (From Contours)...");
+  try {
+    const contours = [
+      [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [4.0, 0.0, 0.0]],
+      [[0.0, 2.0, 1.2], [2.0, 2.0, 1.5], [4.0, 2.0, 1.2]],
+      [[0.0, 4.0, 2.5], [2.0, 4.0, 3.0], [4.0, 4.0, 2.5]]
+    ];
+    const res = await generateFromContoursSandbox(contours);
+    if (res?.contours) {
+      const ct = res.contours;
+      showNativeToolsResult(
+        "🏔️ Relevo a partir de Contornos (From Contours)",
+        `Curvas Processadas: <b>${ct.total_contours}</b> | Triângulos Gerados: <b>${ct.total_triangles}</b><br>` +
+        `Elevação: <b>${ct.min_elevation_m}m</b> a <b>${ct.max_elevation_m}m</b> (Desnível: <b>${ct.elevation_delta_m}m</b>)<br>` +
+        `Área Superficial 3D: <b>${ct.terrain_surface_area_m2} m²</b> | Vértices TIN: <b>${ct.total_vertices}</b>`
+      );
+      setStatus("Superfície TIN gerada a partir de curvas de nível com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao gerar relevo de contornos: ${err.message}`, true);
+  }
+});
+
+// 52. Inspetor de Sólidos Manifold (Solid Inspector)
+document.getElementById("btn-native-solid-inspector")?.addEventListener("click", async () => {
+  setStatus("Auditando integridade topológica 2-manifold da malha...");
+  try {
+    const verts = [
+      [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
+      [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]
+    ];
+    const tris = [
+      [0, 1, 2], [0, 2, 3], [4, 6, 5], [4, 7, 6],
+      [0, 4, 5], [0, 5, 1], [1, 5, 6], [1, 6, 2],
+      [2, 6, 7], [2, 7, 3], [3, 7, 4], [3, 4, 0]
+    ];
+    const res = await checkSolidInspector(verts, tris);
+    if (res?.inspection) {
+      const ins = res.inspection;
+      showNativeToolsResult(
+        "🔍 Inspetor de Sólidos (Solid Inspector)",
+        `Status Oficial: <b>${ins.status}</b><br>` +
+        `É Sólido Fechado (Manifold): <b>${ins.is_solid ? "SIM (Solid Group)" : "NÃO"}</b><br>` +
+        `Volume Calculado (Divergência): <b>${ins.volume_m3} m³</b><br>` +
+        `Arestas Manifold: <b>${ins.manifold_edges_count}</b> | Bordas Abertas: <b>${ins.open_boundary_edges_count}</b> | Internas: <b>${ins.internal_edges_count}</b>`
+      );
+      setStatus("Auditoria de sólidos concluída.");
+    }
+  } catch (err) {
+    setStatus(`Erro na auditoria de sólidos: ${err.message}`, true);
+  }
+});
+
+// 53. Linhas Guia Paralelas & Angulares (Tape & Protractor Guide)
+document.getElementById("btn-native-const-guide")?.addEventListener("click", async () => {
+  setStatus("Gerando linhas guias infinitas de construção...");
+  try {
+    const res = await createConstructionGuide("parallel", [0, 0, 0], [5, 0, 0], 1.25);
+    if (res?.guide) {
+      const g = res.guide;
+      showNativeToolsResult(
+        "📏 Linhas Guia de Construção (SUGuideLineRef)",
+        `Origem da Guia: <code>[${g.origin.join(", ")}]</code> | Deslocamento: <b>${g.offset_distance_m}m</b><br>` +
+        `Vetor de Direção: <code>[${g.direction.join(", ")}]</code><br>` +
+        `Extensão Infinita: <code>[${g.render_start.join(", ")}]</code> até <code>[${g.render_end.join(", ")}]</code>`
+      );
+      setStatus("Linha guia de construção gerada.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao criar linha guia: ${err.message}`, true);
+  }
+});
+
+// 54. Cotas Lineares Alinhadas & Rotacionadas (Aligned Dimension)
+document.getElementById("btn-native-aligned-dim")?.addEventListener("click", async () => {
+  setStatus("Calculando cota linear com linhas testemunhas...");
+  try {
+    const res = await createAlignedDimension([0, 0, 0], [4, 3, 0], "aligned", "X", 0.3);
+    if (res?.dimension) {
+      const d = res.dimension;
+      showNativeToolsResult(
+        "📐 Cota Linear Alinhada (SUDimensionLinearRef)",
+        `Medição Formatada: <b>${d.formatted_text}</b> (Distância: <b>${d.distance_m}m</b>)<br>` +
+        `Pontos Medidos: <code>[${d.start_point.join(", ")}]</code> &rarr; <code>[${d.end_point.join(", ")}]</code><br>` +
+        `Posição da Cota: <code>[${d.text_position.join(", ")}]</code> | Tique: <b>${d.arrow_type}</b>`
+      );
+      setStatus("Cota linear calculada com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao criar cota linear: ${err.message}`, true);
+  }
+});
+
+// 55. Cotas Radiais, Diâmetro e Arco (Radial & Arc Dimension)
+document.getElementById("btn-native-radial-dim")?.addEventListener("click", async () => {
+  setStatus("Calculando cota radial e comprimento de arco...");
+  try {
+    const res = await createRadialArcDimension([0, 0, 0], 2.5, "radius", 45.0);
+    if (res?.dimension) {
+      const d = res.dimension;
+      showNativeToolsResult(
+        "⭕ Cota Radial e Diamétrica (SUDimensionRadialRef)",
+        `Tipo de Cota: <b>${d.dimension_type}</b> | Medição: <b>${d.formatted_text}</b><br>` +
+        `Ponto de Borda: <code>[${d.rim_point.join(", ")}]</code> | Posição Líder: <code>[${d.text_position.join(", ")}]</code>`
+      );
+      setStatus("Cota radial calculada com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao criar cota radial: ${err.message}`, true);
+  }
+});
+
+// 56. Suavização Angular com Normais Phong (Soften / Smooth Edges)
+document.getElementById("btn-native-soft-angle")?.addEventListener("click", async () => {
+  setStatus("Suavizando arestas diedrais e calculando normais contínuas Phong...");
+  try {
+    const verts = [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]];
+    const tris = [[0, 1, 2], [0, 2, 3]];
+    const res = await applySoftSmoothAngle(verts, tris, 35.0, true);
+    if (res?.smooth_settings) {
+      const sm = res.smooth_settings;
+      showNativeToolsResult(
+        "🪄 Suavizar Arestas (Soften / Smooth Edges)",
+        `Ângulo Limite Diédrico: <b>${sm.max_angle_deg}°</b> | Suavizar Coplanares: <b>${sm.soften_coplanar ? "SIM" : "NÃO"}</b><br>` +
+        `Arestas Suaves: <b>${sm.soft_edges_count}</b> (${sm.soft_edges_percentage}%) | Duras: <b>${sm.hard_edges_count}</b><br>` +
+        `Normais de Vértice Phong Ponderadas: <b>${sm.vertex_normals_count} calculadas</b>`
+      );
+      setStatus("Suavização angular e normais de Phong aplicadas com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro na suavização angular: ${err.message}`, true);
   }
 });
 

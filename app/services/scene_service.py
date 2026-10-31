@@ -2222,6 +2222,31 @@ class SceneService:
     async def flip_along_axes(self, **kwargs) -> dict:
         return await run_in_threadpool(self._repository.flip_along_axes, **kwargs)
 
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 8): 7 NOVAS FERRAMENTAS OFICIAIS DO SKETCHUP DESKTOP
+    # --------------------------------------------------------------------------
+    async def leader_text_callout_create(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.leader_text_callout_create, **kwargs)
+
+    async def from_contours_sandbox_generate(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.from_contours_sandbox_generate, **kwargs)
+
+    async def solid_inspector_check(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.solid_inspector_check, **kwargs)
+
+    async def construction_guide_create(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.construction_guide_create, **kwargs)
+
+    async def aligned_dimension_create(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.aligned_dimension_create, **kwargs)
+
+    async def radial_arc_dimension_create(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.radial_arc_dimension_create, **kwargs)
+
+    async def soft_smooth_angle_apply(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.soft_smooth_angle_apply, **kwargs)
+
+
 
 
 

@@ -2665,3 +2665,70 @@ Consolidação da sétima rodada de implementação das ferramentas nativas ofic
     - Foco inteligente com elevação de `z-index`.
     - Botão clássico de fechar (`&times;`).
   - Mapeamento unificado de `data-action` e atalhos globais (como `H` para Ocultar, `Space` para Selecionar, `B` para Pintura, etc.).
+
+---
+
+## 184. Opção A (Parte 8): 7 Novas Ferramentas Nativas Oficiais do SketchUp Desktop (Zero DLL / Pure Python)
+
+### 184.1 Rótulo de Área e Texto com Linha Líder (LeaderTextCalloutEngine)
+- **Ferramenta Nativa:** Ferramenta Texto (`SUTextRef` com Leader Line e cálculo de área ao clicar em faces).
+- **Engenharia Reversa:**
+  - Cálculo analítico de área planar 3D via produto vetorial e teorema de Stokes / Shoelace 3D.
+  - Geração de linha de chamada com cotovelo de dois segmentos e ancoragem no baricentro da face.
+  - Formatação métrica oficial (*ex.: "Área: 12.00 m²"*).
+- **Módulo Core:** `core/leader_text_callout_engine.py` (`LeaderTextCalloutEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/leader-text`.
+
+### 184.2 Relevo Topográfico a partir de Contornos (FromContoursSandboxEngine)
+- **Ferramenta Nativa:** Caixa de Areia -> A partir de contornos (Sandbox -> From Contours).
+- **Engenharia Reversa:**
+  - Reconstrução de malha TIN a partir de polilinhas 3D de curvas de nível com altitudes distintas.
+  - Triangulação ótima minimizando torção e comprimento de diagonais (Constrained Delaunay).
+  - Cálculo de desnível ($\Delta Z$), cotas min/max e área superficial 3D real do terreno.
+- **Módulo Core:** `core/from_contours_sandbox_engine.py` (`FromContoursSandboxEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/from-contours`.
+
+### 184.3 Inspetor de Sólidos e Validação 2-Manifold (SolidInspectorEngine)
+- **Ferramenta Nativa:** Inspetor de Sólidos / Solid Group & Component (Janela Entity Info e Solid Tools).
+- **Engenharia Reversa:**
+  - Verificação estrita de topologia 2-manifold (cada aresta pertencendo a exatamente duas faces).
+  - Identificação de bordas abertas / furos e arestas internas partilhadas por 3+ faces.
+  - Cálculo de volume fechado via Teorema da Divergência em $m^3$.
+- **Módulo Core:** `core/solid_inspector_engine.py` (`SolidInspectorEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/solid-inspector`.
+
+### 184.4 Linhas Guia e Auxiliares de Construção (ConstructionGuideEngine)
+- **Ferramenta Nativa:** Fita Métrica (Tape Measure) e Transferidor (Protractor Guides - `SUGuideLineRef`).
+- **Engenharia Reversa:**
+  - Geração de linhas infinitas pontilhadas paralelas com offset métrico fixado.
+  - Geração de linhas guias angulares por rotação de Rodrigues a partir de vértice pivô.
+  - Cálculo analítico de interseção entre guias para snap de inferência preciso.
+- **Módulo Core:** `core/construction_guide_engine.py` (`ConstructionGuideEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/construction-guide`.
+
+### 184.5 Cotas Lineares Alinhadas e Rotacionadas (AlignedDimensionEngine)
+- **Ferramenta Nativa:** Ferramenta Dimensão Linear (`SUDimensionLinearRef`).
+- **Engenharia Reversa:**
+  - Cotagem alinhada ao segmento 3D com linhas testemunhas (*witness lines*) e afastamento perpendicular.
+  - Cotagem rotacionada ortogonal com projeção estrita em X, Y ou Z.
+  - Tiques arquitetônicos a 45° (*Slash*) e formatação de texto em metros ou polegadas.
+- **Módulo Core:** `core/aligned_dimension_engine.py` (`AlignedDimensionEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/aligned-dimension`.
+
+### 184.6 Cotas Radiais, Diamétricas e de Arcos (RadialArcDimensionEngine)
+- **Ferramenta Nativa:** Cotagem de Raio, Diâmetro e Curva (`SUDimensionRadialRef` & `SUArcCurveRef`).
+- **Engenharia Reversa:**
+  - Cotagem de Raio com prefixo `R` e líder analítico de contato na borda do arco.
+  - Cotagem de Diâmetro com prefixo `Ø` cruzando o centro do círculo.
+  - Cálculo de comprimento de arco real $s = r \cdot \theta$ com posicionamento na bissetriz.
+- **Módulo Core:** `core/radial_arc_dimension_engine.py` (`RadialArcDimensionEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/radial-arc-dimension`.
+
+### 184.7 Suavização Angular com Normais Phong Contínuas (SoftSmoothAngleEngine)
+- **Ferramenta Nativa:** Caixa de Diálogo Suavizar / Alisar Arestas (Soften / Smooth Edges Dialog).
+- **Engenharia Reversa:**
+  - Controle de ângulo limite diédrico (0° a 180°, padrão 35°).
+  - Opção *Suavizar Coplanares* com tolerância angular infinitesimal.
+  - Interpolação de normais de vértice ponderadas pela área de cada triângulo para sombreamento contínuo no WebGL.
+- **Módulo Core:** `core/soft_smooth_angle_engine.py` (`SoftSmoothAngleEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/soft-smooth-angle`.

@@ -347,6 +347,21 @@ from app.schemas.scene import (
     FlipAlongRequest,
     FlipAlongResponse,
 
+    LeaderTextCalloutRequest,
+    LeaderTextCalloutResponse,
+    FromContoursRequest,
+    FromContoursResponse,
+    SolidInspectorRequest,
+    SolidInspectorResponse,
+    ConstructionGuideRequest,
+    ConstructionGuideResponse,
+    AlignedDimensionRequest,
+    AlignedDimensionResponse,
+    RadialArcDimensionRequest,
+    RadialArcDimensionResponse,
+    SoftSmoothAngleRequest,
+    SoftSmoothAngleResponse,
+
     FollowMeRequest,
     FollowMeResponse,
     ArcRequest,
@@ -3128,6 +3143,101 @@ async def flip_along_axes(
     controller: SceneController = Depends(get_controller)
 ) -> FlipAlongResponse:
     return await controller.flip_along_axes(body)
+
+
+# ------------------------------------------------------------------------------
+# OPÇÃO A (PARTE 8): 7 NOVAS FERRAMENTAS OFICIAIS DO SKETCHUP DESKTOP
+# ------------------------------------------------------------------------------
+@router.post(
+    "/tools/leader-text",
+    response_model=LeaderTextCalloutResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Cria anotação com linha de chamada (líder) ou rótulo automático de área de face (SUTextRef)"
+)
+async def leader_text_callout_create(
+    body: LeaderTextCalloutRequest,
+    controller: SceneController = Depends(get_controller)
+) -> LeaderTextCalloutResponse:
+    return await controller.leader_text_callout_create(body)
+
+
+@router.post(
+    "/tools/from-contours",
+    response_model=FromContoursResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gera malha TIN a partir de curvas de nível altimétricas (Sandbox Tools - From Contours)"
+)
+async def from_contours_sandbox_generate(
+    body: FromContoursRequest,
+    controller: SceneController = Depends(get_controller)
+) -> FromContoursResponse:
+    return await controller.from_contours_sandbox_generate(body)
+
+
+@router.post(
+    "/tools/solid-inspector",
+    response_model=SolidInspectorResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Inspeciona integridade de sólidos 2-manifold, furos e arestas internas (Solid Inspector)"
+)
+async def solid_inspector_check(
+    body: SolidInspectorRequest,
+    controller: SceneController = Depends(get_controller)
+) -> SolidInspectorResponse:
+    return await controller.solid_inspector_check(body)
+
+
+@router.post(
+    "/tools/construction-guide",
+    response_model=ConstructionGuideResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Cria linhas guias paralelas infinitas ou angulares de transferidor (SUGuideLineRef)"
+)
+async def construction_guide_create(
+    body: ConstructionGuideRequest,
+    controller: SceneController = Depends(get_controller)
+) -> ConstructionGuideResponse:
+    return await controller.construction_guide_create(body)
+
+
+@router.post(
+    "/tools/aligned-dimension",
+    response_model=AlignedDimensionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gera cotas lineares alinhadas ou ortogonais projetadas em X/Y/Z (SUDimensionLinearRef)"
+)
+async def aligned_dimension_create(
+    body: AlignedDimensionRequest,
+    controller: SceneController = Depends(get_controller)
+) -> AlignedDimensionResponse:
+    return await controller.aligned_dimension_create(body)
+
+
+@router.post(
+    "/tools/radial-arc-dimension",
+    response_model=RadialArcDimensionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gera cotas radiais (R), diamétricas (Ø) ou de comprimento de arco (SUDimensionRadialRef)"
+)
+async def radial_arc_dimension_create(
+    body: RadialArcDimensionRequest,
+    controller: SceneController = Depends(get_controller)
+) -> RadialArcDimensionResponse:
+    return await controller.radial_arc_dimension_create(body)
+
+
+@router.post(
+    "/tools/soft-smooth-angle",
+    response_model=SoftSmoothAngleResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Suaviza arestas segundo ângulo diédrico limite e calcula normais Phong contínuas (Soften / Smooth Edges)"
+)
+async def soft_smooth_angle_apply(
+    body: SoftSmoothAngleRequest,
+    controller: SceneController = Depends(get_controller)
+) -> SoftSmoothAngleResponse:
+    return await controller.soft_smooth_angle_apply(body)
+
 
 
 

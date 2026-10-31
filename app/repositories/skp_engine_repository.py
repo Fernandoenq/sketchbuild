@@ -3733,6 +3733,138 @@ class SkpEngineRepository:
             center=center,
         )
 
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 8): 7 NOVAS FERRAMENTAS OFICIAIS DO SKETCHUP DESKTOP
+    # --------------------------------------------------------------------------
+    def leader_text_callout_create(self, **kwargs) -> dict:
+        from core.leader_text_callout_engine import LeaderTextCalloutEngine
+        face_vertices = kwargs.get("face_vertices")
+        offset_vector = tuple(kwargs.get("offset_vector", [0.3, 0.3, 0.4]))
+        if face_vertices:
+            f_verts = [tuple(v) for v in face_vertices]
+            return LeaderTextCalloutEngine.create_face_area_callout(
+                face_vertices=f_verts,
+                offset_vector=offset_vector,
+            )
+        else:
+            anchor_point = tuple(kwargs.get("anchor_point", [0.0, 0.0, 0.0]))
+            text = kwargs.get("text", "Anotação")
+            arrow_type = kwargs.get("arrow_type", "ARROW")
+            return LeaderTextCalloutEngine.create_leader_callout(
+                anchor_point=anchor_point,
+                text=text,
+                offset_vector=offset_vector,
+                arrow_type=arrow_type,
+            )
+
+    def from_contours_sandbox_generate(self, **kwargs) -> dict:
+        from core.from_contours_sandbox_engine import FromContoursSandboxEngine
+        curves = []
+        for c in kwargs.get("contour_curves", []):
+            curves.append([tuple(pt) for pt in c])
+        is_closed = kwargs.get("is_closed", False)
+        return FromContoursSandboxEngine.generate_terrain_from_contours(
+            contour_curves=curves,
+            is_closed=is_closed,
+        )
+
+    def solid_inspector_check(self, **kwargs) -> dict:
+        from core.solid_inspector_engine import SolidInspectorEngine
+        vertices = [tuple(v) for v in kwargs.get("vertices", [])]
+        triangles = [tuple(t) for t in kwargs.get("triangles", [])]
+        return SolidInspectorEngine.inspect_mesh(
+            vertices=vertices,
+            triangles=triangles,
+        )
+
+    def construction_guide_create(self, **kwargs) -> dict:
+        from core.construction_guide_engine import ConstructionGuideEngine
+        guide_type = kwargs.get("guide_type", "parallel")
+        pt_a = tuple(kwargs.get("point_a", [0.0, 0.0, 0.0]))
+        pt_b = tuple(kwargs.get("point_b", [1.0, 0.0, 0.0])) if kwargs.get("point_b") else (1.0, 0.0, 0.0)
+        plane_normal = tuple(kwargs.get("plane_normal", [0.0, 0.0, 1.0]))
+        if guide_type == "angular":
+            angle_deg = kwargs.get("angle_deg", 45.0)
+            return ConstructionGuideEngine.create_angular_guide(
+                vertex=pt_a,
+                base_direction=pt_b,
+                angle_deg=angle_deg,
+                plane_normal=plane_normal,
+            )
+        else:
+            offset_dist = kwargs.get("offset_distance", 0.5)
+            return ConstructionGuideEngine.create_parallel_guide(
+                edge_start=pt_a,
+                edge_end=pt_b,
+                offset_distance=offset_dist,
+                plane_normal=plane_normal,
+            )
+
+    def aligned_dimension_create(self, **kwargs) -> dict:
+        from core.aligned_dimension_engine import AlignedDimensionEngine
+        start_pt = tuple(kwargs.get("start_point", [0.0, 0.0, 0.0]))
+        end_pt = tuple(kwargs.get("end_point", [1.0, 0.0, 0.0]))
+        mode = kwargs.get("mode", "aligned")
+        offset_dist = kwargs.get("offset_distance", 0.25)
+        unit = kwargs.get("unit", "m")
+        if mode == "rotated":
+            axis = kwargs.get("axis", "X")
+            return AlignedDimensionEngine.create_rotated_dimension(
+                start_pt=start_pt,
+                end_pt=end_pt,
+                axis=axis,
+                offset_distance=offset_dist,
+                unit=unit,
+            )
+        else:
+            return AlignedDimensionEngine.create_aligned_dimension(
+                start_pt=start_pt,
+                end_pt=end_pt,
+                offset_distance=offset_dist,
+                unit=unit,
+            )
+
+    def radial_arc_dimension_create(self, **kwargs) -> dict:
+        from core.radial_arc_dimension_engine import RadialArcDimensionEngine
+        center = tuple(kwargs.get("center", [0.0, 0.0, 0.0]))
+        radius = kwargs.get("radius", 1.0)
+        mode = kwargs.get("mode", "radius")
+        unit = kwargs.get("unit", "m")
+        if mode == "arc_length":
+            start_ang = kwargs.get("start_angle_deg", 0.0)
+            end_ang = kwargs.get("end_angle_deg", 90.0)
+            return RadialArcDimensionEngine.create_arc_length_dimension(
+                center=center,
+                radius=radius,
+                start_angle_deg=start_ang,
+                end_angle_deg=end_ang,
+                unit=unit,
+            )
+        else:
+            is_diameter = (mode == "diameter")
+            angle_deg = kwargs.get("angle_deg", 45.0)
+            return RadialArcDimensionEngine.create_radial_dimension(
+                center=center,
+                radius=radius,
+                angle_deg=angle_deg,
+                is_diameter=is_diameter,
+                unit=unit,
+            )
+
+    def soft_smooth_angle_apply(self, **kwargs) -> dict:
+        from core.soft_smooth_angle_engine import SoftSmoothAngleEngine
+        vertices = [tuple(v) for v in kwargs.get("vertices", [])]
+        triangles = [tuple(t) for t in kwargs.get("triangles", [])]
+        max_angle = kwargs.get("max_angle_deg", 35.0)
+        soften_coplanar = kwargs.get("soften_coplanar", True)
+        return SoftSmoothAngleEngine.apply_soft_smooth(
+            vertices=vertices,
+            triangles=triangles,
+            max_angle_deg=max_angle,
+            soften_coplanar=soften_coplanar,
+        )
+
+
 
 
 

@@ -4470,3 +4470,110 @@ class FlipAlongResponse(BaseModel):
     entity_type: str = "sketchup_native_flip_along"
     flip: dict[str, Any]
     status: str = "success"
+
+
+# ==============================================================================
+# OPÇÃO A (PARTE 8): NOVAS FERRAMENTAS NATIVAS OFICIAIS DO SKETCHUP DESKTOP
+# ==============================================================================
+
+# 1. Rótulo de Área e Chamada de Texto Líder (LeaderTextCalloutEngine)
+class LeaderTextCalloutRequest(BaseModel):
+    anchor_point: list[float] | None = Field(default=None, description="Ponto 3D de ancoragem [x, y, z]")
+    text: str | None = Field(default=None, description="Texto descritivo do rótulo")
+    face_vertices: list[list[float]] | None = Field(default=None, description="Vértices 3D da face para cálculo de área automático")
+    offset_vector: list[float] = Field(default=[0.3, 0.3, 0.4], description="Vetor de afastamento [dx, dy, dz]")
+    arrow_type: str = Field(default="ARROW", description="Tipo de terminação: ARROW, DOT, NONE, SLASH")
+
+class LeaderTextCalloutResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_leader_text"
+    callout: dict[str, Any]
+    status: str = "success"
+
+
+# 2. Caixa de Areia a Partir de Contornos (FromContoursSandboxEngine)
+class FromContoursRequest(BaseModel):
+    contour_curves: list[list[list[float]]] = Field(..., description="Lista de curvas de nível com pontos 3D [[x, y, z], ...]")
+    is_closed: bool = Field(default=False, description="Se os contornos são loops fechados")
+
+class FromContoursResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_from_contours"
+    contours: dict[str, Any]
+    status: str = "success"
+
+
+# 3. Inspetor de Sólidos e Validação 2-Manifold (SolidInspectorEngine)
+class SolidInspectorRequest(BaseModel):
+    vertices: list[list[float]] = Field(..., description="Vértices da malha 3D [[x, y, z], ...]")
+    triangles: list[list[int]] = Field(..., description="Índices das faces triangulares [[v0, v1, v2], ...]")
+
+class SolidInspectorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_solid_inspector"
+    inspection: dict[str, Any]
+    status: str = "success"
+
+
+# 4. Linhas Guia e Auxiliares de Construção (ConstructionGuideEngine)
+class ConstructionGuideRequest(BaseModel):
+    guide_type: str = Field(default="parallel", description="'parallel' (paralela a aresta) ou 'angular' (transferidor)")
+    point_a: list[float] = Field(default=[0.0, 0.0, 0.0], description="Ponto inicial ou vértice pivô [x, y, z]")
+    point_b: list[float] | None = Field(default=[1.0, 0.0, 0.0], description="Ponto final da aresta ou vetor base")
+    offset_distance: float = Field(default=0.5, description="Distância de deslocamento métrico da guia")
+    angle_deg: float = Field(default=45.0, description="Ângulo de inclinação do transferidor em graus")
+    plane_normal: list[float] = Field(default=[0.0, 0.0, 1.0], description="Vetor normal do plano da guia")
+
+class ConstructionGuideResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_construction_guide"
+    guide: dict[str, Any]
+    status: str = "success"
+
+
+# 5. Cotas Lineares Alinhadas e Rotacionadas (AlignedDimensionEngine)
+class AlignedDimensionRequest(BaseModel):
+    start_point: list[float] = Field(..., description="Ponto inicial da cota [x, y, z]")
+    end_point: list[float] = Field(..., description="Ponto final da cota [x, y, z]")
+    mode: str = Field(default="aligned", description="'aligned' (alinhada) ou 'rotated' (ortogonal X/Y/Z)")
+    axis: str = Field(default="X", description="Eixo ortogonal se mode='rotated': 'X', 'Y' ou 'Z'")
+    offset_distance: float = Field(default=0.25, description="Afastamento métrico da cota")
+    unit: str = Field(default="m", description="Unidade de medida: 'm', 'cm', 'mm'")
+
+class AlignedDimensionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_aligned_dimension"
+    dimension: dict[str, Any]
+    status: str = "success"
+
+
+# 6. Cotas Radiais, Diamétricas e de Arcos (RadialArcDimensionEngine)
+class RadialArcDimensionRequest(BaseModel):
+    center: list[float] = Field(..., description="Ponto central do arco ou círculo [x, y, z]")
+    radius: float = Field(..., description="Raio métrico do arco ou círculo")
+    mode: str = Field(default="radius", description="'radius' (R), 'diameter' (Ø) ou 'arc_length'")
+    angle_deg: float = Field(default=45.0, description="Ângulo de posicionamento da linha líder")
+    start_angle_deg: float = Field(default=0.0, description="Ângulo inicial para cálculo de comprimento de arco")
+    end_angle_deg: float = Field(default=90.0, description="Ângulo final para cálculo de comprimento de arco")
+    unit: str = Field(default="m", description="Unidade de medida")
+
+class RadialArcDimensionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_radial_arc_dimension"
+    dimension: dict[str, Any]
+    status: str = "success"
+
+
+# 7. Suavização Angular de Arestas e Normais Phong (SoftSmoothAngleEngine)
+class SoftSmoothAngleRequest(BaseModel):
+    vertices: list[list[float]] = Field(..., description="Vértices da malha 3D [[x, y, z], ...]")
+    triangles: list[list[int]] = Field(..., description="Índices triangulares [[v0, v1, v2], ...]")
+    max_angle_deg: float = Field(default=35.0, description="Ângulo limite diédrico de suavização (0° a 180°)")
+    soften_coplanar: bool = Field(default=True, description="Se arestas coplanares devem ser suavizadas")
+
+class SoftSmoothAngleResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_soft_smooth_angle"
+    smooth_settings: dict[str, Any]
+    status: str = "success"
+
