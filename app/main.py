@@ -35,6 +35,16 @@ app = FastAPI(title=settings.api_title)
 
 register_exception_handlers(app)
 
+@app.middleware("http")
+async def no_cache_dev_middleware(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path == "/" or path.startswith("/src/") or path.endswith(".js") or path.endswith(".html") or path.endswith(".css"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
 app.include_router(health_router.router)
 app.include_router(model_router.router, prefix=settings.api_prefix)
 app.include_router(scene_router.router, prefix=settings.api_prefix)
