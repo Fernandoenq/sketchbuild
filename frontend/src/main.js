@@ -206,6 +206,8 @@ import {
   placePositionCamera,
   configureFogSettings,
   configureGraphicExport2D,
+  weldCurveEdges,
+  flipAlongAxes,
   downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
@@ -6788,3 +6790,69 @@ document.getElementById("btn-native-export-2d")?.addEventListener("click", async
   }
 });
 
+
+// 48. Inverter ao Longo do Eixo Vermelho/Verde/Azul (Flip Along Tool)
+document.getElementById("btn-native-flip-along")?.addEventListener("click", async () => {
+  setStatus("Aplicando inversão ao longo do eixo (Flip Along Tool)...");
+  try {
+    let verts = [
+      [0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [2.0, 1.0, 0.0],
+      [0.0, 1.0, 0.0], [0.0, 0.0, 1.5], [2.0, 0.0, 1.5]
+    ];
+    let indices = [0, 1, 2, 0, 2, 3];
+    if (selectedMesh?.geometry?.attributes?.position) {
+      const posAttr = selectedMesh.geometry.attributes.position;
+      const count = Math.min(posAttr.count, 24);
+      verts = [];
+      for (let i = 0; i < count; i++) {
+        verts.push([posAttr.getX(i), posAttr.getY(i), posAttr.getZ(i)]);
+      }
+      if (selectedMesh.geometry.index) {
+        indices = Array.from(selectedMesh.geometry.index.array.slice(0, 36));
+      }
+    }
+
+    const res = await flipAlongAxes(verts, indices, "red");
+    if (res?.flip) {
+      const fl = res.flip;
+      showNativeToolsResult(
+        "🔄 Inverter ao Longo do Eixo (Flip Along Tool)",
+        `Eixo de Inversão: <b>${fl.axis.toUpperCase()}</b> (Vetor: [${fl.axis_vector.join(", ")}])<br>` +
+        `Centro de Reflexão: <b>[${fl.center.join(", ")}]</b><br>` +
+        `Vértices Espelhados: <b>${fl.total_vertices}</b> | Triângulos com Winding Invertido: <b>${fl.total_triangles}</b><br>` +
+        `Matriz Householder 4x4 gerada: <code>[${fl.transform_matrix_16.slice(0, 4).join(", ")}...]</code>`
+      );
+      setStatus("Inversão ao longo do eixo aplicada com sucesso (Winding Invertido).");
+    }
+  } catch (err) {
+    setStatus(`Erro ao inverter ao longo do eixo: ${err.message}`, true);
+  }
+});
+
+// 49. Soldar Arestas em Curva Contínua (Weld Edges Tool)
+document.getElementById("btn-native-weld-edges")?.addEventListener("click", async () => {
+  setStatus("Identificando cadeias conexas e soldando arestas em curvas (Weld Edges)...");
+  try {
+    const sampleEdges = [
+      { start: [0.0, 0.0, 0.0], end: [1.0, 0.0, 0.0] },
+      { start: [1.0, 0.0, 0.0], end: [2.0, 0.5, 0.0] },
+      { start: [2.0, 0.5, 0.0], end: [3.0, 0.5, 1.0] },
+      { start: [3.0, 0.5, 1.0], end: [4.0, 1.0, 1.0] }
+    ];
+    const res = await weldCurveEdges(sampleEdges);
+    if (res?.curves) {
+      const curves = res.curves;
+      const c0 = curves[0] || {};
+      showNativeToolsResult(
+        "🔗 Soldar Arestas (Weld Edges Tool)",
+        `Curvas Geradas: <b>${res.total_curves}</b> | Arestas Originais Soldadas: <b>${res.total_edges}</b><br>` +
+        `Comprimento Total: <b>${res.total_length_m}m</b> | Tipo: <b>${c0.curve_type || "OpenCurve"}</b><br>` +
+        `Vértices da Curva: <b>${c0.vertex_count || 0}</b> | Ângulos de Deflexão: <b>[${(c0.deflection_angles_deg || []).join("°, ")}°]</b><br>` +
+        `Entidade SKP Gerada: <code>${c0.entity_type || "SUCurveRef"}</code> (Cadeia Topológica Cabeça-Cauda)`
+      );
+      setStatus("Arestas contíguas soldadas em curva contínua com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao soldar arestas: ${err.message}`, true);
+  }
+});

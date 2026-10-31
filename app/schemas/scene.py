@@ -4457,3 +4457,16 @@ class GraphicExport2DResponse(BaseModel):
 
 
 
+
+# 8. Inversão ao Longo dos Eixos (Flip Along Tool)
+class FlipAlongRequest(BaseModel):
+    vertices: list[list[float]] = Field(default_factory=list, description="Lista de vértices [[x, y, z], ...]")
+    indices: list[int] | None = Field(default=None, description="Lista de índices triangulares")
+    axis: str = Field(default="red", description="Eixo de inversão: 'red' (X), 'green' (Y) ou 'blue' (Z)")
+    center: list[float] | None = Field(default=None, description="Centro de inversão [x, y, z] (opcional, calculado se None)")
+
+class FlipAlongResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_flip_along"
+    flip: dict[str, Any]
+    status: str = "success"

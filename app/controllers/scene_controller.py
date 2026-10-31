@@ -353,6 +353,8 @@ from app.schemas.scene import (
     FogSettingsResponse,
     GraphicExport2DRequest,
     GraphicExport2DResponse,
+    FlipAlongRequest,
+    FlipAlongResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2870,6 +2872,14 @@ class SceneController:
             return GraphicExport2DResponse(export_2d=res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def flip_along_axes(self, body: FlipAlongRequest) -> FlipAlongResponse:
+        try:
+            res = await self._service.flip_along_axes(**body.model_dump())
+            return FlipAlongResponse(flip=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
 
 
 

@@ -2219,5 +2219,9 @@ class SceneService:
     async def graphic_export_2d_configure(self, **kwargs) -> dict:
         return await run_in_threadpool(self._repository.graphic_export_2d_configure, **kwargs)
 
+    async def flip_along_axes(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.flip_along_axes, **kwargs)
+
+
 
 

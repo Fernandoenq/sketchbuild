@@ -2557,3 +2557,70 @@ Esta seção documenta a terceira rodada de ferramentas centrais do **SketchUp D
    - Adicionado elemento visível `#welcome-error-msg` dentro do próprio diálogo de boas-vindas para apresentar feedback imediato ao usuário em caso de falha de rede ou validação.
 4. **Habilitação do Menu Superior:**
    - Ativado o menu "Arquivo -> Novo a partir de um modelo..." (`data-action="new-from-template"`), permitindo invocar a seleção de templates a qualquer momento na aplicação.
+
+## 181. Opção A (Parte 7): Engenharia Reversa de Ferramentas Nativas Oficiais do SketchUp Desktop (Zero DLL / Pure Python)
+
+Consolidação da sétima rodada de implementação das ferramentas nativas oficiais do SketchUp Pro Desktop, integrando os motores analíticos puros sem dependência da `SketchUpAPI.dll`.
+
+### 181.1 Dicionários de Atributos e Componentes Dinâmicos (AttributeDictionaryEngine)
+- **Ferramenta Nativa:** Dicionários de Atributos (`AttributeDictionary`) e extensão Trimble Dynamic Components (`dynamic_attributes`).
+- **Engenharia Reversa:**
+  - Armazenamento hierárquico chave-valor por entidade no formato canônico do SketchUp.
+  - Suporte a atributos paramétricos oficiais: `lenx`, `leny`, `lenz`, `description`, `_lengthunits`.
+  - Avaliação de fórmulas dinâmicas (`_lenx_formula = "=BaseWidth * 2 + 10"`) e ações de clique `onClick = "ANIMATE('RotZ', 0, 90)"`.
+- **Módulo Core:** `core/attribute_dictionary_engine.py` (`AttributeDictionaryEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/attributes/dictionary`.
+
+### 181.2 Gerenciador de Estilos de Arestas Nativos (EdgeStylesEngine)
+- **Ferramenta Nativa:** Menu Visualizar -> Estilo de aresta (View -> Edge Style: Profiles, Back Edges, Depth Cue, Endpoints, Extensions).
+- **Engenharia Reversa:**
+  - Classificação de silhuetas e perfis externos com base no produto escalar das normais de faces adjacentes contra o vetor da câmera.
+  - Alternância do modo Arestas Traseiras (Back Edges - tecla de atalho nativa `K`) exibindo arestas oclusas em traço diferenciado.
+  - Parâmetros analíticos de espessura de perfil, extensão de pontas e nós gráficos finais.
+- **Módulo Core:** `core/edge_styles_engine.py` (`EdgeStylesEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/styles/edge-rendering`.
+
+### 181.3 Pastas de Etiquetas com Visibilidade em Cascata (TagFolderEngine)
+- **Ferramenta Nativa:** Janela -> Bandeja padrão -> Etiquetas -> Adicionar pasta de etiquetas (Tag Folders).
+- **Engenharia Reversa:**
+  - Árvore hierárquica de pastas e subpastas de camadas (Layers/Tags).
+  - Cálculo de visibilidade efetiva em cascata: se uma pasta pai estiver desmarcada, todas as etiquetas filhas são automaticamente oclusas na renderização.
+  - Associação cromática de cores por etiqueta para suporte ao modo *Color by Tag*.
+- **Módulo Core:** `core/tag_folder_engine.py` (`TagFolderEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tags/folder`.
+
+### 181.4 Projeção de Texturas UV Planar e Cilíndrica (TextureProjectionEngine)
+- **Ferramenta Nativa:** Menu de Contexto da Face -> Textura -> Projetada (Texture -> Projected).
+- **Engenharia Reversa:**
+  - Projeção ortogonal planar contínua sobre geometrias poliédricas com rotação e escala afim em metros.
+  - Mapeamento cilíndrico contínuo ao redor do eixo Z para objetos axissimétricos (colunas, troncos de madeira e tubos).
+  - Geração de buffers UV (`uv_coordinates`) compatíveis com Three.js e serialização `.skp`.
+- **Módulo Core:** `core/texture_projection_engine.py` (`TextureProjectionEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/materials/project-uv`.
+
+### 181.5 Câmera de Perspectiva de Dois Pontos (TwoPointPerspectiveEngine)
+- **Ferramenta Nativa:** Menu Câmera -> Perspectiva de dois pontos (Camera -> Two-Point Perspective).
+- **Engenharia Reversa:**
+  - Horizontalização rigorosa do vetor de visada ($\text{pitch} = 0^\circ$), anulando a terceira convergência vertical de fuga.
+  - Compensação da elevação do alvo através de deslocamento vertical de lente (Lens Shift / Tilt-Shift oblíquo).
+  - Matriz de projeção assimétrica OpenGL/Three.js garantindo paralelismo estrito em todas as arestas verticais da arquitetura.
+- **Módulo Core:** `core/two_point_perspective_engine.py` (`TwoPointPerspectiveEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/camera/two-point-perspective`.
+
+### 181.6 Inversão ao Longo dos Eixos (FlipAlongAxesEngine)
+- **Ferramenta Nativa:** Menu de Contexto -> Inverter ao longo de -> Eixo Vermelho/Verde/Azul do Componente (Flip Along Tool).
+- **Engenharia Reversa:**
+  - Espelhamento afim com matriz de Householder centrada na bounding box da seleção: $P' = P - 2 ((P - C) \cdot \vec{n}) \vec{n}$.
+  - Inversão obrigatória do sentido de enrolamento dos triângulos ($(v_0, v_1, v_2) \to (v_0, v_2, v_1)$), mantendo as normais de face voltadas para fora para que a geometria sólida não fique com faces invertidas no SketchUp.
+  - Matriz 4x4 de transformação gerada pronta para aplicação direta na instância.
+- **Módulo Core:** `core/flip_along_axes_engine.py` (`FlipAlongAxesEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/flip-along`.
+
+### 181.7 Soldar Arestas em Curvas Contínuas (WeldEdgesEngine)
+- **Ferramenta Nativa:** Menu de Contexto -> Soldar arestas (Weld Edges Tool, nativa do SketchUp Pro).
+- **Engenharia Reversa:**
+  - Identificação de cadeias topológicas conexas através de grafo de incidência de nós.
+  - Ordenação sequencial contínua (cabeça-com-cauda) gerando uma entidade única de Curva (`SUCurveRef`).
+  - Detecção de loops fechados vs. curvas abertas e cálculo analítico de comprimento total e deflexões angulares.
+- **Módulo Core:** `core/weld_edges_engine.py` (`WeldEdgesEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/curves/weld`.
