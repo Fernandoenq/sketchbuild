@@ -2133,3 +2133,74 @@ export function configureGroundSkyStyle(backgroundColor = null, skyEnabled = nul
   });
 }
 
+// ----------------------------------------------------------------------------
+// Opção A (Parte 5): Funções de API Nativas Oficiais do SketchUp
+// ----------------------------------------------------------------------------
+
+export function applyStampTerrain(tinVertices, tinTriangles, footprintPolygon, targetElevation = 0.0, transitionWidth = 1.5) {
+  return postJson("/api/v1/scene/tools/stamp-terrain", "POST", {
+    tin_vertices: tinVertices,
+    tin_triangles: tinTriangles,
+    footprint_polygon: footprintPolygon,
+    target_elevation: targetElevation,
+    transition_width: transitionWidth
+  });
+}
+
+export function applyDrapePath(tinVertices, tinTriangles, pathPoints2D, subdivisionSteps = 4) {
+  return postJson("/api/v1/scene/tools/drape-path", "POST", {
+    tin_vertices: tinVertices,
+    tin_triangles: tinTriangles,
+    path_points_2d: pathPoints2D,
+    subdivision_steps: subdivisionSteps
+  });
+}
+
+export function computeSectionCutFill(solidVertices, solidTriangles, planeCoeffs = [0, -1, 0, 0], flipDirection = false, fillColorHex = "#333333") {
+  return postJson("/api/v1/scene/geometry/section-cut-fill", "POST", {
+    solid_vertices: solidVertices,
+    solid_triangles: solidTriangles,
+    plane_coeffs: planeCoeffs,
+    flip_direction: flipDirection,
+    fill_color_hex: fillColorHex
+  });
+}
+
+export function processSoftSmoothEdges(vertices, triangles, maxAngleDeg = 35.0, softenCoplanar = true, smoothNormals = true) {
+  return postJson("/api/v1/scene/geometry/soft-smooth-edges", "POST", {
+    vertices: vertices,
+    triangles: triangles,
+    max_angle_deg: maxAngleDeg,
+    soften_coplanar: softenCoplanar,
+    smooth_normals: smoothNormals
+  });
+}
+
+export function executeEdgeDivide(startPoint, endPoint, numSegments = 4) {
+  return postJson("/api/v1/scene/tools/edge-divide", "POST", {
+    start_point: startPoint,
+    end_point: endPoint,
+    num_segments: numSegments
+  });
+}
+
+export function extrudePushPullCreateFace(faceVertices, distanceM = 1.0, createNewFace = true) {
+  return postJson("/api/v1/scene/geometry/push-pull-create-face", "POST", {
+    face_vertices: faceVertices,
+    distance_m: distanceM,
+    create_new_face: createNewFace
+  });
+}
+
+export function buildBimIfcPropertySet(instanceId, ifcClass = "IfcBeam", psetName = "Pset_BeamCommon", properties = {}, schemaVersion = "IFC4", startStepId = 500) {
+  return postJson("/api/v1/scene/bim/ifc-property-set", "POST", {
+    instance_id: instanceId,
+    ifc_class: ifcClass,
+    pset_name: psetName,
+    properties: properties,
+    schema_version: schemaVersion,
+    start_step_id: startStepId
+  });
+}
+
+

@@ -316,6 +316,20 @@ from app.schemas.scene import (
     AxisLockInferenceResponse,
     GroundSkyStyleRequest,
     GroundSkyStyleResponse,
+    StampTerrainRequest,
+    StampTerrainResponse,
+    DrapePathRequest,
+    DrapePathResponse,
+    SectionCutFillRequest,
+    SectionCutFillResponse,
+    SoftSmoothEdgesRequest,
+    SoftSmoothEdgesResponse,
+    EdgeDivideRequest,
+    EdgeDivideResponse,
+    PushPullCreateFaceRequest,
+    PushPullCreateFaceResponse,
+    BimIfcPropertySetRequest,
+    BimIfcPropertySetResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2895,4 +2909,100 @@ async def ground_sky_style_configure(
     controller: SceneController = Depends(get_controller)
 ) -> GroundSkyStyleResponse:
     return await controller.ground_sky_style_configure(body)
+
+
+# -----------------------------------------------------------------------------
+# OPÇÃO A (PARTE 5): ROTAS DE FERRAMENTAS NATIVAS OFICIAIS DO SKETCHUP
+# -----------------------------------------------------------------------------
+
+@router.post(
+    "/tools/stamp-terrain",
+    response_model=StampTerrainResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Aplica a ferramenta Carimbo (Stamp Tool) criando platô nivelado e talude suave na malha TIN"
+)
+async def stamp_terrain_apply(
+    body: StampTerrainRequest,
+    controller: SceneController = Depends(get_controller)
+) -> StampTerrainResponse:
+    return await controller.stamp_terrain_apply(body)
+
+
+@router.post(
+    "/tools/drape-path",
+    response_model=DrapePathResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Projeta caminhos ou contornos 2D sobre o relevo da malha de terreno 3D (Drape Tool)"
+)
+async def drape_path_apply(
+    body: DrapePathRequest,
+    controller: SceneController = Depends(get_controller)
+) -> DrapePathResponse:
+    return await controller.drape_path_apply(body)
+
+
+@router.post(
+    "/geometry/section-cut-fill",
+    response_model=SectionCutFillResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Calcula tampas poligonais de preenchimento (Section Fill) e inversão de plano de corte"
+)
+async def section_cut_fill_compute(
+    body: SectionCutFillRequest,
+    controller: SceneController = Depends(get_controller)
+) -> SectionCutFillResponse:
+    return await controller.section_cut_fill_compute(body)
+
+
+@router.post(
+    "/geometry/soft-smooth-edges",
+    response_model=SoftSmoothEdgesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Aplica suavização de arestas e gera normais interpoladas (Soften / Smooth Edges Dialog)"
+)
+async def soft_smooth_edges_process(
+    body: SoftSmoothEdgesRequest,
+    controller: SceneController = Depends(get_controller)
+) -> SoftSmoothEdgesResponse:
+    return await controller.soft_smooth_edges_process(body)
+
+
+@router.post(
+    "/tools/edge-divide",
+    response_model=EdgeDivideResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Divide aresta linear em N segmentos perfeitamente equidistantes (Divide Tool com VCB)"
+)
+async def edge_divide_execute(
+    body: EdgeDivideRequest,
+    controller: SceneController = Depends(get_controller)
+) -> EdgeDivideResponse:
+    return await controller.edge_divide_execute(body)
+
+
+@router.post(
+    "/geometry/push-pull-create-face",
+    response_model=PushPullCreateFaceResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Extruda face criando sólido mantendo a face inicial preservada (Ctrl + Push/Pull Tool)"
+)
+async def push_pull_create_face_extrude(
+    body: PushPullCreateFaceRequest,
+    controller: SceneController = Depends(get_controller)
+) -> PushPullCreateFaceResponse:
+    return await controller.push_pull_create_face_extrude(body)
+
+
+@router.post(
+    "/bim/ifc-property-set",
+    response_model=BimIfcPropertySetResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Valida atributos buildingSMART e gera entidades STEP de conjuntos de propriedades (IFC Psets)"
+)
+async def bim_ifc_property_set_build(
+    body: BimIfcPropertySetRequest,
+    controller: SceneController = Depends(get_controller)
+) -> BimIfcPropertySetResponse:
+    return await controller.bim_ifc_property_set_build(body)
+
 

@@ -325,6 +325,20 @@ from app.schemas.scene import (
     AxisLockInferenceResponse,
     GroundSkyStyleRequest,
     GroundSkyStyleResponse,
+    StampTerrainRequest,
+    StampTerrainResponse,
+    DrapePathRequest,
+    DrapePathResponse,
+    SectionCutFillRequest,
+    SectionCutFillResponse,
+    SoftSmoothEdgesRequest,
+    SoftSmoothEdgesResponse,
+    EdgeDivideRequest,
+    EdgeDivideResponse,
+    PushPullCreateFaceRequest,
+    PushPullCreateFaceResponse,
+    BimIfcPropertySetRequest,
+    BimIfcPropertySetResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2736,4 +2750,58 @@ class SceneController:
             return GroundSkyStyleResponse(style=res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 5): MÉTODOS NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def stamp_terrain_apply(self, body: StampTerrainRequest) -> StampTerrainResponse:
+        try:
+            res = await self._service.stamp_terrain_apply(**body.model_dump())
+            return StampTerrainResponse(stamp=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def drape_path_apply(self, body: DrapePathRequest) -> DrapePathResponse:
+        try:
+            res = await self._service.drape_path_apply(**body.model_dump())
+            return DrapePathResponse(drape=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def section_cut_fill_compute(self, body: SectionCutFillRequest) -> SectionCutFillResponse:
+        try:
+            res = await self._service.section_cut_fill_compute(**body.model_dump())
+            return SectionCutFillResponse(cut_fill=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def soft_smooth_edges_process(self, body: SoftSmoothEdgesRequest) -> SoftSmoothEdgesResponse:
+        try:
+            res = await self._service.soft_smooth_edges_process(**body.model_dump())
+            return SoftSmoothEdgesResponse(soft_smooth=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def edge_divide_execute(self, body: EdgeDivideRequest) -> EdgeDivideResponse:
+        try:
+            res = await self._service.edge_divide_execute(**body.model_dump())
+            return EdgeDivideResponse(divide=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def push_pull_create_face_extrude(self, body: PushPullCreateFaceRequest) -> PushPullCreateFaceResponse:
+        try:
+            res = await self._service.push_pull_create_face_extrude(**body.model_dump())
+            return PushPullCreateFaceResponse(extrude=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def bim_ifc_property_set_build(self, body: BimIfcPropertySetRequest) -> BimIfcPropertySetResponse:
+        try:
+            res = await self._service.bim_ifc_property_set_build(**body.model_dump())
+            return BimIfcPropertySetResponse(pset=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
 

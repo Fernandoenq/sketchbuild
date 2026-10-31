@@ -2395,4 +2395,74 @@ Esta seção documenta a terceira rodada de ferramentas centrais do **SketchUp D
   - Python AST / Sintaxe: 190 arquivos validados, 0 erros.
   - Testes Unitários: 186/186 testes aprovados com sucesso.
 
+---
+
+## 178. Opção A (Parte 5): Engenharia Reversa de Ferramentas Nativas Oficiais do SketchUp Desktop (Zero DLL / Pure Python)
+
+### 178.1 Ferramenta Carimbo de Terreno (StampTerrainEngine)
+- **Ferramenta Nativa:** Barra de ferramentas Caixa de Areia -> Carimbo (Sandbox -> Stamp Tool).
+- **Engenharia Reversa:**
+  - Aplicação de pegada poligonal 2D (footprint) sobre malha de relevo triangular TIN.
+  - Nivelamento estanque da cota $Z$ para todos os vértices situados no interior da pegada (teste de ponto em polígono por ray casting).
+  - Cálculo de faixa perimetral de transição suave (talude) com interpolação polinomial cúbica de Hermite (Smoothstep: $3t^2 - 2t^3$) para amortecimento contra o terreno natural circundante.
+  - Balanço métrico automatizado de corte e aterro gerados pelo carimbo ($m^3$).
+- **Módulo Core:** `core/stamp_terrain_engine.py` (`StampTerrainEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/stamp-terrain`.
+
+### 178.2 Ferramenta Projetar Contornos sobre Terreno (DrapeContourEngine)
+- **Ferramenta Nativa:** Barra de ferramentas Caixa de Areia -> Projetar (Sandbox -> Drape Tool).
+- **Engenharia Reversa:**
+  - Projeção vertical ortogonal de polilinhas, arruamentos e divisas 2D sobre superfícies 3D trianguladas (TIN).
+  - Interpolação de cotas $Z$ via coordenadas baricêntricas $(w_0, w_1, w_2)$ dentro do triângulo secante.
+  - Subdivisão adaptativa de segmentos para acompanhamento contínuo da curvatura topográfica sem afundamento na malha.
+  - Avaliação métrica de alongamento topográfico percentual e cota média de implantação.
+- **Módulo Core:** `core/drape_contour_engine.py` (`DrapeContourEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/drape-path`.
+
+### 178.3 Inversão e Preenchimento de Plano de Corte (SectionCutFillEngine)
+- **Ferramenta Nativa:** Menu de contexto do Plano de Corte -> Inverter (Flip) & Preenchimento de Seção (Section Fill).
+- **Engenharia Reversa:**
+  - Inversão da orientação vetorial da normal do plano e constante analítica ($\vec{n} \to -\vec{n}$).
+  - Fatiamento analítico de sólidos B-Rep gerando os segmentos de aresta de corte coplanares ao plano seccionador.
+  - Encadeamento dos segmentos em contornos fechados e síntese de tampa poligonal (Section Fill Cap) com triangulação orientada para renderização no Three.js.
+- **Módulo Core:** `core/section_cut_fill_engine.py` (`SectionCutFillEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/section-cut-fill`.
+
+### 178.4 Caixa de Diálogo Suavizar Arestas (SoftSmoothEdgesEngine)
+- **Ferramenta Nativa:** Janela -> Bandeja Padrão -> Suavizar Arestas (Soften / Smooth Edges Dialog).
+- **Engenharia Reversa:**
+  - Varredura de arestas compartilhadas por pares de faces e cálculo do ângulo diedro ($\theta = \arccos(\vec{n}_1 \cdot \vec{n}_2)$).
+  - Classificação automatizada entre arestas duras (visíveis como linhas pretas) e suaves (ocultas e com interpolação de sombreamento).
+  - Suporte ao toggle de faces coplanares e síntese de normais médias ponderadas por vértice para Gouraud / Phong Shading no Three.js.
+- **Módulo Core:** `core/soft_smooth_edges_engine.py` (`SoftSmoothEdgesEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/soft-smooth-edges`.
+
+### 178.5 Ferramenta Dividir Aresta em N Partes (EdgeDivideEngine)
+- **Ferramenta Nativa:** Menu de contexto da Aresta -> Dividir (Divide Tool com entrada no VCB).
+- **Engenharia Reversa:**
+  - Particionamento analítico de segmento 3D $[P_0, P_1]$ em $N \ge 2$ subsegmentos perfeitamente equidistantes.
+  - Parser inteligente de digitação no VCB do SketchUp aceitando formatos como `6`, `6s` e `12 segments`.
+  - Geração da lista de novos nós intermediários e de subarestas com comprimento individual e índice sequencial.
+- **Módulo Core:** `core/edge_divide_engine.py` (`EdgeDivideEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/edge-divide`.
+
+### 178.6 Push/Pull com Criação de Nova Face Inicial (PushPullCreateFaceEngine)
+- **Ferramenta Nativa:** Ferramenta Empurrar/Puxar com tecla modificadora `Ctrl` pressionada (cursor com ícone `+`).
+- **Engenharia Reversa:**
+  - Extrusão prismática que preserva a face original intacta no local de origem como partição física estanque.
+  - Cálculo de base ortogonal via fórmula de Newell e cálculo exato de volume ($m^3$) e área superficial ($m^2$).
+  - Geração de malha B-Rep fechada com topo e paredes laterais orientadas para o exterior.
+- **Módulo Core:** `core/push_pull_create_face_engine.py` (`PushPullCreateFaceEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/push-pull-create-face`.
+
+### 178.7 Conjuntos de Propriedades BIM IFC buildingSMART (BimIfcPropertySetEngine)
+- **Ferramenta Nativa:** Informações da Entidade -> Classificação BIM IFC & Dicionário de Atributos IFC Psets.
+- **Engenharia Reversa:**
+  - Mapeamento e validação de dicionários canônicos de propriedades buildingSMART (`Pset_BeamCommon`, `Pset_WallCommon`, `Pset_ColumnCommon`, `Pset_DoorCommon`, `Pset_WindowCommon`).
+  - Validação estrita de tipos de dados (`IfcBoolean`, `IfcLengthMeasure`, `IfcPlaneAngleMeasure`, `IfcThermalTransmittanceMeasure`, `IfcLabel`).
+  - Síntese de declarações físicas em padrão STEP ISO 10303-21 (`IFCPROPERTYSET` e `IFCPROPERTYSINGLEVALUE`) para exportação em esquemas IFC2X3 e IFC4.
+- **Módulo Core:** `core/bim_ifc_property_set_engine.py` (`BimIfcPropertySetEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/bim/ifc-property-set`.
+
+
 
