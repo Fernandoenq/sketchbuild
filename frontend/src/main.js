@@ -124,6 +124,36 @@ import {
   calculateDaylightFactor,
   generateSteelProfile,
   calculateBim5dSinapiBudget,
+  calculateStormwaterDrainage,
+  calculatePermeablePavement,
+  calculateSewerNetwork,
+  calculateDetentionBasin,
+  calculateEarthworkBruckner,
+  calculateSlopeStabilityBishop,
+  calculateDeepFoundationsPiles,
+  calculateShallowFootings,
+  calculateGabionWall,
+  calculateConcreteFormwork,
+  calculateReinforcedConcreteBeam,
+  calculateWaffleSlab,
+  calculatePrestressedConcrete,
+  calculateGlulamTimber,
+  generateSpaceTruss,
+  calculateFuelGasPiping,
+  calculateLightningSpda,
+  calculateFireEgress,
+  calculateHvacCoolingLoad,
+  calculatePhotometricLighting,
+  calculateSolarPv,
+  calculateNaturalVentilation,
+  generateGlazingFenestration,
+  calculateVentilatedFacade,
+  simulateWindCfd2d,
+  generateBim4dSchedule,
+  generateBim7dCobie,
+  calculateSiteLogistics,
+  auditUniversalAccessibility,
+  calculateLcaEmissions,
   downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
@@ -4608,6 +4638,484 @@ document.getElementById("btn-calc-bim-5d-sinapi")?.addEventListener("click", asy
   } catch (err) {
     setStatus(`Erro no orçamento 5D: ${err.message}`, true);
   }
+});
+
+// ============================================================================
+// Frentes 116 a 145: Infraestrutura, Estruturas, MEP, BIM 4D/7D e Sustentabilidade
+// ============================================================================
+
+// F116: Drenagem Pluvial
+document.getElementById("btn-calc-stormwater")?.addEventListener("click", async () => {
+  setStatus("Dimensionando calhas e condutores NBR 10844...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateStormwaterDrainage();
+    if (panel) panel.style.display = "block";
+    const hr = res.hydraulic_results;
+    if (badge) badge.textContent = `Drenagem NBR 10844: ${hr.status_label}`;
+    if (details) details.innerHTML = `Vazão de Projeto: <strong>${hr.total_design_flow_l_min} L/min</strong> | Calha: ${hr.gutter_capacity_l_min} L/min | Condutor: ${hr.downspout_capacity_l_min} L/min`;
+    if (res.geometry_3d?.vertices) addProceduralMeshToScene(res.geometry_3d.vertices, res.geometry_3d.triangles, 0x3182ce, "CalhaPluvial");
+    setStatus("Drenagem pluvial dimensionada com sucesso.");
+  } catch (e) { setStatus(`Erro na drenagem: ${e.message}`, true); }
+});
+
+// F117: Pavimento Permeável
+document.getElementById("btn-calc-permeable")?.addEventListener("click", async () => {
+  setStatus("Calculando capacidade de amortecimento de pavimento permeável NBR 16416...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculatePermeablePavement();
+    if (panel) panel.style.display = "block";
+    const dm = res.drainage_metrics;
+    if (badge) badge.textContent = `Pavimento NBR 16416: ${dm.status_label}`;
+    if (details) details.innerHTML = `Redução de Pico: <strong>${dm.runoff_reduction_percent}%</strong> | Runoff C: <strong>${dm.resulting_runoff_c}</strong> | Armazenado: ${dm.required_storage_volume_m3} m³ (${dm.reservoir_drainage_time_hours}h)`;
+    if (res.geometry_3d?.vertices) addProceduralMeshToScene(res.geometry_3d.vertices, res.geometry_3d.triangles, 0x4a5568, "PavimentoDrenante");
+    setStatus("Pavimentação permeável calculada com sucesso.");
+  } catch (e) { setStatus(`Erro no pavimento: ${e.message}`, true); }
+});
+
+// F118: Rede de Esgoto
+document.getElementById("btn-calc-sewer")?.addEventListener("click", async () => {
+  setStatus("Dimensionando coletor de esgoto por gravidade NBR 9649...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateSewerNetwork();
+    if (panel) panel.style.display = "block";
+    const hm = res.hydraulic_metrics;
+    if (badge) badge.textContent = `Esgoto NBR 9649: ${hm.status_label}`;
+    if (details) details.innerHTML = `Lâmina y/D: <strong>${(hm.water_depth_ratio_y_d * 100).toFixed(1)}%</strong> (Máx 75%) | Tensão Trativa: <strong>${hm.shear_stress_pa.toFixed(2)} Pa</strong> (Mín 1.0 Pa)`;
+    setStatus("Rede de esgoto sanitário calculada com sucesso.");
+  } catch (e) { setStatus(`Erro no esgoto: ${e.message}`, true); }
+});
+
+// F119: Bacia de Detenção
+document.getElementById("btn-calc-detention")?.addEventListener("click", async () => {
+  setStatus("Dimensionando bacia de retenção de cheias...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateDetentionBasin();
+    if (panel) panel.style.display = "block";
+    const hr = res.hydrologic_results;
+    if (badge) badge.textContent = `Bacia de Detenção: ${hr.status_label}`;
+    if (details) details.innerHTML = `Volume de Espera: <strong>${hr.required_storage_volume_m3} m³</strong> | Amortecimento: <strong>${hr.peak_reduction_percent}%</strong> | Vertedouro: ${hr.emergency_weir_length_m}m`;
+    if (res.geometry_3d?.vertices) addProceduralMeshToScene(res.geometry_3d.vertices, res.geometry_3d.triangles, 0x2b6cb0, "BaciaDetencao");
+    setStatus("Bacia de detenção calculada com sucesso.");
+  } catch (e) { setStatus(`Erro na bacia: ${e.message}`, true); }
+});
+
+// F120: Diagrama de Brückner
+document.getElementById("btn-calc-bruckner")?.addEventListener("click", async () => {
+  setStatus("Calculando terraplenagem e diagrama de massas de Brückner...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateEarthworkBruckner();
+    if (panel) panel.style.display = "block";
+    const es = res.earthwork_summary;
+    if (badge) badge.textContent = `Terraplenagem: ${es.status_label}`;
+    if (details) details.innerHTML = `Corte Total: ${es.total_cut_geometric_m3} m³ | Aterro Total: ${es.total_fill_geometric_m3} m³ | DMT: <strong>${es.estimated_dmt_m}m</strong> (${es.borrow_or_spoil})`;
+    setStatus("Diagrama de massas calculado com sucesso.");
+  } catch (e) { setStatus(`Erro no Brückner: ${e.message}`, true); }
+});
+
+// F121: Estabilidade de Taludes Bishop
+document.getElementById("btn-calc-slope-bishop")?.addEventListener("click", async () => {
+  setStatus("Analisando estabilidade de taludes por Bishop Simplificado...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateSlopeStabilityBishop();
+    if (panel) panel.style.display = "block";
+    const st = res.stability_analysis;
+    if (badge) badge.textContent = `Taludes Bishop: ${st.status_label}`;
+    if (details) details.innerHTML = `Fator de Segurança FS: <strong>${st.factor_of_safety_bishop}</strong> (Mín 1.50) | Raio Círculo: ${st.critical_circle_radius_m}m`;
+    setStatus("Estabilidade de talude calculada com sucesso.");
+  } catch (e) { setStatus(`Erro no talude: ${e.message}`, true); }
+});
+
+// F122: Estacas e Fundações Profundas
+document.getElementById("btn-calc-deep-piles")?.addEventListener("click", async () => {
+  setStatus("Calculando capacidade de carga de estacas NBR 6122...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateDeepFoundationsPiles();
+    if (panel) panel.style.display = "block";
+    const gc = res.geotechnical_capacity;
+    if (badge) badge.textContent = `Fundações NBR 6122: ${gc.status_label}`;
+    if (details) details.innerHTML = `Q_adm Estaca: <strong>${gc.allowable_capacity_single_pile_kn} kN</strong> | Carga Bloco: ${gc.total_group_capacity_kn} kN (FS=${gc.safety_factor})`;
+    if (res.geometry_3d?.vertices) addProceduralMeshToScene(res.geometry_3d.vertices, res.geometry_3d.triangles, 0x6b46c1, "BlocoEstacas");
+    setStatus("Fundações profundas calculadas com sucesso.");
+  } catch (e) { setStatus(`Erro nas estacas: ${e.message}`, true); }
+});
+
+// F123: Sapatas Rígidas
+document.getElementById("btn-calc-shallow-footing")?.addEventListener("click", async () => {
+  setStatus("Dimensionando sapata rígida NBR 6118/6122...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateShallowFootings();
+    if (panel) panel.style.display = "block";
+    const fd = res.footing_dimensions;
+    if (badge) badge.textContent = `Sapata: ${fd.status_label}`;
+    if (details) details.innerHTML = `Tensão no Solo: <strong>${fd.actual_soil_stress_kpa} kPa</strong> <= ${fd.allowable_soil_stress_kpa} kPa | Aço X: ${fd.reinforcement_as_x_cm2} cm² | Aço Y: ${fd.reinforcement_as_y_cm2} cm²`;
+    if (res.geometry_3d?.vertices) addProceduralMeshToScene(res.geometry_3d.vertices, res.geometry_3d.triangles, 0x805ad5, "SapataRigida");
+    setStatus("Sapata dimensionada com sucesso.");
+  } catch (e) { setStatus(`Erro na sapata: ${e.message}`, true); }
+});
+
+// F124: Muro de Gabião
+document.getElementById("btn-calc-gabion")?.addEventListener("click", async () => {
+  setStatus("Calculando estabilidade de muro de gabião NBR 10328...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateGabionWall();
+    if (panel) panel.style.display = "block";
+    const st = res.stability_analysis;
+    if (badge) badge.textContent = `Gabião NBR 10328: ${st.status_label}`;
+    if (details) details.innerHTML = `FS Tombamento: <strong>${st.safety_factor_overturning}</strong> (Mín 1.50) | FS Deslizamento: <strong>${st.safety_factor_sliding}</strong> (Mín 1.20)`;
+    if (res.geometry_3d?.vertices) addProceduralMeshToScene(res.geometry_3d.vertices, res.geometry_3d.triangles, 0xb7791f, "MuroGabiao");
+    setStatus("Muro de gabião dimensionado com sucesso.");
+  } catch (e) { setStatus(`Erro no gabião: ${e.message}`, true); }
+});
+
+// F125: Fôrmas e Escoramento
+document.getElementById("btn-calc-formwork")?.addEventListener("click", async () => {
+  setStatus("Calculando pressão de concreto e escoras NBR 15696...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateConcreteFormwork();
+    if (panel) panel.style.display = "block";
+    const fm = res.formwork_metrics;
+    if (badge) badge.textContent = `Fôrmas NBR 15696: ${fm.status_label}`;
+    if (details) details.innerHTML = `Pressão Lateral: <strong>${fm.max_lateral_pressure_kpa} kPa</strong> | Tirantes: ${fm.tie_rods_max_spacing_m}m | Espaçamento Escoras: <strong>${fm.shores_grid_spacing_m}m</strong>`;
+    setStatus("Fôrmas e escoramento calculados com sucesso.");
+  } catch (e) { setStatus(`Erro nas fôrmas: ${e.message}`, true); }
+});
+
+// F126: Viga Concreto Armado ELU
+document.getElementById("btn-calc-rc-beam")?.addEventListener("click", async () => {
+  setStatus("Dimensionando viga no ELU NBR 6118...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateReinforcedConcreteBeam();
+    if (panel) panel.style.display = "block";
+    const dr = res.design_results;
+    if (badge) badge.textContent = `Viga ELU: ${dr.status_label}`;
+    if (details) details.innerHTML = `Linha Neutra x/d: <strong>${dr.neutral_axis_ratio_x_d}</strong> | Aço Long.: <strong>${dr.longitudinal_steel_as_cm2} cm²</strong> (${dr.suggested_rebars}) | Estribos: ${dr.transverse_stirrups_asw_cm2_m} cm²/m`;
+    if (res.geometry_3d?.vertices) addProceduralMeshToScene(res.geometry_3d.vertices, res.geometry_3d.triangles, 0xc53030, "VigaConcreto");
+    setStatus("Viga de concreto armado dimensionada com sucesso.");
+  } catch (e) { setStatus(`Erro na viga: ${e.message}`, true); }
+});
+
+// F127: Lajes Nervuradas
+document.getElementById("btn-calc-waffle-slab")?.addEventListener("click", async () => {
+  setStatus("Modulando laje nervurada com cubetas plásticas...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateWaffleSlab();
+    if (panel) panel.style.display = "block";
+    const wm = res.waffle_metrics;
+    if (badge) badge.textContent = `Laje Nervurada: ${wm.status_label}`;
+    if (details) details.innerHTML = `Economia de Concreto: <strong>${wm.concrete_savings_percent}%</strong> (${wm.concrete_consumption_m3_m2} m³/m²) | Capitel: <strong>${wm.solid_shear_head_capitel_dim_cm}cm</strong>`;
+    setStatus("Laje nervurada calculada com sucesso.");
+  } catch (e) { setStatus(`Erro na laje nervurada: ${e.message}`, true); }
+});
+
+// F128: Concreto Protendido
+document.getElementById("btn-calc-prestressed")?.addEventListener("click", async () => {
+  setStatus("Calculando protensão e perdas NBR 6118...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculatePrestressedConcrete();
+    if (panel) panel.style.display = "block";
+    const pm = res.prestress_metrics;
+    if (badge) badge.textContent = `Protensão: ${pm.status_label}`;
+    if (details) details.innerHTML = `Força Efetiva P_inf: <strong>${pm.final_effective_force_p_inf_kn} kN</strong> | Perdas Totais: <strong>${pm.total_prestress_losses_percent}%</strong> | Carga Equivalente: ${pm.upward_balancing_load_kn_m} kN/m`;
+    setStatus("Concreto protendido calculado com sucesso.");
+  } catch (e) { setStatus(`Erro na protensão: ${e.message}`, true); }
+});
+
+// F129: Madeira Glulam / CLT
+document.getElementById("btn-calc-glulam")?.addEventListener("click", async () => {
+  setStatus("Dimensionando viga de madeira Glulam NBR 7190...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await calculateGlulamTimber();
+    if (panel) panel.style.display = "block";
+    const tr = res.timber_structural_results;
+    if (badge) badge.textContent = `Madeira Glulam: ${tr.status_label}`;
+    if (details) details.innerHTML = `Tensão Flexão: <strong>${tr.design_bending_stress_mpa} MPa</strong> | Flecha: <strong>${tr.elastic_deflection_mm}mm</strong> <= ${tr.allowable_deflection_limit_mm}mm | Carbonização: ${tr.fire_charring_depth_mm}mm`;
+    setStatus("Madeira engenheirada calculada com sucesso.");
+  } catch (e) { setStatus(`Erro no Glulam: ${e.message}`, true); }
+});
+
+// F130: Treliça Espacial Tubular 3D
+document.getElementById("btn-calc-space-truss")?.addEventListener("click", async () => {
+  setStatus("Gerando treliça espacial tubular 3D...");
+  const badge = document.getElementById("infra-status-badge");
+  const details = document.getElementById("infra-details");
+  const panel = document.getElementById("infra-result");
+  try {
+    const res = await generateSpaceTruss();
+    if (panel) panel.style.display = "block";
+    const ts = res.truss_statistics;
+    if (badge) badge.textContent = `Treliça Espacial: ${ts.status_label}`;
+    if (details) details.innerHTML = `Nós: <strong>${ts.nodes_count}</strong> | Barras: <strong>${ts.members_count}</strong> | Esforço Axial Máx: <strong>${ts.max_chord_axial_force_kn} kN</strong> (Capacidade: ${ts.allowable_buckling_load_kn} kN)`;
+    setStatus("Treliça espacial 3D gerada com sucesso.");
+  } catch (e) { setStatus(`Erro na treliça: ${e.message}`, true); }
+});
+
+// F131 a F145: Handlers do Bloco MEP, Energia, BIM 4D/7D e Sustentabilidade
+document.getElementById("btn-calc-gas-piping")?.addEventListener("click", async () => {
+  setStatus("Dimensionando rede de gás NBR 15526...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await calculateFuelGasPiping();
+    if (panel) panel.style.display = "block";
+    const gr = res.gas_network_results;
+    if (badge) badge.textContent = `Gás NBR 15526: ${gr.status_label}`;
+    if (details) details.innerHTML = `Vazão: <strong>${gr.gas_flow_rate_m3_h} m³/h</strong> | Velocidade: <strong>${gr.gas_velocity_m_s} m/s</strong> | Perda Carga: ${gr.total_pressure_drop_kpa} kPa`;
+    setStatus("Rede de gás calculada com sucesso.");
+  } catch (e) { setStatus(`Erro no gás: ${e.message}`, true); }
+});
+
+document.getElementById("btn-calc-spda")?.addEventListener("click", async () => {
+  setStatus("Dimensionando SPDA NBR 5419...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await calculateLightningSpda();
+    if (panel) panel.style.display = "block";
+    const sp = res.spda_design;
+    if (badge) badge.textContent = `SPDA NBR 5419: ${sp.status_label}`;
+    if (details) details.innerHTML = `Esfera Rolante: <strong>R = ${sp.rolling_sphere_radius_m}m</strong> | Malha Faraday: <strong>${sp.faraday_max_mesh_size_m}m</strong> | Descidas: ${sp.min_down_conductors_count}`;
+    setStatus("SPDA calculado com sucesso.");
+  } catch (e) { setStatus(`Erro no SPDA: ${e.message}`, true); }
+});
+
+document.getElementById("btn-calc-fire-egress")?.addEventListener("click", async () => {
+  setStatus("Calculando rota de fuga NBR 9077...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await calculateFireEgress();
+    if (panel) panel.style.display = "block";
+    const em = res.egress_metrics;
+    if (badge) badge.textContent = `Rotas de Fuga NBR 9077: ${em.status_label}`;
+    if (details) details.innerHTML = `Portas: <strong>${em.width_per_door_m}m</strong> (Total ${em.total_doors_width_required_m}m) | Escadas: <strong>${em.stair_width_required_m}m</strong> | Tempo: ${em.estimated_evacuation_time_s}s`;
+    setStatus("Rota de fuga calculada com sucesso.");
+  } catch (e) { setStatus(`Erro na rota de fuga: ${e.message}`, true); }
+});
+
+document.getElementById("btn-calc-hvac-load")?.addEventListener("click", async () => {
+  setStatus("Calculando carga térmica HVAC NBR 16401...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await calculateHvacCoolingLoad();
+    if (panel) panel.style.display = "block";
+    const tb = res.thermal_load_breakdown;
+    if (badge) badge.textContent = `HVAC: ${tb.status_label}`;
+    if (details) details.innerHTML = `Capacidade: <strong>${tb.total_cooling_capacity_tr} TR</strong> (${tb.total_cooling_capacity_btu_h} BTU/h) | Densidade: <strong>${tb.specific_cooling_load_btu_m2} BTU/m²</strong>`;
+    setStatus("Carga térmica calculada com sucesso.");
+  } catch (e) { setStatus(`Erro no HVAC: ${e.message}`, true); }
+});
+
+document.getElementById("btn-calc-photo-lumen")?.addEventListener("click", async () => {
+  setStatus("Calculando método dos lúmens NBR 8995...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await calculatePhotometricLighting();
+    if (panel) panel.style.display = "block";
+    const lr = res.lighting_results;
+    if (badge) badge.textContent = `Luminotécnica NBR 8995: ${lr.status_label}`;
+    if (details) details.innerHTML = `Iluminância: <strong>${lr.actual_average_lux} lux</strong> | Luminárias: <strong>${lr.total_luminaires_installed}</strong> (${lr.luminaires_layout_grid.join("x")}) | Densidade: ${lr.lighting_power_density_w_m2} W/m²`;
+    setStatus("Iluminação calculada com sucesso.");
+  } catch (e) { setStatus(`Erro na iluminação: ${e.message}`, true); }
+});
+
+document.getElementById("btn-calc-solar-pv")?.addEventListener("click", async () => {
+  setStatus("Dimensionando usina solar fotovoltaica...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await calculateSolarPv();
+    if (panel) panel.style.display = "block";
+    const sm = res.solar_system_metrics;
+    if (badge) badge.textContent = `Solar FV: ${sm.status_label}`;
+    if (details) details.innerHTML = `Potência: <strong>${sm.installed_capacity_kwp} kWp</strong> (${sm.modules_count} painéis) | Geração: <strong>${sm.annual_energy_generation_kwh} kWh/ano</strong> | Economia: R$ ${sm.estimated_annual_savings_brl}/ano`;
+    setStatus("Usina solar calculada com sucesso.");
+  } catch (e) { setStatus(`Erro na solar: ${e.message}`, true); }
+});
+
+document.getElementById("btn-calc-nat-vent")?.addEventListener("click", async () => {
+  setStatus("Calculando ventilação natural e efeito chaminé...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await calculateNaturalVentilation();
+    if (panel) panel.style.display = "block";
+    const vr = res.ventilation_results;
+    if (badge) badge.textContent = `Ventilação Natural: ${vr.status_label}`;
+    if (details) details.innerHTML = `Taxa ACH: <strong>${vr.air_changes_per_hour_ach} trocas/h</strong> | Vazão Total: <strong>${vr.total_combined_airflow_m3_h} m³/h</strong> (Vento: ${vr.wind_driven_flow_m3_s} m³/s, Chaminé: ${vr.stack_effect_flow_m3_s} m³/s)`;
+    setStatus("Ventilação natural calculada com sucesso.");
+  } catch (e) { setStatus(`Erro na ventilação: ${e.message}`, true); }
+});
+
+document.getElementById("btn-gen-fenestration")?.addEventListener("click", async () => {
+  setStatus("Gerando esquadrias paramétricas e pele de vidro...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await generateGlazingFenestration();
+    if (panel) panel.style.display = "block";
+    const fm = res.fenestration_metrics;
+    if (badge) badge.textContent = `Esquadria: ${fm.status_label}`;
+    if (details) details.innerHTML = `Área: <strong>${fm.total_frame_area_m2} m²</strong> | Peso Vidro: <strong>${fm.total_glass_weight_kg} kg</strong> | Fator Solar: <strong>${fm.solar_heat_gain_coefficient_shgc}</strong> | U: ${fm.thermal_transmittance_u_w_m2k} W/m²K`;
+    if (res.geometry_3d?.vertices) addProceduralMeshToScene(res.geometry_3d.vertices, res.geometry_3d.triangles, 0x4a5568, "EsquadriaVidro");
+    setStatus("Esquadria gerada com sucesso.");
+  } catch (e) { setStatus(`Erro na esquadria: ${e.message}`, true); }
+});
+
+document.getElementById("btn-calc-vent-facade")?.addEventListener("click", async () => {
+  setStatus("Calculando fachada ventilada e convecção...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await calculateVentilatedFacade();
+    if (panel) panel.style.display = "block";
+    const ts = res.thermal_and_structural_results;
+    if (badge) badge.textContent = `Fachada Ventilada: ${ts.status_label}`;
+    if (details) details.innerHTML = `Velocidade do Ar: <strong>${ts.cavity_air_velocity_m_s} m/s</strong> | Dissipação Solar: <strong>${ts.solar_heat_dissipation_percent}%</strong> | Suportes: ${ts.brackets_anchors_count}`;
+    setStatus("Fachada ventilada calculada com sucesso.");
+  } catch (e) { setStatus(`Erro na fachada: ${e.message}`, true); }
+});
+
+document.getElementById("btn-sim-wind-cfd")?.addEventListener("click", async () => {
+  setStatus("Executando simulação numérica no túnel de vento CFD 2D...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await simulateWindCfd2d();
+    if (panel) panel.style.display = "block";
+    const ar = res.aerodynamic_results;
+    if (badge) badge.textContent = `CFD 2D: ${ar.status_label}`;
+    if (details) details.innerHTML = `Cd Arrasto: <strong>${ar.drag_coefficient_cd}</strong> | Força Arrasto: <strong>${ar.drag_force_per_meter_n_m} N/m</strong> | Esteira Recirculação: ${ar.recirculation_wake_length_m}m`;
+    setStatus("Simulação CFD 2D concluída com sucesso.");
+  } catch (e) { setStatus(`Erro no CFD: ${e.message}`, true); }
+});
+
+document.getElementById("btn-gen-bim-4d")?.addEventListener("click", async () => {
+  setStatus("Gerando cronograma construtivo BIM 4D e curva S...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await generateBim4dSchedule();
+    if (panel) panel.style.display = "block";
+    const ss = res.schedule_summary;
+    if (badge) badge.textContent = `BIM 4D Gantt: ${ss.status_label}`;
+    if (details) details.innerHTML = `Prazo Total: <strong>${ss.total_duration_days} dias</strong> (${ss.total_duration_months} meses) | Orçamento: R$ ${ss.total_planned_cost_brl.toLocaleString("pt-BR")}`;
+    setStatus("Cronograma 4D gerado com sucesso.");
+  } catch (e) { setStatus(`Erro no BIM 4D: ${e.message}`, true); }
+});
+
+document.getElementById("btn-gen-bim-7d-cobie")?.addEventListener("click", async () => {
+  setStatus("Gerando estrutura de ativos BIM 7D COBie...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await generateBim7dCobie();
+    if (panel) panel.style.display = "block";
+    const fm = res.facility_management_summary;
+    if (badge) badge.textContent = `BIM 7D COBie: ${fm.status_label}`;
+    if (details) details.innerHTML = `Equipamentos Ativos: <strong>${fm.total_tracked_assets}</strong> | Planos Preventivos: <strong>${fm.active_maintenance_plans}</strong> | Folhas COBie: ${fm.cobie_sheets_validated.join(", ")}`;
+    setStatus("BIM 7D COBie gerado com sucesso.");
+  } catch (e) { setStatus(`Erro no BIM 7D: ${e.message}`, true); }
+});
+
+document.getElementById("btn-calc-site-logistics")?.addEventListener("click", async () => {
+  setStatus("Calculando logística de canteiro e raio de gruas NR-18...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await calculateSiteLogistics();
+    if (panel) panel.style.display = "block";
+    const lr = res.logistics_results;
+    if (badge) badge.textContent = `Canteiro NR-18: ${lr.status_label}`;
+    if (details) details.innerHTML = `Refeitório: <strong>${lr.canteen_area_required_m2} m²</strong> | Vestiário: <strong>${lr.locker_room_area_required_m2} m²</strong> | Sanitários: ${lr.toilets_required} un | Desnível de Gruas: Conforme`;
+    setStatus("Logística de canteiro calculada com sucesso.");
+  } catch (e) { setStatus(`Erro no canteiro: ${e.message}`, true); }
+});
+
+document.getElementById("btn-audit-accessibility")?.addEventListener("click", async () => {
+  setStatus("Auditoria de acessibilidade universal NBR 9050...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await auditUniversalAccessibility();
+    if (panel) panel.style.display = "block";
+    const cc = res.compliance_checklist;
+    if (badge) badge.textContent = `Acessibilidade NBR 9050: ${cc.status_label}`;
+    if (details) details.innerHTML = `Porta Livre: <strong>${cc.door_clear_width_ok ? "OK" : "Não"}</strong> | Corredor: <strong>${cc.corridor_width_ok ? "OK" : "Não"}</strong> | Rampa: <strong>${cc.ramp_slope_ok ? "OK" : "Não"}</strong> (${cc.ramp_run_length_m}m) | Giro 360°: ${cc.turn_space_360_ok ? "OK" : "Não"}`;
+    setStatus("Auditoria de acessibilidade concluída com sucesso.");
+  } catch (e) { setStatus(`Erro na acessibilidade: ${e.message}`, true); }
+});
+
+document.getElementById("btn-calc-lca")?.addEventListener("click", async () => {
+  setStatus("Calculando ciclo de vida ACV e carbono incorporado ISO 14040...");
+  const badge = document.getElementById("mep-bim-status-badge");
+  const details = document.getElementById("mep-bim-details");
+  const panel = document.getElementById("mep-bim-result");
+  try {
+    const res = await calculateLcaEmissions();
+    if (panel) panel.style.display = "block";
+    const lm = res.lca_metrics;
+    if (badge) badge.textContent = `ACV ISO 14040: ${lm.status_label}`;
+    if (details) details.innerHTML = `Carbono Incorporado: <strong>${lm.carbon_intensity_kgco2e_m2} kg CO2e/m²</strong> (Total ${lm.total_embodied_carbon_tons_co2e} t) | Energia: ${lm.energy_intensity_mj_m2} MJ/m² | LEED: <strong>${lm.environmental_performance_rating}</strong>`;
+    setStatus("ACV e pegada de carbono calculados com sucesso.");
+  } catch (e) { setStatus(`Erro na ACV: ${e.message}`, true); }
 });
 
 // ============================================================================

@@ -1945,3 +1945,96 @@ class SceneService:
             self._repository.calculate_bim_5d_sinapi_budget,
             elements, bdi_percent, social_charges_percent
         )
+
+    # ---------------------------------------------------------
+    # Frentes 116 a 145: Métodos de Serviço Assíncronos
+    # ---------------------------------------------------------
+    async def calculate_stormwater_drainage(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_stormwater_drainage, **kwargs)
+
+    async def calculate_permeable_pavement(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_permeable_pavement, **kwargs)
+
+    async def calculate_sewer_network(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_sewer_network, **kwargs)
+
+    async def calculate_detention_basin(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_detention_basin, **kwargs)
+
+    async def calculate_earthwork_bruckner(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_earthwork_bruckner, **kwargs)
+
+    async def calculate_slope_stability_bishop(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_slope_stability_bishop, **kwargs)
+
+    async def calculate_deep_foundations_piles(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_deep_foundations_piles, **kwargs)
+
+    async def calculate_shallow_footings(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_shallow_footings, **kwargs)
+
+    async def calculate_gabion_wall(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_gabion_wall, **kwargs)
+
+    async def calculate_concrete_formwork(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_concrete_formwork, **kwargs)
+
+    async def calculate_reinforced_concrete_beam(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_reinforced_concrete_beam, **kwargs)
+
+    async def calculate_waffle_slab(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_waffle_slab, **kwargs)
+
+    async def calculate_prestressed_concrete(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_prestressed_concrete, **kwargs)
+
+    async def calculate_glulam_timber(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_glulam_timber, **kwargs)
+
+    async def generate_space_truss(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.generate_space_truss, **kwargs)
+
+    async def calculate_fuel_gas_piping(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_fuel_gas_piping, **kwargs)
+
+    async def calculate_lightning_spda(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_lightning_spda, **kwargs)
+
+    async def calculate_fire_egress(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_fire_egress, **kwargs)
+
+    async def calculate_hvac_cooling_load(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_hvac_cooling_load, **kwargs)
+
+    async def calculate_photometric_lighting(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_photometric_lighting, **kwargs)
+
+    async def calculate_solar_pv(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_solar_pv, **kwargs)
+
+    async def calculate_natural_ventilation(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_natural_ventilation, **kwargs)
+
+    async def generate_glazing_fenestration(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.generate_glazing_fenestration, **kwargs)
+
+    async def calculate_ventilated_facade(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_ventilated_facade, **kwargs)
+
+    async def simulate_wind_cfd_2d(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.simulate_wind_cfd_2d, **kwargs)
+
+    async def generate_bim_4d_schedule(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.generate_bim_4d_schedule, **kwargs)
+
+    async def generate_bim_7d_cobie(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.generate_bim_7d_cobie, **kwargs)
+
+    async def calculate_site_logistics(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_site_logistics, **kwargs)
+
+    async def audit_universal_accessibility(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.audit_universal_accessibility, **kwargs)
+
+    async def calculate_lca_emissions(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.calculate_lca_emissions, **kwargs)

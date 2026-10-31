@@ -1513,6 +1513,70 @@
       </div>
     </div><!-- /tray-advanced-engineering -->
 
+    <!-- Frentes 116 a 130: Infraestrutura, Geotecnia e Estruturas Avançadas -->
+    <div class="tray-section collapsed" id="tray-infra-structures">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">Infraestrutura &amp; Estruturas Avançadas</span>
+        <span class="tray-arrow">&#9662;</span>
+      </div>
+      <div class="tray-body">
+        <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">
+          Drenagem NBR 10844, Pavimento NBR 16416, Esgoto NBR 9649, Brückner, Taludes Bishop, Estacas NBR 6122, Sapatas, Gabião, Fôrmas, Concreto ELU NBR 6118, Lajes Nervuradas, Protensão, Glulam e Treliças 3D.
+        </div>
+        <button id="btn-calc-stormwater" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #2B6CB0; color: white;">Drenagem Pluvial &amp; Calhas NBR 10844 (F116)</button>
+        <button id="btn-calc-permeable" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #2C5282; color: white;">Pavimentação Permeável NBR 16416 (F117)</button>
+        <button id="btn-calc-sewer" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #4A5568; color: white;">Rede de Esgoto por Gravidade NBR 9649 (F118)</button>
+        <button id="btn-calc-detention" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #3182CE; color: white;">Bacia de Detenção de Cheias (F119)</button>
+        <button id="btn-calc-bruckner" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #744210; color: white;">Terraplenagem &amp; Diagrama Brückner (F120)</button>
+        <button id="btn-calc-slope-bishop" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #975A16; color: white;">Estabilidade Taludes Bishop (F121)</button>
+        <button id="btn-calc-deep-piles" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #553C9A; color: white;">Estacas &amp; Fundações NBR 6122 (F122)</button>
+        <button id="btn-calc-shallow-footing" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #6B46C1; color: white;">Sapatas Rígidas NBR 6118 (F123)</button>
+        <button id="btn-calc-gabion" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #B7791F; color: white;">Muro de Gabião NBR 10328 (F124)</button>
+        <button id="btn-calc-formwork" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #C05621; color: white;">Fôrmas e Escoramento NBR 15696 (F125)</button>
+        <button id="btn-calc-rc-beam" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #C53030; color: white;">Viga Concreto Armado ELU NBR 6118 (F126)</button>
+        <button id="btn-calc-waffle-slab" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #9B2C2C; color: white;">Laje Nervurada com Cubetas (F127)</button>
+        <button id="btn-calc-prestressed" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #2D3748; color: white;">Concreto Protendido &amp; Perdas (F128)</button>
+        <button id="btn-calc-glulam" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #7B341E; color: white;">Madeira Glulam / CLT NBR 7190 (F129)</button>
+        <button id="btn-calc-space-truss" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #1A365D; color: white;">Treliça Espacial Tubular 3D (F130)</button>
+        <div id="infra-result" style="display: none; padding: 6px; background: #EBF8FF; border: 1px solid #BEE3F8; border-radius: 3px; font-size: 10.5px; margin-top: 8px;">
+          <div id="infra-status-badge" style="font-weight: bold; color: #2B6CB0;"></div>
+          <div id="infra-details" style="color: var(--text);"></div>
+        </div>
+      </div>
+    </div><!-- /tray-infra-structures -->
+
+    <!-- Frentes 131 a 145: Instalações, Energia, Gestão BIM 4D/7D e Sustentabilidade -->
+    <div class="tray-section collapsed" id="tray-mep-bim-sustainability">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">MEP, Energia, BIM 4D/7D &amp; Sustentabilidade</span>
+        <span class="tray-arrow">&#9662;</span>
+      </div>
+      <div class="tray-body">
+        <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">
+          Gás NBR 15526, SPDA NBR 5419, Rota de Fuga NBR 9077, Carga Térmica HVAC, Iluminação NBR 8995, Solar FV, Ventilação Natural, Esquadrias, Fachada Ventilada, CFD 2D, BIM 4D, BIM 7D COBie, Canteiro NR-18, Acessibilidade NBR 9050 e ACV ISO 14040.
+        </div>
+        <button id="btn-calc-gas-piping" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #D69E2E; color: white;">Gás Canalizado GLP/GN NBR 15526 (F131)</button>
+        <button id="btn-calc-spda" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #B7791F; color: white;">SPDA Esfera Rolante NBR 5419 (F132)</button>
+        <button id="btn-calc-fire-egress" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #E53E3E; color: white;">Rotas de Fuga NBR 9077 (F133)</button>
+        <button id="btn-calc-hvac-load" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #319795; color: white;">Carga Térmica HVAC NBR 16401 (F134)</button>
+        <button id="btn-calc-photo-lumen" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #DD6B20; color: white;">Iluminação Método dos Lúmens (F135)</button>
+        <button id="btn-calc-solar-pv" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #D69E2E; color: white;">Usina Solar Fotovoltaica (F136)</button>
+        <button id="btn-calc-nat-vent" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #3182CE; color: white;">Ventilação Natural &amp; Efeito Chaminé (F137)</button>
+        <button id="btn-gen-fenestration" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #4A5568; color: white;">Esquadrias &amp; Pele de Vidro (F138)</button>
+        <button id="btn-calc-vent-facade" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #718096; color: white;">Fachada Ventilada Convectiva (F139)</button>
+        <button id="btn-sim-wind-cfd" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #2B6CB0; color: white;">Túnel de Vento Numérico CFD 2D (F140)</button>
+        <button id="btn-gen-bim-4d" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #2F855A; color: white;">Cronograma BIM 4D Gantt (F141)</button>
+        <button id="btn-gen-bim-7d-cobie" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #276749; color: white;">Gestão de Ativos BIM 7D COBie (F142)</button>
+        <button id="btn-calc-site-logistics" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #805AD5; color: white;">Logística de Canteiro NR-18 (F143)</button>
+        <button id="btn-audit-accessibility" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #4C51BF; color: white;">Acessibilidade NBR 9050 (F144)</button>
+        <button id="btn-calc-lca" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #22543D; color: white;">Avaliação Ciclo de Vida ACV ISO 14040 (F145)</button>
+        <div id="mep-bim-result" style="display: none; padding: 6px; background: #F0FFF4; border: 1px solid #9AE6B4; border-radius: 3px; font-size: 10.5px; margin-top: 8px;">
+          <div id="mep-bim-status-badge" style="font-weight: bold; color: #22543D;"></div>
+          <div id="mep-bim-details" style="color: var(--text);"></div>
+        </div>
+      </div>
+    </div><!-- /tray-mep-bim-sustainability -->
+
   </div>
 
   <div id="status">Clique em "Escolher arquivo..." pra abrir pelo seletor do Windows, ou cole o caminho completo e clique em Abrir.</div>

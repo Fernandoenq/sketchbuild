@@ -190,6 +190,66 @@ from app.schemas.scene import (
     SteelProfileResponse,
     Bim5dSinapiCostRequest,
     Bim5dSinapiCostResponse,
+    StormwaterDrainageRequest,
+    StormwaterDrainageResponse,
+    PermeablePavementRequest,
+    PermeablePavementResponse,
+    SewerNetworkGravityRequest,
+    SewerNetworkGravityResponse,
+    DetentionBasinHydrologyRequest,
+    DetentionBasinHydrologyResponse,
+    EarthworkBrucknerRequest,
+    EarthworkBrucknerResponse,
+    SlopeStabilityBishopRequest,
+    SlopeStabilityBishopResponse,
+    DeepFoundationsPilesRequest,
+    DeepFoundationsPilesResponse,
+    ShallowFootingsRequest,
+    ShallowFootingsResponse,
+    GabionRetainingWallRequest,
+    GabionRetainingWallResponse,
+    ConcreteFormworkShoringRequest,
+    ConcreteFormworkShoringResponse,
+    ReinforcedConcreteBeamRequest,
+    ReinforcedConcreteBeamResponse,
+    WaffleSlabRequest,
+    WaffleSlabResponse,
+    PrestressedConcreteRequest,
+    PrestressedConcreteResponse,
+    GlulamCltTimberRequest,
+    GlulamCltTimberResponse,
+    SpaceTrussRequest,
+    SpaceTrussResponse,
+    FuelGasPipingRequest,
+    FuelGasPipingResponse,
+    LightningProtectionSpdaRequest,
+    LightningProtectionSpdaResponse,
+    FireEgressRouteRequest,
+    FireEgressRouteResponse,
+    HvacThermalLoadRequest,
+    HvacThermalLoadResponse,
+    PhotometricLumenDesignRequest,
+    PhotometricLumenDesignResponse,
+    SolarPhotovoltaicArrayRequest,
+    SolarPhotovoltaicArrayResponse,
+    NaturalVentilationRequest,
+    NaturalVentilationResponse,
+    GlazingFenestrationRequest,
+    GlazingFenestrationResponse,
+    VentilatedFacadeRequest,
+    VentilatedFacadeResponse,
+    MiniWindCfd2dRequest,
+    MiniWindCfd2dResponse,
+    Bim4dGanttScheduleRequest,
+    Bim4dGanttScheduleResponse,
+    Bim7dAssetManagementCobieRequest,
+    Bim7dAssetManagementCobieResponse,
+    ConstructionSiteLogisticsRequest,
+    ConstructionSiteLogisticsResponse,
+    UniversalAccessibilityRequest,
+    UniversalAccessibilityResponse,
+    LifeCycleAssessmentRequest,
+    LifeCycleAssessmentResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2104,5 +2164,218 @@ class SceneController:
                 body.elements, body.bdi_percent, body.social_charges_percent
             )
             return Bim5dSinapiCostResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    # ---------------------------------------------------------
+    # Frentes 116 a 145: Métodos do Controller
+    # ---------------------------------------------------------
+    async def calculate_stormwater_drainage(self, body: StormwaterDrainageRequest) -> StormwaterDrainageResponse:
+        try:
+            res = await self._service.calculate_stormwater_drainage(**body.model_dump())
+            return StormwaterDrainageResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_permeable_pavement(self, body: PermeablePavementRequest) -> PermeablePavementResponse:
+        try:
+            res = await self._service.calculate_permeable_pavement(**body.model_dump())
+            return PermeablePavementResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_sewer_network(self, body: SewerNetworkGravityRequest) -> SewerNetworkGravityResponse:
+        try:
+            res = await self._service.calculate_sewer_network(**body.model_dump())
+            return SewerNetworkGravityResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_detention_basin(self, body: DetentionBasinHydrologyRequest) -> DetentionBasinHydrologyResponse:
+        try:
+            res = await self._service.calculate_detention_basin(**body.model_dump())
+            return DetentionBasinHydrologyResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_earthwork_bruckner(self, body: EarthworkBrucknerRequest) -> EarthworkBrucknerResponse:
+        try:
+            res = await self._service.calculate_earthwork_bruckner(**body.model_dump())
+            return EarthworkBrucknerResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_slope_stability_bishop(self, body: SlopeStabilityBishopRequest) -> SlopeStabilityBishopResponse:
+        try:
+            res = await self._service.calculate_slope_stability_bishop(**body.model_dump())
+            return SlopeStabilityBishopResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_deep_foundations_piles(self, body: DeepFoundationsPilesRequest) -> DeepFoundationsPilesResponse:
+        try:
+            res = await self._service.calculate_deep_foundations_piles(**body.model_dump())
+            return DeepFoundationsPilesResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_shallow_footings(self, body: ShallowFootingsRequest) -> ShallowFootingsResponse:
+        try:
+            res = await self._service.calculate_shallow_footings(**body.model_dump())
+            return ShallowFootingsResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_gabion_wall(self, body: GabionRetainingWallRequest) -> GabionRetainingWallResponse:
+        try:
+            res = await self._service.calculate_gabion_wall(**body.model_dump())
+            return GabionRetainingWallResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_concrete_formwork(self, body: ConcreteFormworkShoringRequest) -> ConcreteFormworkShoringResponse:
+        try:
+            res = await self._service.calculate_concrete_formwork(**body.model_dump())
+            return ConcreteFormworkShoringResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_reinforced_concrete_beam(self, body: ReinforcedConcreteBeamRequest) -> ReinforcedConcreteBeamResponse:
+        try:
+            res = await self._service.calculate_reinforced_concrete_beam(**body.model_dump())
+            return ReinforcedConcreteBeamResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_waffle_slab(self, body: WaffleSlabRequest) -> WaffleSlabResponse:
+        try:
+            res = await self._service.calculate_waffle_slab(**body.model_dump())
+            return WaffleSlabResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_prestressed_concrete(self, body: PrestressedConcreteRequest) -> PrestressedConcreteResponse:
+        try:
+            res = await self._service.calculate_prestressed_concrete(**body.model_dump())
+            return PrestressedConcreteResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_glulam_timber(self, body: GlulamCltTimberRequest) -> GlulamCltTimberResponse:
+        try:
+            res = await self._service.calculate_glulam_timber(**body.model_dump())
+            return GlulamCltTimberResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_space_truss(self, body: SpaceTrussRequest) -> SpaceTrussResponse:
+        try:
+            res = await self._service.generate_space_truss(**body.model_dump())
+            return SpaceTrussResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_fuel_gas_piping(self, body: FuelGasPipingRequest) -> FuelGasPipingResponse:
+        try:
+            res = await self._service.calculate_fuel_gas_piping(**body.model_dump())
+            return FuelGasPipingResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_lightning_spda(self, body: LightningProtectionSpdaRequest) -> LightningProtectionSpdaResponse:
+        try:
+            res = await self._service.calculate_lightning_spda(**body.model_dump())
+            return LightningProtectionSpdaResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_fire_egress(self, body: FireEgressRouteRequest) -> FireEgressRouteResponse:
+        try:
+            res = await self._service.calculate_fire_egress(**body.model_dump())
+            return FireEgressRouteResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_hvac_cooling_load(self, body: HvacThermalLoadRequest) -> HvacThermalLoadResponse:
+        try:
+            res = await self._service.calculate_hvac_cooling_load(**body.model_dump())
+            return HvacThermalLoadResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_photometric_lighting(self, body: PhotometricLumenDesignRequest) -> PhotometricLumenDesignResponse:
+        try:
+            res = await self._service.calculate_photometric_lighting(**body.model_dump())
+            return PhotometricLumenDesignResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_solar_pv(self, body: SolarPhotovoltaicArrayRequest) -> SolarPhotovoltaicArrayResponse:
+        try:
+            res = await self._service.calculate_solar_pv(**body.model_dump())
+            return SolarPhotovoltaicArrayResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_natural_ventilation(self, body: NaturalVentilationRequest) -> NaturalVentilationResponse:
+        try:
+            res = await self._service.calculate_natural_ventilation(**body.model_dump())
+            return NaturalVentilationResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_glazing_fenestration(self, body: GlazingFenestrationRequest) -> GlazingFenestrationResponse:
+        try:
+            res = await self._service.generate_glazing_fenestration(**body.model_dump())
+            return GlazingFenestrationResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_ventilated_facade(self, body: VentilatedFacadeRequest) -> VentilatedFacadeResponse:
+        try:
+            res = await self._service.calculate_ventilated_facade(**body.model_dump())
+            return VentilatedFacadeResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def simulate_wind_cfd_2d(self, body: MiniWindCfd2dRequest) -> MiniWindCfd2dResponse:
+        try:
+            res = await self._service.simulate_wind_cfd_2d(**body.model_dump())
+            return MiniWindCfd2dResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_bim_4d_schedule(self, body: Bim4dGanttScheduleRequest) -> Bim4dGanttScheduleResponse:
+        try:
+            res = await self._service.generate_bim_4d_schedule(**body.model_dump())
+            return Bim4dGanttScheduleResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_bim_7d_cobie(self, body: Bim7dAssetManagementCobieRequest) -> Bim7dAssetManagementCobieResponse:
+        try:
+            res = await self._service.generate_bim_7d_cobie(**body.model_dump())
+            return Bim7dAssetManagementCobieResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_site_logistics(self, body: ConstructionSiteLogisticsRequest) -> ConstructionSiteLogisticsResponse:
+        try:
+            res = await self._service.calculate_site_logistics(**body.model_dump())
+            return ConstructionSiteLogisticsResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def audit_universal_accessibility(self, body: UniversalAccessibilityRequest) -> UniversalAccessibilityResponse:
+        try:
+            res = await self._service.audit_universal_accessibility(**body.model_dump())
+            return UniversalAccessibilityResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_lca_emissions(self, body: LifeCycleAssessmentRequest) -> LifeCycleAssessmentResponse:
+        try:
+            res = await self._service.calculate_lca_emissions(**body.model_dump())
+            return LifeCycleAssessmentResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

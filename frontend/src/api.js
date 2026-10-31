@@ -1618,3 +1618,126 @@ export function calculateBim5dSinapiBudget(budgetItems = [], bdiRatePct = 24.5, 
   });
 }
 
+// ----------------------------------------------------------------------------
+// Frentes 116 a 145: Funções Client API
+// ----------------------------------------------------------------------------
+export function calculateStormwaterDrainage(roofAreaM2 = 120.0, rainfallIntensityMmH = 150.0) {
+  return postJson("/api/v1/scene/mep/stormwater-drainage", "POST", { roof_area_m2: roofAreaM2, rainfall_intensity_mm_h: rainfallIntensityMmH });
+}
+
+export function calculatePermeablePavement(pavementAreaM2 = 250.0, designRainfallMm = 60.0) {
+  return postJson("/api/v1/scene/environment/permeable-pavement", "POST", { pavement_area_m2: pavementAreaM2, design_rainfall_mm: designRainfallMm });
+}
+
+export function calculateSewerNetwork(pipeDiameterDnMm = 150.0, flowRateLS = 2.5) {
+  return postJson("/api/v1/scene/mep/sewer-network", "POST", { pipe_diameter_dn_mm: pipeDiameterDnMm, flow_rate_l_s: flowRateLS });
+}
+
+export function calculateDetentionBasin(catchmentAreaHa = 5.0, allowableOutflowLS = 250.0) {
+  return postJson("/api/v1/scene/hydrology/detention-basin", "POST", { catchment_area_ha: catchmentAreaHa, allowable_outflow_l_s: allowableOutflowLS });
+}
+
+export function calculateEarthworkBruckner(crossSections = null, bulkingFactor = 1.25) {
+  return postJson("/api/v1/scene/infrastructure/earthwork-bruckner", "POST", { cross_sections: crossSections, bulking_factor: bulkingFactor });
+}
+
+export function calculateSlopeStabilityBishop(slopeHeightM = 8.0, slopeAngleDeg = 35.0) {
+  return postJson("/api/v1/scene/geotechnics/slope-stability-bishop", "POST", { slope_height_m: slopeHeightM, slope_angle_deg: slopeAngleDeg });
+}
+
+export function calculateDeepFoundationsPiles(columnAxialLoadKn = 1800.0, pileDiameterMm = 500.0) {
+  return postJson("/api/v1/scene/geotechnics/deep-foundations-piles", "POST", { column_axial_load_kn: columnAxialLoadKn, pile_diameter_mm: pileDiameterMm });
+}
+
+export function calculateShallowFootings(columnLoadKn = 650.0, soilAllowableStressMpa = 0.20) {
+  return postJson("/api/v1/scene/structures/shallow-footings", "POST", { column_load_kn: columnLoadKn, soil_allowable_stress_mpa: soilAllowableStressMpa });
+}
+
+export function calculateGabionWall(wallHeightM = 4.0, baseWidthM = 2.5) {
+  return postJson("/api/v1/scene/geotechnics/gabion-wall", "POST", { wall_height_m: wallHeightM, base_width_m: baseWidthM });
+}
+
+export function calculateConcreteFormwork(elementType = "COLUMN", heightOrSpanM = 3.20) {
+  return postJson("/api/v1/scene/structures/concrete-formwork", "POST", { element_type: elementType, height_or_span_m: heightOrSpanM });
+}
+
+export function calculateReinforcedConcreteBeam(bendingMomentMkKnM = 120.0, shearForceVkKn = 85.0) {
+  return postJson("/api/v1/scene/structures/reinforced-concrete-beam", "POST", { bending_moment_mk_kn_m: bendingMomentMkKnM, shear_force_vk_kn: shearForceVkKn });
+}
+
+export function calculateWaffleSlab(spanXM = 8.0, spanYM = 8.0) {
+  return postJson("/api/v1/scene/structures/waffle-slab", "POST", { span_x_m: spanXM, span_y_m: spanYM });
+}
+
+export function calculatePrestressedConcrete(beamSpanM = 16.0, strandsCount = 8) {
+  return postJson("/api/v1/scene/structures/prestressed-concrete", "POST", { beam_span_m: beamSpanM, strands_count: strandsCount });
+}
+
+export function calculateGlulamTimber(spanM = 9.0, distributedLoadKnM = 12.0) {
+  return postJson("/api/v1/scene/structures/glulam-timber", "POST", { span_m: spanM, distributed_load_kn_m: distributedLoadKnM });
+}
+
+export function generateSpaceTruss(spanXM = 12.0, spanYM = 12.0) {
+  return postJson("/api/v1/scene/structures/space-truss", "POST", { span_x_m: spanXM, span_y_m: spanYM });
+}
+
+export function calculateFuelGasPiping(totalPowerKw = 75.0, pipeLengthM = 25.0) {
+  return postJson("/api/v1/scene/mep/fuel-gas-piping", "POST", { total_power_kw: totalPowerKw, pipe_length_m: pipeLengthM });
+}
+
+export function calculateLightningSpda(buildingWidthM = 20.0, buildingLengthM = 30.0, buildingHeightM = 18.0) {
+  return postJson("/api/v1/scene/mep/lightning-spda", "POST", { building_width_m: buildingWidthM, building_length_m: buildingLengthM, building_height_m: buildingHeightM });
+}
+
+export function calculateFireEgress(floorPopulationPersons = 180, longestTravelDistanceM = 38.0) {
+  return postJson("/api/v1/scene/safety/fire-egress", "POST", { floor_population_persons: floorPopulationPersons, longest_travel_distance_m: longestTravelDistanceM });
+}
+
+export function calculateHvacCoolingLoad(floorAreaM2 = 80.0, occupantsCount = 8) {
+  return postJson("/api/v1/scene/mep/hvac-cooling-load", "POST", { floor_area_m2: floorAreaM2, occupants_count: occupantsCount });
+}
+
+export function calculatePhotometricLighting(roomLengthM = 10.0, roomWidthM = 6.0, targetLux = 500.0) {
+  return postJson("/api/v1/scene/lighting/photometric-lumen", "POST", { room_length_m: roomLengthM, room_width_m: roomWidthM, target_lux: targetLux });
+}
+
+export function calculateSolarPv(roofAvailableAreaM2 = 150.0, latitudeDeg = -23.55) {
+  return postJson("/api/v1/scene/energy/solar-photovoltaic", "POST", { roof_available_area_m2: roofAvailableAreaM2, latitude_deg: latitudeDeg });
+}
+
+export function calculateNaturalVentilation(roomVolumeM3 = 180.0, windSpeedMS = 3.5) {
+  return postJson("/api/v1/scene/environment/natural-ventilation", "POST", { room_volume_m3: roomVolumeM3, wind_speed_m_s: windSpeedMS });
+}
+
+export function generateGlazingFenestration(fenestrationType = "CURTAIN_WALL", widthM = 3.0, heightM = 2.60) {
+  return postJson("/api/v1/scene/architecture/glazing-fenestration", "POST", { fenestration_type: fenestrationType, width_m: widthM, height_m: heightM });
+}
+
+export function calculateVentilatedFacade(facadeHeightM = 15.0, facadeWidthM = 20.0) {
+  return postJson("/api/v1/scene/architecture/ventilated-facade", "POST", { facade_height_m: facadeHeightM, facade_width_m: facadeWidthM });
+}
+
+export function simulateWindCfd2d(buildingWidthM = 12.0, windInflowSpeedMS = 10.0) {
+  return postJson("/api/v1/scene/aerodynamics/mini-wind-cfd-2d", "POST", { building_width_m: buildingWidthM, wind_inflow_speed_m_s: windInflowSpeedMS });
+}
+
+export function generateBim4dSchedule(projectStartDate = "2026-11-01", totalBudgetBrl = 450000.0) {
+  return postJson("/api/v1/scene/bim/4d-gantt-schedule", "POST", { project_start_date: projectStartDate, total_budget_brl: totalBudgetBrl });
+}
+
+export function generateBim7dCobie(facilityName = "Edifício Corporativo SketchBuild") {
+  return postJson("/api/v1/scene/bim/7d-cobie-assets", "POST", { facility_name: facilityName });
+}
+
+export function calculateSiteLogistics(siteWidthM = 60.0, siteLengthM = 80.0, dailyWorkersCount = 65) {
+  return postJson("/api/v1/scene/safety/construction-site-logistics", "POST", { site_width_m: siteWidthM, site_length_m: siteLengthM, daily_workers_count: dailyWorkersCount });
+}
+
+export function auditUniversalAccessibility(doorClearWidthCm = 85.0, rampSlopePercent = 8.33) {
+  return postJson("/api/v1/scene/accessibility/universal-audit", "POST", { door_clear_width_cm: doorClearWidthCm, ramp_slope_percent: rampSlopePercent });
+}
+
+export function calculateLcaEmissions(grossFloorAreaM2 = 850.0, buildingLifespanYears = 50) {
+  return postJson("/api/v1/scene/sustainability/lca-emissions", "POST", { gross_floor_area_m2: grossFloorAreaM2, building_lifespan_years: buildingLifespanYears });
+}
+
