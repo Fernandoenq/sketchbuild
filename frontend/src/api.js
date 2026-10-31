@@ -1314,3 +1314,64 @@ export function calculateMeshMassProperties(vertices, triangles, materialType = 
     custom_density_kg_m3: customDensityKgM3,
   });
 }
+
+/** Gera casca sólida volumétrica B-Rep a partir de superfícies (Frente 91). */
+export function createSolidShell(vertices, faces, thicknessM = 0.05, inwards = false) {
+  return postJson("/api/v1/scene/geometry/solid-shell", "POST", {
+    vertices,
+    faces,
+    thickness_m: thicknessM,
+    inwards,
+  });
+}
+
+/** Configura parâmetros de holofote fotométrico spot Three.js (Frente 92). */
+export function configureSpotLight(position, target, lumens = 1200.0, colorTemperatureK = 3000.0, beamAngleDeg = 45.0, penumbraPercent = 25.0, maxDistanceM = 20.0, castShadows = true) {
+  return postJson("/api/v1/scene/lighting/spotlight", "POST", {
+    position,
+    target,
+    lumens,
+    color_temperature_k: colorTemperatureK,
+    beam_angle_deg: beamAngleDeg,
+    penumbra_percent: penumbraPercent,
+    max_distance_m: maxDistanceM,
+    cast_shadows: castShadows,
+  });
+}
+
+/** Roteia tubulação e dutos paramétricos 3D com cotovelos e curvas (Frente 93). */
+export function generatePipeRoute(routePoints, outerDiameterMm = 114.3, wallThicknessMm = 6.02, radialSegments = 16, bendRadiusFactor = 1.5) {
+  return postJson("/api/v1/scene/mep/piping-route", "POST", {
+    route_points: routePoints,
+    outer_diameter_mm: outerDiameterMm,
+    wall_thickness_mm: wallThicknessMm,
+    radial_segments: radialSegments,
+    bend_radius_factor: bendRadiusFactor,
+  });
+}
+
+/** Gera trajetória cinematográfica contínua de câmera (Orbit ou Flythrough) (Frente 94). */
+export function generateCameraAnimationPath(mode = "ORBIT", targetPoint = [0, 0, 0], radiusM = 10.0, heightM = 3.5, startAngleDeg = 0.0, totalRotationDeg = 360.0, waypoints = null, durationSeconds = 10.0, fps = 30, fovDeg = 45.0) {
+  return postJson("/api/v1/scene/animation/camera-path", "POST", {
+    mode,
+    target_point: targetPoint,
+    radius_m: radiusM,
+    height_m: heightM,
+    start_angle_deg: startAngleDeg,
+    total_rotation_deg: totalRotationDeg,
+    waypoints,
+    duration_seconds: durationSeconds,
+    fps,
+    fov_deg: fovDeg,
+  });
+}
+
+/** Processa peças e produz tabela industrial de corte CNC com CSV (Frente 95). */
+export function generateCncCutlist(parts, sawKerfMm = 4.0, trimMarginMm = 15.0, exportCsv = true) {
+  return postJson("/api/v1/scene/factory/cutlist-cnc", "POST", {
+    parts,
+    saw_kerf_mm: sawKerfMm,
+    trim_margin_mm: trimMarginMm,
+    export_csv: exportCsv,
+  });
+}

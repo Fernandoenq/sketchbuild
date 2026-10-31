@@ -2740,3 +2740,86 @@ class SkpEngineRepository:
         return MassPropertiesCenterOfGravityEngine.calculate_mesh_properties(
             verts, triangles, material_type, custom_density_kg_m3
         )
+
+    def create_solid_shell(self, vertices: list, faces: list, thickness_m: float = 0.05, inwards: bool = False) -> dict:
+        """Gera casca sólida volumétrica B-Rep a partir de superfícies (Frente 91)."""
+        from core.shell_solid_offset_engine import ShellSolidOffsetEngine
+        verts = [tuple(v) for v in vertices]
+        return ShellSolidOffsetEngine.create_solid_shell(verts, faces, thickness_m, inwards)
+
+    def configure_spot_light(
+        self,
+        position: list,
+        target: list,
+        lumens: float = 1200.0,
+        color_temperature_k: float = 3000.0,
+        beam_angle_deg: float = 45.0,
+        penumbra_percent: float = 25.0,
+        max_distance_m: float = 20.0,
+        cast_shadows: bool = True
+    ) -> dict:
+        """Configura parâmetros de holofote fotométrico spot Three.js (Frente 92)."""
+        from core.photometric_spot_light_engine import PhotometricSpotLightEngine
+        return PhotometricSpotLightEngine.configure_spot_light(
+            tuple(position),
+            tuple(target),
+            lumens,
+            color_temperature_k,
+            beam_angle_deg,
+            penumbra_percent,
+            max_distance_m,
+            cast_shadows
+        )
+
+    def generate_pipe_route(
+        self,
+        route_points: list,
+        outer_diameter_mm: float = 114.3,
+        wall_thickness_mm: float = 6.02,
+        radial_segments: int = 16,
+        bend_radius_factor: float = 1.5
+    ) -> dict:
+        """Roteia tubulação e dutos paramétricos 3D com cotovelos e curvas (Frente 93)."""
+        from core.piping_ductwork_engine import PipingDuctworkEngine
+        pts = [tuple(p) for p in route_points]
+        return PipingDuctworkEngine.generate_pipe_route(
+            pts, outer_diameter_mm, wall_thickness_mm, radial_segments, bend_radius_factor
+        )
+
+    def generate_camera_animation_path(
+        self,
+        mode: str = "ORBIT",
+        target_point: list = None,
+        radius_m: float = 10.0,
+        height_m: float = 3.5,
+        start_angle_deg: float = 0.0,
+        total_rotation_deg: float = 360.0,
+        waypoints: list = None,
+        duration_seconds: float = 10.0,
+        fps: int = 30,
+        fov_deg: float = 45.0
+    ) -> dict:
+        """Gera trajetória cinematográfica contínua de câmera (Orbit ou Flythrough) (Frente 94)."""
+        from core.orbit_flythrough_path_engine import OrbitFlythroughPathEngine
+        tgt = tuple(target_point) if target_point else (0.0, 0.0, 0.0)
+        if mode.upper() == "FLYTHROUGH" and waypoints:
+            wpts = [tuple(p) for p in waypoints]
+            return OrbitFlythroughPathEngine.generate_flythrough_path(
+                wpts, tgt, duration_seconds, fps, fov_deg
+            )
+        return OrbitFlythroughPathEngine.generate_orbit_path(
+            tgt, radius_m, height_m, start_angle_deg, total_rotation_deg, duration_seconds, fps, fov_deg
+        )
+
+    def generate_cnc_cutlist(
+        self,
+        parts: list,
+        saw_kerf_mm: float = 4.0,
+        trim_margin_mm: float = 15.0,
+        export_csv: bool = True
+    ) -> dict:
+        """Processa peças e produz tabela industrial de corte CNC com CSV (Frente 95)."""
+        from core.cam_cutlist_fabrication_engine import CamCutlistFabricationEngine
+        return CamCutlistFabricationEngine.generate_cnc_cutlist(
+            parts, saw_kerf_mm, trim_margin_mm, export_csv
+        )

@@ -1491,3 +1491,105 @@ class SceneService:
             material_type,
             custom_density_kg_m3
         )
+
+    async def create_solid_shell(
+        self,
+        vertices: list,
+        faces: list,
+        thickness_m: float = 0.05,
+        inwards: bool = False
+    ) -> dict:
+        """Gera casca sólida volumétrica B-Rep a partir de superfícies (Frente 91)."""
+        return await run_in_threadpool(
+            self._repository.create_solid_shell,
+            vertices,
+            faces,
+            thickness_m,
+            inwards
+        )
+
+    async def configure_spot_light(
+        self,
+        position: list,
+        target: list,
+        lumens: float = 1200.0,
+        color_temperature_k: float = 3000.0,
+        beam_angle_deg: float = 45.0,
+        penumbra_percent: float = 25.0,
+        max_distance_m: float = 20.0,
+        cast_shadows: bool = True
+    ) -> dict:
+        """Configura parâmetros de holofote fotométrico spot Three.js (Frente 92)."""
+        return await run_in_threadpool(
+            self._repository.configure_spot_light,
+            position,
+            target,
+            lumens,
+            color_temperature_k,
+            beam_angle_deg,
+            penumbra_percent,
+            max_distance_m,
+            cast_shadows
+        )
+
+    async def generate_pipe_route(
+        self,
+        route_points: list,
+        outer_diameter_mm: float = 114.3,
+        wall_thickness_mm: float = 6.02,
+        radial_segments: int = 16,
+        bend_radius_factor: float = 1.5
+    ) -> dict:
+        """Roteia tubulação e dutos paramétricos 3D com cotovelos e curvas (Frente 93)."""
+        return await run_in_threadpool(
+            self._repository.generate_pipe_route,
+            route_points,
+            outer_diameter_mm,
+            wall_thickness_mm,
+            radial_segments,
+            bend_radius_factor
+        )
+
+    async def generate_camera_animation_path(
+        self,
+        mode: str = "ORBIT",
+        target_point: list = None,
+        radius_m: float = 10.0,
+        height_m: float = 3.5,
+        start_angle_deg: float = 0.0,
+        total_rotation_deg: float = 360.0,
+        waypoints: list = None,
+        duration_seconds: float = 10.0,
+        fps: int = 30,
+        fov_deg: float = 45.0
+    ) -> dict:
+        """Gera trajetória cinematográfica contínua de câmera (Orbit ou Flythrough) (Frente 94)."""
+        return await run_in_threadpool(
+            self._repository.generate_camera_animation_path,
+            mode,
+            target_point,
+            radius_m,
+            height_m,
+            start_angle_deg,
+            total_rotation_deg,
+            waypoints,
+            duration_seconds,
+            fps,
+            fov_deg
+        )
+
+    async def generate_cnc_cutlist(
+        self,
+        parts: list,
+        saw_kerf_mm: float = 4.0,
+        trim_margin_mm: float = 15.0,
+        export_csv: bool = True
+    ) -> dict:
+        """Processa peças e produz tabela industrial de corte CNC com CSV (Frente 95)."""
+        return await run_in_threadpool(
+            self._repository.generate_cnc_cutlist,
+            parts,
+            saw_kerf_mm,
+            trim_margin_mm,
+            export_csv
+        )
