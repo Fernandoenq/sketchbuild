@@ -311,6 +311,20 @@ from app.schemas.scene import (
     HiddenGeometryConfigResponse,
     ModelStatisticsRequest,
     ModelStatisticsResponse,
+    RegularPolygonRequest,
+    RegularPolygonResponse,
+    FreehandCurveRequest,
+    FreehandCurveResponse,
+    ReverseOrientFacesRequest,
+    ReverseOrientFacesResponse,
+    DollyFovLensRequest,
+    DollyFovLensResponse,
+    IntersectFacesRequest,
+    IntersectFacesResponse,
+    AxisLockInferenceRequest,
+    AxisLockInferenceResponse,
+    GroundSkyStyleRequest,
+    GroundSkyStyleResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2669,3 +2683,57 @@ class SceneController:
             return ModelStatisticsResponse(statistics=res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 4): CONTROLLERS NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def regular_polygon_generate(self, body: RegularPolygonRequest) -> RegularPolygonResponse:
+        try:
+            res = await self._service.regular_polygon_generate(**body.model_dump())
+            return RegularPolygonResponse(polygon=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def freehand_curve_process(self, body: FreehandCurveRequest) -> FreehandCurveResponse:
+        try:
+            res = await self._service.freehand_curve_process(**body.model_dump())
+            return FreehandCurveResponse(curve=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def reverse_orient_faces(self, body: ReverseOrientFacesRequest) -> ReverseOrientFacesResponse:
+        try:
+            res = await self._service.reverse_orient_faces(**body.model_dump())
+            return ReverseOrientFacesResponse(result=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def dolly_fov_lens_control(self, body: DollyFovLensRequest) -> DollyFovLensResponse:
+        try:
+            res = await self._service.dolly_fov_lens_control(**body.model_dump())
+            return DollyFovLensResponse(result=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def intersect_faces_compute(self, body: IntersectFacesRequest) -> IntersectFacesResponse:
+        try:
+            res = await self._service.intersect_faces_compute(**body.model_dump())
+            return IntersectFacesResponse(intersection=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def axis_lock_inference(self, body: AxisLockInferenceRequest) -> AxisLockInferenceResponse:
+        try:
+            res = await self._service.axis_lock_inference(**body.model_dump())
+            return AxisLockInferenceResponse(inference=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def ground_sky_style_configure(self, body: GroundSkyStyleRequest) -> GroundSkyStyleResponse:
+        try:
+            res = await self._service.ground_sky_style_configure(**body.model_dump())
+            return GroundSkyStyleResponse(style=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+

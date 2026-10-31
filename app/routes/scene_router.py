@@ -302,6 +302,20 @@ from app.schemas.scene import (
     HiddenGeometryConfigResponse,
     ModelStatisticsRequest,
     ModelStatisticsResponse,
+    RegularPolygonRequest,
+    RegularPolygonResponse,
+    FreehandCurveRequest,
+    FreehandCurveResponse,
+    ReverseOrientFacesRequest,
+    ReverseOrientFacesResponse,
+    DollyFovLensRequest,
+    DollyFovLensResponse,
+    IntersectFacesRequest,
+    IntersectFacesResponse,
+    AxisLockInferenceRequest,
+    AxisLockInferenceResponse,
+    GroundSkyStyleRequest,
+    GroundSkyStyleResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2786,3 +2800,99 @@ async def model_statistics_calculate(
     controller: SceneController = Depends(get_controller)
 ) -> ModelStatisticsResponse:
     return await controller.model_statistics_calculate(body)
+
+
+# ============================================================================
+# OPÇÃO A (PARTE 4): ROTAS DE FERRAMENTAS OFICIAIS DO SKETCHUP
+# ============================================================================
+
+@router.post(
+    "/tools/regular-polygon",
+    response_model=RegularPolygonResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gera polígono regular paramétrico nativo (Polygon Tool - VCB 6s, 8s)"
+)
+async def regular_polygon_generate(
+    body: RegularPolygonRequest,
+    controller: SceneController = Depends(get_controller)
+) -> RegularPolygonResponse:
+    return await controller.regular_polygon_generate(body)
+
+
+@router.post(
+    "/tools/freehand-curve",
+    response_model=FreehandCurveResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Processa traçado de mão livre com simplificação RDP e fechamento de face (Freehand Tool)"
+)
+async def freehand_curve_process(
+    body: FreehandCurveRequest,
+    controller: SceneController = Depends(get_controller)
+) -> FreehandCurveResponse:
+    return await controller.freehand_curve_process(body)
+
+
+@router.post(
+    "/geometry/reverse-orient-faces",
+    response_model=ReverseOrientFacesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Inverte normais de faces selecionadas ou orienta faces conexas (Reverse & Orient Faces)"
+)
+async def reverse_orient_faces(
+    body: ReverseOrientFacesRequest,
+    controller: SceneController = Depends(get_controller)
+) -> ReverseOrientFacesResponse:
+    return await controller.reverse_orient_faces(body)
+
+
+@router.post(
+    "/camera/dolly-fov-lens",
+    response_model=DollyFovLensResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Controla Dolly de câmera e equivalência entre FOV (graus) e Lente 35mm (mm)"
+)
+async def dolly_fov_lens_control(
+    body: DollyFovLensRequest,
+    controller: SceneController = Depends(get_controller)
+) -> DollyFovLensResponse:
+    return await controller.dolly_fov_lens_control(body)
+
+
+@router.post(
+    "/geometry/intersect-faces",
+    response_model=IntersectFacesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Intersecciona faces com o modelo ou com a seleção gerando arestas de corte (Intersect Faces)"
+)
+async def intersect_faces_compute(
+    body: IntersectFacesRequest,
+    controller: SceneController = Depends(get_controller)
+) -> IntersectFacesResponse:
+    return await controller.intersect_faces_compute(body)
+
+
+@router.post(
+    "/tools/axis-lock-inference",
+    response_model=AxisLockInferenceResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Interpreta bloqueio de eixos (Setas X/Y/Z) e projeta cursor na inferência restrita"
+)
+async def axis_lock_inference(
+    body: AxisLockInferenceRequest,
+    controller: SceneController = Depends(get_controller)
+) -> AxisLockInferenceResponse:
+    return await controller.axis_lock_inference(body)
+
+
+@router.post(
+    "/styles/ground-sky",
+    response_model=GroundSkyStyleResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Configura plano de fundo, solo com transparência e cúpula de céu do Estilo (Styles Panel)"
+)
+async def ground_sky_style_configure(
+    body: GroundSkyStyleRequest,
+    controller: SceneController = Depends(get_controller)
+) -> GroundSkyStyleResponse:
+    return await controller.ground_sky_style_configure(body)
+

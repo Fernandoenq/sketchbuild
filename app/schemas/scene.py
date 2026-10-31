@@ -4139,3 +4139,107 @@ class ModelStatisticsResponse(BaseModel):
     entity_type: str = "sketchup_native_model_statistics"
     statistics: dict[str, Any]
     status: str = "success"
+
+
+# ============================================================================
+# Opção A (Parte 4): Ferramentas Oficiais do SketchUp Desktop (Zero DLL)
+# ============================================================================
+
+# 1. Polígono Regular Paramétrico (Polygon Tool)
+class RegularPolygonRequest(BaseModel):
+    sides_count: int = Field(default=6, ge=3, description="Número de lados do polígono")
+    radius_m: float = Field(default=1.0, gt=0, description="Raio em metros")
+    radius_mode: str = Field(default="CIRCUMSCRIBED", description="Modo do raio: CIRCUMSCRIBED ou INSCRIBED")
+    center_xyz: tuple[float, float, float] = Field(default=(0.0, 0.0, 0.0), description="Centro do polígono")
+    normal_xyz: tuple[float, float, float] = Field(default=(0.0, 0.0, 1.0), description="Vetor normal do plano")
+
+class RegularPolygonResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_regular_polygon"
+    polygon: dict[str, Any]
+    status: str = "success"
+
+# 2. Ferramenta Mão Livre (Freehand Tool)
+class FreehandCurveRequest(BaseModel):
+    raw_points_xyz: list[tuple[float, float, float]] = Field(..., min_length=2, description="Pontos brutos da curva desenhada")
+    tolerance_m: float = Field(default=0.02, ge=0.0001, description="Tolerância de simplificação Ramer-Douglas-Peucker")
+    auto_close: bool = Field(default=False, description="Tentar fechar a curva gerando face plana")
+    close_threshold_m: float = Field(default=0.1, ge=0.001, description="Distância máxima entre pontas para fechamento")
+
+class FreehandCurveResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_freehand_curve"
+    curve: dict[str, Any]
+    status: str = "success"
+
+# 3. Inverter Faces e Orientar Faces (Reverse & Orient Faces)
+class ReverseOrientFacesRequest(BaseModel):
+    mode: str = Field(default="REVERSE", description="Modo: 'REVERSE' ou 'ORIENT'")
+    faces: list[dict[str, Any]] = Field(..., description="Lista de dicionários de faces com vértices e normais")
+    selected_face_indices: list[int] = Field(default_factory=list, description="Índices das faces a inverter em modo REVERSE")
+    reference_face_index: int = Field(default=0, ge=0, description="Índice da face de referência em modo ORIENT")
+
+class ReverseOrientFacesResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_reverse_orient_faces"
+    result: dict[str, Any]
+    status: str = "success"
+
+# 4. Dolly, FOV e Lente Fotográfica (Camera Dolly & Lens Engine)
+class DollyFovLensRequest(BaseModel):
+    operation: str = Field(default="PARSE_VCB", description="'PARSE_VCB', 'FOV_TO_FOCAL', 'FOCAL_TO_FOV', 'APPLY_DOLLY'")
+    vcb_input: str | None = Field(default=None, description="Texto digitado no VCB (ex: '50mm', '35 deg')")
+    fov_degrees: float | None = Field(default=None, description="Campo de visão em graus")
+    focal_length_mm: float | None = Field(default=None, description="Distância focal em mm (35mm equiv)")
+    camera_eye_xyz: tuple[float, float, float] | None = Field(default=None, description="Posição da câmera [x, y, z]")
+    camera_target_xyz: tuple[float, float, float] | None = Field(default=None, description="Ponto focal da câmera [x, y, z]")
+    dolly_delta_m: float = Field(default=1.0, description="Deslocamento ao longo do eixo de visão em metros")
+    dolly_mode: str = Field(default="KEEP_TARGET", description="'KEEP_TARGET' ou 'MOVE_TARGET'")
+
+class DollyFovLensResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_dolly_fov_lens"
+    result: dict[str, Any]
+    status: str = "success"
+
+# 5. Interseccionar Faces (Intersect Faces)
+class IntersectFacesRequest(BaseModel):
+    context_mode: str = Field(default="WITH_MODEL", description="'WITH_MODEL' ou 'WITH_SELECTION'")
+    faces_set_a: list[dict[str, Any]] = Field(..., description="Conjunto principal de faces com vértices 3D")
+    faces_set_b: list[dict[str, Any]] | None = Field(default=None, description="Conjunto secundário para WITH_SELECTION")
+
+class IntersectFacesResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_intersect_faces"
+    intersection: dict[str, Any]
+    status: str = "success"
+
+# 6. Bloqueio de Eixos e Inferência (Axis Lock & Inference Engine)
+class AxisLockInferenceRequest(BaseModel):
+    arrow_key: str = Field(default="RIGHT", description="'RIGHT' (X), 'LEFT' (Y), 'UP' (Z), 'DOWN' (Ref), 'NONE'")
+    cursor_point_xyz: tuple[float, float, float] | None = Field(default=None, description="Posição 3D do cursor")
+    origin_point_xyz: tuple[float, float, float] | None = Field(default=(0.0, 0.0, 0.0), description="Origem da linha de inferência")
+    custom_direction_xyz: tuple[float, float, float] | None = Field(default=None, description="Direção customizada para seta para baixo")
+
+class AxisLockInferenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_axis_lock_inference"
+    inference: dict[str, Any]
+    status: str = "success"
+
+# 7. Configurações de Solo e Céu dos Estilos (Ground & Sky Style Settings)
+class GroundSkyStyleRequest(BaseModel):
+    background_color: str | None = Field(default=None, description="Cor de fundo hex (ex: '#FFFFFF')")
+    sky_enabled: bool | None = Field(default=None, description="Habilita cúpula de céu")
+    sky_color: str | None = Field(default=None, description="Cor do céu hex (ex: '#C3DDF7')")
+    ground_enabled: bool | None = Field(default=None, description="Habilita plano de solo")
+    ground_color: str | None = Field(default=None, description="Cor do solo hex (ex: '#C7BEB3')")
+    ground_transparency_pct: int | None = Field(default=None, ge=0, le=100, description="Transparência do solo de 0 a 100%")
+    show_ground_from_below: bool | None = Field(default=None, description="Exibe plano de solo visto por baixo")
+
+class GroundSkyStyleResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_ground_sky_style"
+    style: dict[str, Any]
+    status: str = "success"
+

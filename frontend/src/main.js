@@ -185,6 +185,13 @@ import {
   advancedSelectionExecute,
   hiddenGeometryConfigure,
   modelStatisticsCalculate,
+  generateRegularPolygon,
+  processFreehandCurve,
+  reverseOrientFaces,
+  controlDollyFovLens,
+  computeIntersectFaces,
+  axisLockInference,
+  configureGroundSkyStyle,
   downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
@@ -6079,3 +6086,185 @@ document.getElementById("btn-native-model-stats")?.addEventListener("click", asy
     setStatus(`Erro nas estatísticas: ${err.message}`, true);
   }
 });
+
+// ============================================================================
+// OPÇÃO A (PARTE 4): LISTENERS DAS FERRAMENTAS NATIVAS OFICIAIS DO SKETCHUP
+// ============================================================================
+
+// 29. Polígono Regular Paramétrico (Polygon Tool 6s/8s)
+document.getElementById("btn-native-polygon")?.addEventListener("click", async () => {
+  setStatus("Gerando polígono regular paramétrico nativo (Hexágono r=1.5m)...");
+  try {
+    const res = await generateRegularPolygon(6, 1.5, "CIRCUMSCRIBED", [0, 0, 0], [0, 0, 1]);
+    if (res?.polygon) {
+      const p = res.polygon;
+      showNativeToolsResult(
+        "⬡ Polígono Regular Paramétrico (Polygon Tool)",
+        `Lados: <b>${p.sides_count}</b> (${p.radius_mode}) | Raio: <b>${p.radius_m}m</b><br>` +
+        `Área: <b>${p.area_m2} m²</b> | Perímetro: <b>${p.perimeter_m} m</b><br>` +
+        `Arestas: <b>${p.edges_count}</b> | Triângulos gerados: <b>${p.triangles_count}</b>`
+      );
+      setStatus(`Polígono de ${p.sides_count} lados gerado com sucesso.`);
+    }
+  } catch (err) {
+    setStatus(`Erro ao gerar polígono: ${err.message}`, true);
+  }
+});
+
+// 30. Mão Livre com Simplificação RDP (Freehand Tool)
+document.getElementById("btn-native-freehand")?.addEventListener("click", async () => {
+  setStatus("Processando curva de mão livre com simplificação Ramer-Douglas-Peucker...");
+  try {
+    const rawCurve = [
+      [0.0, 0.0, 0.0], [0.1, 0.2, 0.0], [0.2, 0.21, 0.0], [0.5, 0.6, 0.0],
+      [0.8, 0.62, 0.0], [1.0, 1.0, 0.0], [0.98, 0.99, 0.0], [0.05, 0.02, 0.0]
+    ];
+    const res = await processFreehandCurve(rawCurve, 0.02, true, 0.1);
+    if (res?.curve) {
+      const c = res.curve;
+      showNativeToolsResult(
+        "✍️ Mão Livre (Freehand Tool)",
+        `Pontos Originais: <b>${c.raw_points_count}</b> &rarr; Simplificados: <b>${c.simplified_points_count}</b> (Redução: <b>${c.reduction_percent}%</b>)<br>` +
+        `Comprimento Total: <b>${c.total_length_m} m</b> | Curva Fechada: <b>${c.is_closed ? "Sim (Face Gerada)" : "Não"}</b><br>` +
+        (c.face ? `Área da Face Plana: <b>${c.face.area_m2} m²</b>` : `Arestas Contínuas: <b>${c.edges_count}</b>`)
+      );
+      setStatus(`Curva mão livre processada: ${c.reduction_percent}% de simplificação RDP.`);
+    }
+  } catch (err) {
+    setStatus(`Erro na curva mão livre: ${err.message}`, true);
+  }
+});
+
+// 31. Inverter & Orientar Faces (Reverse & Orient Faces)
+document.getElementById("btn-native-reverse-faces")?.addEventListener("click", async () => {
+  setStatus("Executando propagação de orientação consistente (Orient Faces)...");
+  try {
+    const sampleFaces = [
+      {
+        "vertices": [[0,0,0], [1,0,0], [1,1,0], [0,1,0]],
+        "normal": [0,0,1]
+      },
+      {
+        // Face adjacente com sentido inconsistente
+        "vertices": [[1,0,0], [2,0,0], [2,1,0], [1,1,0]],
+        "normal": [0,0,-1]
+      }
+    ];
+    const res = await reverseOrientFaces("ORIENT", sampleFaces, [], 0);
+    if (res?.result) {
+      const r = res.result;
+      showNativeToolsResult(
+        "🔄 Inverter & Orientar Faces (Orient Faces)",
+        `Faces Conexas Orientadas: <b>${r.connected_oriented_count} de ${r.total_faces}</b><br>` +
+        `Faces Invertidas para Coerência 2-Manifold: <b>${r.flipped_count}</b><br>` +
+        `Face de Referência: <b>Índice #${r.reference_face_index}</b>`
+      );
+      setStatus(`Orient Faces concluído: ${r.flipped_count} faces invertidas para normal consistente.`);
+    }
+  } catch (err) {
+    setStatus(`Erro ao orientar faces: ${err.message}`, true);
+  }
+});
+
+// 32. Dolly de Câmera & FOV / Lente 35mm
+document.getElementById("btn-native-dolly-fov")?.addEventListener("click", async () => {
+  setStatus("Ajustando lente fotográfica 35mm e campo de visão (FOV)...");
+  try {
+    const resVcb = await controlDollyFovLens("PARSE_VCB", "50mm");
+    const resDolly = await controlDollyFovLens("APPLY_DOLLY", null, null, null, [0, -5, 2], [0, 0, 0], 1.5, "KEEP_TARGET");
+    if (resVcb?.result && resDolly?.result) {
+      const v = resVcb.result;
+      const d = resDolly.result;
+      showNativeToolsResult(
+        "🎥 Câmera: Dolly & Lente Fotográfica (Zoom VCB)",
+        `Entrada VCB: <b>${v.vcb_formatted}</b> &rarr; FOV Calculado: <b>${v.fov_degrees}°</b> (Lente <b>${v.focal_length_mm} mm</b> equiv. 35mm)<br>` +
+        `Dolly In: Avanço de <b>+${d.delta_m} m</b> ao longo do eixo de visão<br>` +
+        `Nova Posição Olho: <b>[${d.new_eye.join(", ")}]</b> | Distância Focal: <b>${d.new_distance_to_target_m} m</b>`
+      );
+      setStatus(`Câmera calibrada: Lente ${v.focal_length_mm}mm (${v.fov_degrees}° FOV).`);
+    }
+  } catch (err) {
+    setStatus(`Erro no controle de câmera: ${err.message}`, true);
+  }
+});
+
+// 33. Interseccionar Faces com Modelo / Seleção
+document.getElementById("btn-native-intersect-faces")?.addEventListener("click", async () => {
+  setStatus("Calculando interseção analítica 3D entre faces secantes...");
+  try {
+    const faceA = {
+      vertices: [[-1, -1, 0], [1, -1, 0], [1, 1, 0], [-1, 1, 0]],
+      normal: [0, 0, 1]
+    };
+    const faceB = {
+      vertices: [[0, -1, -1], [0, 1, -1], [0, 1, 1], [0, -1, 1]],
+      normal: [1, 0, 0]
+    };
+    const res = await computeIntersectFaces([faceA, faceB], null, "WITH_MODEL");
+    if (res?.intersection) {
+      const it = res.intersection;
+      showNativeToolsResult(
+        "⚔️ Interseccionar Faces (Intersect Faces)",
+        `Modo de Contexto: <b>${it.context_mode}</b> | Pares Testados: <b>${it.tested_pairs_count}</b><br>` +
+        `Arestas de Corte Geradas: <b>${it.intersection_edges_count}</b><br>` +
+        (it.intersection_edges.length > 0 ?
+          `Linha de Corte 3D: [${it.intersection_edges[0].start.join(", ")}] &rarr; [${it.intersection_edges[0].end.join(", ")}] (${it.intersection_edges[0].length_m} m)` : "")
+      );
+      setStatus(`Interseção calculada: ${it.intersection_edges_count} arestas de corte geradas.`);
+    }
+  } catch (err) {
+    setStatus(`Erro na interseção de faces: ${err.message}`, true);
+  }
+});
+
+// 34. Bloqueio de Eixos & Inferência (Setas X/Y/Z)
+document.getElementById("btn-native-axis-lock")?.addEventListener("click", async () => {
+  setStatus("Testando restrição de inferência por setas de eixo (Seta Direita = Eixo Vermelho X)...");
+  try {
+    const cursor = [2.4, 1.8, 3.2];
+    const res = await axisLockInference("RIGHT", cursor, [0, 0, 0]);
+    if (res?.inference) {
+      const inf = res.inference;
+      const proj = inf.projection;
+      showNativeToolsResult(
+        "🔒 Bloqueio de Eixos (Arrow Keys Inference)",
+        `Tecla: <b>${inf.arrow_key}</b> &rarr; <span style="color: ${inf.axis_color}; font-weight: bold;">${inf.description}</span><br>` +
+        `Vetor Diretor: <b>[${inf.direction_vector.join(", ")}]</b><br>` +
+        (proj ? `Cursor Livre: [${proj.cursor_point.join(", ")}] &rarr; <b>Projetado no Eixo: [${proj.projected_point.join(", ")}]</b> (Distância: ${proj.distance_along_axis_m} m)` : "")
+      );
+      setStatus(`Inferência travada no Eixo ${inf.axis_name}.`);
+    }
+  } catch (err) {
+    setStatus(`Erro no bloqueio de eixos: ${err.message}`, true);
+  }
+});
+
+// 35. Configurações de Solo e Céu dos Estilos
+document.getElementById("btn-native-ground-sky")?.addEventListener("click", async () => {
+  setStatus("Aplicando configurações oficiais de Solo, Céu e Fundo do Estilo...");
+  try {
+    const res = await configureGroundSkyStyle(
+      "#FFFFFF",
+      true,
+      "#C3DDF7",
+      true,
+      "#C7BEB3",
+      60,
+      false
+    );
+    if (res?.style) {
+      const st = res.style;
+      const rp = st.render_payload;
+      showNativeToolsResult(
+        "🌄 Estilos: Céu, Solo & Fundo (Styles Panel)",
+        `Céu: <b>${rp.sky.enabled ? "Ativado" : "Desativado"}</b> (<span style="color: ${rp.sky.color_hex};">■ ${rp.sky.color_hex}</span>)<br>` +
+        `Solo: <b>${rp.ground.enabled ? "Ativado" : "Desativado"}</b> (<span style="color: ${rp.ground.color_hex};">■ ${rp.ground.color_hex}</span>, Opacidade: <b>${rp.ground.opacity * 100}%</b>)<br>` +
+        `Clear Color WebGL: <b>${rp.clear_color_hex}</b> | Exibir solo por baixo: <b>${rp.ground.show_from_below ? "Sim" : "Não"}</b>`
+      );
+      setStatus("Estilo de Céu e Solo configurado com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao configurar estilo de fundo: ${err.message}`, true);
+  }
+});
+
