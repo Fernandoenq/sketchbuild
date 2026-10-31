@@ -2624,3 +2624,20 @@ Consolidação da sétima rodada de implementação das ferramentas nativas ofic
   - Detecção de loops fechados vs. curvas abertas e cálculo analítico de comprimento total e deflexões angulares.
 - **Módulo Core:** `core/weld_edges_engine.py` (`WeldEdgesEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/curves/weld`.
+
+## 182. Correção Crítica de Escopo e TDZ no Loop de Animação do Frontend (isWalkMode ReferenceError)
+
+### Diagnóstico do Problema Original:
+1. **Comportamento Observado:** Ao carregar a página `http://localhost:8000/`, a tela de boas-vindas (*Bem-vindo(a) ao SketchBuild*) ficava completamente travada: nem o botão de fechar (`&times;`), nem os cards de templates ("Simples") nem qualquer interação funcionavam.
+2. **Causa Raiz Identificada via Telemetria:**
+   - O endpoint de diagnóstico `/api/v1/debug-log` capturou a seguinte exceção contínua no navegador do cliente:
+     `Uncaught ReferenceError: Cannot access 'isWalkMode' before initialization at animate (main.js:2582:3)`
+   - No arquivo `frontend/src/main.js`, a função `animate()` era invocada na linha 2590 e referenciava `if (isWalkMode) { updateWalkMovement(); }`.
+   - No entanto, a variável `let isWalkMode = false;` e a função `updateWalkMovement()` estavam declaradas com `let`/`const` muito mais abaixo no arquivo (linha 5302).
+   - Em JavaScript ES6, o acesso a uma variável declarada com `let` antes de sua linha de instanciação dispara um erro fatal de **Temporal Dead Zone (TDZ)** (`ReferenceError`).
+   - Essa exceção não tratada na execução do loop interrompia a avaliação do módulo ES6 na linha 2590, impedindo que todos os event listeners subsequentes (linhas 2600 a 2720, que registram o clique no botão Fechar, nos cards de templates e a rotina `boot()`) fossem registrados no DOM.
+
+### Correção Cirúrgica Aplicada:
+1. As variáveis `let isWalkMode = false;`, `const walkEuler`, `const walkKeys`, `const eyeHeightM` e a função `updateWalkMovement()` foram reposicionadas para **antes** da definição de `animate()`.
+2. Removida a declaração redundante que existia na seção posterior do arquivo.
+3. Com isso, `animate()` executa de forma limpa a 60 FPS, todos os listeners do diálogo de boas-vindas são registrados com sucesso e a rotina `boot()` executa normalmente, permitindo fechar o modal ou criar novos modelos imediatamente.

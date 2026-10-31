@@ -2577,6 +2577,32 @@ function updateBillboards() {
   }
 }
 
+// ----------------------------------------------------------------------------
+// Navegação em Primeira Pessoa (Pointer Lock API / Walkthrough)
+// ----------------------------------------------------------------------------
+let isWalkMode = false;
+const walkEuler = new THREE.Euler(0, 0, 0, "YXZ");
+const walkKeys = { forward: false, backward: false, left: false, right: false };
+const eyeHeightM = 1.70;
+
+function updateWalkMovement() {
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  forward.y = 0;
+  forward.normalize();
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+  right.y = 0;
+  right.normalize();
+  const walkSpeed = 0.12;
+
+  if (walkKeys.forward) camera.position.addScaledVector(forward, walkSpeed);
+  if (walkKeys.backward) camera.position.addScaledVector(forward, -walkSpeed);
+  if (walkKeys.right) camera.position.addScaledVector(right, walkSpeed);
+  if (walkKeys.left) camera.position.addScaledVector(right, -walkSpeed);
+
+  camera.position.y = eyeHeightM;
+  controls.target.copy(camera.position).add(forward);
+}
+
 function animate() {
   requestAnimationFrame(animate);
   if (isWalkMode) {
@@ -5299,28 +5325,7 @@ document.getElementById("btn-calc-lca")?.addEventListener("click", async () => {
 // ----------------------------------------------------------------------------
 // A. Navegação em Primeira Pessoa (Pointer Lock API / Walkthrough)
 // ----------------------------------------------------------------------------
-let isWalkMode = false;
-const walkEuler = new THREE.Euler(0, 0, 0, "YXZ");
-const walkKeys = { forward: false, backward: false, left: false, right: false };
-const eyeHeightM = 1.70;
 
-function updateWalkMovement() {
-  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-  forward.y = 0;
-  forward.normalize();
-  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-  right.y = 0;
-  right.normalize();
-  const walkSpeed = 0.12;
-
-  if (walkKeys.forward) camera.position.addScaledVector(forward, walkSpeed);
-  if (walkKeys.backward) camera.position.addScaledVector(forward, -walkSpeed);
-  if (walkKeys.right) camera.position.addScaledVector(right, walkSpeed);
-  if (walkKeys.left) camera.position.addScaledVector(right, -walkSpeed);
-
-  camera.position.y = eyeHeightM;
-  controls.target.copy(camera.position).add(forward);
-}
 
 function handleStartWalk() {
   if (isWalkMode) {
