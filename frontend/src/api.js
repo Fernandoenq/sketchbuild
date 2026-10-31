@@ -2291,3 +2291,12 @@ export function configureGraphicExport2D(imageFormat = "PNG", widthPx = 1920, he
 
 
 
+
+export function flipAlongAxes(vertices, indices = null, axis = "red", center = null) {
+  return postJson("/api/v1/scene/tools/flip-along", "POST", {
+    vertices: vertices,
+    indices: indices,
+    axis: axis,
+    center: center,
+  });
+}

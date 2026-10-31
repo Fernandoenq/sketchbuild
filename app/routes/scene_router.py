@@ -344,6 +344,8 @@ from app.schemas.scene import (
     FogSettingsResponse,
     GraphicExport2DRequest,
     GraphicExport2DResponse,
+    FlipAlongRequest,
+    FlipAlongResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -3113,6 +3115,20 @@ async def graphic_export_2d_configure(
     controller: SceneController = Depends(get_controller)
 ) -> GraphicExport2DResponse:
     return await controller.graphic_export_2d_configure(body)
+
+
+@router.post(
+    "/tools/flip-along",
+    response_model=FlipAlongResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Inverte vértices e normais de triângulos ao longo do eixo Vermelho/Verde/Azul (Flip Along Tool)"
+)
+async def flip_along_axes(
+    body: FlipAlongRequest,
+    controller: SceneController = Depends(get_controller)
+) -> FlipAlongResponse:
+    return await controller.flip_along_axes(body)
+
 
 
 

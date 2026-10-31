@@ -3720,5 +3720,19 @@ class SkpEngineRepository:
             transparent_background=kwargs.get("transparent_background", False),
         )
 
+    def flip_along_axes(self, **kwargs) -> dict:
+        from core.flip_along_axes_engine import FlipAlongAxesEngine
+        vertices = [tuple(v) for v in kwargs.get("vertices", [])]
+        indices = kwargs.get("indices")
+        axis = kwargs.get("axis", "red")
+        center = tuple(kwargs["center"]) if kwargs.get("center") else None
+        return FlipAlongAxesEngine.flip_along(
+            vertices=vertices,
+            indices=indices,
+            axis=axis,
+            center=center,
+        )
+
+
 
 
