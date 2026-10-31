@@ -1293,3 +1293,74 @@ A Frente 60 quantifica os benefícios ecológicos do uso de madeira de reflorest
 - Determinação do Saldo Líquido de Carbono (*Net Carbon Balance*), demonstrando que o playground é um produto **Carbono Negativo (Clima-Positivo)** que retém toneladas de carbono da atmosfera.
 - **Módulo:** `core/carbon_footprint_calculator.py` (`CarbonFootprintCalculator`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/engineering/carbon-footprint`.
+
+
+---
+
+## 88. Frente 61: Dicionários de Atributos e Componentes Dinâmicos (attribute_dictionaries - Zero DLL)
+
+A Frente 61 implementa a engenharia reversa das estruturas de metadados nativos e fórmulas comportamentais do SketchUp.
+
+### A. Estrutura Binária de Dicionários no .SKP
+- Cada entidade (instância, definição, face ou modelo) pode hospedar um catálogo encadeado de `AttributeDictionary`.
+- **Extensão Dynamic Components (Trimble):** Suporte nativo ao dicionário `dynamic_attributes` com chaves canônicas de unidades métricas/imperiais (`_formatversion`, `_lengthunits`), fórmulas de dimensão (`_lenx_formula`, `_leny_formula`, `_lenz_formula`), rotação (`_rotx_formula`, `_roty_formula`, `_rotz_formula`) e gatilhos de interação (`onClick: ANIMATE(...)`).
+- Avaliador analítico de expressões matemáticas para cálculo paramétrico de componentes dinâmicos sem plugins externos.
+- **Esquema IFC BIM:** Registro no dicionário `AppliedSchemaTypes` para interoperabilidade com OpenBIM.
+- **Módulo:** `core/attribute_dictionary_engine.py` (`AttributeDictionaryEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/attributes/dictionary`.
+
+---
+
+## 89. Frente 62: Pastas de Tags e Hierarquia de Camadas (TagFolder no model.dat - Zero DLL)
+
+A Frente 62 reproduz o sistema de agrupamento de tags introduzido no SketchUp 2021+ para gerenciamento profissional de modelos complexos.
+
+### A. Hierarquia em Árvore e Visibilidade em Cascata
+- Mapeamento das estruturas `TagFolder` aninhadas contendo listas de tags filhas e subpastas.
+- **Herança de Visibilidade Efetiva:** Se uma pasta pai estiver marcada como oculta, todas as tags pertencentes à sua ramificação são forçadas para o estado invisível na renderização do Three.js e na árvore de instâncias do `.skp`.
+- Atribuição cromática de cores por tag para ativação do modo de exibição *"Color by Tag"*.
+- **Módulo:** `core/tag_folder_engine.py` (`TagFolderEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tags/folder`.
+
+---
+
+## 90. Frente 63: Motor de Estilos de Arestas Nativos do SketchUp (Zero DLL)
+
+A Frente 63 implementa as regras canônicas de renderização de linhas que definem a identidade visual clássica do SketchUp.
+
+### A. As 7 Flags Oficiais de Estilo de Linha
+1. **Edges:** Liga/desliga global de visualização de arestas.
+2. **Profiles (Perfis):** Algoritmo de silhueta onde arestas de borda livre ou com normais adjacentes que cruzam a direção da câmera recebem espessura destacada (2px a 4px).
+3. **Depth Cue:** Atenuação atmosférica de linhas distantes.
+4. **Extensions:** Prolongamento analítico das extremidades nos cruzamentos de arestas.
+5. **Endpoints:** Círculos/pontos demarcatórios nos vértices dos segmentos.
+6. **Jitter:** Variação de curvatura simulando traço manual.
+7. **Back Edges (Atalho K):** Arestas traseiras oclusas renderizadas em linha tracejada pontilhada fina sem tornar as faces transparentes como no modo Raio-X.
+- **Módulo:** `core/edge_styles_engine.py` (`EdgeStylesEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/styles/edge-rendering`.
+
+---
+
+## 91. Frente 64: Câmera com Perspectiva de Dois Pontos e Cenas (Two-Point Perspective - Zero DLL)
+
+A Frente 64 reproduz o enquadramento de perspectiva arquitetônica do SketchUp onde as linhas verticais não convergem.
+
+### A. Geometria Projetiva com Lens Shift (Tilt-Shift)
+- Força o eixo de visada da câmera a permanecer perfeitamente horizontal ($Z_{	ext{target}} = Z_{	ext{eye}}$ e pitch $= 0^\circ$).
+- Cálculo de matriz de frustum assimétrica 4x4 com cisalhamento vertical (*lens shift* $m_{12}$):
+  $$	ext{shift}_y = rac{	an(	ext{pitch})}{	an(	ext{FOV} / 2)}$$
+- Elimina completamente o terceiro ponto de fuga vertical, garantindo paralelismo estrito em todas as arestas verticais da cena, indispensável para fachadas e pranchas executivas.
+- **Módulo:** `core/two_point_perspective_engine.py` (`TwoPointPerspectiveEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/camera/two-point-perspective`.
+
+---
+
+## 92. Frente 65: Mapeamento UV e Projeção de Texturas em Superfícies Curvas (Zero DLL)
+
+A Frente 65 implementa os algoritmos de projeção contínua de materiais sobre malhas poligonais e B-Rep curvas do SketchUp.
+
+### A. Projeção Planar e Cilíndrica Contínua
+- **Projeção Planar (Texture Projected):** Mapeamento afim contínuo onde os vértices de múltiplas faces adjacentes são projetados ortogonalmente no plano do material ($Ax + By + Cz + D = 0$), calculando $(u, v)$ escalados em metros sem quebras nas emendas de polígonos.
+- **Projeção Cilíndrica:** Mapeamento azimutal em torno do eixo principal para colunas, postes redondos e tubos helicoidais, evitando costuras aparentes na textura de veios de madeira.
+- **Módulo:** `core/texture_projection_engine.py` (`TextureProjectionEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/materials/project-uv`.

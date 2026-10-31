@@ -86,6 +86,11 @@ import {
   exportZebraLabel,
   calculateExplodedTrails,
   calculateCarbonFootprint,
+  manageAttributeDictionary,
+  manageTagFolder,
+  configureEdgeStyles,
+  calculateTwoPointPerspective,
+  projectTextureUv,
   ApiError,
 } from "./api.js";
 import {
@@ -828,6 +833,9 @@ window.addEventListener("keydown", (event) => {
   }
   else if (event.key === "c" || event.key === "C") {
     setToolMode("circle");
+  }
+  else if (event.key === "k" || event.key === "K") {
+    handleToggleBackEdges();
   }
   else if (toolMode === "line" && inferenceEngine) {
     if (event.key === "ArrowRight") {
@@ -2065,6 +2073,11 @@ const MENU_ACTIONS = {
   "draw-spiral-tube": () => handleDrawSpiralTube(),
   "draw-hip-roof": () => handleDrawHipRoof(),
   "export-zebra-label": () => handleExportZebraLabel(),
+  "toggle-back-edges": () => handleToggleBackEdges(),
+  "toggle-profiles": () => handleToggleProfiles(),
+  "toggle-depth-cue": () => handleToggleDepthCue(),
+  "toggle-extensions": () => handleToggleExtensions(),
+  "projection-two-point": () => handleTwoPointPerspective(),
   "export-inspection-checklist": () => handleExportInspectionChecklist(),
   "tool-mirror": () => handleMirrorTool(),
   "draw-terrain": () => handleDrawTerrain(),
@@ -3599,3 +3612,77 @@ async function handleCarbonFootprint() {
 // Listeners adicionais
 document.getElementById("btn-calc-hic")?.addEventListener("click", handleHicSimulation);
 document.getElementById("btn-calc-carbon")?.addEventListener("click", handleCarbonFootprint);
+
+
+// --- Frente 63: Estilos de Arestas Nativos e Atalho K (Back Edges) ---
+let edgeStylesState = {
+  profiles_enabled: true,
+  back_edges_enabled: false,
+  depth_cue_enabled: false,
+  extensions_enabled: false,
+};
+
+async function handleToggleBackEdges() {
+  edgeStylesState.back_edges_enabled = !edgeStylesState.back_edges_enabled;
+  document.getElementById("menu-item-back-edges")?.classList.toggle("is-checked", edgeStylesState.back_edges_enabled);
+  setStatus(`Arestas posteriores (Back Edges [K]): ${edgeStylesState.back_edges_enabled ? "ATIVADAS" : "DESATIVADAS"}.`);
+  try {
+    await configureEdgeStyles(edgeStylesState);
+  } catch (err) {
+    console.warn("Aviso ao sincronizar estilos:", err.message);
+  }
+}
+
+async function handleToggleProfiles() {
+  edgeStylesState.profiles_enabled = !edgeStylesState.profiles_enabled;
+  document.getElementById("menu-item-profiles")?.classList.toggle("is-checked", edgeStylesState.profiles_enabled);
+  setStatus(`Perfis de silhueta (Profiles): ${edgeStylesState.profiles_enabled ? "ATIVADOS" : "DESATIVADOS"}.`);
+  try {
+    await configureEdgeStyles(edgeStylesState);
+  } catch (err) {}
+}
+
+async function handleToggleDepthCue() {
+  edgeStylesState.depth_cue_enabled = !edgeStylesState.depth_cue_enabled;
+  document.getElementById("menu-item-depth-cue")?.classList.toggle("is-checked", edgeStylesState.depth_cue_enabled);
+  setStatus(`Destaque de profundidade (Depth Cue): ${edgeStylesState.depth_cue_enabled ? "ATIVADO" : "DESATIVADO"}.`);
+}
+
+async function handleToggleExtensions() {
+  edgeStylesState.extensions_enabled = !edgeStylesState.extensions_enabled;
+  document.getElementById("menu-item-extensions")?.classList.toggle("is-checked", edgeStylesState.extensions_enabled);
+  setStatus(`Extensão de arestas (Extensions): ${edgeStylesState.extensions_enabled ? "ATIVADA" : "DESATIVADA"}.`);
+}
+
+// --- Frente 64: Câmera Perspectiva de Dois Pontos ---
+async function handleTwoPointPerspective() {
+  if (!camera || !controls) return;
+  const eye = [camera.position.x, camera.position.y, camera.position.z];
+  const target = [controls.target.x, controls.target.y, controls.target.z];
+  setStatus("Ativando Perspectiva de Dois Pontos (Linhas verticais rigorosamente paralelas)...");
+  try {
+    const res = await calculateTwoPointPerspective(eye, target, camera.fov || 35.0);
+    // Corrige target para a mesma altura do olho
+    controls.target.set(res.corrected_target[0], res.corrected_target[1], res.corrected_target[2]);
+    controls.update();
+    document.getElementById("menu-item-proj-twopoint")?.classList.add("is-checked");
+    document.getElementById("menu-item-proj-perspective")?.classList.remove("is-checked");
+    document.getElementById("menu-item-proj-parallel")?.classList.remove("is-checked");
+    setStatus(`Perspectiva de 2 Pontos ativada: Pitch corrigido com Lens Shift=${res.lens_shift_y}.`);
+  } catch (err) {
+    setStatus(`Erro ao ativar perspectiva de 2 pontos: ${err.message}`, true);
+  }
+}
+
+// --- Frente 62: Criar Pasta de Etiquetas (TagFolder) ---
+document.getElementById("tag-folder-create-btn")?.addEventListener("click", async () => {
+  const folderName = window.prompt("Nome da nova pasta de etiquetas:", "Nova Pasta");
+  if (!folderName) return;
+  const folderId = "folder_" + Date.now();
+  try {
+    const res = await manageTagFolder(folderId, folderName, null, true, []);
+    setStatus(`Pasta de etiquetas '${res.name}' criada com sucesso.`);
+  } catch (err) {
+    setStatus(`Erro ao criar pasta de etiquetas: ${err.message}`, true);
+  }
+});

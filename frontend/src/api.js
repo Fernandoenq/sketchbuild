@@ -869,3 +869,53 @@ export function calculateCarbonFootprint(timberVolumeM3 = 2.80, steelWeightKg = 
     transport_distance_km: transportDistanceKm,
   });
 }
+
+
+/** Manipula dicionarios de atributos nativos e componentes dinamicos (Frente 61). */
+export function manageAttributeDictionary(dictName = "dynamic_attributes", key = "_lenx_formula", value = "=100 * 2", evaluateFormula = false, contextVars = {}) {
+  return postJson("/api/v1/scene/attributes/dictionary", "POST", {
+    dict_name: dictName,
+    key: key,
+    value: value,
+    evaluate_formula: evaluateFormula,
+    context_vars: contextVars,
+  });
+}
+
+/** Cria e gerencia pastas de tags hierarquicas (Frente 62). */
+export function manageTagFolder(folderId, name, parentId = null, visible = True, tagsToAdd = []) {
+  return postJson("/api/v1/scene/tags/folder", "POST", {
+    folder_id: folderId,
+    name: name,
+    parent_id: parentId,
+    visible: visible,
+    tags_to_add: tagsToAdd,
+  });
+}
+
+/** Configura opcoes nativas de estilos de arestas do SketchUp (Frente 63). */
+export function configureEdgeStyles(settings = {}) {
+  return postJson("/api/v1/scene/styles/edge-rendering", "POST", settings);
+}
+
+/** Calcula matriz de camera com Perspectiva de Dois Pontos (Frente 64). */
+export function calculateTwoPointPerspective(eye, target, fovDeg = 35.0, aspectRatio = 1.777) {
+  return postJson("/api/v1/scene/camera/two-point-perspective", "POST", {
+    eye: eye,
+    target: target,
+    fov_deg: fovDeg,
+    aspect_ratio: aspectRatio,
+  });
+}
+
+/** Calcula coordenadas UV analiticas para projecao planar ou cilindrica (Frente 65). */
+export function projectTextureUv(vertices, projectionType = "planar", planeNormal = [0, 0, 1], scaleUM = 1.0, scaleVM = 1.0, rotationDeg = 0.0) {
+  return postJson("/api/v1/scene/materials/project-uv", "POST", {
+    vertices: vertices,
+    projection_type: projectionType,
+    plane_normal: planeNormal,
+    scale_u_m: scaleUM,
+    scale_v_m: scaleVM,
+    rotation_deg: rotationDeg,
+  });
+}

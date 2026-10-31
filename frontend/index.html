@@ -563,10 +563,10 @@
         <div class="menu-dropdown-item has-submenu"><span>Estilo de aresta</span><span class="menu-dropdown-shortcut">&#9656;</span>
           <div class="menu-dropdown">
             <div class="menu-dropdown-item" id="menu-item-edges" data-action="toggle-edges"><span><span class="menu-check">&#10003;</span>Bordas</span></div>
-            <div class="menu-dropdown-item disabled"><span>Bordas traseiras</span><span class="menu-dropdown-shortcut">K</span></div>
-            <div class="menu-dropdown-item disabled"><span>Perfis</span></div>
-            <div class="menu-dropdown-item disabled"><span>Profundidade</span></div>
-            <div class="menu-dropdown-item disabled"><span>Extensão</span></div>
+            <div class="menu-dropdown-item" id="menu-item-back-edges" data-action="toggle-back-edges"><span><span class="menu-check">&#10003;</span>Bordas traseiras</span><span class="menu-dropdown-shortcut">K</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-profiles" data-action="toggle-profiles"><span><span class="menu-check">&#10003;</span>Perfis</span></div>
+            <div class="menu-dropdown-item" id="menu-item-depth-cue" data-action="toggle-depth-cue"><span><span class="menu-check">&#10003;</span>Profundidade</span></div>
+            <div class="menu-dropdown-item" id="menu-item-extensions" data-action="toggle-extensions"><span><span class="menu-check">&#10003;</span>Extensões</span></div>
           </div>
         </div>
         <div class="menu-dropdown-item has-submenu"><span>Estilo de face</span><span class="menu-dropdown-shortcut">&#9656;</span>
@@ -609,7 +609,7 @@
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item" id="menu-item-proj-parallel" data-action="projection-parallel"><span><span class="menu-check">&#10003;</span>Projeção paralela</span></div>
         <div class="menu-dropdown-item is-checked" id="menu-item-proj-perspective" data-action="projection-perspective"><span><span class="menu-check">&#10003;</span>Perspectiva</span></div>
-        <div class="menu-dropdown-item disabled"><span>Perspectiva de dois pontos</span></div>
+        <div class="menu-dropdown-item" id="menu-item-proj-twopoint" data-action="projection-two-point"><span><span class="menu-check">&#10003;</span>Perspectiva de dois pontos</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Adaptar à nova foto...</span></div>
         <div class="menu-dropdown-item disabled"><span>Editar Foto adaptada</span></div>
@@ -735,7 +735,7 @@
     <div class="menu-top-item" data-menu="extensoes">
       Extensões
       <div class="menu-dropdown">
-        <div class="menu-dropdown-item disabled"><span>Extension Warehouse</span></div>
+            <div class="menu-dropdown-item" id="menu-item-extensions" data-action="toggle-extensions"><span><span class="menu-check">&#10003;</span>Extensões</span></div>
         <div class="menu-dropdown-item disabled"><span>Gerenciador de extensões</span></div>
         <div class="menu-dropdown-item disabled"><span>Migrar extensões...</span></div>
         <div class="menu-dropdown-item disabled"><span>Desenvolvedor</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
