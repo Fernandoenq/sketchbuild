@@ -1450,3 +1450,74 @@ A Frente 70 integra o modelo astronômico completo de sombreamento e heliodon do
 - Gera parâmetros de cor com temperatura Kelvin dinâmica (alaranjado/quente ao amanhecer e branco neutro ao meio-dia solar) para a luz direcional e ambiente do Three.js.
 - **Módulo:** `core/shadow_heliodon_engine.py` (`ShadowHeliodonEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/shadows/heliodon`.
+
+
+---
+
+## 98. Frente 71: Textos 2D na Tela e Rótulos de Líder Anotativos (SUTextRef - Zero DLL)
+
+A Frente 71 reproduz fielmente as entidades de anotação de texto do SketchUp (`SUTextRef`).
+
+### A. Screen Text vs Leader Text
+1. **Screen Text (Texto de tela / HUD):** Texto posicionado em coordenadas de pixels de tela `(x, y)` mantendo-se estático perante a navegação da câmera, com configuração tipográfica completa (fonte, tamanho pt, peso, itálico e cor).
+2. **Leader Text (Texto com linha de chamada / flecha):** Ancorado a uma coordenada 3D real da peça ou face (`anchor_point`), conectado por uma linha de líder 3D com terminação configurável (`arrow_type`: ARROW, DOT, NONE, SLASH) até o rótulo de texto em billboard.
+- **Módulo:** `core/text_engine.py` (`TextEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/text/screen` e `POST /api/v1/scene/text/leader`.
+
+---
+
+## 99. Frente 72: Cotas Lineares e Alinhadas (SUDimensionLinearRef - Zero DLL)
+
+A Frente 72 implementa o cálculo geométrico completo de cotas lineares do SketchUp.
+
+### A. Anatomia de uma Cota Linear (SUDimensionLinearRef)
+- **Linha de Cota:** Segmento principal com afastamento perpendicular `offset_distance` projetado no plano de apoio da geometria.
+- **Linhas de Extensão (Witness Lines):** Linhas perpendiculares que partem dos pontos cotados com folga de recuo (`gap`) e prolongamento além da linha de cota (`overshoot`).
+- **Terminações:** Suporte a tiques arquitetônicos a 45° (*architectural tick*), setas e pontos.
+- **Formatação de Unidades:** Conversão automática e precisa para metros (`m`), centímetros (`cm`), milímetros (`mm`) ou polegadas (`in`) com precisão decimal configurável ou texto sobrescrito personalizado.
+- **Módulo:** `core/dimension_linear_engine.py` (`DimensionLinearEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/dimensions/linear`.
+
+---
+
+## 100. Frente 73: Linhas e Pontos de Construção Infinitos (SUGuideLineRef & SUGuidePointRef - Zero DLL)
+
+A Frente 73 modela as guias auxiliares do comando Fita Métrica (Tape Measure) do SketchUp.
+
+### A. Guias Infinitas e Snapping
+- **SUGuideLineRef:** Pode ser um segmento finito ou uma linha infinita passando por $P_0$ com direção unitária $\vec{d}$, projetada para limites expansivos da cena ($1000$ m) e renderizada com linha tracejada pontilhada característica.
+- **SUGuidePointRef:** Pontos de construção 3D com marcador de cruz tridimensional nos eixos X, Y e Z.
+- **Interseção Analítica de Guias:** Algoritmo que calcula o ponto exato de cruzamento entre duas guias concorrentes no espaço 3D, fornecendo coordenadas para snap de inferência.
+- **Módulo:** `core/infinite_guide_engine.py` (`InfiniteGuideEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/guides/infinite`, `POST /api/v1/scene/guides/point` e `POST /api/v1/scene/guides/intersect`.
+
+---
+
+## 101. Frente 74: Materiais com Canal Alfa e Componentes Face-Me (Alpha Masking & Billboard - Zero DLL)
+
+A Frente 74 resolve a renderização correta de transparência recortada e componentes que giram para encarar o observador.
+
+### A. Recorte Alfa (Alpha Masking / AlphaTest)
+- Para vegetação, folhagens de árvores e pessoas 2D recortadas, o modo `MASK` aplica um `alphaTest` (ex: $0.5$) mantendo `depthWrite: true`, eliminando artefatos clássicos de ordenação de profundidade (onde folhas de trás somem na frente de folhas transparentes).
+
+### B. Matrizes de Rotação Face-Me (`behavior.camera_facing`)
+- Calcula a matriz $4 \times 4$ column-major de rotação axial (em torno do eixo vertical Z) ou esférica que orienta a face/instância diretamente na direção da posição da câmera em tempo real.
+- **Módulo:** `core/alpha_texture_engine.py` (`AlphaTextureEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/materials/alpha-mask` e `POST /api/v1/scene/components/face-me`.
+
+---
+
+## 102. Frente 75: Decodificador de Grupos Aninhados e Matrizes Globais (Nested Hierarchy & World Matrix - Zero DLL)
+
+A Frente 75 implementa a álgebra linear necessária para navegar e transformar hierarquias de grupos e componentes aninhados em qualquer profundidade.
+
+### A. Transformações Acumuladas no Espaço Mundial
+- Multiplicação em cadeia de matrizes afins $4 \times 4$ column-major:
+  $$M_{	ext{world}} = M_{	ext{root}} 	imes M_{	ext{child1}} 	imes \dots 	imes M_{	ext{target}}$$
+- Decomposição afim precisa em translação $(t_x, t_y, t_z)$, escala $(s_x, s_y, s_z)$ e teste de escala uniforme.
+
+### B. Edição no Espaço Mundial (World-to-Local Transformation)
+- Permite que o gizmo de transformação no visualizador Three.js atue diretamente em coordenadas globais mundiais, convertendo a alteração para a matriz local relativa do nó aninhado:
+  $$M_{	ext{local\_new}} = (M_{	ext{parent\_world}})^{-1} 	imes M_{	ext{world\_desired}}$$
+- **Módulo:** `core/nested_instance_hierarchy_engine.py` (`NestedInstanceHierarchyEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/hierarchy/resolve` e `POST /api/v1/scene/hierarchy/world-to-local`.

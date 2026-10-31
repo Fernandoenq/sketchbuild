@@ -1018,3 +1018,106 @@ export function calculateShadowAndSunInfo(params = {}) {
     edges_cast_shadows: params.edges_cast_shadows ?? false,
   });
 }
+
+
+/** Cria anotacao de texto 2D fixada em tela HUD (Frente 71). */
+export function createScreenText(text, screenX = 20.0, screenY = 20.0, fontName = "Arial", fontSizePt = 12, colorHex = "#000000", bold = false, italic = false) {
+  return postJson("/api/v1/scene/text/screen", "POST", {
+    text,
+    screen_x: screenX,
+    screen_y: screenY,
+    font_name: fontName,
+    font_size_pt: fontSizePt,
+    color_hex: colorHex,
+    bold,
+    italic,
+  });
+}
+
+/** Cria rotulo anotativo com linha de chamada 3D (Frente 71). */
+export function createLeaderText(text, anchorPoint, offsetVector = [0.5, 0.5, 0.5], arrowType = "ARROW", fontName = "Arial", fontSizePt = 10, colorHex = "#000000") {
+  return postJson("/api/v1/scene/text/leader", "POST", {
+    text,
+    anchor_point: anchorPoint,
+    offset_vector: offsetVector,
+    arrow_type: arrowType,
+    font_name: fontName,
+    font_size_pt: fontSizePt,
+    color_hex: colorHex,
+  });
+}
+
+/** Calcula cota linear com linhas de extensao e tiques arquitetonicos (Frente 72). */
+export function createDimensionLinear(startPt, endPt, offsetDistance = 0.2, planeNormal = null, arrowType = "SLASH", unit = "m", precision = 2, customText = null) {
+  return postJson("/api/v1/scene/dimensions/linear", "POST", {
+    start_pt: startPt,
+    end_pt: endPt,
+    offset_distance: offsetDistance,
+    plane_normal: planeNormal,
+    arrow_type: arrowType,
+    unit,
+    precision,
+    custom_text: customText,
+  });
+}
+
+/** Cria linha de guia infinita ou finita SUGuideLineRef (Frente 73). */
+export function createGuideLineInfinite(point, direction = null, endPoint = null, isInfinite = true, extentM = 500.0) {
+  return postJson("/api/v1/scene/guides/infinite", "POST", {
+    point,
+    direction,
+    end_point: endPoint,
+    is_infinite: isInfinite,
+    extent_m: extentM,
+  });
+}
+
+/** Cria ponto de construcao SUGuidePointRef (Frente 73). */
+export function createGuidePoint(point) {
+  return postJson("/api/v1/scene/guides/point", "POST", { point });
+}
+
+/** Calcula intersecao 3D analitica entre duas linhas de guia (Frente 73). */
+export function intersectGuideLines(line1, line2, tolerance = 0.001) {
+  return postJson("/api/v1/scene/guides/intersect", "POST", {
+    line1,
+    line2,
+    tolerance,
+  });
+}
+
+/** Configura material com canal alfa e recorte de profundidade (Frente 74). */
+export function configureAlphaMaterial(name, texturePath, alphaMode = "MASK", alphaThreshold = 0.5, doubleSided = true) {
+  return postJson("/api/v1/scene/materials/alpha-mask", "POST", {
+    name,
+    texture_path: texturePath,
+    alpha_mode: alphaMode,
+    alpha_threshold: alphaThreshold,
+    double_sided: doubleSided,
+  });
+}
+
+/** Calcula matriz de rotacao Face-Me para componente de vegetacao/figura humana (Frente 74). */
+export function calculateFaceMeMatrix(instancePosition, cameraPosition, axialOnly = true) {
+  return postJson("/api/v1/scene/components/face-me", "POST", {
+    instance_position: instancePosition,
+    camera_position: cameraPosition,
+    axial_only: axialOnly,
+  });
+}
+
+/** Resolve matriz mundial acumulada e decomposicao de no aninhado (Frente 75). */
+export function resolveNestedHierarchyNode(nodeId, pathToNode) {
+  return postJson("/api/v1/scene/hierarchy/resolve", "POST", {
+    node_id: nodeId,
+    path_to_node: pathToNode,
+  });
+}
+
+/** Converte matriz mundial de edicao para matriz local de no aninhado (Frente 75). */
+export function convertWorldTransformToLocal(desiredWorldMatrix, parentWorldMatrix) {
+  return postJson("/api/v1/scene/hierarchy/world-to-local", "POST", {
+    desired_world_matrix: desiredWorldMatrix,
+    parent_world_matrix: parentWorldMatrix,
+  });
+}

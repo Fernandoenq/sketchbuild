@@ -92,6 +92,21 @@ from app.schemas.scene import (
     SceneAnimationResponse,
     ShadowInfoRequest,
     ShadowInfoResponse,
+    ScreenTextRequest,
+    LeaderTextRequest,
+    TextResponse,
+    DimensionLinearRequest,
+    DimensionLinearResponse,
+    GuideLineInfiniteRequest,
+    GuidePointCreateRequest,
+    GuideLineIntersectRequest,
+    InfiniteGuideResponse,
+    AlphaMaterialRequest,
+    FaceMeRequest,
+    AlphaTextureResponse,
+    NestedHierarchyResolveRequest,
+    WorldToLocalRequest,
+    NestedHierarchyResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1302,5 +1317,121 @@ class SceneController:
                 body.edges_cast_shadows
             )
             return ShadowInfoResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+
+    async def create_screen_text(self, body: ScreenTextRequest) -> TextResponse:
+        try:
+            res = await self._service.create_screen_text(
+                body.text,
+                body.screen_x,
+                body.screen_y,
+                body.font_name,
+                body.font_size_pt,
+                body.color_hex,
+                body.bold,
+                body.italic
+            )
+            return TextResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_leader_text(self, body: LeaderTextRequest) -> TextResponse:
+        try:
+            res = await self._service.create_leader_text(
+                body.text,
+                body.anchor_point,
+                body.offset_vector,
+                body.arrow_type,
+                body.font_name,
+                body.font_size_pt,
+                body.color_hex
+            )
+            return TextResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_dimension_linear(self, body: DimensionLinearRequest) -> DimensionLinearResponse:
+        try:
+            res = await self._service.create_dimension_linear(
+                body.start_pt,
+                body.end_pt,
+                body.offset_distance,
+                body.plane_normal,
+                body.arrow_type,
+                body.unit,
+                body.precision,
+                body.custom_text
+            )
+            return DimensionLinearResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_guide_line_infinite(self, body: GuideLineInfiniteRequest) -> InfiniteGuideResponse:
+        try:
+            res = await self._service.create_guide_line_infinite(
+                body.point,
+                body.direction,
+                body.end_point,
+                body.is_infinite,
+                body.extent_m
+            )
+            return InfiniteGuideResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_guide_point(self, body: GuidePointCreateRequest) -> InfiniteGuideResponse:
+        try:
+            res = await self._service.create_guide_point(body.point)
+            return InfiniteGuideResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def intersect_guide_lines(self, body: GuideLineIntersectRequest) -> InfiniteGuideResponse:
+        try:
+            res = await self._service.intersect_guide_lines(body.line1, body.line2, body.tolerance)
+            return InfiniteGuideResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def configure_alpha_material(self, body: AlphaMaterialRequest) -> AlphaTextureResponse:
+        try:
+            res = await self._service.configure_alpha_material(
+                body.name,
+                body.texture_path,
+                body.alpha_mode,
+                body.alpha_threshold,
+                body.double_sided
+            )
+            return AlphaTextureResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_face_me_matrix(self, body: FaceMeRequest) -> AlphaTextureResponse:
+        try:
+            res = await self._service.calculate_face_me_matrix(
+                body.instance_position,
+                body.camera_position,
+                body.axial_only
+            )
+            return AlphaTextureResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def resolve_nested_hierarchy_node(self, body: NestedHierarchyResolveRequest) -> NestedHierarchyResponse:
+        try:
+            res = await self._service.resolve_nested_hierarchy_node(body.node_id, body.path_to_node)
+            return NestedHierarchyResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def convert_world_transform_to_local(self, body: WorldToLocalRequest) -> NestedHierarchyResponse:
+        try:
+            res = await self._service.convert_world_transform_to_local(
+                body.desired_world_matrix,
+                body.parent_world_matrix
+            )
+            return NestedHierarchyResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

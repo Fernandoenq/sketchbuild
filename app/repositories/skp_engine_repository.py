@@ -2230,3 +2230,202 @@ class SkpEngineRepository:
             "shadow_info": info,
             "status": f"SOMBREAMENTO SOLAR HELIODON CALCULADO ({info['astronomy']['solar_altitude_deg']}° ALTITUDE)"
         }
+
+
+    def create_screen_text(
+        self,
+        text: str,
+        screen_x: float = 20.0,
+        screen_y: float = 20.0,
+        font_name: str = "Arial",
+        font_size_pt: int = 12,
+        color_hex: str = "#000000",
+        bold: bool = False,
+        italic: bool = False
+    ) -> dict:
+        """Cria anotação de texto 2D fixada em coordenadas de tela (Frente 71)."""
+        from core.text_engine import TextEngine
+        res = TextEngine.create_screen_text(
+            text=text,
+            screen_x=screen_x,
+            screen_y=screen_y,
+            font_name=font_name,
+            font_size_pt=font_size_pt,
+            color_hex=color_hex,
+            bold=bold,
+            italic=italic
+        )
+        return {
+            "entity_type": "SUTextRef",
+            "text_data": res,
+            "status": "TEXTO DE TELA CRIADO COM SUCESSO"
+        }
+
+    def create_leader_text(
+        self,
+        text: str,
+        anchor_point: list,
+        offset_vector: list = None,
+        arrow_type: str = "ARROW",
+        font_name: str = "Arial",
+        font_size_pt: int = 10,
+        color_hex: str = "#000000"
+    ) -> dict:
+        """Cria rótulo anotativo com linha de chamada 3D (Frente 71)."""
+        from core.text_engine import TextEngine
+        offset = tuple(offset_vector) if offset_vector else (0.5, 0.5, 0.5)
+        res = TextEngine.create_leader_text(
+            text=text,
+            anchor_point=tuple(anchor_point),
+            offset_vector=offset,
+            arrow_type=arrow_type,
+            font_name=font_name,
+            font_size_pt=font_size_pt,
+            color_hex=color_hex
+        )
+        return {
+            "entity_type": "SUTextRef",
+            "text_data": res,
+            "status": "RÓTULO ANOTATIVO LEADER CRIADO COM SUCESSO"
+        }
+
+    def create_dimension_linear(
+        self,
+        start_pt: list,
+        end_pt: list,
+        offset_distance: float = 0.2,
+        plane_normal: list = None,
+        arrow_type: str = "SLASH",
+        unit: str = "m",
+        precision: int = 2,
+        custom_text: str = None
+    ) -> dict:
+        """Calcula cota linear com linhas de extensão e tiques arquitetônicos (Frente 72)."""
+        from core.dimension_linear_engine import DimensionLinearEngine
+        norm = tuple(plane_normal) if plane_normal else None
+        res = DimensionLinearEngine.create_dimension(
+            start_pt=tuple(start_pt),
+            end_pt=tuple(end_pt),
+            offset_distance=offset_distance,
+            plane_normal=norm,
+            arrow_type=arrow_type,
+            unit=unit,
+            precision=precision,
+            custom_text=custom_text
+        )
+        return {
+            "entity_type": "SUDimensionLinearRef",
+            "dimension_data": res,
+            "status": res["status"]
+        }
+
+    def create_guide_line_infinite(
+        self,
+        point: list,
+        direction: list = None,
+        end_point: list = None,
+        is_infinite: bool = True,
+        extent_m: float = 500.0
+    ) -> dict:
+        """Cria linha de guia infinita ou finita SUGuideLineRef (Frente 73)."""
+        from core.infinite_guide_engine import InfiniteGuideEngine
+        dir_tup = tuple(direction) if direction else None
+        end_tup = tuple(end_point) if end_point else None
+        res = InfiniteGuideEngine.create_guide_line(
+            point=tuple(point),
+            direction=dir_tup,
+            end_point=end_tup,
+            is_infinite=is_infinite,
+            extent_m=extent_m
+        )
+        return {
+            "entity_type": "SUGuideEntity",
+            "guide_data": res,
+            "status": res["status"]
+        }
+
+    def create_guide_point(self, point: list) -> dict:
+        """Cria ponto de construção SUGuidePointRef (Frente 73)."""
+        from core.infinite_guide_engine import InfiniteGuideEngine
+        res = InfiniteGuideEngine.create_guide_point(tuple(point))
+        return {
+            "entity_type": "SUGuideEntity",
+            "guide_data": res,
+            "status": res["status"]
+        }
+
+    def intersect_guide_lines(self, line1: dict, line2: dict, tolerance: float = 0.001) -> dict:
+        """Calcula interseção 3D analítica entre duas linhas de guia (Frente 73)."""
+        from core.infinite_guide_engine import InfiniteGuideEngine
+        res = InfiniteGuideEngine.intersect_guide_lines(line1, line2, tolerance)
+        return {
+            "entity_type": "SUGuideEntity",
+            "guide_data": res or {"intersection": None},
+            "status": "INTERSEÇÃO CALCULADA" if res else "LINHAS REVERSAS OU PARALELAS"
+        }
+
+    def configure_alpha_material(
+        self,
+        name: str,
+        texture_path: str,
+        alpha_mode: str = "MASK",
+        alpha_threshold: float = 0.5,
+        double_sided: bool = True
+    ) -> dict:
+        """Configura material com canal alfa e recorte de profundidade (Frente 74)."""
+        from core.alpha_texture_engine import AlphaTextureEngine
+        res = AlphaTextureEngine.configure_alpha_material(
+            name=name,
+            texture_path=texture_path,
+            alpha_mode=alpha_mode,
+            alpha_threshold=alpha_threshold,
+            double_sided=double_sided
+        )
+        return {
+            "entity_type": "AlphaTextureResult",
+            "result_data": res,
+            "status": res["status"]
+        }
+
+    def calculate_face_me_matrix(
+        self,
+        instance_position: list,
+        camera_position: list,
+        axial_only: bool = True
+    ) -> dict:
+        """Calcula matriz de rotação Face-Me para componente de vegetação/figura humana (Frente 74)."""
+        from core.alpha_texture_engine import AlphaTextureEngine
+        res = AlphaTextureEngine.calculate_face_me_matrix(
+            instance_position=tuple(instance_position),
+            camera_position=tuple(camera_position),
+            axial_only=axial_only
+        )
+        return {
+            "entity_type": "AlphaTextureResult",
+            "result_data": res,
+            "status": res["status"]
+        }
+
+    def resolve_nested_hierarchy_node(self, node_id: str, path_to_node: list) -> dict:
+        """Resolve matriz mundial acumulada e decomposição de nó aninhado (Frente 75)."""
+        from core.nested_instance_hierarchy_engine import NestedInstanceHierarchyEngine
+        res = NestedInstanceHierarchyEngine.resolve_hierarchy_node(node_id, path_to_node)
+        return {
+            "entity_type": "NestedHierarchyResult",
+            "hierarchy_data": res,
+            "status": res["status"]
+        }
+
+    def convert_world_transform_to_local(self, desired_world_matrix: list, parent_world_matrix: list) -> dict:
+        """Converte matriz mundial de edição para matriz local de nó aninhado (Frente 75)."""
+        from core.nested_instance_hierarchy_engine import NestedInstanceHierarchyEngine
+        local_mat = NestedInstanceHierarchyEngine.convert_world_transform_to_local(desired_world_matrix, parent_world_matrix)
+        return {
+            "entity_type": "NestedHierarchyResult",
+            "hierarchy_data": {
+                "local_matrix_16": local_mat,
+                "desired_world_matrix": desired_world_matrix,
+                "parent_world_matrix": parent_world_matrix
+            },
+            "status": "MATRIZ LOCAL CALCULADA A PARTIR DO ESPAÇO MUNDIAL"
+        }

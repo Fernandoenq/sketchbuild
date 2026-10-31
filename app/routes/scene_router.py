@@ -83,6 +83,21 @@ from app.schemas.scene import (
     SceneAnimationResponse,
     ShadowInfoRequest,
     ShadowInfoResponse,
+    ScreenTextRequest,
+    LeaderTextRequest,
+    TextResponse,
+    DimensionLinearRequest,
+    DimensionLinearResponse,
+    GuideLineInfiniteRequest,
+    GuidePointCreateRequest,
+    GuideLineIntersectRequest,
+    InfiniteGuideResponse,
+    AlphaMaterialRequest,
+    FaceMeRequest,
+    AlphaTextureResponse,
+    NestedHierarchyResolveRequest,
+    WorldToLocalRequest,
+    NestedHierarchyResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1360,3 +1375,123 @@ async def calculate_shadow_and_sun_info(
     controller: SceneController = Depends(get_controller),
 ) -> ShadowInfoResponse:
     return await controller.calculate_shadow_and_sun_info(body)
+
+
+@router.post(
+    "/text/screen",
+    response_model=TextResponse,
+    summary="Cria anotacao de texto 2D fixada em tela HUD (Frente 71)",
+)
+async def create_screen_text(
+    body: ScreenTextRequest,
+    controller: SceneController = Depends(get_controller),
+) -> TextResponse:
+    return await controller.create_screen_text(body)
+
+
+@router.post(
+    "/text/leader",
+    response_model=TextResponse,
+    summary="Cria rotulo anotativo com linha de chamada 3D (Frente 71)",
+)
+async def create_leader_text(
+    body: LeaderTextRequest,
+    controller: SceneController = Depends(get_controller),
+) -> TextResponse:
+    return await controller.create_leader_text(body)
+
+
+@router.post(
+    "/dimensions/linear",
+    response_model=DimensionLinearResponse,
+    summary="Calcula cota linear com linhas de extensao e tiques arquitetonicos (Frente 72)",
+)
+async def create_dimension_linear(
+    body: DimensionLinearRequest,
+    controller: SceneController = Depends(get_controller),
+) -> DimensionLinearResponse:
+    return await controller.create_dimension_linear(body)
+
+
+@router.post(
+    "/guides/infinite",
+    response_model=InfiniteGuideResponse,
+    summary="Cria linha de guia infinita ou finita SUGuideLineRef (Frente 73)",
+)
+async def create_guide_line_infinite(
+    body: GuideLineInfiniteRequest,
+    controller: SceneController = Depends(get_controller),
+) -> InfiniteGuideResponse:
+    return await controller.create_guide_line_infinite(body)
+
+
+@router.post(
+    "/guides/point",
+    response_model=InfiniteGuideResponse,
+    summary="Cria ponto de construcao SUGuidePointRef (Frente 73)",
+)
+async def create_guide_point(
+    body: GuidePointCreateRequest,
+    controller: SceneController = Depends(get_controller),
+) -> InfiniteGuideResponse:
+    return await controller.create_guide_point(body)
+
+
+@router.post(
+    "/guides/intersect",
+    response_model=InfiniteGuideResponse,
+    summary="Calcula intersecao 3D analitica entre duas linhas de guia (Frente 73)",
+)
+async def intersect_guide_lines(
+    body: GuideLineIntersectRequest,
+    controller: SceneController = Depends(get_controller),
+) -> InfiniteGuideResponse:
+    return await controller.intersect_guide_lines(body)
+
+
+@router.post(
+    "/materials/alpha-mask",
+    response_model=AlphaTextureResponse,
+    summary="Configura material com canal alfa e recorte de profundidade (Frente 74)",
+)
+async def configure_alpha_material(
+    body: AlphaMaterialRequest,
+    controller: SceneController = Depends(get_controller),
+) -> AlphaTextureResponse:
+    return await controller.configure_alpha_material(body)
+
+
+@router.post(
+    "/components/face-me",
+    response_model=AlphaTextureResponse,
+    summary="Calcula matriz de rotacao Face-Me para componente de vegetacao/figura humana (Frente 74)",
+)
+async def calculate_face_me_matrix(
+    body: FaceMeRequest,
+    controller: SceneController = Depends(get_controller),
+) -> AlphaTextureResponse:
+    return await controller.calculate_face_me_matrix(body)
+
+
+@router.post(
+    "/hierarchy/resolve",
+    response_model=NestedHierarchyResponse,
+    summary="Resolve matriz mundial acumulada e decomposicao de no aninhado (Frente 75)",
+)
+async def resolve_nested_hierarchy_node(
+    body: NestedHierarchyResolveRequest,
+    controller: SceneController = Depends(get_controller),
+) -> NestedHierarchyResponse:
+    return await controller.resolve_nested_hierarchy_node(body)
+
+
+@router.post(
+    "/hierarchy/world-to-local",
+    response_model=NestedHierarchyResponse,
+    summary="Converte matriz mundial de edicao para matriz local de no aninhado (Frente 75)",
+)
+async def convert_world_transform_to_local(
+    body: WorldToLocalRequest,
+    controller: SceneController = Depends(get_controller),
+) -> NestedHierarchyResponse:
+    return await controller.convert_world_transform_to_local(body)
