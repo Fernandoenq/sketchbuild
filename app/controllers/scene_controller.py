@@ -48,6 +48,16 @@ from app.schemas.scene import (
     CargoLoadResponse,
     TechnicalSketchRequest,
     TechnicalSketchResponse,
+    SpiralTubeRequest,
+    SpiralTubeResponse,
+    OverturnStabilityRequest,
+    OverturnStabilityResponse,
+    FieldInspectionRequest,
+    FieldInspectionResponse,
+    AngleDimensionRequest,
+    AngleDimensionResponse,
+    FastenerTorqueRequest,
+    FastenerTorqueResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -921,5 +931,78 @@ class SceneController:
                 body.output_filename
             )
             return TechnicalSketchResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_spiral_tube(self, body: SpiralTubeRequest) -> SpiralTubeResponse:
+        """Gera geometria 3D de toboga espiral helicoidal (Frente 51)."""
+        try:
+            res = await self._service.generate_spiral_tube(
+                body.radius_m,
+                body.height_m,
+                body.turns,
+                body.tube_radius_m,
+                body.segments_per_turn,
+                body.tube_segments,
+                body.is_open_gutter
+            )
+            return SpiralTubeResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_overturn_stability(self, body: OverturnStabilityRequest) -> OverturnStabilityResponse:
+        """Calcula estabilidade ao tombamento sob vento e empuxo (Frente 52)."""
+        try:
+            res = await self._service.calculate_overturn_stability(
+                body.total_mass_kg,
+                body.cg_position,
+                body.base_support_points,
+                body.wind_speed_km_h,
+                body.exposed_frontal_area_m2,
+                body.lateral_live_load_n,
+                body.live_load_height_m
+            )
+            return OverturnStabilityResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def export_field_inspection_html(self, body: FieldInspectionRequest) -> FieldInspectionResponse:
+        """Exporta checklist de inspecao de campo NBR 16071-7 em HTML5 offline (Frente 53)."""
+        try:
+            res = await self._service.export_field_inspection_html(
+                body.park_name,
+                body.inspector_name,
+                body.inspection_date,
+                None,
+                body.output_filename
+            )
+            return FieldInspectionResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_angle_dimension(self, body: AngleDimensionRequest) -> AngleDimensionResponse:
+        """Calcula cota angular e arco grafico 3D entre 3 pontos (Frente 54)."""
+        try:
+            res = await self._service.calculate_angle_dimension(
+                body.vertex_point,
+                body.point_a,
+                body.point_b,
+                body.arc_radius_m
+            )
+            return AngleDimensionResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_fastener_torque(self, body: FastenerTorqueRequest) -> FastenerTorqueResponse:
+        """Dimensiona fixador e calcula torque normativo NBR 7190 / ISO 898 (Frente 55)."""
+        try:
+            res = await self._service.calculate_fastener_torque(
+                body.timber_thickness_mm,
+                body.steel_plate_thickness_mm,
+                body.bolt_standard,
+                body.material_grade,
+                body.friction_factor_k
+            )
+            return FastenerTorqueResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

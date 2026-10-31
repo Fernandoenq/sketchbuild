@@ -628,3 +628,99 @@ class SceneService:
             overshoot_mm,
             output_filename
         )
+
+    async def generate_spiral_tube(
+        self,
+        radius_m: float = 1.20,
+        height_m: float = 2.40,
+        turns: float = 1.25,
+        tube_radius_m: float = 0.38,
+        segments_per_turn: int = 16,
+        tube_segments: int = 8,
+        is_open_gutter: bool = False
+    ) -> dict:
+        """Gera geometria 3D de tobogã espiral helicoidal (Frente 51)."""
+        return await run_in_threadpool(
+            self._repository.generate_spiral_tube,
+            radius_m,
+            height_m,
+            turns,
+            tube_radius_m,
+            segments_per_turn,
+            tube_segments,
+            is_open_gutter
+        )
+
+    async def calculate_overturn_stability(
+        self,
+        total_mass_kg: float = 850.0,
+        cg_position: list = None,
+        base_support_points: list = None,
+        wind_speed_km_h: float = 100.0,
+        exposed_frontal_area_m2: float = 6.50,
+        lateral_live_load_n: float = 500.0,
+        live_load_height_m: float = 1.80
+    ) -> dict:
+        """Calcula estabilidade ao tombamento sob vento e empuxo (Frente 52)."""
+        return await run_in_threadpool(
+            self._repository.calculate_overturn_stability,
+            total_mass_kg,
+            cg_position,
+            base_support_points,
+            wind_speed_km_h,
+            exposed_frontal_area_m2,
+            lateral_live_load_n,
+            live_load_height_m
+        )
+
+    async def export_field_inspection_html(
+        self,
+        park_name: str,
+        inspector_name: str,
+        inspection_date: str,
+        equipment_list: list = None,
+        output_filename: str = "ficha_inspecao_nbr16071.html"
+    ) -> dict:
+        """Exporta checklist de inspeção de campo NBR 16071-7 em HTML5 offline (Frente 53)."""
+        return await run_in_threadpool(
+            self._repository.export_field_inspection_html,
+            park_name,
+            inspector_name,
+            inspection_date,
+            equipment_list,
+            output_filename
+        )
+
+    async def calculate_angle_dimension(
+        self,
+        vertex_point: list,
+        point_a: list,
+        point_b: list,
+        arc_radius_m: float = 0.60
+    ) -> dict:
+        """Calcula cota angular e arco gráfico 3D entre 3 pontos (Frente 54)."""
+        return await run_in_threadpool(
+            self._repository.calculate_angle_dimension,
+            vertex_point,
+            point_a,
+            point_b,
+            arc_radius_m
+        )
+
+    async def calculate_fastener_torque(
+        self,
+        timber_thickness_mm: float = 160.0,
+        steel_plate_thickness_mm: float = 4.75,
+        bolt_standard: str = "1/2_POL",
+        material_grade: str = "Inox_304",
+        friction_factor_k: float = 0.18
+    ) -> dict:
+        """Dimensiona fixador e calcula torque normativo NBR 7190 / ISO 898 (Frente 55)."""
+        return await run_in_threadpool(
+            self._repository.calculate_fastener_torque,
+            timber_thickness_mm,
+            steel_plate_thickness_mm,
+            bolt_standard,
+            material_grade,
+            friction_factor_k
+        )

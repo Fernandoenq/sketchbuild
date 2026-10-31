@@ -76,6 +76,11 @@ import {
   inspectWallThickness,
   optimizeCargoLoad,
   generateTechnicalSketch,
+  generateSpiralTube,
+  calculateOverturnStability,
+  exportFieldInspectionHtml,
+  calculateAngleDimension,
+  calculateFastenerTorque,
   ApiError,
 } from "./api.js";
 import {
@@ -2052,6 +2057,8 @@ const MENU_ACTIONS = {
   "export-qr-tag": () => handleExportQrTag(),
   "export-art-pdf": () => handleExportArtPdf(),
   "export-technical-sketch": () => handleExportTechnicalSketch(),
+  "draw-spiral-tube": () => handleDrawSpiralTube(),
+  "export-inspection-checklist": () => handleExportInspectionChecklist(),
   "tool-mirror": () => handleMirrorTool(),
   "draw-terrain": () => handleDrawTerrain(),
   "import-dxf": () => {
@@ -3446,3 +3453,73 @@ async function handleExportTechnicalSketch() {
 document.getElementById("btn-calc-swing")?.addEventListener("click", handleSwingKinematics);
 document.getElementById("btn-inspect-thickness")?.addEventListener("click", handleInspectWallThickness);
 document.getElementById("btn-calc-cargo")?.addEventListener("click", handleCargoLoad);
+
+
+// --- Frente 51: Modelagem de Tobogã Espiral 3D ---
+async function handleDrawSpiralTube() {
+  setStatus("Gerando malha helicoidal 3D de tobogã espiral...");
+  try {
+    const res = await generateSpiralTube(1.20, 2.40, 1.25, 0.38, false);
+    setStatus(`Tobogã Espiral 3D gerado: ${res.vertices_count} vértices, ${res.faces_count} faces (Comprimento: ${res.path_length_m}m, Velocidade saída: ${res.estimated_exit_speed_m_s}m/s).`);
+  } catch (err) {
+    setStatus(`Erro ao gerar tobogã espiral: ${err.message}`, true);
+  }
+}
+
+// --- Frente 52: Estabilidade ao Tombamento / Vento NBR 6123 ---
+async function handleOverturnStability() {
+  setStatus("Calculando estabilidade ao tombamento sob ação de vento NBR 6123...");
+  try {
+    const res = await calculateOverturnStability(850.0, [1.5, 1.2, 1.45], 100.0);
+    const badge = document.getElementById("overturn-status-badge");
+    const details = document.getElementById("overturn-details");
+    const box = document.getElementById("overturn-result");
+    if (badge && details && box) {
+      box.style.display = "block";
+      badge.textContent = `${res.status} | FS: ${res.safety_factor}`;
+      details.innerHTML = `• <strong>Momento Restaurador:</strong> ${res.restoring_moment_kn_m} kN.m<br/>` +
+        `• <strong>Momento Tombamento (Vento):</strong> ${res.overturning_moment_kn_m} kN.m (V=${res.wind_speed_km_h} km/h)<br/>` +
+        `• <strong>Braço Mínimo:</strong> ${res.restoring_arm_m} m ${res.is_stable ? "(Seguro)" : "(Requer Sapata de Concreto)"}`;
+    }
+    setStatus(`Estabilidade calculada: ${res.status} (Fator de Segurança: ${res.safety_factor}).`);
+  } catch (err) {
+    setStatus(`Erro no cálculo de estabilidade: ${err.message}`, true);
+  }
+}
+
+// --- Frente 53: Ficha de Inspeção de Campo HTML5 ---
+async function handleExportInspectionChecklist() {
+  setStatus("Exportando ficha técnica de inspeção de campo NBR 16071...");
+  try {
+    const res = await exportFieldInspectionHtml("Parque Villa-Lobos", "Eng. Fernando Henrique", "2026-03-01", "ficha_inspecao_nbr16071.html");
+    setStatus(`Ficha técnica de inspeção exportada com sucesso: ${res.file_path} (${res.size_bytes} bytes).`);
+  } catch (err) {
+    setStatus(`Erro ao exportar checklist: ${err.message}`, true);
+  }
+}
+
+// --- Frente 55: Dimensionamento de Fixadores e Torque NBR 7190 ---
+async function handleFastenerTorque() {
+  setStatus("Dimensionando parafusos e torque de aperto normativo NBR 7190...");
+  try {
+    const res = await calculateFastenerTorque(160.0, 4.75, "1/2_POL", "Inox_304");
+    const badge = document.getElementById("fasteners-status-badge");
+    const details = document.getElementById("fasteners-details");
+    const box = document.getElementById("fasteners-result");
+    if (badge && details && box) {
+      box.style.display = "block";
+      badge.textContent = `Parafuso ${res.bolt_standard} x ${res.commercial_bolt_length_mm} mm | Torque: ${res.recommended_torque_n_m} N.m`;
+      details.innerHTML = `• <strong>Torque Recomendado:</strong> ${res.recommended_torque_n_m} N.m (${res.recommended_torque_kgf_m} kgf.m)<br/>` +
+        `• <strong>Porca Recomendada:</strong> ${res.recommended_nut}<br/>` +
+        `• <strong>Arruela Recomendada:</strong> ${res.recommended_washer}<br/>` +
+        `• <strong>Soquete da Chave:</strong> ${res.socket_tool_size_mm} mm`;
+    }
+    setStatus(`Dimensionamento de fixador concluído: Torque ${res.recommended_torque_n_m} N.m.`);
+  } catch (err) {
+    setStatus(`Erro ao dimensionar fixadores: ${err.message}`, true);
+  }
+}
+
+// Listeners adicionais
+document.getElementById("btn-calc-overturn")?.addEventListener("click", handleOverturnStability);
+document.getElementById("btn-calc-fasteners")?.addEventListener("click", handleFastenerTorque);

@@ -760,3 +760,60 @@ export function generateTechnicalSketch(dihedralAngleThresholdDeg = 25.0, oversh
     output_filename: outputFilename,
   });
 }
+
+
+/** Gera geometria 3D de toboga espiral helicoidal (Frente 51). */
+export function generateSpiralTube(radiusM = 1.20, heightM = 2.40, turns = 1.25, tubeRadiusM = 0.38, isOpenGutter = false) {
+  return postJson("/api/v1/scene/geometry/spiral-tube", "POST", {
+    radius_m: radiusM,
+    height_m: heightM,
+    turns: turns,
+    tube_radius_m: tubeRadiusM,
+    segments_per_turn: 16,
+    tube_segments: 8,
+    is_open_gutter: isOpenGutter,
+  });
+}
+
+/** Calcula estabilidade ao tombamento sob acao de vento NBR 6123 (Frente 52). */
+export function calculateOverturnStability(totalMassKg = 850.0, cgPosition = [1.5, 1.2, 1.45], windSpeedKmH = 100.0) {
+  return postJson("/api/v1/scene/engineering/overturn-stability", "POST", {
+    total_mass_kg: totalMassKg,
+    cg_position: cgPosition,
+    wind_speed_km_h: windSpeedKmH,
+    exposed_frontal_area_m2: 6.50,
+    lateral_live_load_n: 500.0,
+    live_load_height_m: 1.80,
+  });
+}
+
+/** Exporta checklist de inspecao de campo NBR 16071-7 em HTML5 offline (Frente 53). */
+export function exportFieldInspectionHtml(parkName = "Parque Villa-Lobos", inspectorName = "Eng. Fernando Henrique", inspectionDate = "2026-03-01", outputFilename = "ficha_inspecao_nbr16071.html") {
+  return postJson("/api/v1/scene/export/field-inspection-html", "POST", {
+    park_name: parkName,
+    inspector_name: inspectorName,
+    inspection_date: inspectionDate,
+    output_filename: outputFilename,
+  });
+}
+
+/** Calcula cota angular e arco grafico 3D entre 3 pontos (Frente 54). */
+export function calculateAngleDimension(vertexPoint, pointA, pointB, arcRadiusM = 0.60) {
+  return postJson("/api/v1/scene/geometry/angle-dimension", "POST", {
+    vertex_point: vertexPoint,
+    point_a: pointA,
+    point_b: pointB,
+    arc_radius_m: arcRadiusM,
+  });
+}
+
+/** Dimensiona fixador e calcula torque normativo NBR 7190 / ISO 898 (Frente 55). */
+export function calculateFastenerTorque(timberThicknessMm = 160.0, steelPlateThicknessMm = 4.75, boltStandard = "1/2_POL", materialGrade = "Inox_304") {
+  return postJson("/api/v1/scene/engineering/fastener-torque", "POST", {
+    timber_thickness_mm: timberThicknessMm,
+    steel_plate_thickness_mm: steelPlateThicknessMm,
+    bolt_standard: boltStandard,
+    material_grade: materialGrade,
+    friction_factor_k: 0.18,
+  });
+}

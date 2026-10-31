@@ -1159,3 +1159,73 @@ A Frente 50 introduz a renderização não-fotorealística (NPR) com estilo arqu
 - Efeito de cruzamento e prolongamento nas pontas (*Overshoot / Overhang* de nanquim configurável em milímetros) com filtro SVG de ruído fractal para simulação de papel vegetal e traço manual.
 - **Módulo:** `core/technical_sketch_shader.py` (`TechnicalSketchShader`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/export/technical-sketch-svg`.
+
+
+---
+
+## 78. Frente 51: Gerador de Tubos e Tobogãs Espirais Paramétricos 3D (Zero DLL)
+
+A Frente 51 introduz a modelagem analítica de superfícies helicoidais contínuas para escorregadores tubulares e calhas em curva espiral (brinquedos de recreio).
+
+### A. Formulação da Curva Helicoidal e Triedro Móvel de Frenet-Serret
+- Curva guia espacial com raio $R$, altura $H$ e número de voltas $N$:
+  $$\mathbf{P}(t) = \left( R \cos t, \; R \sin t, \; H \cdot \left(1 - rac{t}{2\pi N}ight) ight)$$
+- Orientação seccional por triedro ortogonal móvel: vetor tangente $ec{T}$, vetor normal principal $ec{N}$ direcionado ao eixo central e binormal $ec{B} = ec{T} 	imes ec{N}$.
+- Costura de anéis transversais formando malhas B-Rep fechadas ou calhas semicirculares abertas, com cálculo dinâmico de inclinação média e velocidade de saída com atrito cinético de PEAD ($\mu = 0.20$).
+- **Módulo:** `core/spiral_tube_generator.py` (`SpiralTubeGenerator`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/spiral-tube`.
+
+---
+
+## 79. Frente 52: Calculador de Centro de Gravidade e Estabilidade ao Tombamento (NBR 16071 / NBR 6123 - Zero DLL)
+
+A Frente 52 implementa a verificação estrutural e estática de estabilidade ao tombamento de brinquedos coletivos.
+
+### A. Equilíbrio de Momentos e Ação do Vento
+1. **Momento Restaurador Estabilizante:** $M_{	ext{rest}} = M_{	ext{total}} \cdot g \cdot b_{\min}$, onde $b_{\min}$ é o menor braço de alavanca do CG projetado no solo em relação às sapatas periféricas.
+2. **Momento de Tombamento por Vento (NBR 6123):** Pressão de estagnação $q = 0.613 \cdot v_k^2$, com força de arrasto $F_{	ext{vento}} = q \cdot A \cdot C_f$ aplicada no centro de massa e empuxo lateral de multidão no topo.
+3. **Fator de Segurança Normativo:** $FS = rac{M_{	ext{rest}}}{M_{	ext{tomb}}} \ge 1.50$. Se $FS < 1.50$, o motor calcula o lastro e o volume mínimo de sapata de concreto necessário para ancoragem segura.
+- **Módulo:** `core/overturn_stability_calculator.py` (`OverturnStabilityCalculator`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/engineering/overturn-stability`.
+
+---
+
+## 80. Frente 53: Exportador de Ficha de Inspeção e Checklist de Campo Offline (NBR 16071-7 - Zero DLL)
+
+A Frente 53 disponibiliza uma ferramenta de auditoria de campo sem dependências de rede externa (*Offline First / PWA*).
+
+### A. Aplicação Web Autocontida em HTML5
+- Ficha técnica completa de verificação para os três regimes da ABNT NBR 16071-7: Inspeção Visual de Rotina, Inspeção Operacional e Inspeção Principal Anual.
+- Formulário com seletores de conformidade (`[C] Conforme`, `[NC] Não Conforme`, `[NA] Não Aplicável`).
+- Bloco interativo de assinatura digital em `<canvas>` para aposição de assinatura direta pelo inspetor com o dedo ou stylus.
+- Estilização com `@media print` para exportação direta em PDF através do diálogo de impressão do navegador.
+- **Módulo:** `core/field_inspection_exporter.py` (`FieldInspectionExporter`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/export/field-inspection-html`.
+
+---
+
+## 81. Frente 54: Ferramenta de Cota Angular e Transferidor 3D (*Angle Dimension Tool* - Zero DLL)
+
+A Frente 54 implementa dimensionamento métrico angular entre retas e planos no espaço tridimensional.
+
+### A. Geometria Analítica Espacial da Cota
+- Dados o vértice central $ec{V}$ e os pontos extremos $ec{A}$ e $ec{B}$, determina o ângulo no plano:
+  $$	heta = rccos\left(rac{ec{u} \cdot ec{w}}{|ec{u}| |ec{w}|}ight)$$
+- Projeção do arco circular no plano ortonormal $ec{n} = rac{ec{u} 	imes ec{w}}{|ec{u} 	imes ec{w}|}$.
+- Geração de pontos discretizados de arco de cota e posicionamento automático do texto angular em graus decimais e formato Graus-Minutos-Segundos (GMS).
+- **Módulo:** `core/angle_dimension_tool.py` (`AngleDimensionTool`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/angle-dimension`.
+
+---
+
+## 82. Frente 55: Otimizador de Fixadores e Torque de Aperto (NBR 7190 / ISO 898 - Zero DLL)
+
+A Frente 55 fecha a especificação de montagem física de estruturas de madeira de eucalipto e ferragens metálicas.
+
+### A. Dimensionamento e Prevenção de Esmagamento de Fibras
+- Dimensiona o comprimento útil e comercial do parafuso considerando a espessura da madeira, chapas metálicas, arruelas duplas DIN 9021 e porcas autotravantes com inserto de nylon DIN 985 (Parlock).
+- Limitação da força axial de aperto à resistência de esmagamento transversal da madeira ($f_{c90} = 6.0	ext{ MPa}$ segundo a NBR 7190):
+  $$F_p = 0.75 \cdot (f_{c90} \cdot A_{	ext{arruela}})$$
+- Determinação do torque normativo de montagem: $T = K \cdot D \cdot F_p$ (em $	ext{N}\cdot	ext{m}$ e $	ext{kgf}\cdot	ext{m}$), garantindo aperto seguro contra vibrações de uso sem rachar ou danificar as peças de madeira tratada.
+- **Módulo:** `core/fastener_torque_optimizer.py` (`FastenerTorqueOptimizer`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/engineering/fastener-torque`.

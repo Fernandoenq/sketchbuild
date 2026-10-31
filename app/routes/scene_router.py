@@ -39,6 +39,16 @@ from app.schemas.scene import (
     CargoLoadResponse,
     TechnicalSketchRequest,
     TechnicalSketchResponse,
+    SpiralTubeRequest,
+    SpiralTubeResponse,
+    OverturnStabilityRequest,
+    OverturnStabilityResponse,
+    FieldInspectionRequest,
+    FieldInspectionResponse,
+    AngleDimensionRequest,
+    AngleDimensionResponse,
+    FastenerTorqueRequest,
+    FastenerTorqueResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1028,3 +1038,63 @@ async def generate_technical_sketch(
     controller: SceneController = Depends(get_controller),
 ) -> TechnicalSketchResponse:
     return await controller.generate_technical_sketch(body)
+
+
+@router.post(
+    "/geometry/spiral-tube",
+    response_model=SpiralTubeResponse,
+    summary="Gera geometria 3D de toboga espiral helicoidal (Frente 51)",
+)
+async def generate_spiral_tube(
+    body: SpiralTubeRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SpiralTubeResponse:
+    return await controller.generate_spiral_tube(body)
+
+
+@router.post(
+    "/engineering/overturn-stability",
+    response_model=OverturnStabilityResponse,
+    summary="Calcula estabilidade ao tombamento sob vento e empuxo (Frente 52)",
+)
+async def calculate_overturn_stability(
+    body: OverturnStabilityRequest,
+    controller: SceneController = Depends(get_controller),
+) -> OverturnStabilityResponse:
+    return await controller.calculate_overturn_stability(body)
+
+
+@router.post(
+    "/export/field-inspection-html",
+    response_model=FieldInspectionResponse,
+    summary="Exporta checklist de inspecao de campo NBR 16071-7 em HTML5 offline (Frente 53)",
+)
+async def export_field_inspection_html(
+    body: FieldInspectionRequest,
+    controller: SceneController = Depends(get_controller),
+) -> FieldInspectionResponse:
+    return await controller.export_field_inspection_html(body)
+
+
+@router.post(
+    "/geometry/angle-dimension",
+    response_model=AngleDimensionResponse,
+    summary="Calcula cota angular e arco grafico 3D entre 3 pontos (Frente 54)",
+)
+async def calculate_angle_dimension(
+    body: AngleDimensionRequest,
+    controller: SceneController = Depends(get_controller),
+) -> AngleDimensionResponse:
+    return await controller.calculate_angle_dimension(body)
+
+
+@router.post(
+    "/engineering/fastener-torque",
+    response_model=FastenerTorqueResponse,
+    summary="Dimensiona fixador e calcula torque normativo NBR 7190 / ISO 898 (Frente 55)",
+)
+async def calculate_fastener_torque(
+    body: FastenerTorqueRequest,
+    controller: SceneController = Depends(get_controller),
+) -> FastenerTorqueResponse:
+    return await controller.calculate_fastener_torque(body)

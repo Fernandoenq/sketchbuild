@@ -1485,3 +1485,154 @@ class TechnicalSketchResponse(BaseModel):
     size_bytes: int
     sharp_edges_count: int
     overshoot_mm: float
+
+
+class SpiralTubeRequest(BaseModel):
+    """Entrada para geração de tubos e tobogãs helicoidais paramétricos."""
+
+    radius_m: float = Field(default=1.20, ge=0.5, le=5.0, description="Raio da hélice do tobogã em metros")
+    height_m: float = Field(default=2.40, ge=1.0, le=10.0, description="Altura total da descida em metros")
+    turns: float = Field(default=1.25, ge=0.5, le=4.0, description="Número de voltas da espiral")
+    tube_radius_m: float = Field(default=0.38, ge=0.2, le=1.0, description="Raio da seção circular do tubo em metros")
+    segments_per_turn: int = Field(default=16, ge=8, le=32, description="Resolução axial da espiral")
+    tube_segments: int = Field(default=8, ge=6, le=24, description="Resolução radial da seção circular")
+    is_open_gutter: bool = False
+
+
+class SpiralTubeResponse(BaseModel):
+    """Resposta com a geometria e métricas de escorregamento do tobogã espiral."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SpiralTubeGeometry"
+    radius_m: float
+    height_m: float
+    turns: float
+    tube_radius_m: float
+    is_open_gutter: bool
+    path_length_m: float
+    average_slope_deg: float
+    estimated_exit_speed_m_s: float
+    vertices_count: int
+    faces_count: int
+    vertices: list[list[float]]
+    faces: list[list[int]]
+    status: str
+
+
+class OverturnStabilityRequest(BaseModel):
+    """Entrada para verificação de estabilidade e tombamento por vento/multidão."""
+
+    total_mass_kg: float = Field(default=850.0, ge=50.0, le=50000.0, description="Massa total da estrutura montada em kg")
+    cg_position: list[float] = Field(default=[1.50, 1.20, 1.45], description="Coordenadas [X, Y, Z] do Centro de Gravidade em metros")
+    base_support_points: list[list[float]] | None = None
+    wind_speed_km_h: float = Field(default=100.0, ge=30.0, le=200.0, description="Velocidade básica do vento NBR 6123 em km/h")
+    exposed_frontal_area_m2: float = Field(default=6.50, ge=0.5, le=100.0, description="Área frontal exposta ao vento em m²")
+    lateral_live_load_n: float = Field(default=500.0, ge=0.0, le=5000.0, description="Empuxo lateral de multidão no topo em N")
+    live_load_height_m: float = Field(default=1.80, ge=0.5, le=5.0, description="Altura de aplicação do empuxo de multidão em metros")
+
+
+class OverturnStabilityResponse(BaseModel):
+    """Resposta do cálculo de tombamento e lastro de sapata."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "OverturnStabilityAnalysis"
+    total_mass_kg: float
+    center_of_gravity: list[float]
+    restoring_arm_m: float
+    restoring_moment_kn_m: float
+    wind_speed_km_h: float
+    wind_pressure_pa: float
+    wind_force_kn: float
+    overturning_moment_kn_m: float
+    safety_factor: float
+    required_safety_factor: float
+    is_stable: bool
+    extra_ballast_kg: float
+    extra_concrete_volume_m3: float
+    status: str
+
+
+class FieldInspectionRequest(BaseModel):
+    """Entrada para emissão de ficha de inspeção de campo NBR 16071-7."""
+
+    park_name: str = Field(default="Parque Ibirapuera - Área Infantil", description="Nome do parque ou condomínio")
+    inspector_name: str = Field(default="Eng. Fernando Henrique", description="Nome do auditor/engenheiro")
+    inspection_date: str = Field(default="2026-03-01", description="Data da vistoria")
+    output_filename: str = Field(default="ficha_inspecao_nbr16071.html", description="Nome do arquivo HTML")
+
+
+class FieldInspectionResponse(BaseModel):
+    """Resposta com dados da ficha de inspeção de campo gerada."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "FieldInspectionHtml"
+    file_path: str
+    size_bytes: int
+    park_name: str
+    inspector_name: str
+    inspection_date: str
+    items_count: int
+
+
+class AngleDimensionRequest(BaseModel):
+    """Entrada para cálculo e cotagem angular 3D."""
+
+    vertex_point: list[float] = Field(description="Vértice central do ângulo [X, Y, Z]")
+    point_a: list[float] = Field(description="Ponto do eixo A [X, Y, Z]")
+    point_b: list[float] = Field(description="Ponto do eixo B [X, Y, Z]")
+    arc_radius_m: float = Field(default=0.60, ge=0.1, le=5.0, description="Raio do arco de cota gráfica em metros")
+
+
+class AngleDimensionResponse(BaseModel):
+    """Resposta com valor do ângulo, arco gráfico e ponto de texto."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "AngleDimension"
+    vertex_point: list[float]
+    point_a: list[float]
+    point_b: list[float]
+    angle_degrees: float
+    angle_radians: float
+    angle_gms: str
+    arc_radius_m: float
+    plane_normal: list[float]
+    label_position: list[float]
+    text_label: str
+    arc_points_count: int
+    arc_points: list[list[float]]
+
+
+class FastenerTorqueRequest(BaseModel):
+    """Entrada para dimensionamento de fixador e cálculo de torque normativo."""
+
+    timber_thickness_mm: float = Field(default=160.0, ge=20.0, le=600.0, description="Espessura da peça de madeira em mm")
+    steel_plate_thickness_mm: float = Field(default=4.75, ge=0.0, le=50.0, description="Espessura da chapa de aço em mm")
+    bolt_standard: str = Field(default="1/2_POL", description="'M10', 'M12', 'M16', '1/2_POL' ou '5/8_POL'")
+    material_grade: str = Field(default="Inox_304", description="Grau do material ('Inox_304', 'A307_Zincado', 'Grau_5')")
+    friction_factor_k: float = Field(default=0.18, ge=0.10, le=0.30, description="Fator de atrito da rosca")
+
+
+class FastenerTorqueResponse(BaseModel):
+    """Resposta com especificação do fixador e torque de aperto."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "FastenerTorqueSpecification"
+    bolt_standard: str
+    material_grade: str
+    nominal_diameter_mm: float
+    grip_length_mm: float
+    min_required_bolt_length_mm: float
+    commercial_bolt_length_mm: float
+    recommended_washer: str
+    recommended_nut: str
+    socket_tool_size_mm: int
+    max_wood_crushing_force_kn: float
+    pretension_force_kn: float
+    recommended_torque_n_m: float
+    recommended_torque_kgf_m: float
+    safe_clamping_status: str

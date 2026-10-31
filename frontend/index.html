@@ -514,6 +514,7 @@
         <div class="menu-dropdown-item" data-action="export-qr-tag"><span>Exportar &gt; Placa Patrimonial com QR Code (.svg)...</span></div>
         <div class="menu-dropdown-item" data-action="export-art-pdf"><span>Exportar &gt; Minuta de ART / RRT (.pdf)...</span></div>
         <div class="menu-dropdown-item" data-action="export-technical-sketch"><span>Exportar &gt; Esboço Arquitetônico NPR (.svg)...</span></div>
+        <div class="menu-dropdown-item" data-action="export-inspection-checklist"><span>Exportar &gt; Ficha de Inspeção de Campo (.html)...</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Enviar para o LayOut...</span></div>
         <div class="menu-dropdown-item disabled"><span>Imprimir...</span><span class="menu-dropdown-shortcut">Ctrl+P</span></div>
@@ -1190,6 +1191,16 @@
         <div id="structural-result" style="display: none; padding: 6px; background: #EEF4F9; border: 1px solid #B8D5E5; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
           <div id="structural-status-badge" style="font-weight: bold; color: var(--accent);"></div>
           <div id="structural-details" style="color: var(--text);"></div>
+        </div>
+        <button id="btn-calc-overturn" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #2B6CB0; color: white;">Estabilidade ao Tombamento / Vento NBR 6123</button>
+        <div id="overturn-result" style="display: none; padding: 6px; background: #EBF8FF; border: 1px solid #BEE3F8; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="overturn-status-badge" style="font-weight: bold; color: #2B6CB0;"></div>
+          <div id="overturn-details" style="color: var(--text);"></div>
+        </div>
+        <button id="btn-calc-fasteners" class="panel-btn" style="width: 100%; margin-bottom: 6px;">Dimensionar Parafusos &amp; Torque NBR 7190</button>
+        <div id="fasteners-result" style="display: none; padding: 6px; background: #FEFCBF; border: 1px solid #FAF089; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="fasteners-status-badge" style="font-weight: bold; color: #B7791F;"></div>
+          <div id="fasteners-details" style="color: var(--text);"></div>
         </div>
         <button id="btn-calc-nesting" class="panel-btn" style="width: 100%; margin-bottom: 6px;">Otimizar Plano de Corte (Nesting)</button>
         <button id="btn-calc-cargo" class="panel-btn" style="width: 100%; margin-bottom: 6px; background: #6B46C1; color: white;">Cubagem &amp; Carregamento 3D (Caminhão)</button>
