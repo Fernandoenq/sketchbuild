@@ -23,6 +23,8 @@ REVERSE_ENGINEERING_NOTES.md secao 15 (regressao do ctypes no Python
 
 from __future__ import annotations
 
+from core.skp_binary_writer import SkpBinaryWriter
+
 import logging
 import os
 from dataclasses import dataclass, field
@@ -202,7 +204,6 @@ class SkpEngineRepository:
             logger.warning("Falha ao gravar autosave de %s", _SESSION.model_path, exc_info=True)
 
     def set_instance_transform(self, instance_id: str, new_world_transform: list[float]) -> None:
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None:
             SkpBinaryWriter.set_instance_transform(instance_id, new_world_transform)
@@ -234,7 +235,6 @@ class SkpEngineRepository:
         self._autosave()
 
     def save(self, path: str | None, overwrite_confirmed: bool = False) -> str:
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None:
             target_path = path or bin_session.model_path
@@ -284,7 +284,6 @@ class SkpEngineRepository:
         offset_delta_cm: list[float] | None = None,
     ) -> dict:
         """Duplica nativamente uma instância na sessão ativa (Zero DLL via SkpBinaryWriter ou fallback ctypes)."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None:
             new_dto = SkpBinaryWriter.duplicate_instance(
@@ -348,7 +347,6 @@ class SkpEngineRepository:
         """Equivalente nativo do "Editar > Excluir"/Del -- ver
         core/su_api.py erase_instance() e REVERSE_ENGINEERING_NOTES.md
         secao 26."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None:
             SkpBinaryWriter.delete_instance(instance_id)
@@ -376,7 +374,6 @@ class SkpEngineRepository:
         reextrair a cena inteira -- so afeta a aparencia da instancia,
         nao a topologia/malha, entao o frontend aplica a cor direto no
         seu proprio mesh sem round-trip de dados."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None:
             SkpBinaryWriter.paint_material(f"Material_{instance_id}", r, g, b)
@@ -402,7 +399,6 @@ class SkpEngineRepository:
         geometria da DEFINICAO, entao a mudanca fica gravada pra TODAS
         as instancias que compartilham essa definicao (mesmo
         comportamento real do SketchUp)."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None:
             SkpBinaryWriter.paint_material(f"Mat_{face_id}", r, g, b)
@@ -428,7 +424,6 @@ class SkpEngineRepository:
         offset_xyz_cm: list = None,
     ) -> dict:
         """Cria um sólido 3D paramétrico manifold (Zero DLL / C++ Fallback)."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None:
             res = SkpBinaryWriter.add_box(width_m, length_m, height_m, offset_xyz_cm)
@@ -511,7 +506,6 @@ class SkpEngineRepository:
         raise SceneSessionError("nenhuma sessão binária ativa")
 
     def add_rectangle(self, width_m: float, height_m: float, as_group: bool = False) -> dict:
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None:
             res = SkpBinaryWriter.add_rectangle(width_m, height_m)
@@ -768,7 +762,6 @@ class SkpEngineRepository:
 
     def set_attribute_dictionary(self, dict_name: str, attributes: dict) -> dict:
         """Injeta ou atualiza um Attribute Dictionary de metadados BIM (Zero DLL / C++ Fallback)."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None:
             res = SkpBinaryWriter.set_attribute_dictionary(dict_name, attributes)
@@ -779,7 +772,6 @@ class SkpEngineRepository:
     def get_attribute_dictionaries(self) -> dict:
         """Lê todos os Attribute Dictionaries do modelo aberto (Zero DLL / Pure Python)."""
         from core.skp_binary_reader import SkpBinaryReader
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None and bin_session.model_path:
             return SkpBinaryReader.read_attribute_dictionaries(bin_session.model_path)
@@ -789,7 +781,6 @@ class SkpEngineRepository:
     def extract_faces_and_triangles(self) -> list:
         """Extrai faces, contornos e triangulação analítica (Zero DLL / Pure Python)."""
         from core.skp_binary_reader import SkpBinaryReader
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None and bin_session.model_path:
             return SkpBinaryReader.extract_faces_and_triangles(bin_session.model_path)
@@ -806,7 +797,6 @@ class SkpEngineRepository:
         color_rgb: tuple = (200, 200, 200),
     ) -> dict:
         """Cria e injeta um material texturizado PBR nativo no .skp (Zero DLL)."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         if bin_session is not None:
             res = SkpBinaryWriter.create_textured_material(
@@ -831,7 +821,6 @@ class SkpEngineRepository:
         sky_rgb: list | None = None,
     ) -> dict:
         """Aplica e persiste estilo de exibição visual (Frente 19)."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         bg_tuple = tuple(background_rgb) if background_rgb and len(background_rgb) == 3 else None
         sky_tuple = tuple(sky_rgb) if sky_rgb and len(sky_rgb) == 3 else None
@@ -862,7 +851,6 @@ class SkpEngineRepository:
     def get_assembly_tree(self) -> dict:
         """Extrai a árvore completa de grupos e instâncias aninhadas (Frente 15)."""
         from core.skp_binary_reader import SkpBinaryReader
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_session = SkpBinaryWriter.get_session()
         model_path = bin_session.model_path if bin_session else None
         if not model_path and _SESSION is not None:
@@ -1005,7 +993,6 @@ class SkpEngineRepository:
 
         # Se items vazios (sessão binária sem malha C++ carregada), monta item analítico do modelo
         if not items:
-            from core.skp_binary_writer import SkpBinaryWriter
             bin_session = SkpBinaryWriter.get_session()
             tree = self.get_assembly_tree()
             tot_inst = tree.get("total_instances", 1)
@@ -1127,7 +1114,6 @@ class SkpEngineRepository:
             dto, _, _ = extract_scene_with_registry(_SESSION.api, _SESSION.model)
             return dto
 
-        from core.skp_binary_writer import SkpBinaryWriter
         from core.skp_binary_reader import SkpBinaryReader
         bin_s = SkpBinaryWriter.get_session()
         if bin_s is not None and bin_s.model_path and os.path.exists(bin_s.model_path):
@@ -1227,7 +1213,6 @@ class SkpEngineRepository:
 
     def add_line_geometry(self, start_m: list, end_m: list) -> dict:
         """Cria nativamente uma aresta 3D interativa (Frente 22)."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_s = SkpBinaryWriter.get_session()
         if bin_s is not None:
             res = SkpBinaryWriter.add_line_edge(tuple(start_m), tuple(end_m))
@@ -1237,7 +1222,6 @@ class SkpEngineRepository:
 
     def add_face_geometry(self, points_m: list) -> dict:
         """Cria nativamente uma face coplanar fechada interativa (Frente 22)."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_s = SkpBinaryWriter.get_session()
         if bin_s is not None:
             pts_tuple = [tuple(p) for p in points_m]
@@ -1255,7 +1239,6 @@ class SkpEngineRepository:
 
     def add_circle_geometry(self, radius_m: float, center_xyz_m: list, num_segments: int = 24) -> dict:
         """Cria um círculo plano B-Rep paramétrico no modelo aberto (Frente 14 - Zero DLL)."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_s = SkpBinaryWriter.get_session()
         if bin_s is not None:
             res = SkpBinaryWriter.add_circle(radius_m, tuple(center_xyz_m), num_segments=num_segments)
@@ -1265,7 +1248,6 @@ class SkpEngineRepository:
 
     def add_cylinder_geometry(self, radius_m: float, height_m: float, center_xyz_m: list, num_segments: int = 16) -> dict:
         """Cria um Cilindro 3D Manifold paramétrico (Postes/Tubos Parkelô) no modelo aberto (Frente 14 - Zero DLL)."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_s = SkpBinaryWriter.get_session()
         if bin_s is not None:
             res = SkpBinaryWriter.add_cylinder(radius_m, height_m, tuple(center_xyz_m), num_segments=num_segments)
@@ -1275,7 +1257,6 @@ class SkpEngineRepository:
 
     def extrude_face_geometry(self, points_m: list, distance_m: float, normal: list | None = None) -> dict:
         """Extrude uma face coplanar para sólido 3D (Push/Pull) no modelo aberto (Frente 24 - Zero DLL)."""
-        from core.skp_binary_writer import SkpBinaryWriter
         bin_s = SkpBinaryWriter.get_session()
         if bin_s is not None:
             pts_tuple = [tuple(p) for p in points_m]
@@ -1315,3 +1296,103 @@ class SkpEngineRepository:
         pos = SolarCalculator.calculate_sun_position(day_of_year=day_of_year, solar_hour=hour, latitude_deg=latitude, longitude_deg=longitude)
         curve = SolarCalculator.generate_day_curve(day_of_year=day_of_year, latitude_deg=latitude, longitude_deg=longitude)
         return {"position": pos, "day_curve": curve}
+
+    def add_section_plane(self, plane_abcd: list[float], name: str = "Corte A-A", symbol: str = "A1") -> dict:
+        """Adiciona um Plano de Corte de Seção (Frente 17)."""
+        session = SkpBinaryWriter.get_session()
+        if session is not None:
+            return SkpBinaryWriter.add_section_plane(tuple(plane_abcd), name=name, symbol=symbol)
+        # Se sessão em memória C++ ativa ou headless
+        res = {
+            "entity_type": "SectionPlane",
+            "plane": list(plane_abcd),
+            "plane_inches": [round(plane_abcd[0], 6), round(plane_abcd[1], 6), round(plane_abcd[2], 6), round(plane_abcd[3] * 39.3701, 4)],
+            "name": name,
+            "symbol": symbol,
+        }
+        if not hasattr(self, "_section_planes"):
+            self._section_planes = []
+        self._section_planes.append(res)
+        return res
+
+    def get_section_planes(self) -> list[dict]:
+        """Retorna os Planos de Seção da sessão ativa (Frente 17)."""
+        session = SkpBinaryWriter.get_session()
+        if session is not None:
+            return session.section_planes
+        return getattr(self, "_section_planes", [])
+
+    def add_guide_line(self, start: list[float], end: list[float], is_infinite: bool = False) -> dict:
+        """Adiciona uma Linha de Guia / Trena (Frente 18)."""
+        session = SkpBinaryWriter.get_session()
+        if session is not None:
+            return SkpBinaryWriter.add_guide_line(tuple(start), tuple(end), is_infinite=is_infinite)
+        res = {"entity_type": "GuideLine", "start": list(start), "end": list(end), "is_infinite": is_infinite}
+        if not hasattr(self, "_guide_lines"):
+            self._guide_lines = []
+        self._guide_lines.append(res)
+        return res
+
+    def add_guide_point(self, position: list[float]) -> dict:
+        """Adiciona um Ponto de Construção (Frente 18)."""
+        session = SkpBinaryWriter.get_session()
+        if session is not None:
+            return SkpBinaryWriter.add_guide_point(tuple(position))
+        res = {"entity_type": "GuidePoint", "position": list(position)}
+        if not hasattr(self, "_guide_points"):
+            self._guide_points = []
+        self._guide_points.append(res)
+        return res
+
+    def get_guides(self) -> dict:
+        """Retorna todas as guias e pontos de construção ativos (Frente 18)."""
+        session = SkpBinaryWriter.get_session()
+        if session is not None:
+            return {"guide_lines": session.guide_lines, "guide_points": session.guide_points}
+        return {
+            "guide_lines": getattr(self, "_guide_lines", []),
+            "guide_points": getattr(self, "_guide_points", []),
+        }
+
+    def apply_boolean_operation(self, operation: str, main_shape: dict, tool_shape: dict) -> dict:
+        """Aplica operação booleana sólida CSG (Frente 25)."""
+        from core.solid_tools import SolidTools
+        if operation == "subtract_hole":
+            res = SolidTools.subtract_cylinder_from_box(main_shape, tool_shape)
+        else:
+            res = SolidTools.subtract_box_from_box(main_shape, tool_shape)
+        res["faces_count"] = len(res.get("faces", []))
+        return res
+
+    def add_offset_face(self, points: list[list[float]], distance: float, inside: bool = True, create_frame: bool = False) -> dict:
+        """Gera face ou moldura equidistante via Offset (Frente 30)."""
+        session = SkpBinaryWriter.get_session()
+        pts_tuples = [tuple(p) for p in points]
+        if session is not None:
+            return SkpBinaryWriter.add_offset_face(pts_tuples, distance, inside=inside, create_frame=create_frame)
+        from core.offset_calculator import OffsetCalculator
+        offset_pts = OffsetCalculator.offset_polygon_3d(pts_tuples, distance, inside=inside)
+        return {
+            "entity_type": "OffsetFace",
+            "distance_m": distance,
+            "inside": inside,
+            "face_id": "face_mock",
+            "frame_faces_count": 0,
+        }
+
+    def export_executive_pdf(self, project_name: str, author: str, client_name: str, output_path: str) -> dict:
+        """Exporta Proposta Executiva e Prancha Técnica em PDF Nativo (Frente 29)."""
+        from core.executive_pdf_exporter import ExecutivePdfExporter
+        import os
+        scene_dto = self._get_export_scene_data()
+        saved_path = ExecutivePdfExporter.export_pdf(
+            scene_dto,
+            output_path,
+            project_name=project_name
+        )
+        return {
+            "file_path": saved_path,
+            "size_bytes": os.path.getsize(saved_path),
+            "project_name": project_name,
+            "pages": 1,
+        }

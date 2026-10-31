@@ -9,6 +9,18 @@ from fastapi import APIRouter, Depends, File, UploadFile
 
 from app.controllers.scene_controller import SceneController
 from app.schemas.scene import (
+    SectionPlaneRequest,
+    SectionPlaneResponse,
+    GuideLineRequest,
+    GuidePointRequest,
+    GuidesResponse,
+    BooleanOperationRequest,
+    BooleanOperationResponse,
+    OffsetFaceRequest,
+    OffsetFaceResponse,
+    ExecutivePdfExportRequest,
+    ExecutivePdfExportResponse,
+
     ActivateScenePageResponse,
     AddRectangleRequest,
     AddRectangleResponse,
@@ -616,3 +628,115 @@ async def calculate_solar_study(
     controller: SceneController = Depends(get_controller),
 ) -> SolarStudyResponse:
     return await controller.calculate_solar_study(body)
+
+
+# ============================================================================
+# Frente 17: Planos e Cortes de Seção (SectionPlane)
+# ============================================================================
+
+@router.post(
+    "/section-plane",
+    response_model=SectionPlaneResponse,
+    summary="Adiciona um Plano de Corte de Seção (Frente 17)",
+)
+async def add_section_plane(
+    body: SectionPlaneRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SectionPlaneResponse:
+    return await controller.add_section_plane(body)
+
+
+@router.get(
+    "/section-planes",
+    response_model=list[SectionPlaneResponse],
+    summary="Lista todos os Planos de Corte de Seção da cena (Frente 17)",
+)
+async def get_section_planes(
+    controller: SceneController = Depends(get_controller),
+) -> list[SectionPlaneResponse]:
+    return await controller.get_section_planes()
+
+
+# ============================================================================
+# Frente 18: Linhas de Guia e Pontos de Construção (Tape Measure)
+# ============================================================================
+
+@router.post(
+    "/geometry/guide-line",
+    summary="Adiciona Linha de Guia / Tape Measure (Frente 18)",
+)
+async def add_guide_line(
+    body: GuideLineRequest,
+    controller: SceneController = Depends(get_controller),
+) -> dict:
+    return await controller.add_guide_line(body)
+
+
+@router.post(
+    "/geometry/guide-point",
+    summary="Adiciona Ponto de Construção (Frente 18)",
+)
+async def add_guide_point(
+    body: GuidePointRequest,
+    controller: SceneController = Depends(get_controller),
+) -> dict:
+    return await controller.add_guide_point(body)
+
+
+@router.get(
+    "/geometry/guides",
+    response_model=GuidesResponse,
+    summary="Retorna linhas de guia e pontos da cena (Frente 18)",
+)
+async def get_guides(
+    controller: SceneController = Depends(get_controller),
+) -> GuidesResponse:
+    return await controller.get_guides()
+
+
+# ============================================================================
+# Frente 25: Operações Booleanas de Sólidos (CSG / Solid Tools)
+# ============================================================================
+
+@router.post(
+    "/geometry/boolean-operation",
+    response_model=BooleanOperationResponse,
+    summary="Aplica operação booleana sólida CSG (Frente 25)",
+)
+async def apply_boolean_operation(
+    body: BooleanOperationRequest,
+    controller: SceneController = Depends(get_controller),
+) -> BooleanOperationResponse:
+    return await controller.apply_boolean_operation(body)
+
+
+# ============================================================================
+# Frente 29: Exportador Executivo de Proposta Comercial em PDF Vetorial
+# ============================================================================
+
+@router.post(
+    "/export/executive-pdf",
+    response_model=ExecutivePdfExportResponse,
+    summary="Exporta proposta executiva e prancha técnica em PDF (Frente 29)",
+)
+async def export_executive_pdf(
+    body: ExecutivePdfExportRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ExecutivePdfExportResponse:
+    return await controller.export_executive_pdf(body)
+
+
+# ============================================================================
+# Frente 30: Ferramenta de Offset / Equidistância 2D/3D (Ferramenta F)
+# ============================================================================
+
+@router.post(
+    "/geometry/offset",
+    response_model=OffsetFaceResponse,
+    summary="Gera face ou moldura equidistante via Offset (Frente 30)",
+)
+async def add_offset_face(
+    body: OffsetFaceRequest,
+    controller: SceneController = Depends(get_controller),
+) -> OffsetFaceResponse:
+    return await controller.add_offset_face(body)

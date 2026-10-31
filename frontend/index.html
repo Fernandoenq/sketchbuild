@@ -508,6 +508,7 @@
         <div class="menu-dropdown-item" data-action="export-cutlist"><span>Exportar &gt; Lista de Corte Parkelô (.xlsx)...</span></div>
         <div class="menu-dropdown-item" data-action="export-drawing-2d"><span>Exportar &gt; Desenho Técnico 2D (.svg)...</span></div>
         <div class="menu-dropdown-item" data-action="export-assembly-manual"><span>Exportar &gt; Manual de Montagem HTML...</span></div>
+        <div class="menu-dropdown-item" data-action="export-executive-pdf"><span>Exportar &gt; Proposta Executiva (.pdf)...</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Enviar para o LayOut...</span></div>
         <div class="menu-dropdown-item disabled"><span>Imprimir...</span><span class="menu-dropdown-shortcut">Ctrl+P</span></div>
@@ -1144,6 +1145,26 @@
         </div>
       </div>
     </div><!-- /tray-assembly -->
+
+
+    <!-- Frente 17: Planos e Cortes de Seção (SectionPlane) -->
+    <div class="tray-section collapsed" id="tray-sections">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">Planos de Seção &amp; Cortes 3D</span>
+        <span class="tray-arrow">&#9662;</span>
+      </div>
+      <div class="tray-body">
+        <div class="row" style="margin-bottom: 6px;">
+          <label style="font-size: 10px; color: var(--muted); display: block; margin-bottom: 2px;">Altura do Corte (Z): <span id="section-height-val" style="font-weight: bold; color: var(--text);">1.20 m</span></label>
+          <input id="section-height-slider" type="range" min="-1" max="4" step="0.05" value="1.20" style="width: 100%;" />
+        </div>
+        <div class="row" style="display: flex; gap: 6px; margin-bottom: 6px;">
+          <button id="btn-toggle-section" class="panel-btn" style="flex: 1;">Ativar Corte</button>
+          <button id="btn-flip-section" class="panel-btn" style="flex: 1;">Inverter</button>
+        </div>
+        <button id="btn-save-section-skp" class="panel-btn" style="width: 100%;">Gravar Corte no .SKP</button>
+      </div>
+    </div><!-- /tray-sections -->
 
     <!-- Frente 28: Estudo Solar e Heliodon -->
     <div class="tray-section collapsed" id="tray-solar">

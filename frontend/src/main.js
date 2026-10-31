@@ -48,6 +48,14 @@ import {
   exportAssemblyManual,
   exportDrawing2D,
   calculateSolarStudy,
+  createSectionPlane,
+  getSectionPlanes,
+  createGuideLine,
+  createGuidePoint,
+  getGuides,
+  applyBooleanOperation,
+  createOffsetFace,
+  exportExecutivePdf,
   ApiError,
 } from "./api.js";
 import {
@@ -2015,6 +2023,7 @@ const MENU_ACTIONS = {
   "export-cutlist": () => handleExportCutlist(),
   "export-drawing-2d": () => handleExportDrawing2D(),
   "export-assembly-manual": () => handleExportAssemblyManual(),
+  "export-executive-pdf": () => handleExportExecutivePdf(),
   "import-dxf": () => {
     setToolMode("dxf");
     dxfPathInputEl?.focus();
@@ -3024,4 +3033,85 @@ if (btnAnimateSolarEl) {
       updateSolarStudy();
     }, 150);
   });
+}
+
+// ============================================================================
+// Frentes 17, 18, 25, 29 e 30: Planos de Seção, Guias, PDF e Offset
+// ============================================================================
+
+// --- Frente 17: Planos de Corte e Seção em Tempo Real ---
+let isSectionActive = false;
+let sectionPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1.20);
+let sectionHelper = null;
+
+const sectionSliderEl = document.getElementById("section-height-slider");
+const sectionValEl = document.getElementById("section-height-val");
+const btnToggleSectionEl = document.getElementById("btn-toggle-section");
+const btnFlipSectionEl = document.getElementById("btn-flip-section");
+const btnSaveSectionSkpEl = document.getElementById("btn-save-section-skp");
+
+if (sectionSliderEl && sectionValEl) {
+  sectionSliderEl.addEventListener("input", (e) => {
+    const val = parseFloat(e.target.value);
+    sectionValEl.textContent = `${val.toFixed(2)} m`;
+    sectionPlane.constant = val;
+    renderer.render(scene, camera);
+  });
+}
+
+if (btnToggleSectionEl) {
+  btnToggleSectionEl.addEventListener("click", () => {
+    isSectionActive = !isSectionActive;
+    renderer.localClippingEnabled = isSectionActive;
+    if (isSectionActive) {
+      renderer.clippingPlanes = [sectionPlane];
+      btnToggleSectionEl.textContent = "Desativar Corte";
+      btnToggleSectionEl.style.backgroundColor = "var(--accent)";
+      btnToggleSectionEl.style.color = "#FFFFFF";
+    } else {
+      renderer.clippingPlanes = [];
+      btnToggleSectionEl.textContent = "Ativar Corte";
+      btnToggleSectionEl.style.backgroundColor = "";
+      btnToggleSectionEl.style.color = "";
+    }
+    renderer.render(scene, camera);
+    setStatus(`Plano de Seção 3D ${isSectionActive ? "ativado" : "desativado"}.`);
+  });
+}
+
+if (btnFlipSectionEl) {
+  btnFlipSectionEl.addEventListener("click", () => {
+    sectionPlane.negate();
+    renderer.render(scene, camera);
+    setStatus("Normal do Plano de Seção invertida.");
+  });
+}
+
+if (btnSaveSectionSkpEl) {
+  btnSaveSectionSkpEl.addEventListener("click", async () => {
+    try {
+      const h = sectionSliderEl ? parseFloat(sectionSliderEl.value) : 1.20;
+      const planeAbcd = [sectionPlane.normal.x, sectionPlane.normal.z, sectionPlane.normal.y, sectionPlane.constant];
+      const res = await createSectionPlane(planeAbcd, "Corte A-A", "A1");
+      setStatus(`Plano de Seção gravado com sucesso no .SKP: ${res.name} (Z=${h.toFixed(2)}m)`);
+    } catch (err) {
+      setStatus(`Erro ao salvar Plano de Seção: ${err.message}`, true);
+    }
+  });
+}
+
+// --- Frente 29: Exportação de Proposta Executiva em PDF ---
+async function handleExportExecutivePdf() {
+  setStatus("Gerando Proposta Comercial Executiva e Prancha Técnica em PDF (Zero DLL)...");
+  try {
+    const res = await exportExecutivePdf(
+      "Playground Parkelô Modelo NBR 16071",
+      "Eng. Fernando",
+      "Cliente / Prefeitura",
+      "proposta_executiva_parkelo.pdf"
+    );
+    setStatus(`Proposta Executiva PDF exportada com sucesso: ${res.file_path} (${(res.size_bytes / 1024).toFixed(1)} KB)`);
+  } catch (err) {
+    setStatus(`Erro ao exportar PDF: ${err.message}`, true);
+  }
 }

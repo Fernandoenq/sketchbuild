@@ -18,6 +18,18 @@ from app.domain.exceptions import (
     SceneSessionError,
 )
 from app.schemas.scene import (
+    SectionPlaneRequest,
+    SectionPlaneResponse,
+    GuideLineRequest,
+    GuidePointRequest,
+    GuidesResponse,
+    BooleanOperationRequest,
+    BooleanOperationResponse,
+    OffsetFaceRequest,
+    OffsetFaceResponse,
+    ExecutivePdfExportRequest,
+    ExecutivePdfExportResponse,
+
     ActivateScenePageResponse,
     AddRectangleResponse,
     AutosaveDraftDTO,
@@ -617,5 +629,70 @@ class SceneController:
         try:
             res = await self._service.calculate_solar_study(body.day_of_year, body.hour, body.latitude, body.longitude)
             return SolarStudyResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def add_section_plane(self, body: SectionPlaneRequest) -> SectionPlaneResponse:
+        """Adiciona um Plano de Corte de Seção (Frente 17)."""
+        try:
+            res = await self._service.add_section_plane(body.plane_abcd, body.name, body.symbol)
+            return SectionPlaneResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def get_section_planes(self) -> list[SectionPlaneResponse]:
+        """Retorna os Planos de Seção da cena (Frente 17)."""
+        try:
+            res = await self._service.get_section_planes()
+            return [SectionPlaneResponse(**p) for p in res]
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def add_guide_line(self, body: GuideLineRequest) -> dict:
+        """Adiciona uma Linha de Guia / Trena (Frente 18)."""
+        try:
+            return await self._service.add_guide_line(body.start, body.end, body.is_infinite)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def add_guide_point(self, body: GuidePointRequest) -> dict:
+        """Adiciona um Ponto de Construção (Frente 18)."""
+        try:
+            return await self._service.add_guide_point(body.position)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def get_guides(self) -> GuidesResponse:
+        """Retorna todas as guias e pontos da cena (Frente 18)."""
+        try:
+            res = await self._service.get_guides()
+            return GuidesResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def apply_boolean_operation(self, body: BooleanOperationRequest) -> BooleanOperationResponse:
+        """Aplica operação booleana sólida CSG (Frente 25)."""
+        try:
+            res = await self._service.apply_boolean_operation(body.operation, body.main_shape, body.tool_shape)
+            return BooleanOperationResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def add_offset_face(self, body: OffsetFaceRequest) -> OffsetFaceResponse:
+        """Gera face ou moldura equidistante via Offset (Frente 30)."""
+        try:
+            res = await self._service.add_offset_face(body.points, body.distance, body.inside, body.create_frame)
+            return OffsetFaceResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def export_executive_pdf(self, body: ExecutivePdfExportRequest) -> ExecutivePdfExportResponse:
+        """Exporta Proposta Executiva e Prancha Técnica em PDF Nativo (Frente 29)."""
+        try:
+            import tempfile, os
+            out_dir = tempfile.gettempdir()
+            out_path = os.path.join(out_dir, body.output_filename)
+            res = await self._service.export_executive_pdf(body.project_name, body.author, body.client_name, out_path)
+            return ExecutivePdfExportResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

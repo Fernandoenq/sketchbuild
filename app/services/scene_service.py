@@ -470,3 +470,35 @@ class SceneService:
     async def calculate_solar_study(self, day_of_year: int = 80, hour: float = 14.0, latitude: float = -23.5505, longitude: float = -46.6333) -> dict:
         """Calcula estudo solar e insolação NBR 16071 (Frente 28)."""
         return await run_in_threadpool(self._repository.calculate_solar_study, day_of_year, hour, latitude, longitude)
+
+    async def add_section_plane(self, plane_abcd: list[float], name: str = "Corte A-A", symbol: str = "A1") -> dict:
+        """Adiciona um Plano de Corte de Seção (Frente 17)."""
+        return await run_in_threadpool(self._repository.add_section_plane, plane_abcd, name, symbol)
+
+    async def get_section_planes(self) -> list[dict]:
+        """Retorna os Planos de Seção da cena (Frente 17)."""
+        return await run_in_threadpool(self._repository.get_section_planes)
+
+    async def add_guide_line(self, start: list[float], end: list[float], is_infinite: bool = False) -> dict:
+        """Adiciona uma Linha de Guia / Trena (Frente 18)."""
+        return await run_in_threadpool(self._repository.add_guide_line, start, end, is_infinite)
+
+    async def add_guide_point(self, position: list[float]) -> dict:
+        """Adiciona um Ponto de Construção (Frente 18)."""
+        return await run_in_threadpool(self._repository.add_guide_point, position)
+
+    async def get_guides(self) -> dict:
+        """Retorna todas as guias e pontos de construção da cena (Frente 18)."""
+        return await run_in_threadpool(self._repository.get_guides)
+
+    async def apply_boolean_operation(self, operation: str, main_shape: dict, tool_shape: dict) -> dict:
+        """Aplica operação booleana sólida CSG (Frente 25)."""
+        return await run_in_threadpool(self._repository.apply_boolean_operation, operation, main_shape, tool_shape)
+
+    async def add_offset_face(self, points: list[list[float]], distance: float, inside: bool = True, create_frame: bool = False) -> dict:
+        """Gera face ou moldura equidistante via Offset (Frente 30)."""
+        return await run_in_threadpool(self._repository.add_offset_face, points, distance, inside, create_frame)
+
+    async def export_executive_pdf(self, project_name: str, author: str, client_name: str, output_path: str) -> dict:
+        """Exporta Proposta Executiva e Prancha Técnica em PDF Nativo (Frente 29)."""
+        return await run_in_threadpool(self._repository.export_executive_pdf, project_name, author, client_name, output_path)

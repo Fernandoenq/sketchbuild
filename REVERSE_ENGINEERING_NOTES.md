@@ -805,3 +805,79 @@ A Frente 28 implementa um simulador heliodônico astronômico exato no visualiza
 5. **Conformidade com Norma de Playgrounds (ABNT NBR 16071):**
    Mapeia as horas de pico solar (10h às 15h) e emite alertas automáticos quando a altitude solar ultrapassa $65^\circ$ exigindo cobertura sobre escorregadores plásticos para prevenção de queimaduras em crianças.
 6. **Endpoint FastAPI:** `POST /api/v1/scene/solar-study`.
+
+
+---
+
+## 53. Frente 17: Planos e Cortes de Seção Nativos (`SectionPlane` & Tag 0x445c - Zero DLL)
+
+A Frente 17 decodifica a anatomia binária de planos de corte (`SectionPlane`) no container `model.dat` e viabiliza fatiamento em tempo real no Three.js.
+
+### A. Anatomia Binária do `SectionPlane` no `model.dat`
+- **Tag 0x445c:** Entidade `SectionPlane` encapsulada no container de seções.
+- **Tag 0x445d (32 bytes):** Equação analítica do plano $Ax + By + Cz + D = 0$ serializada em 4 doubles IEEE-754 de 64-bit:
+  - $(A, B, C)$: Vetor normal unitário ortogonal à face de corte.
+  - $D$: Offset de corte em polegadas ($D_{\text{metros}} = D_{\text{inches}} \times 0.0254$).
+- **Tag 0x445e:** Nome identificador do corte (ex: "Corte A-A", string UTF-8 prefixada por tamanho uint32).
+- **Tag 0x445f:** Símbolo técnico do plano (ex: "A1", string UTF-8).
+- **Three.js Rendering:** Implementado suporte a planos de corte dinâmicos (`renderer.localClippingEnabled = true` e `renderer.clippingPlanes`), permitindo visualizar a seção interna de tubos, colunas e decks com corte interativo em tempo real.
+- **Endpoints FastAPI:** `POST /api/v1/scene/section-plane` e `GET /api/v1/scene/section-planes`.
+
+---
+
+## 54. Frente 18: Ferramenta Trena, Linhas de Guia e Pontos de Construção (`Tape Measure` - Zero DLL)
+
+A Frente 18 mapeia as entidades nativas de auxílio à modelagem e precisão paramétrica: linhas de guia infinitas/finitas e pontos de construção.
+
+### A. Anatomia Binária de Guias no `model.dat`
+- **Tag 0x4269 (GuideLine):**
+  - **Tag 0x4268 (26 bytes):** Cabeçalho de entidade do SDK.
+  - **Tag 0x426a (64 bytes):** 8 doubles IEEE-754: Coordenadas do ponto inicial $(X_1, Y_1, Z_1)$, ponto final $(X_2, Y_2, Z_2)$ e vetor diretor $(\Delta X, \Delta Y)$.
+  - **Tag 0x426b (2 bytes):** Flag booleana indicando se a linha de guia é infinita ou segmento finito.
+- **Tag 0x426c (GuidePoint):**
+  - **Tag 0x426d (24 bytes):** 3 doubles IEEE-754 com coordenadas espaciais $(X, Y, Z)$ em polegadas.
+  - **Tag 0x426f (1 byte):** Flag de estilo de visualização da cruz/ponto.
+- **Endpoints FastAPI:** `POST /api/v1/scene/geometry/guide-line`, `POST /api/v1/scene/geometry/guide-point` e `GET /api/v1/scene/geometry/guides`.
+
+---
+
+## 55. Frente 25: Operações Booleanas de Sólidos ("Solid Tools" / CSG - Zero DLL)
+
+A Frente 25 implementa o motor analítico de geometria sólida construtiva (CSG) em Pure Python para modelagem industrial de encaixes e furações em estruturas de madeira e parques infantis Parkelô.
+
+### A. Algoritmos Analíticos de CSG
+1. **Subtração Celular de Caixas ($A - B$):** Decomposição do sólido restante em sub-células B-Rep com descarte do volume recortado e fusão de arestas coplanares compartilhadas (ex: encaixe de sapata para pilar de madeira).
+2. **Furação Cilíndrica Analítica (`subtract_hole`):** Geração de paredes tubulares internas invertidas (normais apontando para dentro do orifício) ao longo dos eixos X, Y ou Z (ex: furação de postes para barras roscadas de fixação Ø 1/2").
+3. **Módulo:** `core/solid_tools.py` (`SolidTools`).
+4. **Endpoint FastAPI:** `POST /api/v1/scene/geometry/boolean-operation`.
+
+---
+
+## 56. Frente 29: Exportador Executivo de Proposta Comercial em PDF Vetorial (Zero DLL)
+
+A Frente 29 implementa um compilador direto de documentos PDF-1.4 (ISO 32000-1) em Pure Python, eliminando dependências pesadas externas (sem ReportLab, WeasyPrint ou wkhtmltopdf).
+
+### A. Estrutura do Pacote PDF-1.4
+- Cabeçalho `%PDF-1.4`, catálogo de páginas e fontes Standard 14 (Helvetica / Helvetica-Bold).
+- Tabela de quantitativo e custos unitários integrada aos 155 itens do catálogo Parkelô.
+- Projeção gráfica vetorial das vistas 2D desenhadas via operadores PDF nativos (`m`, `l`, `S`, `re`, `f`).
+- Laudo técnico de conformidade com a NBR 16071 e estudo de insolação solar.
+- Carimbo de engenharia com autenticação de integridade e tabela de referências cruzadas `xref`.
+- **Módulo:** `core/executive_pdf_exporter.py` (`ExecutivePdfExporter`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/export/executive-pdf`.
+
+---
+
+## 57. Frente 30: Ferramenta de Offset / Equidistância 2D/3D (Ferramenta 'F' - Zero DLL)
+
+A Frente 30 recria o algoritmo analítico de equidistância para contornos poligonais coplanares em 3D.
+
+### A. Algoritmo de Offset Analítico
+1. **Base Ortonormal Local:** Projeta o polígono 3D arbitrário para o plano 2D $(\vec{u}, \vec{v})$.
+2. **Deslocamento Paralelo:** Desloca cada aresta por uma distância métrica $d$ na direção da normal interna/externa.
+3. **Interseção Analítica:** Resolve o sistema de retas adjacentes via determinantes de Cramer:
+   $$\begin{cases} A_1 u + B_1 v + C_1 = 0 \\ A_2 u + B_2 v + C_2 = 0 \end{cases}$$
+4. **Reprojeção 3D:** Reconverte os vértices deslocados para o espaço tridimensional global.
+5. **Geração de Molduras:** Cria anéis quadriláteros conectando o contorno externo ao interno (perfeito para perfis de tubos ocos, molduras e guarnições).
+6. **Módulo:** `core/offset_calculator.py` (`OffsetCalculator`).
+7. **Endpoint FastAPI:** `POST /api/v1/scene/geometry/offset`.

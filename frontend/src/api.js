@@ -495,3 +495,72 @@ export function calculateSolarStudy(dayOfYear = 80, hour = 14.0, latitude = -23.
     longitude: longitude,
   });
 }
+
+
+// ============================================================================
+// Frentes 17, 18, 25, 29 e 30: Seções, Guias, Booleanas, PDF e Offset
+// ============================================================================
+
+/** Adiciona um Plano de Corte de Seção (Frente 17). */
+export function createSectionPlane(planeAbcd = [0, 0, 1, 0], name = "Corte A-A", symbol = "A1") {
+  return postJson("/api/v1/scene/section-plane", "POST", {
+    plane_abcd: planeAbcd,
+    name: name,
+    symbol: symbol,
+  });
+}
+
+/** Lista todos os Planos de Corte de Seção (Frente 17). */
+export function getSectionPlanes() {
+  return getJson("/api/v1/scene/section-planes");
+}
+
+/** Cria uma Linha de Guia / Trena (Frente 18). */
+export function createGuideLine(start, end, isInfinite = false) {
+  return postJson("/api/v1/scene/geometry/guide-line", "POST", {
+    start: start,
+    end: end,
+    is_infinite: isInfinite,
+  });
+}
+
+/** Cria um Ponto de Construção (Frente 18). */
+export function createGuidePoint(position) {
+  return postJson("/api/v1/scene/geometry/guide-point", "POST", {
+    position: position,
+  });
+}
+
+/** Retorna todas as guias e pontos de construção da cena (Frente 18). */
+export function getGuides() {
+  return getJson("/api/v1/scene/geometry/guides");
+}
+
+/** Aplica operação booleana sólida CSG (Frente 25). */
+export function applyBooleanOperation(operation, mainShape, toolShape) {
+  return postJson("/api/v1/scene/geometry/boolean-operation", "POST", {
+    operation: operation,
+    main_shape: mainShape,
+    tool_shape: toolShape,
+  });
+}
+
+/** Exporta proposta executiva e prancha técnica em PDF (Frente 29). */
+export function exportExecutivePdf(projectName = "Parque Infantil Parkelô", author = "Eng. Fernando", clientName = "Cliente Final", outputFilename = "proposta_executiva_parkelo.pdf") {
+  return postJson("/api/v1/scene/export/executive-pdf", "POST", {
+    project_name: projectName,
+    author: author,
+    client_name: clientName,
+    output_filename: outputFilename,
+  });
+}
+
+/** Cria face ou moldura equidistante via Offset (Frente 30). */
+export function createOffsetFace(points, distance = 0.10, inside = true, createFrame = false) {
+  return postJson("/api/v1/scene/geometry/offset", "POST", {
+    points: points,
+    distance: distance,
+    inside: inside,
+    create_frame: createFrame,
+  });
+}

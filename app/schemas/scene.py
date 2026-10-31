@@ -909,3 +909,132 @@ class SolarStudyResponse(BaseModel):
 
     position: dict[str, Any]
     day_curve: dict[str, Any]
+
+
+# ============================================================================
+# Frente 17: Planos e Cortes de Seção (SectionPlane)
+# ============================================================================
+
+class SectionPlaneRequest(BaseModel):
+    """Entrada para criação de Plano de Corte de Seção."""
+
+    plane_abcd: list[float] = Field(
+        default=[0.0, 0.0, 1.0, 0.0],
+        description="Equação analítica do plano [a, b, c, d] onde ax + by + cz + d = 0 (d em metros)"
+    )
+    name: str = Field(default="Corte A-A", description="Nome identificador do corte")
+    symbol: str = Field(default="A1", description="Símbolo técnico do corte")
+
+
+class SectionPlaneResponse(BaseModel):
+    """Resposta com dados do Plano de Seção criado/listado."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SectionPlane"
+    plane: list[float]
+    plane_inches: list[float]
+    name: str
+    symbol: str
+
+
+# ============================================================================
+# Frente 18: Linhas de Guia e Pontos de Construção (Tape Measure)
+# ============================================================================
+
+class GuideLineRequest(BaseModel):
+    """Entrada para criação de Linha de Guia / Trena."""
+
+    start: list[float] = Field(description="Ponto inicial [x, y, z] em metros")
+    end: list[float] = Field(description="Ponto final ou vetor de direção [x, y, z] em metros")
+    is_infinite: bool = Field(default=False, description="Se a linha de guia é infinita")
+
+
+class GuidePointRequest(BaseModel):
+    """Entrada para criação de Ponto de Construção."""
+
+    position: list[float] = Field(description="Coordenada do ponto [x, y, z] em metros")
+
+
+class GuidesResponse(BaseModel):
+    """Resposta com lista de linhas de guia e pontos de construção da cena."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    guide_lines: list[dict[str, Any]]
+    guide_points: list[dict[str, Any]]
+
+
+# ============================================================================
+# Frente 25: Operações Booleanas de Sólidos (Solid Tools / CSG)
+# ============================================================================
+
+class BooleanOperationRequest(BaseModel):
+    """Entrada para operação booleana sólida CSG (Furação, Subtração, União)."""
+
+    operation: str = Field(
+        default="subtract",
+        description="Tipo de operação: subtract (A - B), subtract_hole (furação cilíndrica) ou union (A + B)"
+    )
+    main_shape: dict[str, Any] = Field(description="Geometria do sólido principal (box ou cylinder)")
+    tool_shape: dict[str, Any] = Field(description="Geometria da ferramenta cortante")
+
+
+class BooleanOperationResponse(BaseModel):
+    """Resposta com a malha B-Rep resultante da operação booleana."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    operation: str
+    type: str
+    faces_count: int
+    faces: list[Any]
+
+
+# ============================================================================
+# Frente 29: Exportador Executivo de Proposta Comercial em PDF Vetorial
+# ============================================================================
+
+class ExecutivePdfExportRequest(BaseModel):
+    """Entrada para geração da Proposta Executiva e Prancha Técnica em PDF."""
+
+    project_name: str = Field(default="Parque Infantil Parkelô", description="Nome do projeto")
+    author: str = Field(default="SketchBuild Engine", description="Nome do engenheiro / autor")
+    client_name: str = Field(default="Cliente Final", description="Nome do cliente / município")
+    output_filename: str = Field(default="proposta_executiva_parkelo.pdf", description="Nome do arquivo PDF")
+
+
+class ExecutivePdfExportResponse(BaseModel):
+    """Resposta com o status e caminho do PDF compilado."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    file_path: str
+    size_bytes: int
+    project_name: str
+    pages: int = 1
+
+
+# ============================================================================
+# Frente 30: Ferramenta de Offset / Equidistância 2D/3D (Ferramenta F)
+# ============================================================================
+
+class OffsetFaceRequest(BaseModel):
+    """Entrada para cálculo de deslocamento paralelo (Offset) de polígonos."""
+
+    points: list[list[float]] = Field(description="Lista de vértices coplanares [[x, y, z], ...]")
+    distance: float = Field(default=0.10, description="Distância do deslocamento métrico em metros")
+    inside: bool = Field(default=True, description="True para interior, False para exterior")
+    create_frame: bool = False
+
+
+class OffsetFaceResponse(BaseModel):
+    """Resposta com a face deslocada ou moldura criada."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str
+    distance_m: float
+    inside: bool
+    face_id: str | None = None
+    frame_faces_count: int | None = None
