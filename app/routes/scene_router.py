@@ -5,7 +5,7 @@ path, metodo, schema de entrada/saida, e delega pro controller.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 
 from app.controllers.scene_controller import SceneController
 from app.schemas.scene import (
@@ -241,6 +241,28 @@ from app.schemas.scene import (
     UniversalAccessibilityResponse,
     LifeCycleAssessmentRequest,
     LifeCycleAssessmentResponse,
+    PositionCameraNativeRequest,
+    PositionCameraNativeResponse,
+    LookAroundNativeRequest,
+    LookAroundNativeResponse,
+    WalkStepNativeRequest,
+    WalkStepNativeResponse,
+    SandboxSmooveRequest,
+    SandboxSmooveResponse,
+    SandboxStampRequest,
+    SandboxStampResponse,
+    SandboxDrapeRequest,
+    SandboxDrapeResponse,
+    SandboxFlipEdgeRequest,
+    SandboxFlipEdgeResponse,
+    MatchPhotoCalibrateRequest,
+    MatchPhotoCalibrateResponse,
+    WatermarkStyleConfigureRequest,
+    WatermarkStyleConfigureResponse,
+    DynamicComponentInteractRequest,
+    DynamicComponentInteractResponse,
+    TrimbleSolidToolsRequest,
+    TrimbleSolidToolsResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2314,3 +2336,149 @@ async def audit_universal_accessibility(body: UniversalAccessibilityRequest, con
 @router.post("/sustainability/lca-emissions", response_model=LifeCycleAssessmentResponse, summary="Avaliação de ciclo de vida ACV ISO 14040 (Frente 145)")
 async def calculate_lca_emissions(body: LifeCycleAssessmentRequest, controller: SceneController = Depends(get_controller)) -> LifeCycleAssessmentResponse:
     return await controller.calculate_lca_emissions(body)
+
+# ------------------------------------------------------------------------------
+# OPÇÃO A: ENDPOINTS NATIVOS DO SKETCHUP
+# ------------------------------------------------------------------------------
+
+@router.post(
+    "/camera/position-camera",
+    response_model=PositionCameraNativeResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Posiciona câmera na coordenada com altura de observador nativa do SketchUp"
+)
+async def position_camera_native(
+    body: PositionCameraNativeRequest,
+    controller: SceneController = Depends(get_controller)
+) -> PositionCameraNativeResponse:
+    return await controller.position_camera_native(body)
+
+
+@router.post(
+    "/camera/look-around",
+    response_model=LookAroundNativeResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gira o ângulo de visão do observador sem mover os pés (Look Around)"
+)
+async def look_around_native(
+    body: LookAroundNativeRequest,
+    controller: SceneController = Depends(get_controller)
+) -> LookAroundNativeResponse:
+    return await controller.look_around_native(body)
+
+
+@router.post(
+    "/camera/walk-step",
+    response_model=WalkStepNativeResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Executa passo de caminhada em primeira pessoa com colisão e degraus (Walk)"
+)
+async def walk_step_native(
+    body: WalkStepNativeRequest,
+    controller: SceneController = Depends(get_controller)
+) -> WalkStepNativeResponse:
+    return await controller.walk_step_native(body)
+
+
+@router.post(
+    "/sandbox/smoove",
+    response_model=SandboxSmooveResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Deforma terreno organicamente com raio de influência cossenoidal (Smoove)"
+)
+async def sandbox_smoove(
+    body: SandboxSmooveRequest,
+    controller: SceneController = Depends(get_controller)
+) -> SandboxSmooveResponse:
+    return await controller.sandbox_smoove(body)
+
+
+@router.post(
+    "/sandbox/stamp",
+    response_model=SandboxStampResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Estampa platô e saia de talude de edificação sobre terreno (Stamp)"
+)
+async def sandbox_stamp(
+    body: SandboxStampRequest,
+    controller: SceneController = Depends(get_controller)
+) -> SandboxStampResponse:
+    return await controller.sandbox_stamp(body)
+
+
+@router.post(
+    "/sandbox/drape",
+    response_model=SandboxDrapeResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Projeta caminhos 2D verticalmente sobre as faces do terreno 3D (Drape)"
+)
+async def sandbox_drape(
+    body: SandboxDrapeRequest,
+    controller: SceneController = Depends(get_controller)
+) -> SandboxDrapeResponse:
+    return await controller.sandbox_drape(body)
+
+
+@router.post(
+    "/sandbox/flip-edge",
+    response_model=SandboxFlipEdgeResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Inverte a diagonal entre triângulos adjacentes do terreno (Flip Edge)"
+)
+async def sandbox_flip_edge(
+    body: SandboxFlipEdgeRequest,
+    controller: SceneController = Depends(get_controller)
+) -> SandboxFlipEdgeResponse:
+    return await controller.sandbox_flip_edge(body)
+
+
+@router.post(
+    "/match-photo/calibrate",
+    response_model=MatchPhotoCalibrateResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Calibra perspectiva e câmera a partir de linhas de fuga de foto (Match Photo)"
+)
+async def match_photo_calibrate(
+    body: MatchPhotoCalibrateRequest,
+    controller: SceneController = Depends(get_controller)
+) -> MatchPhotoCalibrateResponse:
+    return await controller.match_photo_calibrate(body)
+
+
+@router.post(
+    "/styles/watermark",
+    response_model=WatermarkStyleConfigureResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Configura marca d'água no viewport (Overlay/Background nos 9 pontos)"
+)
+async def watermark_style_configure(
+    body: WatermarkStyleConfigureRequest,
+    controller: SceneController = Depends(get_controller)
+) -> WatermarkStyleConfigureResponse:
+    return await controller.watermark_style_configure(body)
+
+
+@router.post(
+    "/components/interact",
+    response_model=DynamicComponentInteractResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Executa ação de clique da ferramenta Interagir em Componente Dinâmico"
+)
+async def dynamic_component_interact(
+    body: DynamicComponentInteractRequest,
+    controller: SceneController = Depends(get_controller)
+) -> DynamicComponentInteractResponse:
+    return await controller.dynamic_component_interact(body)
+
+
+@router.post(
+    "/solid-tools/execute",
+    response_model=TrimbleSolidToolsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Executa operações booleanas de sólidos oficiais (Intersect, Union, Subtract, Trim, Split)"
+)
+async def trimble_solid_tools_execute(
+    body: TrimbleSolidToolsRequest,
+    controller: SceneController = Depends(get_controller)
+) -> TrimbleSolidToolsResponse:
+    return await controller.trimble_solid_tools_execute(body)

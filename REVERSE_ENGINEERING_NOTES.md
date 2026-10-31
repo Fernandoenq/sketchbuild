@@ -2131,3 +2131,57 @@ As Frentes 116 a 145 consolidam a maturidade plena do SketchBuild como um ecossi
 - **Frente 144 (Acessibilidade Universal NBR 9050):** `UniversalAccessibilityEngine` audita rotas acessíveis, vãos de portas $\ge 80\text{ cm}$, corredores, rampas com inclinação máxima de $8.33\%$ e giros de $360^\circ$.
 - **Frente 145 (Avaliação do Ciclo de Vida ACV ISO 14040):** `LifeCycleAssessmentEngine` quantifica pegada de carbono incorporada ($kg CO_2e/m^2$) de berço ao portão (Módulos A1-A3) para certificações LEED/AQUA.
 
+
+
+---
+
+## 173. Ferramentas Nativas Oficiais do SketchUp (Opção A - Zero DLL / Pure Python)
+
+Esta seção documenta a engenharia reversa estrita das ferramentas nativas de fábrica do **SketchUp Desktop oficial** (Trimble Navigation / C++), implementadas sem dependência de bibliotecas externas ou binários fechados:
+
+### 173.1 Caminhar, Olhar em Volta e Posicionar Câmera (Walk, Look Around & Position Camera)
+- **Position Camera:** Fixa o olho do observador no ponto clicado `(x, y, z + eye_height)`, direcionando o vetor de visão para um alvo arbitrário com altura regulável via VCB (padrão 1,68 m).
+- **Look Around:** Rotaciona o vetor de visão em Yaw (azimute) e Pitch (elevação com clamp estrito entre -89° e +89° para evitar inversão do horizonte), mantendo os pés do observador imóveis no solo.
+- **Walk:** Navegação cinemática em primeira pessoa para frente/trás/estrado, com detecção analítica de colisão contra AABBs de obstáculos e transposição de degraus (*step-up*) até a altura limite de 0,22 m (escadas normativas).
+- **Módulo Core:** `core/walk_look_around_engine.py` (`WalkLookAroundEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/camera/position-camera`, `POST /api/v1/scene/camera/look-around` e `POST /api/v1/scene/camera/walk-step`.
+
+### 173.2 Caixa de Areia Completa do SketchUp (Sandbox Tools: Smoove, Stamp, Drape, Flip Edge)
+- **Modelar (Smoove):** Deformação orgânica de relevos topográficos a partir de um raio de influência esférico com decaimento cossenoidal suave: $f(d) = 0.5 \cdot (1 + \cos(\pi \cdot d / R))$.
+- **Estampar (Stamp):** Rebaixa ou eleva a pegada 2D de uma fundação ou edificação sobre a malha de relevo, gerando um platô perfeitamente plano na cota desejada e uma saia de talude de transição suave (*skirt offset*).
+- **Projetar (Drape):** Projeta curvas, estradas e divisas de lote 2D verticalmente sobre as faces 3D do terreno triangulado (TIN), interpolando a altitude $Z$ exata através de coordenadas baricêntricas.
+- **Virar Aresta (Flip Edge):** Inverte a diagonal compartilhada entre dois triângulos adjacentes do terreno, permitindo retificar cumes e vales de drenagem.
+- **Módulo Core:** `core/sandbox_tools_engine.py` (`SandboxToolsEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/sandbox/smoove`, `POST /api/v1/scene/sandbox/stamp`, `POST /api/v1/scene/sandbox/drape` e `POST /api/v1/scene/sandbox/flip-edge`.
+
+### 173.3 Adequar Fotografia (Match Photo)
+- **Calibração de Câmera:** Soluciona analiticamente os dois pontos de fuga ($VP_x$ e $VP_y$) na imagem através da interseção de pares de linhas de fuga nos eixos vermelho (X) e verde (Y).
+- **Focal & FOV:** Deriva a distância focal equivalente em pixels e o Campo de Visão (FOV) baseado na ortogonalidade no espaço projetivo: $VP_x \cdot VP_y + f^2 = 0$.
+- **Ângulos de Câmera:** Extrai Yaw, Pitch e ângulo de inclinação do horizonte (Roll), estimando a posição 3D do observador e ajustando a câmera Three.js ao ponto de vista exato da fotografia de referência.
+- **Módulo Core:** `core/match_photo_engine.py` (`MatchPhotoEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/match-photo/calibrate`.
+
+### 173.4 Estilos de Marca d'Água (Watermark Styles)
+- **Camadas e Posicionamento:** Suporte a marcas d'água no modo Primeiro Plano (*Overlay*) e Segundo Plano (*Background*), com ancoragem na grade oficial de 9 pontos da tela (*top-left*, *center*, *bottom-right*, etc.), modo mosaico (*tiled*) e esticado (*stretched*).
+- **Controle Visual:** Ajuste de transparência (0% a 100%), modos de mesclagem CSS (*normal*, *multiply*, *screen*) e geração de estilos DOM injetados sobre o canvas.
+- **Módulo Core:** `core/watermark_style_engine.py` (`WatermarkStyleEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/styles/watermark`.
+
+### 173.5 Interagir com Componentes Dinâmicos (Trimble DC Click Engine)
+- **Interpretador de Fórmulas:** Executa as funções oficiais da ferramenta interativa do SketchUp:
+  - `ANIMATE("prop", val1, val2, ...)` e variações `ANIMATEFAST` / `ANIMATESLOW` para ciclos de abertura de portas, gavetas e rotações.
+  - `SET("prop", valor)` para atribuição de estado.
+  - `ALERT("mensagem")` para mensagens interativas ao usuário.
+- **Transformação Afim 4x4:** Atualiza atomicamente o dicionário `dynamic_attributes` da instância e recalcula a matriz de transformação afim 4x4 para animação suave no Three.js.
+- **Módulo Core:** `core/dynamic_component_interaction_engine.py` (`DynamicComponentInteractionEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/components/interact`.
+
+### 173.6 Ferramentas de Sólidos Nativas Oficiais (Trimble Solid Tools)
+- **5 Operações Oficiais:**
+  1. *Interseccionar (Intersect):* Mantém apenas o volume compartilhado ($A \cap B$).
+  2. *União (Union):* Funde os sólidos em uma casca estanque 2-manifold fechada.
+  3. *Subtrair (Subtract):* Corta o sólido A com a ferramenta B e descarta B.
+  4. *Recortar (Trim):* Corta o sólido A com a ferramenta B, mas preserva B intacto no modelo.
+  5. *Dividir (Split):* Intersecciona e divide ambos os sólidos, mantendo as 3 peças resultantes: $(A - B)$, $(B - A)$ e $(A \cap B)$.
+- **Módulo Core:** `core/trimble_solid_tools_engine.py` (`TrimbleSolidToolsEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/solid-tools/execute`.

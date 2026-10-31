@@ -2038,3 +2038,40 @@ class SceneService:
 
     async def calculate_lca_emissions(self, **kwargs) -> dict:
         return await run_in_threadpool(self._repository.calculate_lca_emissions, **kwargs)
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A: SERVIÇOS NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def position_camera_native(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.position_camera_native, **kwargs)
+
+    async def look_around_native(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.look_around_native, **kwargs)
+
+    async def walk_step_native(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.walk_step_native, **kwargs)
+
+    async def sandbox_smoove(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.sandbox_smoove, **kwargs)
+
+    async def sandbox_stamp(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.sandbox_stamp, **kwargs)
+
+    async def sandbox_drape(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.sandbox_drape, **kwargs)
+
+    async def sandbox_flip_edge(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.sandbox_flip_edge, **kwargs)
+
+    async def match_photo_calibrate(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.match_photo_calibrate, **kwargs)
+
+    async def watermark_style_configure(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.watermark_style_configure, **kwargs)
+
+    async def dynamic_component_interact(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.dynamic_component_interact, **kwargs)
+
+    async def trimble_solid_tools_execute(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.trimble_solid_tools_execute, **kwargs)

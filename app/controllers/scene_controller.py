@@ -250,6 +250,28 @@ from app.schemas.scene import (
     UniversalAccessibilityResponse,
     LifeCycleAssessmentRequest,
     LifeCycleAssessmentResponse,
+    PositionCameraNativeRequest,
+    PositionCameraNativeResponse,
+    LookAroundNativeRequest,
+    LookAroundNativeResponse,
+    WalkStepNativeRequest,
+    WalkStepNativeResponse,
+    SandboxSmooveRequest,
+    SandboxSmooveResponse,
+    SandboxStampRequest,
+    SandboxStampResponse,
+    SandboxDrapeRequest,
+    SandboxDrapeResponse,
+    SandboxFlipEdgeRequest,
+    SandboxFlipEdgeResponse,
+    MatchPhotoCalibrateRequest,
+    MatchPhotoCalibrateResponse,
+    WatermarkStyleConfigureRequest,
+    WatermarkStyleConfigureResponse,
+    DynamicComponentInteractRequest,
+    DynamicComponentInteractResponse,
+    TrimbleSolidToolsRequest,
+    TrimbleSolidToolsResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2377,5 +2399,86 @@ class SceneController:
         try:
             res = await self._service.calculate_lca_emissions(**body.model_dump())
             return LifeCycleAssessmentResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A: CONTROLLERS NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def position_camera_native(self, body: PositionCameraNativeRequest) -> PositionCameraNativeResponse:
+        try:
+            res = await self._service.position_camera_native(**body.model_dump())
+            return PositionCameraNativeResponse(camera=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def look_around_native(self, body: LookAroundNativeRequest) -> LookAroundNativeResponse:
+        try:
+            res = await self._service.look_around_native(**body.model_dump())
+            return LookAroundNativeResponse(camera=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def walk_step_native(self, body: WalkStepNativeRequest) -> WalkStepNativeResponse:
+        try:
+            res = await self._service.walk_step_native(**body.model_dump())
+            return WalkStepNativeResponse(walk_result=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def sandbox_smoove(self, body: SandboxSmooveRequest) -> SandboxSmooveResponse:
+        try:
+            res = await self._service.sandbox_smoove(**body.model_dump())
+            return SandboxSmooveResponse(smoove_result=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def sandbox_stamp(self, body: SandboxStampRequest) -> SandboxStampResponse:
+        try:
+            res = await self._service.sandbox_stamp(**body.model_dump())
+            return SandboxStampResponse(stamp_result=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def sandbox_drape(self, body: SandboxDrapeRequest) -> SandboxDrapeResponse:
+        try:
+            res = await self._service.sandbox_drape(**body.model_dump())
+            return SandboxDrapeResponse(drape_result=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def sandbox_flip_edge(self, body: SandboxFlipEdgeRequest) -> SandboxFlipEdgeResponse:
+        try:
+            res = await self._service.sandbox_flip_edge(**body.model_dump())
+            return SandboxFlipEdgeResponse(flip_result=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def match_photo_calibrate(self, body: MatchPhotoCalibrateRequest) -> MatchPhotoCalibrateResponse:
+        try:
+            res = await self._service.match_photo_calibrate(**body.model_dump())
+            return MatchPhotoCalibrateResponse(calibration=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def watermark_style_configure(self, body: WatermarkStyleConfigureRequest) -> WatermarkStyleConfigureResponse:
+        try:
+            res = await self._service.watermark_style_configure(**body.model_dump())
+            return WatermarkStyleConfigureResponse(watermark_config=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def dynamic_component_interact(self, body: DynamicComponentInteractRequest) -> DynamicComponentInteractResponse:
+        try:
+            res = await self._service.dynamic_component_interact(**body.model_dump())
+            return DynamicComponentInteractResponse(interaction_result=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def trimble_solid_tools_execute(self, body: TrimbleSolidToolsRequest) -> TrimbleSolidToolsResponse:
+        try:
+            res = await self._service.trimble_solid_tools_execute(**body.model_dump())
+            return TrimbleSolidToolsResponse(operation_result=res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

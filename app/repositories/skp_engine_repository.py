@@ -3317,3 +3317,51 @@ class SkpEngineRepository:
     def calculate_lca_emissions(self, **kwargs) -> dict:
         from core.life_cycle_assessment_engine import LifeCycleAssessmentEngine
         return LifeCycleAssessmentEngine.calculate_lca(**kwargs)
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A: MÉTODOS DE REPOSITÓRIO NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    def position_camera_native(self, **kwargs) -> dict:
+        from core.walk_look_around_engine import WalkLookAroundEngine
+        return WalkLookAroundEngine.position_camera(**kwargs)
+
+    def look_around_native(self, **kwargs) -> dict:
+        from core.walk_look_around_engine import WalkLookAroundEngine
+        return WalkLookAroundEngine.look_around(**kwargs)
+
+    def walk_step_native(self, **kwargs) -> dict:
+        from core.walk_look_around_engine import WalkLookAroundEngine
+        return WalkLookAroundEngine.walk_step(**kwargs)
+
+    def sandbox_smoove(self, **kwargs) -> dict:
+        from core.sandbox_tools_engine import SandboxToolsEngine
+        return SandboxToolsEngine.smoove(**kwargs)
+
+    def sandbox_stamp(self, **kwargs) -> dict:
+        from core.sandbox_tools_engine import SandboxToolsEngine
+        return SandboxToolsEngine.stamp(**kwargs)
+
+    def sandbox_drape(self, **kwargs) -> dict:
+        from core.sandbox_tools_engine import SandboxToolsEngine
+        return SandboxToolsEngine.drape(**kwargs)
+
+    def sandbox_flip_edge(self, **kwargs) -> dict:
+        from core.sandbox_tools_engine import SandboxToolsEngine
+        return SandboxToolsEngine.flip_edge(**kwargs)
+
+    def match_photo_calibrate(self, **kwargs) -> dict:
+        from core.match_photo_engine import MatchPhotoEngine
+        return MatchPhotoEngine.calibrate_camera(**kwargs)
+
+    def watermark_style_configure(self, **kwargs) -> dict:
+        from core.watermark_style_engine import WatermarkStyleEngine
+        return WatermarkStyleEngine.configure_watermark(**kwargs)
+
+    def dynamic_component_interact(self, **kwargs) -> dict:
+        from core.dynamic_component_interaction_engine import DynamicComponentInteractionEngine
+        return DynamicComponentInteractionEngine.execute_interaction(**kwargs)
+
+    def trimble_solid_tools_execute(self, **kwargs) -> dict:
+        from core.trimble_solid_tools_engine import TrimbleSolidToolsEngine
+        return TrimbleSolidToolsEngine.execute_solid_operation(**kwargs)
