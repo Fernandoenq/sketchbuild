@@ -2075,3 +2075,46 @@ class SceneService:
 
     async def trimble_solid_tools_execute(self, **kwargs) -> dict:
         return await run_in_threadpool(self._repository.trimble_solid_tools_execute, **kwargs)
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 2): MÉTODOS DE SERVIÇO NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def ifc_classify_component(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.ifc_classify_component, **kwargs)
+
+    async def ifc_audit_classifications(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.ifc_audit_classifications, **kwargs)
+
+    async def generate_3d_text(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.generate_3d_text, **kwargs)
+
+    async def generate_report(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.generate_report, **kwargs)
+
+    async def axes_set_custom(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.axes_set_custom, **kwargs)
+
+    async def axes_align_to_face(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.axes_align_to_face, **kwargs)
+
+    async def axes_reset(self) -> dict:
+        return await run_in_threadpool(self._repository.axes_reset)
+
+    async def inspect_entity_edge(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.inspect_entity_edge, **kwargs)
+
+    async def inspect_entity_face(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.inspect_entity_face, **kwargs)
+
+    async def inspect_entity_solid(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.inspect_entity_solid, **kwargs)
+
+    async def component_edit_mode_apply(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.component_edit_mode_apply, **kwargs)
+
+    async def model_units_configure(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.model_units_configure, **kwargs)
+
+    async def model_units_format(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.model_units_format, **kwargs)

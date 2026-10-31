@@ -263,6 +263,31 @@ from app.schemas.scene import (
     DynamicComponentInteractResponse,
     TrimbleSolidToolsRequest,
     TrimbleSolidToolsResponse,
+    IfcClassifyComponentRequest,
+    IfcClassifyComponentResponse,
+    IfcAuditRequest,
+    IfcAuditResponse,
+    ThreeDTextGenerateRequest,
+    ThreeDTextGenerateResponse,
+    GenerateReportRequest,
+    GenerateReportResponse,
+    AxesCustomSetRequest,
+    AxesCustomSetResponse,
+    AxesAlignFaceRequest,
+    AxesAlignFaceResponse,
+    AxesResetResponse,
+    EntityInspectEdgeRequest,
+    EntityInspectEdgeResponse,
+    EntityInspectFaceRequest,
+    EntityInspectFaceResponse,
+    EntityInspectSolidRequest,
+    EntityInspectSolidResponse,
+    ComponentEditModeRequest,
+    ComponentEditModeResponse,
+    ModelUnitsConfigRequest,
+    ModelUnitsConfigResponse,
+    ModelUnitsFormatRequest,
+    ModelUnitsFormatResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2482,3 +2507,174 @@ async def trimble_solid_tools_execute(
     controller: SceneController = Depends(get_controller)
 ) -> TrimbleSolidToolsResponse:
     return await controller.trimble_solid_tools_execute(body)
+
+# ------------------------------------------------------------------------------
+# OPÇÃO A (PARTE 2): ENDPOINTS NATIVOS ADICIONAIS DO SKETCHUP
+# ------------------------------------------------------------------------------
+
+@router.post(
+    "/bim/ifc/classify",
+    response_model=IfcClassifyComponentResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Atribui classe IFC oficial do SketchUp ao componente com GlobalId (GUID)"
+)
+async def ifc_classify_component(
+    body: IfcClassifyComponentRequest,
+    controller: SceneController = Depends(get_controller)
+) -> IfcClassifyComponentResponse:
+    return await controller.ifc_classify_component(body)
+
+
+@router.post(
+    "/bim/ifc/audit",
+    response_model=IfcAuditResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Audita conformidade de classificação IFC de todas as instâncias da cena"
+)
+async def ifc_audit_classifications(
+    body: IfcAuditRequest,
+    controller: SceneController = Depends(get_controller)
+) -> IfcAuditResponse:
+    return await controller.ifc_audit_classifications(body)
+
+
+@router.post(
+    "/geometry/3d-text",
+    response_model=ThreeDTextGenerateResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gera geometria analítica da ferramenta Texto 3D com extrusão e preenchimento"
+)
+async def generate_3d_text(
+    body: ThreeDTextGenerateRequest,
+    controller: SceneController = Depends(get_controller)
+) -> ThreeDTextGenerateResponse:
+    return await controller.generate_3d_text(body)
+
+
+@router.post(
+    "/reports/generate",
+    response_model=GenerateReportResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gera relatório oficial de componentes e quantitativos em JSON e CSV (Generate Report)"
+)
+async def generate_report(
+    body: GenerateReportRequest,
+    controller: SceneController = Depends(get_controller)
+) -> GenerateReportResponse:
+    return await controller.generate_report(body)
+
+
+@router.post(
+    "/axes/custom",
+    response_model=AxesCustomSetResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Define sistema de eixos personalizado na cena via origem e vetores direcionais (Axes Tool)"
+)
+async def axes_set_custom(
+    body: AxesCustomSetRequest,
+    controller: SceneController = Depends(get_controller)
+) -> AxesCustomSetResponse:
+    return await controller.axes_set_custom(body)
+
+
+@router.post(
+    "/axes/align-face",
+    response_model=AxesAlignFaceResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Alinha o sistema de eixos perpendicularmente à face selecionada (Align Axes to Face)"
+)
+async def axes_align_to_face(
+    body: AxesAlignFaceRequest,
+    controller: SceneController = Depends(get_controller)
+) -> AxesAlignFaceResponse:
+    return await controller.axes_align_to_face(body)
+
+
+@router.post(
+    "/axes/reset",
+    response_model=AxesResetResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Restaura os eixos cartesianos para a origem canônica global do SketchUp (Reset Axes)"
+)
+async def axes_reset(
+    controller: SceneController = Depends(get_controller)
+) -> AxesResetResponse:
+    return await controller.axes_reset()
+
+
+@router.post(
+    "/entity-info/edge",
+    response_model=EntityInspectEdgeResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Inspeciona propriedades de comprimento e suavização de aresta (Entity Info)"
+)
+async def inspect_entity_edge(
+    body: EntityInspectEdgeRequest,
+    controller: SceneController = Depends(get_controller)
+) -> EntityInspectEdgeResponse:
+    return await controller.inspect_entity_edge(body)
+
+
+@router.post(
+    "/entity-info/face",
+    response_model=EntityInspectFaceResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Inspeciona área, normal e materiais aplicados na face (Entity Info)"
+)
+async def inspect_entity_face(
+    body: EntityInspectFaceRequest,
+    controller: SceneController = Depends(get_controller)
+) -> EntityInspectFaceResponse:
+    return await controller.inspect_entity_face(body)
+
+
+@router.post(
+    "/entity-info/solid",
+    response_model=EntityInspectSolidResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Verifica estanqueidade 2-manifold e calcula volume líquido de sólido (Solid Inspector)"
+)
+async def inspect_entity_solid(
+    body: EntityInspectSolidRequest,
+    controller: SceneController = Depends(get_controller)
+) -> EntityInspectSolidResponse:
+    return await controller.inspect_entity_solid(body)
+
+
+@router.post(
+    "/components/edit-mode",
+    response_model=ComponentEditModeResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Aplica modos de visualização de edição de componente (Hide Rest of Model, Fade Rest)"
+)
+async def component_edit_mode_apply(
+    body: ComponentEditModeRequest,
+    controller: SceneController = Depends(get_controller)
+) -> ComponentEditModeResponse:
+    return await controller.component_edit_mode_apply(body)
+
+
+@router.post(
+    "/units/configure",
+    response_model=ModelUnitsConfigResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Configura formato de unidades, precisão decimal e snaps do modelo (Model Units)"
+)
+async def model_units_configure(
+    body: ModelUnitsConfigRequest,
+    controller: SceneController = Depends(get_controller)
+) -> ModelUnitsConfigResponse:
+    return await controller.model_units_configure(body)
+
+
+@router.post(
+    "/units/format",
+    response_model=ModelUnitsFormatResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Formata comprimento numérico para a string métrica correspondente"
+)
+async def model_units_format(
+    body: ModelUnitsFormatRequest,
+    controller: SceneController = Depends(get_controller)
+) -> ModelUnitsFormatResponse:
+    return await controller.model_units_format(body)

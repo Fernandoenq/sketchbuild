@@ -2185,3 +2185,60 @@ Esta seção documenta a engenharia reversa estrita das ferramentas nativas de f
   5. *Dividir (Split):* Intersecciona e divide ambos os sólidos, mantendo as 3 peças resultantes: $(A - B)$, $(B - A)$ e $(A \cap B)$.
 - **Módulo Core:** `core/trimble_solid_tools_engine.py` (`TrimbleSolidToolsEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/solid-tools/execute`.
+
+
+---
+
+## 174. Ferramentas Nativas Oficiais do SketchUp - Parte 2 (Zero DLL / Pure Python)
+
+Esta seção documenta a segunda rodada de subsistemas nativos do **SketchUp Desktop oficial** (Trimble Navigation / C++), implementados no padrão estrito Zero DLL / Pure Python:
+
+### 174.1 Classificação BIM e Esquemas IFC (IfcClassificationEngine)
+- **Suporte a Esquemas Oficiais:** IFC4 (ISO 16739), IFC2x3 e OmniClass (Table 23).
+- **Atribuição Canônica:** Permite classificar qualquer grupo ou componente atribuindo `ifc_class` (ex: `IfcBeam`, `IfcColumn`, `IfcWall`), `predefined_type`, descrição e gerando automaticamente um `GlobalId` (GUID no padrão ISO 10303-21).
+- **Auditoria de Conformidade:** Avalia toda a árvore da cena, calculando a porcentagem de elementos conformes para entrega em padrão OpenBIM.
+- **Módulo Core:** `core/ifc_classification_engine.py` (`IfcClassificationEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/bim/ifc/classify` e `POST /api/v1/scene/bim/ifc/audit`.
+
+### 174.2 Ferramenta Texto 3D Paramétrico (ThreeDTextEngine)
+- **Geometria Sólida de Caracteres:** Gera geometria B-Rep analítica para caracteres tipográficos com controle de altura métrica, espessura de traço, preenchimento de face (*Filled*) e extrusão tridimensional profunda (*Extruded*).
+- **Fechamento Estanque:** Cria tampas frontais, posteriores e malhas laterais com normais orientadas para fora, gerando sólidos estanques 2-manifold para o Three.js.
+- **Módulo Core:** `core/three_d_text_engine.py` (`ThreeDTextEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/3d-text`.
+
+### 174.3 Gerador Oficial de Relatórios do SketchUp (GenerateReportEngine)
+- **Recurso Arquivo -> Gerar Relatório:** Extrai quantitativos detalhados de todas as instâncias ou apenas da seleção ativa.
+- **Agrupamento por Definição:** Consolida contagem de peças, volume total acumulado ($m^3$), área de superfície ($m^2$), envelope métrico (L x C x A), materiais e tags.
+- **Compilador CSV:** Emite tabela formatada em RFC 4180 pronta para importação direta no Excel ou LibreOffice Calc.
+- **Módulo Core:** `core/generate_report_engine.py` (`GenerateReportEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/reports/generate`.
+
+### 174.4 Sistema de Eixos do Modelo (AxesSystemEngine)
+- **Ferramenta Eixos (Axes Tool):** Define nova origem e orientações customizadas para o eixo vermelho (X), verde (Y) e azul (Z), com ortonormalização estrita de Gram-Schmidt.
+- **Alinhar à Face:** Identifica a normal planar e primeira aresta de qualquer face selecionada, alinhando a prancheta de desenho perpendicularmente à superfície inclinada.
+- **Redefinir Eixos:** Restaura o sistema cartesiano para a origem canônica $(0, 0, 0)$ e matriz identidade $4 \times 4$.
+- **Módulo Core:** `core/axes_system_engine.py` (`AxesSystemEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/axes/custom`, `POST /api/v1/scene/axes/align-face` e `POST /api/v1/scene/axes/reset`.
+
+### 174.5 Inspetor de Métricas da Entidade e Sólidos (EntityMetricsInspectorEngine)
+- **Inspeção Polimórfica:**
+  - *Aresta:* Comprimento exato em m/cm/mm, flags Soft/Smooth e tag.
+  - *Face:* Área de superfície 3D em $m^2$ via fórmula de Newell e vetor normal unitário.
+  - *Componente / Grupo:* Inspetor de Sólido (*Solid Inspector*) que audita a estanqueidade 2-manifold (cada aresta compartilhada por exatamente 2 faces) e calcula o volume líquido pelo Teorema da Divergência.
+- **Módulo Core:** `core/entity_metrics_inspector_engine.py` (`EntityMetricsInspectorEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/entity-info/edge`, `POST /api/v1/scene/entity-info/face` e `POST /api/v1/scene/entity-info/solid`.
+
+### 174.6 Modos de Visualização de Edição de Componentes (ComponentEditModesEngine)
+- **Foco de Modelagem:**
+  - *Ocultar o Resto do Modelo (Hide Rest of Model):* Isola o componente em edição ativa, ocultando todo o restante da cena.
+  - *Esmaecer o Resto do Modelo (Fade Rest of Model):* Renderiza o restante da cena semitransparente (*ghosting* com opacidade 25%).
+  - *Ocultar/Esmaecer Semelhantes:* Controla instâncias da mesma definição para evitar interferência visual.
+- **Módulo Core:** `core/component_edit_modes_engine.py` (`ComponentEditModesEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/components/edit-mode`.
+
+### 174.7 Unidades, Precisão Decimal e Snapping do Modelo (ModelUnitsPrecisionEngine)
+- **Configuração Oficial de Unidades:** Metros, centímetros, milímetros, polegadas e pés com precisão de 0 a 5 casas decimais.
+- **Snapping Dinâmico:** Intervalo de aderência métrica de comprimento (ex: 1 cm) e snap de incremento angular (ex: 15°).
+- **Parser de Entrada VCB:** Converte automaticamente entradas digitadas pelo usuário (ex: `"250cm"`, `"2.5m"`, `"10'"`) para a unidade canônica interna (metros).
+- **Módulo Core:** `core/model_units_precision_engine.py` (`ModelUnitsPrecisionEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/units/configure` e `POST /api/v1/scene/units/format`.

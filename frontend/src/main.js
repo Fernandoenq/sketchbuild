@@ -165,6 +165,19 @@ import {
   watermarkStyleConfigure,
   dynamicComponentInteract,
   trimbleSolidToolsExecute,
+  ifcClassifyComponent,
+  ifcAuditClassifications,
+  generate3dText,
+  generateReport,
+  axesSetCustom,
+  axesAlignToFace,
+  axesReset,
+  inspectEntityEdge,
+  inspectEntityFace,
+  inspectEntitySolid,
+  componentEditModeApply,
+  modelUnitsConfigure,
+  modelUnitsFormat,
   downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
@@ -5622,5 +5635,247 @@ document.getElementById("btn-native-solid-tools")?.addEventListener("click", asy
     }
   } catch (err) {
     setStatus(`Erro no Solid Tools: ${err.message}`, true);
+  }
+});
+
+
+// 12. Classificação IFC / BIM
+document.getElementById("btn-native-ifc-classify")?.addEventListener("click", async () => {
+  setStatus("Atribuindo classificação IFC oficial ao componente selecionado...");
+  try {
+    const instId = selectedInstanceId || "inst_viga_01";
+    const res = await ifcClassifyComponent(instId, "Viga Estrutural W200x35", "IFC4", "IfcBeam", "BEAM", "Viga de concreto/aço modelada no SketchUp");
+    if (res?.classification) {
+      const c = res.classification;
+      showNativeToolsResult(
+        "🏷️ Classificação IFC / BIM",
+        `Instância: <b>${c.instance_id}</b> | Esquema: <b>${c.schema}</b><br>` +
+        `Classe IFC: <b style="color: #2F855A;">${c.ifc_class}</b> (PredefinedType: ${c.predefined_type})<br>` +
+        `GlobalId (GUID): <code>${c.global_id}</code>`
+      );
+      setStatus(`Componente classificado como ${c.ifc_class} (BIM IFC4).`);
+    }
+  } catch (err) {
+    setStatus(`Erro na classificação IFC: ${err.message}`, true);
+  }
+});
+
+// 13. Auditoria de Classificação BIM
+document.getElementById("btn-native-ifc-audit")?.addEventListener("click", async () => {
+  setStatus("Auditando conformidade de classificação BIM das instâncias...");
+  try {
+    const mockInstances = [
+      { id: "inst_1", name: "Pilar", classification: { ifc_class: "IfcColumn" } },
+      { id: "inst_2", name: "Viga", classification: { ifc_class: "IfcBeam" } },
+      { id: "inst_3", name: "Mesa Decorativa", classification: null }
+    ];
+    const res = await ifcAuditClassifications(mockInstances);
+    if (res?.audit_summary) {
+      const a = res.audit_summary;
+      showNativeToolsResult(
+        "📋 Auditoria de Classificação BIM",
+        `Conformidade BIM: <b>${a.compliance_percentage}%</b> (${a.classified_count} classificados / ${a.unclassified_count} sem classe)<br>` +
+        `Distribuição: <b>${JSON.stringify(a.class_distribution)}</b>`
+      );
+      setStatus(`Auditoria BIM concluída: ${a.compliance_percentage}% de conformidade.`);
+    }
+  } catch (err) {
+    setStatus(`Erro na auditoria BIM: ${err.message}`, true);
+  }
+});
+
+// 14. Texto 3D Paramétrico (3D Text Tool)
+document.getElementById("btn-native-3d-text")?.addEventListener("click", async () => {
+  setStatus("Gerando geometria da ferramenta Texto 3D oficial...");
+  try {
+    const res = await generate3dText("SKETCHBUILD 3D", "Arial", 0.40, 0.08, true, true, "center", [0, 0, 1.5]);
+    if (res?.text_geometry) {
+      const tg = res.text_geometry;
+      // Constrói malha Three.js com faces do texto
+      const geom = new THREE.BufferGeometry();
+      const pos = [];
+      tg.faces.forEach(tri => {
+        tri.forEach(pt => pos.push(pt[0], pt[1], pt[2]));
+      });
+      geom.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      geom.computeVertexNormals();
+
+      const mat = new THREE.MeshStandardMaterial({ color: 0xDD6B20, roughness: 0.3, metalness: 0.2 });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.name = "sketchup_3d_text_mesh";
+      currentGroup.add(mesh);
+
+      showNativeToolsResult(
+        "🔤 Texto 3D Paramétrico (3D Text Tool)",
+        `Texto: <b>"${tg.text}"</b> | Altura: <b>${tg.height_m}m</b> | Extrusão: <b>${tg.extrusion_depth_m}m</b><br>` +
+        `Faces B-Rep geradas: <b>${tg.faces_count}</b> | Arestas: <b>${tg.edges_count}</b>`
+      );
+      setStatus("Texto 3D gerado e inserido na cena.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao gerar Texto 3D: ${err.message}`, true);
+  }
+});
+
+// 15. Gerar Relatório Oficial (Generate Report)
+document.getElementById("btn-native-report")?.addEventListener("click", async () => {
+  setStatus("Gerando relatório oficial do SketchUp (Generate Report)...");
+  try {
+    const mockInstances = [
+      { id: "col_1", definition_name: "Pilar 20x20", volume_m3: 0.12, area_m2: 2.4, tag: "Estrutura", material: "Concreto", ifc_class: "IfcColumn", bounds: [0.2, 0.2, 3.0] },
+      { id: "col_2", definition_name: "Pilar 20x20", volume_m3: 0.12, area_m2: 2.4, tag: "Estrutura", material: "Concreto", ifc_class: "IfcColumn", bounds: [0.2, 0.2, 3.0] },
+      { id: "beam_1", definition_name: "Viga V1", volume_m3: 0.24, area_m2: 3.6, tag: "Estrutura", material: "Concreto", ifc_class: "IfcBeam", bounds: [4.0, 0.2, 0.3] }
+    ];
+    const res = await generateReport(mockInstances, "entire_model", true);
+    if (res?.report_data) {
+      const rep = res.report_data;
+      showNativeToolsResult(
+        "📊 Gerar Relatório Oficial (Generate Report)",
+        `Itens agrupados: <b>${rep.total_items_count}</b> | Instâncias totais: <b>${rep.total_instances_count}</b><br>` +
+        `Volume total: <b>${rep.total_volume_m3}m³</b> | Área total: <b>${rep.total_area_m2}m²</b><br>` +
+        `<pre style="max-height: 80px; overflow: auto; background: #eee; padding: 4px; font-size: 9.5px;">${rep.csv_content}</pre>`
+      );
+      setStatus("Relatório oficial gerado com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao gerar relatório: ${err.message}`, true);
+  }
+});
+
+// 16. Eixos do Modelo (Axes Tool)
+document.getElementById("btn-native-axes-custom")?.addEventListener("click", async () => {
+  setStatus("Posicionando novo sistema de eixos do modelo...");
+  try {
+    const res = await axesSetCustom([2.0, 1.0, 0.5], [3.0, 1.0, 0.5], [2.0, 2.0, 0.5]);
+    if (res?.axes) {
+      const ax = res.axes;
+      showNativeToolsResult(
+        "📐 Eixos Personalizados (Axes Tool)",
+        `Nova Origem: <b>(${ax.origin.join(", ")})</b><br>` +
+        `Eixo X (Vermelho): (${ax.axis_x_red.join(", ")})<br>` +
+        `Eixo Y (Verde): (${ax.axis_y_green.join(", ")})<br>` +
+        `Eixo Z (Azul): (${ax.axis_z_blue.join(", ")})`
+      );
+      setStatus("Eixos personalizados definidos.");
+    }
+  } catch (err) {
+    setStatus(`Erro nos eixos: ${err.message}`, true);
+  }
+});
+
+// 17. Alinhar Eixos à Face Selecionada
+document.getElementById("btn-native-axes-align-face")?.addEventListener("click", async () => {
+  setStatus("Alinhando eixos à face...");
+  try {
+    const facePts = [[0.0, 0.0, 1.0], [3.0, 0.0, 2.0], [3.0, 2.0, 2.0], [0.0, 2.0, 1.0]];
+    const res = await axesAlignToFace(facePts);
+    if (res?.axes) {
+      const ax = res.axes;
+      showNativeToolsResult(
+        "📐 Eixos Alinhados à Face",
+        `Origem no centroide: <b>(${ax.origin.join(", ")})</b><br>` +
+        `Normal perpendicular Z: <b>(${ax.axis_z_blue.join(", ")})</b>`
+      );
+      setStatus("Eixos alinhados perpendicularmente à face.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao alinhar eixos: ${err.message}`, true);
+  }
+});
+
+// 18. Redefinir Eixos para Origem Global
+document.getElementById("btn-native-axes-reset")?.addEventListener("click", async () => {
+  setStatus("Redefinindo eixos para origem global...");
+  try {
+    const res = await axesReset();
+    if (res?.axes) {
+      const ax = res.axes;
+      showNativeToolsResult(
+        "🔄 Redefinir Eixos (Reset Axes)",
+        `Origem restaurada para: <b>(${ax.origin.join(", ")})</b><br>` +
+        `Eixos canônicos globais (X=[1,0,0], Y=[0,1,0], Z=[0,0,1]) ativos.`
+      );
+      setStatus("Eixos restaurados para a origem global do modelo.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao resetar eixos: ${err.message}`, true);
+  }
+});
+
+// 19. Informações da Entidade (Entity Info & Sólido)
+document.getElementById("btn-native-inspect-entity")?.addEventListener("click", async () => {
+  setStatus("Inspecionando métricas oficiais da entidade selecionada...");
+  try {
+    // Exemplo com cubo fechado (sólido 2-manifold)
+    const cubeTriangles = [
+      // Face inferior
+      [[0,0,0], [1,0,0], [1,1,0]], [[0,0,0], [1,1,0], [0,1,0]],
+      // Face superior
+      [[0,0,1], [1,1,1], [1,0,1]], [[0,0,1], [0,1,1], [1,1,1]],
+      // Laterais
+      [[0,0,0], [0,0,1], [1,0,1]], [[0,0,0], [1,0,1], [1,0,0]],
+      [[1,0,0], [1,0,1], [1,1,1]], [[1,0,0], [1,1,1], [1,1,0]],
+      [[1,1,0], [1,1,1], [0,1,1]], [[1,1,0], [0,1,1], [0,1,0]],
+      [[0,1,0], [0,1,1], [0,0,1]], [[0,1,0], [0,0,1], [0,0,0]]
+    ];
+    const res = await inspectEntitySolid("Sapata Isolada", "sapata_01", cubeTriangles, "Fundações");
+    if (res?.metrics) {
+      const m = res.metrics;
+      showNativeToolsResult(
+        "ℹ️ Informações da Entidade (Entity Info)",
+        `Entidade: <b>${m.definition_name}</b> (${m.instance_name})<br>` +
+        `Status de Sólido: <b style="color: #2F855A;">${m.solid_status}</b><br>` +
+        `Volume líquido: <b>${m.volume_m3}m³</b> | Área de superfície: <b>${m.total_area_m2}m²</b><br>` +
+        `Faces: <b>${m.faces_count}</b> | Arestas únicas: <b>${m.unique_edges_count}</b>`
+      );
+      setStatus(`Inspeção concluída: ${m.solid_status} (${m.volume_m3}m³).`);
+    }
+  } catch (err) {
+    setStatus(`Erro na inspeção: ${err.message}`, true);
+  }
+});
+
+// 20. Edição de Componentes (Hide / Fade Rest of Model)
+document.getElementById("btn-native-comp-edit-mode")?.addEventListener("click", async () => {
+  setStatus("Alternando modo de foco de edição de componentes...");
+  try {
+    const mockInstances = [
+      { id: "inst_1", name: "Janela" },
+      { id: "inst_2", name: "Janela" },
+      { id: "inst_3", name: "Parede" }
+    ];
+    const res = await componentEditModeApply("inst_1", "Janela", mockInstances, true, false, true, true, 0.25);
+    if (res?.edit_mode_state) {
+      const em = res.edit_mode_state;
+      showNativeToolsResult(
+        "👁️ Edição de Componentes (Component Edit)",
+        `Componente ativo em edição: <b>${em.active_instance_id}</b> (${em.active_definition_name})<br>` +
+        `Ocultar resto do modelo: <b>${em.hide_rest_of_model ? "ATIVO" : "INATIVO"}</b><br>` +
+        `Objetos ocultados: <b>${em.hidden_count}</b> | Objetos esmaecidos (fade 25%): <b>${em.faded_count}</b>`
+      );
+      setStatus("Modo de edição focado aplicado com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro no modo de edição: ${err.message}`, true);
+  }
+});
+
+// 21. Unidades & Precisão do Modelo (Model Units)
+document.getElementById("btn-native-units-config")?.addEventListener("click", async () => {
+  setStatus("Configurando unidades e precisão decimal do modelo...");
+  try {
+    const res = await modelUnitsConfigure("DECIMAL", "METERS", 2, true, 0.01, true, 15.0);
+    if (res?.units_config) {
+      const u = res.units_config;
+      showNativeToolsResult(
+        "📏 Unidades do Modelo (Model Units)",
+        `Formato: <b>${u.format}</b> | Unidade ativa: <b>${u.unit} (${u.unit_suffix})</b><br>` +
+        `Precisão: <b>${u.precision_digits} casas decimais</b><br>` +
+        `Snap de Comprimento: <b>${u.length_snap_interval_m}m</b> | Snap Angular: <b>${u.angle_snap_degrees}°</b>`
+      );
+      setStatus(`Unidades configuradas: ${u.unit} com precisão de ${u.precision_digits} casas.`);
+    }
+  } catch (err) {
+    setStatus(`Erro ao configurar unidades: ${err.message}`, true);
   }
 });

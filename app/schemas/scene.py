@@ -3852,3 +3852,175 @@ class TrimbleSolidToolsResponse(BaseModel):
     entity_type: str = "sketchup_native_trimble_solid_tools"
     operation_result: dict[str, Any]
     status: str = "success"
+
+
+# ==============================================================================
+# OPÇÃO A (PARTE 2): FERRAMENTAS E SUBSISTEMAS NATIVOS ADICIONAIS DO SKETCHUP
+# ==============================================================================
+
+# 1. Classificação IFC / BIM
+class IfcClassifyComponentRequest(BaseModel):
+    instance_id: str = Field(default="inst_1")
+    definition_name: str = Field(default="Viga Principal")
+    schema_name: str = Field(default="IFC4")
+    ifc_class: str = Field(default="IfcBeam")
+    predefined_type: str = Field(default="NOTDEFINED")
+    description: str = Field(default="")
+    tag: str | None = Field(default=None)
+
+class IfcClassifyComponentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_ifc_classification"
+    classification: dict[str, Any]
+    status: str = "success"
+
+class IfcAuditRequest(BaseModel):
+    instances: list[dict[str, Any]] = Field(default_factory=list)
+
+class IfcAuditResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_ifc_audit"
+    audit_summary: dict[str, Any]
+    status: str = "success"
+
+# 2. Texto 3D (3D Text Tool)
+class ThreeDTextGenerateRequest(BaseModel):
+    text: str = Field(default="SKETCHBUILD")
+    font_family: str = Field(default="Arial")
+    height_m: float = Field(default=0.30, ge=0.01)
+    extrusion_depth_m: float = Field(default=0.05, ge=0.0)
+    is_filled: bool = Field(default=True)
+    is_extruded: bool = Field(default=True)
+    alignment: str = Field(default="left")
+    origin_xyz: tuple[float, float, float] = Field(default=(0.0, 0.0, 0.0))
+
+class ThreeDTextGenerateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_3d_text"
+    text_geometry: dict[str, Any]
+    status: str = "success"
+
+# 3. Gerador de Relatório (Generate Report)
+class GenerateReportRequest(BaseModel):
+    instances: list[dict[str, Any]] = Field(default_factory=list)
+    scope: str = Field(default="entire_model")
+    group_by_definition: bool = Field(default=True)
+    selected_instance_ids: list[str] | None = Field(default=None)
+
+class GenerateReportResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_generate_report"
+    report_data: dict[str, Any]
+    status: str = "success"
+
+# 4. Ferramenta Eixos (Axes Tool)
+class AxesCustomSetRequest(BaseModel):
+    origin: tuple[float, float, float] = Field(default=(0.0, 0.0, 0.0))
+    x_point: tuple[float, float, float] = Field(default=(1.0, 0.0, 0.0))
+    y_point: tuple[float, float, float] = Field(default=(0.0, 1.0, 0.0))
+
+class AxesCustomSetResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_axes_system"
+    axes: dict[str, Any]
+    status: str = "success"
+
+class AxesAlignFaceRequest(BaseModel):
+    face_vertices: list[tuple[float, float, float]] = Field(default_factory=list)
+
+class AxesAlignFaceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_axes_system"
+    axes: dict[str, Any]
+    status: str = "success"
+
+class AxesResetResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_axes_system"
+    axes: dict[str, Any]
+    status: str = "success"
+
+# 5. Inspetor de Métricas da Entidade (Entity Info)
+class EntityInspectEdgeRequest(BaseModel):
+    v1: tuple[float, float, float]
+    v2: tuple[float, float, float]
+    is_smooth: bool = Field(default=False)
+    is_soft: bool = Field(default=False)
+    is_hidden: bool = Field(default=False)
+    tag: str = Field(default="Layer0")
+
+class EntityInspectEdgeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_entity_info"
+    metrics: dict[str, Any]
+    status: str = "success"
+
+class EntityInspectFaceRequest(BaseModel):
+    vertices: list[tuple[float, float, float]]
+    front_material: str | None = Field(default=None)
+    back_material: str | None = Field(default=None)
+    tag: str = Field(default="Layer0")
+
+class EntityInspectFaceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_entity_info"
+    metrics: dict[str, Any]
+    status: str = "success"
+
+class EntityInspectSolidRequest(BaseModel):
+    definition_name: str = Field(default="Componente Sólido")
+    instance_name: str = Field(default="inst_1")
+    triangles: list[list[tuple[float, float, float]]]
+    tag: str = Field(default="Layer0")
+    dynamic_attributes: dict[str, Any] | None = Field(default=None)
+
+class EntityInspectSolidResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_entity_info"
+    metrics: dict[str, Any]
+    status: str = "success"
+
+# 6. Modos de Edição de Componentes (Component Edit Modes)
+class ComponentEditModeRequest(BaseModel):
+    active_instance_id: str | None = Field(default=None)
+    active_definition_name: str | None = Field(default=None)
+    all_instances: list[dict[str, Any]] = Field(default_factory=list)
+    hide_rest_of_model: bool = Field(default=False)
+    hide_similar_components: bool = Field(default=False)
+    fade_rest_of_model: bool = Field(default=True)
+    fade_similar_components: bool = Field(default=True)
+    fade_opacity: float = Field(default=0.25, ge=0.0, le=1.0)
+
+class ComponentEditModeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_component_edit_mode"
+    edit_mode_state: dict[str, Any]
+    status: str = "success"
+
+# 7. Unidades e Precisão do Modelo (Model Units & Precision)
+class ModelUnitsConfigRequest(BaseModel):
+    format_type: str = Field(default="DECIMAL")
+    unit_length: str = Field(default="METERS")
+    precision_digits: int = Field(default=2, ge=0, le=5)
+    enable_length_snapping: bool = Field(default=True)
+    length_snap_interval_m: float = Field(default=0.01, ge=0.0001)
+    enable_angle_snapping: bool = Field(default=True)
+    angle_snap_degrees: float = Field(default=15.0, ge=0.1, le=90.0)
+
+class ModelUnitsConfigResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_model_units"
+    units_config: dict[str, Any]
+    status: str = "success"
+
+class ModelUnitsFormatRequest(BaseModel):
+    length_meters: float
+    unit: str = Field(default="METERS")
+    precision_digits: int = Field(default=2, ge=0, le=5)
+
+class ModelUnitsFormatResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_model_units_format"
+    formatted_string: str
+    length_meters: float
+    status: str = "success"

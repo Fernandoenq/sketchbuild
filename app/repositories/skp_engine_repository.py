@@ -3365,3 +3365,64 @@ class SkpEngineRepository:
     def trimble_solid_tools_execute(self, **kwargs) -> dict:
         from core.trimble_solid_tools_engine import TrimbleSolidToolsEngine
         return TrimbleSolidToolsEngine.execute_solid_operation(**kwargs)
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 2): MÉTODOS DE REPOSITÓRIO NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    def ifc_classify_component(self, **kwargs) -> dict:
+        from core.ifc_classification_engine import IfcClassificationEngine
+        return IfcClassificationEngine.classify_component(**kwargs)
+
+    def ifc_audit_classifications(self, **kwargs) -> dict:
+        from core.ifc_classification_engine import IfcClassificationEngine
+        return IfcClassificationEngine.audit_scene_classifications(**kwargs)
+
+    def generate_3d_text(self, **kwargs) -> dict:
+        from core.three_d_text_engine import ThreeDTextEngine
+        return ThreeDTextEngine.generate_3d_text(**kwargs)
+
+    def generate_report(self, **kwargs) -> dict:
+        from core.generate_report_engine import GenerateReportEngine
+        return GenerateReportEngine.generate_report(**kwargs)
+
+    def axes_set_custom(self, **kwargs) -> dict:
+        from core.axes_system_engine import AxesSystemEngine
+        return AxesSystemEngine.set_custom_axes(**kwargs)
+
+    def axes_align_to_face(self, **kwargs) -> dict:
+        from core.axes_system_engine import AxesSystemEngine
+        return AxesSystemEngine.align_axes_to_face(**kwargs)
+
+    def axes_reset(self) -> dict:
+        from core.axes_system_engine import AxesSystemEngine
+        return AxesSystemEngine.reset_axes()
+
+    def inspect_entity_edge(self, **kwargs) -> dict:
+        from core.entity_metrics_inspector_engine import EntityMetricsInspectorEngine
+        return EntityMetricsInspectorEngine.inspect_edge(**kwargs)
+
+    def inspect_entity_face(self, **kwargs) -> dict:
+        from core.entity_metrics_inspector_engine import EntityMetricsInspectorEngine
+        return EntityMetricsInspectorEngine.inspect_face(**kwargs)
+
+    def inspect_entity_solid(self, **kwargs) -> dict:
+        from core.entity_metrics_inspector_engine import EntityMetricsInspectorEngine
+        return EntityMetricsInspectorEngine.inspect_solid_component(**kwargs)
+
+    def component_edit_mode_apply(self, **kwargs) -> dict:
+        from core.component_edit_modes_engine import ComponentEditModesEngine
+        return ComponentEditModesEngine.apply_component_edit_mode(**kwargs)
+
+    def model_units_configure(self, **kwargs) -> dict:
+        from core.model_units_precision_engine import ModelUnitsPrecisionEngine
+        return ModelUnitsPrecisionEngine.configure_units(**kwargs)
+
+    def model_units_format(self, **kwargs) -> dict:
+        from core.model_units_precision_engine import ModelUnitsPrecisionEngine
+        fmt = ModelUnitsPrecisionEngine.format_length(
+            length_meters=kwargs.get("length_meters", 0.0),
+            unit=kwargs.get("unit", "METERS"),
+            precision_digits=kwargs.get("precision_digits", 2)
+        )
+        return {"formatted_string": fmt, "length_meters": kwargs.get("length_meters", 0.0)}
