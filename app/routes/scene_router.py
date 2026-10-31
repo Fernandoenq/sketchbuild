@@ -151,6 +151,16 @@ from app.schemas.scene import (
     WaterMaterialConfigResponse,
     SkpLODChainRequest,
     SkpLODChainResponse,
+    StairGeneratorRequest,
+    StairGeneratorResponse,
+    VoronoiPanelRequest,
+    VoronoiPanelResponse,
+    WindPressureRequest,
+    WindPressureResponse,
+    AtmosphericSkyRequest,
+    AtmosphericSkyResponse,
+    IFC4BimExportRequest,
+    IFC4BimExportResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1905,3 +1915,63 @@ async def generate_mesh_lod_chain(
     controller: SceneController = Depends(get_controller),
 ) -> SkpLODChainResponse:
     return await controller.generate_mesh_lod_chain(body)
+
+
+@router.post(
+    "/architecture/stair",
+    response_model=StairGeneratorResponse,
+    summary="Gera escada paramétrica e dimensionamento ergonômico Blondel NBR 9050 (Frente 101)",
+)
+async def generate_stair(
+    body: StairGeneratorRequest,
+    controller: SceneController = Depends(get_controller),
+) -> StairGeneratorResponse:
+    return await controller.generate_stair(body)
+
+
+@router.post(
+    "/architecture/voronoi-panel",
+    response_model=VoronoiPanelResponse,
+    summary="Gera painel decorativo ou estrutural com perfurações Voronoi (Frente 102)",
+)
+async def generate_voronoi_panel(
+    body: VoronoiPanelRequest,
+    controller: SceneController = Depends(get_controller),
+) -> VoronoiPanelResponse:
+    return await controller.generate_voronoi_panel(body)
+
+
+@router.post(
+    "/engineering/wind-pressure",
+    response_model=WindPressureResponse,
+    summary="Calcula pressão dinâmica e forças estáticas de vento NBR 6123 (Frente 103)",
+)
+async def calculate_wind_pressure(
+    body: WindPressureRequest,
+    controller: SceneController = Depends(get_controller),
+) -> WindPressureResponse:
+    return await controller.calculate_wind_pressure(body)
+
+
+@router.post(
+    "/environment/atmospheric-sky",
+    response_model=AtmosphericSkyResponse,
+    summary="Configura céu físico Rayleigh/Mie e sol Three.js (Frente 104)",
+)
+async def configure_atmospheric_sky(
+    body: AtmosphericSkyRequest,
+    controller: SceneController = Depends(get_controller),
+) -> AtmosphericSkyResponse:
+    return await controller.configure_atmospheric_sky(body)
+
+
+@router.post(
+    "/bim/export-ifc4",
+    response_model=IFC4BimExportResponse,
+    summary="Compila modelo no formato texto físico STEP ISO-10303-21 IFC4 LOD 350 (Frente 105)",
+)
+async def export_ifc4_bim(
+    body: IFC4BimExportRequest,
+    controller: SceneController = Depends(get_controller),
+) -> IFC4BimExportResponse:
+    return await controller.export_ifc4_bim(body)

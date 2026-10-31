@@ -1847,3 +1847,84 @@ A Frente 100 celebra o marco de 100 frentes de engenharia reversa do SketchUp co
 - **Distâncias Proporcionais:** Calcula as distâncias ideais de troca de nível baseadas na diagonal da Bounding Box do modelo.
 - **Módulo:** `core/skp_lod_optimizer_engine.py` (`SkpLODOptimizerEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/geometry/lod-chain`.
+
+---
+
+## 128. Frente 101: Motor Gerador de Escadas Paramétricas e Ergonomia de Blondel NBR 9050 (StairGenerator - Zero DLL)
+
+A Frente 101 implementa a geração procedural paramétrica de escadas retas e em L com conformidade ergonômica brasileira (NBR 9050 e fórmula clássica de François Blondel).
+
+### A. Cálculo Ergonômico de Blondel e Normas
+- **Fórmula de Blondel:** $2E + P = 0.64\text{ m}$ (com faixa aceitável entre $0.63\text{ m}$ e $0.65\text{ m}$).
+- **Restrições NBR 9050:**
+  - Altura do espelho ($E$): $0.16\text{ m} \le E \le 0.18\text{ m}$ (limites extremos admitidos: $0.15\text{ m}$ a $0.19\text{ m}$).
+  - Largura da pisada ($P$): $P \ge 0.25\text{ m}$ (ideal $0.28\text{ m}$ a $0.32\text{ m}$).
+- **Geração Geométrica 3D B-Rep:**
+  - Degraus com degrau superior alinhado ao nível final.
+  - Viga de suporte inferior (longarina inclinada).
+  - Guarda-corpo e corrimão paramétricos a $0.92\text{ m}$ de altura com montantes verticais.
+- **Módulo:** `core/stair_generator_engine.py` (`StairGeneratorEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/architecture/stair`.
+
+---
+
+## 129. Frente 102: Motor de Fratura Voronoi e Painéis Arquitetônicos Vazados (VoronoiFracture - Zero DLL)
+
+A Frente 102 introduz algoritmos de partição espacial de Voronoi e diagramas de Delaunay analíticos puros em Python para geração de painéis decorativos, fachadas e pérgolas vazadas.
+
+### A. Algoritmo de Relaxamento e Inset Poligonal
+- **Partição Espacial:** Distribuição pseudo-aleatória determinística de sementes via gerador congruente linear (LCG) com sementes reprodutíveis.
+- **Células de Voronoi Convexas:** Aproximação analítica radial com recorte estrito aos limites retangulares da placa ($[0, W] \times [0, H]$).
+- **Aberturas Orgânicas (Inset):** Deslocamento proporcional dos vértices em direção ao baricentroide de cada célula, criando esquadrias vazadas rígidas para manufatura em corte a laser / CNC.
+- **Módulo:** `core/voronoi_fracture_engine.py` (`VoronoiFractureEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/architecture/voronoi-panel`.
+
+---
+
+## 130. Frente 103: Motor Analítico de Pressão Dinâmica e Cargas de Vento NBR 6123 (WindPressure - Zero DLL)
+
+A Frente 103 dota o SketchBuild de cálculo estrutural de ações de vento sobre edificações e totens conforme a norma brasileira NBR 6123.
+
+### A. Formulação Aerodinâmica
+- **Velocidade Característica do Vento ($V_k$):**
+  $$V_k = V_0 \cdot S_1 \cdot S_2(z, \text{cat}) \cdot S_3$$
+  Onde $S_1$ é o fator topográfico, $S_3$ o fator estatístico e $S_2(z)$ a rugosidade do terreno parametrizada pelas Categorias I a V e classes de dimensão A/B/C.
+- **Pressão Dinâmica ($q$):**
+  $$q = 0.613 \cdot V_k^2 \quad (\text{N/m}^2)$$
+- **Arrasto Global e Pressão nas Fachadas:**
+  Cálculo das forças horizontais de barlavento ($C_{pe} = +0.8$) e sotavento ($C_{pe} = -0.5$), fornecendo momento de tombamento na base e reações de apoio.
+- **Módulo:** `core/wind_pressure_engine.py` (`WindPressureEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/engineering/wind-pressure`.
+
+---
+
+## 131. Frente 104: Motor de Espalhamento Atmosférico Físico Rayleigh & Mie (AtmosphericScattering - Zero DLL)
+
+A Frente 104 traz a simulação física de iluminação solar e céus realistas para a engine WebGL Three.js do SketchBuild, integrando modelos analíticos de espalhamento de luz.
+
+### A. Física do Espalhamento
+- **Espalhamento de Rayleigh (Moléculas de ar):**
+  Predominância de dispersão de comprimentos de onda curtos (azul). Coeficiente calibrado com base no expoente $\lambda^{-4}$.
+- **Espalhamento de Mie (Aerossóis e poeira):**
+  Função de fase de Henyey-Greenstein com assimetria $g \approx 0.8$ gerando auréola solar brilhante.
+- **Aparência do Sol e Temperatura de Cor:**
+  Cálculo da temperatura de cor em Kelvin (de $2200\text{ K}$ no poente a $6500\text{ K}$ ao meio-dia) e vetor normalizado tridimensional para uniformes do Three.js `Sky`.
+- **Módulo:** `core/atmosphere_scattering_engine.py` (`AtmosphericScatteringEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/environment/atmospheric-sky`.
+
+---
+
+## 132. Frente 105: Compilador de Arquitetura BIM Aberta STEP ISO-10303-21 IFC4 LOD 350 (IFC4BimExport - Zero DLL)
+
+A Frente 105 estabelece a capacidade máxima de interoperabilidade industrial BIM, sintetizando arquivos STEP texto completos padrão ISO 10303-21 compatíveis com Revit, ArchiCAD, Solibri e Navisworks sem qualquer dependência externa ou DLL proprietária.
+
+### A. Hierarquia Espacial e B-Rep Manifold
+- **Estrutura ISO 10303-21:**
+  - Header formal com `FILE_DESCRIPTION`, `FILE_NAME` e `FILE_SCHEMA(('IFC4'))`.
+  - Hierarquia de contenção espacial:
+    $$\text{IfcProject} \to \text{IfcSite} \to \text{IfcBuilding} \to \text{IfcBuildingStorey} \to \text{IfcProductDefinitionShape}$$
+- **Topologia B-Rep Facetada (`IfcFacetedBrep`):**
+  Geração sequencial de índices únicos `#ID` para `IFCCARTESIANPOINT`, `IFCPOLYLOOP`, `IFCFACEOUTERBOUND`, `IFCFACE` e `IFCCLOSEDSHELL`.
+- **Módulo:** `core/ifc4_bim_export_engine.py` (`IFC4BimExportEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/bim/export-ifc4`.
+
