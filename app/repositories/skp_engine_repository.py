@@ -1522,3 +1522,55 @@ class SkpEngineRepository:
             "size_bytes": os.path.getsize(saved),
             "parts_count": len(parts),
         }
+
+    def calculate_camera_path(self, waypoints: list, frames_per_segment: int = 24) -> dict:
+        """Gera interpolação suave Catmull-Rom para sobrevoo de câmera (Frente 41)."""
+        from core.camera_path_interpolator import CameraPathInterpolator
+        res = CameraPathInterpolator.generate_flythrough_path(waypoints, frames_per_segment=frames_per_segment)
+        res["camera_positions"] = [list(p) for p in res["camera_positions"]]
+        res["camera_targets"] = [list(p) for p in res["camera_targets"]]
+        return res
+
+    def export_point_cloud_xyz(self, output_filename: str) -> dict:
+        """Exporta nuvem de pontos 3D LiDAR em formato ASCII XYZ (Frente 42)."""
+        from core.point_cloud_exporter import PointCloudExporter
+        import tempfile, os
+        scene_dto = self._get_export_scene_data()
+        out_dir = tempfile.gettempdir()
+        out_path = os.path.join(out_dir, output_filename)
+        saved = PointCloudExporter.export_xyz(scene_dto, out_path)
+        return {
+            "file_path": saved,
+            "size_bytes": os.path.getsize(saved),
+        }
+
+    def generate_maintenance_plan(self, installation_date: str = "2026-03-01", env_type: str = "urban") -> dict:
+        """Gera plano normativo de manutenção preventiva NBR 16071-7 (Frente 43)."""
+        from core.maintenance_planner import MaintenancePlanner
+        scene_dto = self._get_export_scene_data()
+        return MaintenancePlanner.generate_maintenance_plan(scene_dto, installation_date, env_type)
+
+    def apply_mirror_transform(self, instance_id: str, plane_normal: list, plane_point: list) -> dict:
+        """Aplica espelhamento e simetria 3D de Householder (Frente 44)."""
+        from core.mirror_tool import MirrorTool
+        mirror_mat = MirrorTool.create_mirror_matrix(tuple(plane_normal), tuple(plane_point))
+        self.set_instance_transform(instance_id, mirror_mat)
+        return {
+            "instance_id": instance_id,
+            "plane_normal": list(plane_normal),
+            "plane_point": list(plane_point),
+            "transform_matrix_16": mirror_mat,
+        }
+
+    def export_qr_tag_svg(self, serial_number: str, product_name: str, output_filename: str) -> dict:
+        """Gera placa de identificação patrimonial com QR Code em SVG (Frente 45)."""
+        from core.qr_tag_generator import QrTagGenerator
+        import tempfile, os
+        out_dir = tempfile.gettempdir()
+        out_path = os.path.join(out_dir, output_filename)
+        saved = QrTagGenerator.export_svg_tag(out_path, serial_number=serial_number, product_name=product_name)
+        return {
+            "file_path": saved,
+            "size_bytes": os.path.getsize(saved),
+            "serial_number": serial_number,
+        }

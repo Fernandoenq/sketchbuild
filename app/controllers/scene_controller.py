@@ -28,6 +28,16 @@ from app.schemas.scene import (
     ScaleResponse,
     ExportCamDxfRequest,
     ExportCamDxfResponse,
+    CameraPathRequest,
+    CameraPathResponse,
+    PointCloudExportRequest,
+    PointCloudExportResponse,
+    MaintenancePlanRequest,
+    MaintenancePlanResponse,
+    MirrorRequest,
+    MirrorResponse,
+    QrTagExportRequest,
+    QrTagExportResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -801,5 +811,45 @@ class SceneController:
         try:
             res = await self._service.export_cam_dxf(body.parts, body.output_filename)
             return ExportCamDxfResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_camera_path(self, body: CameraPathRequest) -> CameraPathResponse:
+        """Gera interpolacao suave Catmull-Rom para sobrevoo de camera (Frente 41)."""
+        try:
+            res = await self._service.calculate_camera_path(body.waypoints, body.frames_per_segment)
+            return CameraPathResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def export_point_cloud_xyz(self, body: PointCloudExportRequest) -> PointCloudExportResponse:
+        """Exporta nuvem de pontos 3D LiDAR em formato ASCII XYZ (Frente 42)."""
+        try:
+            res = await self._service.export_point_cloud_xyz(body.output_filename)
+            return PointCloudExportResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_maintenance_plan(self, body: MaintenancePlanRequest) -> MaintenancePlanResponse:
+        """Gera plano normativo de manutencao preventiva NBR 16071-7 (Frente 43)."""
+        try:
+            res = await self._service.generate_maintenance_plan(body.installation_date_iso, body.environment_type)
+            return MaintenancePlanResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def apply_mirror_transform(self, body: MirrorRequest) -> MirrorResponse:
+        """Aplica espelhamento e simetria 3D de Householder (Frente 44)."""
+        try:
+            res = await self._service.apply_mirror_transform(body.instance_id, body.plane_normal, body.plane_point)
+            return MirrorResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def export_qr_tag_svg(self, body: QrTagExportRequest) -> QrTagExportResponse:
+        """Gera placa de identificacao patrimonial com QR Code em SVG (Frente 45)."""
+        try:
+            res = await self._service.export_qr_tag_svg(body.serial_number, body.product_name, body.output_filename)
+            return QrTagExportResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

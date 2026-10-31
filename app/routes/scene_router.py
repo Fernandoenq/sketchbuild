@@ -19,6 +19,16 @@ from app.schemas.scene import (
     ScaleResponse,
     ExportCamDxfRequest,
     ExportCamDxfResponse,
+    CameraPathRequest,
+    CameraPathResponse,
+    PointCloudExportRequest,
+    PointCloudExportResponse,
+    MaintenancePlanRequest,
+    MaintenancePlanResponse,
+    MirrorRequest,
+    MirrorResponse,
+    QrTagExportRequest,
+    QrTagExportResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -888,3 +898,63 @@ async def export_cam_dxf(
     controller: SceneController = Depends(get_controller),
 ) -> ExportCamDxfResponse:
     return await controller.export_cam_dxf(body)
+
+
+@router.post(
+    "/camera-path",
+    response_model=CameraPathResponse,
+    summary="Interpola sobrevoo de camera Catmull-Rom (Frente 41)",
+)
+async def calculate_camera_path(
+    body: CameraPathRequest,
+    controller: SceneController = Depends(get_controller),
+) -> CameraPathResponse:
+    return await controller.calculate_camera_path(body)
+
+
+@router.post(
+    "/export/point-cloud-xyz",
+    response_model=PointCloudExportResponse,
+    summary="Exporta nuvem de pontos LiDAR ASCII XYZ (Frente 42)",
+)
+async def export_point_cloud_xyz(
+    body: PointCloudExportRequest,
+    controller: SceneController = Depends(get_controller),
+) -> PointCloudExportResponse:
+    return await controller.export_point_cloud_xyz(body)
+
+
+@router.post(
+    "/maintenance-plan",
+    response_model=MaintenancePlanResponse,
+    summary="Gera plano normativo de manutencao preventiva NBR 16071-7 (Frente 43)",
+)
+async def generate_maintenance_plan(
+    body: MaintenancePlanRequest,
+    controller: SceneController = Depends(get_controller),
+) -> MaintenancePlanResponse:
+    return await controller.generate_maintenance_plan(body)
+
+
+@router.post(
+    "/geometry/mirror",
+    response_model=MirrorResponse,
+    summary="Aplica espelhamento e simetria 3D de Householder (Frente 44)",
+)
+async def apply_mirror_transform(
+    body: MirrorRequest,
+    controller: SceneController = Depends(get_controller),
+) -> MirrorResponse:
+    return await controller.apply_mirror_transform(body)
+
+
+@router.post(
+    "/export/qr-tag-svg",
+    response_model=QrTagExportResponse,
+    summary="Exporta placa tecnica com QR Code em SVG (Frente 45)",
+)
+async def export_qr_tag_svg(
+    body: QrTagExportRequest,
+    controller: SceneController = Depends(get_controller),
+) -> QrTagExportResponse:
+    return await controller.export_qr_tag_svg(body)
