@@ -29,6 +29,13 @@ from app.schemas.scene import (
     AddGeometryEntityResponse,
     ExportCutlistRequest,
     ExportCutlistResponse,
+    AssemblyStepsResponse,
+    ExportAssemblyManualRequest,
+    ExportAssemblyManualResponse,
+    ExportDrawing2DRequest,
+    ExportDrawing2DResponse,
+    SolarStudyRequest,
+    SolarStudyResponse,
     AddCircleGeometryRequest,
     AddCylinderGeometryRequest,
     ExtrudeFaceGeometryRequest,
@@ -562,3 +569,50 @@ async def extrude_face_geometry(
     controller: SceneController = Depends(get_controller),
 ) -> AddGeometryEntityResponse:
     return await controller.extrude_face_geometry(body)
+
+
+@router.get(
+    "/assembly-steps",
+    response_model=AssemblyStepsResponse,
+    summary="Calcula as etapas sequenciais de montagem (Frente 26)",
+)
+async def get_assembly_steps(
+    controller: SceneController = Depends(get_controller),
+) -> AssemblyStepsResponse:
+    return await controller.get_assembly_steps()
+
+
+@router.post(
+    "/export/assembly-manual",
+    response_model=ExportAssemblyManualResponse,
+    summary="Gera manual técnico de montagem em HTML (Frente 26)",
+)
+async def export_assembly_manual(
+    body: ExportAssemblyManualRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ExportAssemblyManualResponse:
+    return await controller.export_assembly_manual(body)
+
+
+@router.post(
+    "/export/drawing-2d",
+    response_model=ExportDrawing2DResponse,
+    summary="Exporta desenho técnico 2D vetorial em SVG (Frente 27)",
+)
+async def export_drawing_2d(
+    body: ExportDrawing2DRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ExportDrawing2DResponse:
+    return await controller.export_drawing_2d(body)
+
+
+@router.post(
+    "/solar-study",
+    response_model=SolarStudyResponse,
+    summary="Calcula estudo solar e insolação NBR 16071 (Frente 28)",
+)
+async def calculate_solar_study(
+    body: SolarStudyRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SolarStudyResponse:
+    return await controller.calculate_solar_study(body)
