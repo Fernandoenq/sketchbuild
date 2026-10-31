@@ -4024,3 +4024,118 @@ class ModelUnitsFormatResponse(BaseModel):
     formatted_string: str
     length_meters: float
     status: str = "success"
+
+
+# ==============================================================================
+# OPÇÃO A (PARTE 3): FERRAMENTAS E SUBSISTEMAS NATIVOS ADICIONAIS DO SKETCHUP
+# ==============================================================================
+
+# 1. Posicionamento de Textura por Pinos (Texture Position Pin Tool)
+class TexturePinTransformRequest(BaseModel):
+    face_vertices: list[tuple[float, float, float]]
+    red_pin_origin: tuple[float, float] = Field(default=(0.0, 0.0))
+    green_pin_scale_rot: tuple[float, float] = Field(default=(1.0, 0.0))
+    blue_pin_shear: float = Field(default=0.0)
+    yellow_pin_distortion: tuple[float, float] | None = Field(default=None)
+
+class TexturePinTransformResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_texture_pin_mapping"
+    mapping: dict[str, Any]
+    status: str = "success"
+
+# 2. Colorir por Etiqueta (Color by Tag)
+class ColorByTagApplyRequest(BaseModel):
+    tags: list[dict[str, Any]] = Field(default_factory=list)
+    instances: list[dict[str, Any]] = Field(default_factory=list)
+    enabled: bool = Field(default=True)
+
+class ColorByTagApplyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_color_by_tag"
+    color_by_tag_result: dict[str, Any]
+    status: str = "success"
+
+# 3. Eliminar Não Utilizados (Purge Unused)
+class PurgeUnusedRequest(BaseModel):
+    component_definitions: list[dict[str, Any]] = Field(default_factory=list)
+    instances: list[dict[str, Any]] = Field(default_factory=list)
+    materials: list[dict[str, Any]] = Field(default_factory=list)
+    tags: list[dict[str, Any]] = Field(default_factory=list)
+
+class PurgeUnusedResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_purge_unused"
+    purge_result: dict[str, Any]
+    status: str = "success"
+
+# 4. Criar Componente com Comportamentos (Make Component Behaviors)
+class MakeComponentDefinitionRequest(BaseModel):
+    definition_name: str = Field(default="Novo Componente")
+    description: str = Field(default="")
+    glue_to: str = Field(default="NONE")
+    cut_opening: bool = Field(default=False)
+    always_face_camera: bool = Field(default=False)
+    shadows_face_sun: bool = Field(default=False)
+    local_origin: tuple[float, float, float] = Field(default=(0.0, 0.0, 0.0))
+    opening_loop_2d: list[tuple[float, float]] | None = Field(default=None)
+
+class MakeComponentDefinitionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_make_component"
+    definition: dict[str, Any]
+    status: str = "success"
+
+# 5. Seleção Avançada (Advanced Selection)
+class AdvancedSelectionRequest(BaseModel):
+    operation: str = Field(default="invert")  # 'invert', 'by_tag', 'by_material', 'connected'
+    all_entity_ids: list[str] = Field(default_factory=list)
+    currently_selected_ids: list[str] = Field(default_factory=list)
+    target_tag: str | None = Field(default=None)
+    target_material: str | None = Field(default=None)
+    instances: list[dict[str, Any]] = Field(default_factory=list)
+    seed_face_index: int = Field(default=0)
+    faces_vertices: list[list[tuple[float, float, float]]] = Field(default_factory=list)
+
+class AdvancedSelectionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_advanced_selection"
+    operation: str
+    selected_ids: list[str] | list[int]
+    total_selected: int
+    status: str = "success"
+
+# 6. Geometria Oculta e Objetos Ocultos (Hidden Geometry & Objects)
+class HiddenGeometryConfigRequest(BaseModel):
+    show_hidden_geometry: bool = Field(default=False)
+    show_hidden_objects: bool = Field(default=False)
+    instances: list[dict[str, Any]] | None = Field(default=None)
+    edges: list[dict[str, Any]] | None = Field(default=None)
+
+class HiddenGeometryConfigResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_hidden_geometry"
+    display_state: dict[str, Any]
+    status: str = "success"
+
+# 7. Estatísticas do Modelo (Model Info Statistics)
+class ModelStatisticsRequest(BaseModel):
+    edges_count: int = Field(default=0, ge=0)
+    faces_count: int = Field(default=0, ge=0)
+    component_definitions_count: int = Field(default=0, ge=0)
+    component_instances_count: int = Field(default=0, ge=0)
+    groups_count: int = Field(default=0, ge=0)
+    guide_lines_count: int = Field(default=0, ge=0)
+    guide_points_count: int = Field(default=0, ge=0)
+    section_planes_count: int = Field(default=0, ge=0)
+    dimensions_count: int = Field(default=0, ge=0)
+    texts_count: int = Field(default=0, ge=0)
+    materials_count: int = Field(default=0, ge=0)
+    tags_count: int = Field(default=1, ge=1)
+    scenes_count: int = Field(default=0, ge=0)
+
+class ModelStatisticsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_model_statistics"
+    statistics: dict[str, Any]
+    status: str = "success"

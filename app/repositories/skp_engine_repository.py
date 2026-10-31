@@ -3426,3 +3426,58 @@ class SkpEngineRepository:
             precision_digits=kwargs.get("precision_digits", 2)
         )
         return {"formatted_string": fmt, "length_meters": kwargs.get("length_meters", 0.0)}
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 3): MÉTODOS DE REPOSITÓRIO NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    def texture_pin_transform(self, **kwargs) -> dict:
+        from core.texture_pin_mapping_engine import TexturePinMappingEngine
+        return TexturePinMappingEngine.calculate_pin_transform(**kwargs)
+
+    def color_by_tag_apply(self, **kwargs) -> dict:
+        from core.color_by_tag_engine import ColorByTagEngine
+        return ColorByTagEngine.apply_color_by_tag(**kwargs)
+
+    def purge_unused_items(self, **kwargs) -> dict:
+        from core.purge_unused_engine import PurgeUnusedEngine
+        return PurgeUnusedEngine.purge_unused_items(**kwargs)
+
+    def make_component_definition(self, **kwargs) -> dict:
+        from core.make_component_behavior_engine import MakeComponentBehaviorEngine
+        return MakeComponentBehaviorEngine.create_component_definition(**kwargs)
+
+    def advanced_selection_execute(self, **kwargs) -> dict:
+        from core.advanced_selection_engine import AdvancedSelectionEngine
+        op = kwargs.get("operation", "invert").lower().strip()
+        if op == "invert":
+            res = AdvancedSelectionEngine.invert_selection(
+                all_entity_ids=kwargs.get("all_entity_ids", []),
+                currently_selected_ids=kwargs.get("currently_selected_ids", [])
+            )
+        elif op == "by_tag":
+            res = AdvancedSelectionEngine.select_by_tag(
+                target_tag=kwargs.get("target_tag", "Layer0"),
+                instances=kwargs.get("instances", [])
+            )
+        elif op == "by_material":
+            res = AdvancedSelectionEngine.select_by_material(
+                target_material=kwargs.get("target_material", "Padrão"),
+                instances=kwargs.get("instances", [])
+            )
+        elif op == "connected":
+            res = AdvancedSelectionEngine.select_connected_geometry(
+                seed_face_index=kwargs.get("seed_face_index", 0),
+                faces_vertices=kwargs.get("faces_vertices", [])
+            )
+        else:
+            res = []
+        return {"operation": op, "selected_ids": res, "total_selected": len(res)}
+
+    def hidden_geometry_configure(self, **kwargs) -> dict:
+        from core.hidden_geometry_engine import HiddenGeometryEngine
+        return HiddenGeometryEngine.configure_hidden_display(**kwargs)
+
+    def model_statistics_calculate(self, **kwargs) -> dict:
+        from core.model_statistics_engine import ModelStatisticsEngine
+        return ModelStatisticsEngine.calculate_statistics(**kwargs)

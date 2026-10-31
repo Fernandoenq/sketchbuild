@@ -2242,3 +2242,66 @@ Esta seção documenta a segunda rodada de subsistemas nativos do **SketchUp Des
 - **Parser de Entrada VCB:** Converte automaticamente entradas digitadas pelo usuário (ex: `"250cm"`, `"2.5m"`, `"10'"`) para a unidade canônica interna (metros).
 - **Módulo Core:** `core/model_units_precision_engine.py` (`ModelUnitsPrecisionEngine`).
 - **Endpoints FastAPI:** `POST /api/v1/scene/units/configure` e `POST /api/v1/scene/units/format`.
+
+
+---
+
+## 175. Ferramentas Nativas Oficiais do SketchUp - Parte 3 (Zero DLL / Pure Python)
+
+Esta seção documenta a terceira rodada de ferramentas centrais do **SketchUp Desktop oficial** (Trimble Navigation / C++), implementadas no padrão estrito Zero DLL / Pure Python:
+
+### 175.1 Posição e Mapeamento de Textura por 4 Pinos (TexturePinMappingEngine)
+- **Sistema dos 4 Pinos Coloridos do SketchUp:**
+  - *Pino Vermelho (Origem):* Translação analítica do mapa UV sobre a face.
+  - *Pino Verde (Escala e Rotação):* Rotação em graus e redimensionamento proporcional.
+  - *Pino Azul (Cisalhamento):* Distorção angular oblíqua ao longo do eixo secundário.
+  - *Pino Amarelo (Distorção de Perspectiva):* Mapeamento trapezoidal livre em 4 cantos para correção de fotos inclinadas.
+- **Módulo Core:** `core/texture_pin_mapping_engine.py` (`TexturePinMappingEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/textures/pin-transform`.
+
+### 175.2 Modo de Visualização Colorir por Etiqueta (ColorByTagEngine)
+- **Modo Oficial 'Color by Tag / Color by Layer':** Substitui dinamicamente todas as texturas e materiais visuais pela cor sólida associada à sua Etiqueta (Tag), permitindo auditoria visual imediata de disciplinas BIM (Estruturas, Alvenarias, Esquadrias, MEP).
+- **Mapeamento Preservado:** Permite alternar o modo on/off instantaneamente sem descartar as texturas PBR originais.
+- **Módulo Core:** `core/color_by_tag_engine.py` (`ColorByTagEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/styles/color-by-tag`.
+
+### 175.3 Eliminar Não Utilizados (PurgeUnusedEngine)
+- **Limpeza Oficial de Entidades Órfãs:**
+  - Definições de componentes com 0 instâncias ativas na cena.
+  - Materiais e texturas na biblioteca não aplicados a nenhuma geometria.
+  - Etiquetas/Tags vazias sem entidades atribuídas (preservando obrigatoriamente a `Layer0`).
+- **Relatório de Otimização:** Retorna a contagem exata e lista nominal de cada elemento expurgado para redução do tamanho do `.SKP`.
+- **Módulo Core:** `core/purge_unused_engine.py` (`PurgeUnusedEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/cleanup/purge-unused`.
+
+### 175.4 Criar Componente com Comportamentos (MakeComponentBehaviorEngine)
+- **Comportamentos Canônicos do Atalho 'G':**
+  - *Glue to (Colar em):* Regras de fixação em faces horizontais (pisos/tetos), verticais (paredes) ou inclinadas (coberturas).
+  - *Cut Opening (Cortar Abertura):* Recorta automaticamente uma abertura vazada na face hospedeira com base no loop 2D da peça.
+  - *Always Face Camera (Face-Me):* Rotaciona componentes de vegetação/pessoas para encarar a câmera continuamente.
+  - *Shadows Face Sun:* Projeta sombras orientadas pelo vetor solar em componentes Face-Me.
+- **Módulo Core:** `core/make_component_behavior_engine.py` (`MakeComponentBehaviorEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/components/make-component`.
+
+### 175.5 Modos de Seleção Avançada (AdvancedSelectionEngine)
+- **Operações Oficiais de Seleção:**
+  - *Inverter Seleção (Ctrl+Shift+I):* Inverte as entidades ativas selecionadas.
+  - *Selecionar por Tag:* Seleciona todas as instâncias da mesma camada.
+  - *Selecionar por Material:* Seleciona todas as instâncias com o mesmo acabamento.
+  - *Triplo Clique (Connected Geometry):* Algoritmo de busca em largura (BFS) que seleciona toda a malha topologicamente conectada a partir de uma face semente.
+- **Módulo Core:** `core/advanced_selection_engine.py` (`AdvancedSelectionEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/selection/advanced`.
+
+### 175.6 Geometria Oculta e Objetos Ocultos (HiddenGeometryEngine)
+- **Controle Duplo Oficial do SketchUp 2020+:**
+  - *Geometria Oculta:* Revela arestas suavizadas/ocultas como linhas tracejadas (`LineDashedMaterial`).
+  - *Objetos Ocultos:* Revela grupos e componentes ocultos como malha fantasma/wireframe translúcido (35% opacidade).
+- **Módulo Core:** `core/hidden_geometry_engine.py` (`HiddenGeometryEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/styles/hidden-geometry`.
+
+### 175.7 Estatísticas e Censo de Entidades do Modelo (ModelStatisticsEngine)
+- **Painel Oficial Informações do Modelo -> Estatísticas:**
+  - Censo completo de Arestas, Faces, Definições, Instâncias, Grupos, Guias, Planos de Seção, Cotas, Textos, Materiais, Tags e Cenas.
+  - Perfil de Complexidade e Desempenho no Viewport: Classificação em LEVE (< 25k faces), MÉDIO (25k-150k) ou PESADO (> 150k) com taxa estimada de FPS.
+- **Módulo Core:** `core/model_statistics_engine.py` (`ModelStatisticsEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/model/statistics`.
