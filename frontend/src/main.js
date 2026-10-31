@@ -94,6 +94,12 @@ import {
   createPresentationScene,
   generateSceneAnimationTimeline,
   calculateShadowAndSunInfo,
+  createScreenText,
+  createLeaderText,
+  createDimensionLinear,
+  createGuideLineInfinite,
+  configureAlphaMaterial,
+  resolveNestedHierarchyNode,
   ApiError,
 } from "./api.js";
 import {
@@ -1465,7 +1471,7 @@ function makeTextSprite(text) {
  * cena -- diferente da Fita metrica (so leitura/status), esta fica
  * visivel no viewport ate "Editar > Excluir" ser usado nela ou o
  * modelo ser reaberto. */
-function handleDimensionClick(worldPoint) {
+async function handleDimensionClick(worldPoint) {
   if (!dimensionFirstPoint) {
     dimensionFirstPoint = worldPoint.clone();
     setStatus("Modo Dimensoes: clique no segundo ponto da cota.");
@@ -1475,13 +1481,47 @@ function handleDimensionClick(worldPoint) {
   const p2 = worldPoint.clone();
   const distance = p1.distanceTo(p2);
 
-  const lineGeometry = new THREE.BufferGeometry().setFromPoints([p1, p2]);
-  const line = new THREE.Line(lineGeometry, new THREE.LineBasicMaterial({ color: 0x3c7fb1, depthTest: false }));
-  const label = makeTextSprite(`${distance.toFixed(3)} m`);
-  label.position.copy(p1.clone().lerp(p2, 0.5));
-
   const dimension = new THREE.Group();
-  dimension.add(line, label);
+  try {
+    const dimData = await createDimensionLinear([p1.x, p1.y, p1.z], [p2.x, p2.y, p2.z], 0.2);
+    const d = dimData.dimension_data;
+    
+    // Linha de cota principal
+    const dimLineGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(d.dimension_line[0][0], d.dimension_line[0][1], d.dimension_line[0][2]),
+      new THREE.Vector3(d.dimension_line[1][0], d.dimension_line[1][1], d.dimension_line[1][2]),
+    ]);
+    const dimLine = new THREE.Line(dimLineGeo, new THREE.LineBasicMaterial({ color: 0x2c3e50, depthTest: false }));
+    dimension.add(dimLine);
+
+    // Linhas de extensao (witness lines)
+    for (const w of d.witness_lines) {
+      const wGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(w[0][0], w[0][1], w[0][2]),
+        new THREE.Vector3(w[1][0], w[1][1], w[1][2]),
+      ]);
+      dimension.add(new THREE.Line(wGeo, new THREE.LineBasicMaterial({ color: 0x7f8c8d, depthTest: false })));
+    }
+
+    // Tiques arquitetonicos
+    for (const t of d.ticks) {
+      const tGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(t[0][0], t[0][1], t[0][2]),
+        new THREE.Vector3(t[1][0], t[1][1], t[1][2]),
+      ]);
+      dimension.add(new THREE.Line(tGeo, new THREE.LineBasicMaterial({ color: 0x2c3e50, linewidth: 2, depthTest: false })));
+    }
+
+    const label = makeTextSprite(d.text);
+    label.position.set(d.text_position[0], d.text_position[1], d.text_position[2]);
+    dimension.add(label);
+  } catch (err) {
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+    const line = new THREE.Line(lineGeometry, new THREE.LineBasicMaterial({ color: 0x3c7fb1, depthTest: false }));
+    const label = makeTextSprite(`${distance.toFixed(3)} m`);
+    label.position.copy(p1.clone().lerp(p2, 0.5));
+    dimension.add(line, label);
+  }
   dimensionsGroup.add(dimension);
 
   setStatus(`Cota criada: ${distance.toFixed(3)} m. Clique no proximo primeiro ponto.`);
@@ -1493,16 +1533,38 @@ function handleDimensionClick(worldPoint) {
  * campo do painel, no ponto clicado. Diferente de "Texto 3D" (extrusao
  * de fonte em malha), este e um rotulo billboard, mesma abordagem do
  * SketchUp real pra "Texto" (nao o "Texto 3D", que e outro item). */
-function handleTextClick(worldPoint) {
+async function handleTextClick(worldPoint) {
   const content = textContentInputEl.value.trim();
   if (!content) {
     setStatus("Escreva o texto do rotulo antes de clicar no viewport.", true);
     return;
   }
-  const label = makeTextSprite(content);
-  label.position.copy(worldPoint);
-  dimensionsGroup.add(label);
-  setStatus(`Rotulo "${content}" criado no viewport.`);
+  try {
+    const res = await createLeaderText(content, [worldPoint.x, worldPoint.y, worldPoint.z], [0.3, 0.3, 0.3]);
+    const d = res.text_data;
+    const textGroup = new THREE.Group();
+
+    // Linha de chamada (Leader Line)
+    const leaderGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(d.anchor_point[0], d.anchor_point[1], d.anchor_point[2]),
+      new THREE.Vector3(d.text_position_3d[0], d.text_position_3d[1], d.text_position_3d[2]),
+    ]);
+    const leaderLine = new THREE.Line(leaderGeo, new THREE.LineBasicMaterial({ color: 0x333333, depthTest: false }));
+    textGroup.add(leaderLine);
+
+    // Rotulo
+    const label = makeTextSprite(content);
+    label.position.set(d.text_position_3d[0], d.text_position_3d[1], d.text_position_3d[2]);
+    textGroup.add(label);
+
+    dimensionsGroup.add(textGroup);
+    setStatus(`Rótulo com linha de chamada '${content}' criado com sucesso.`);
+  } catch (err) {
+    const label = makeTextSprite(content);
+    label.position.copy(worldPoint);
+    dimensionsGroup.add(label);
+    setStatus(`Rotulo "${content}" criado no viewport.`);
+  }
   setToolMode("select");
 }
 

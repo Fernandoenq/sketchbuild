@@ -1051,3 +1051,144 @@ class SceneService:
             use_sun_for_shading,
             edges_cast_shadows
         )
+
+
+    async def create_screen_text(
+        self,
+        text: str,
+        screen_x: float = 20.0,
+        screen_y: float = 20.0,
+        font_name: str = "Arial",
+        font_size_pt: int = 12,
+        color_hex: str = "#000000",
+        bold: bool = False,
+        italic: bool = False
+    ) -> dict:
+        """Cria anotação de texto 2D fixada em tela (Frente 71)."""
+        return await run_in_threadpool(
+            self._repository.create_screen_text,
+            text,
+            screen_x,
+            screen_y,
+            font_name,
+            font_size_pt,
+            color_hex,
+            bold,
+            italic
+        )
+
+    async def create_leader_text(
+        self,
+        text: str,
+        anchor_point: list,
+        offset_vector: list = None,
+        arrow_type: str = "ARROW",
+        font_name: str = "Arial",
+        font_size_pt: int = 10,
+        color_hex: str = "#000000"
+    ) -> dict:
+        """Cria rótulo anotativo com linha de chamada 3D (Frente 71)."""
+        return await run_in_threadpool(
+            self._repository.create_leader_text,
+            text,
+            anchor_point,
+            offset_vector,
+            arrow_type,
+            font_name,
+            font_size_pt,
+            color_hex
+        )
+
+    async def create_dimension_linear(
+        self,
+        start_pt: list,
+        end_pt: list,
+        offset_distance: float = 0.2,
+        plane_normal: list = None,
+        arrow_type: str = "SLASH",
+        unit: str = "m",
+        precision: int = 2,
+        custom_text: str = None
+    ) -> dict:
+        """Calcula cota linear com linhas de extensão e tiques arquitetônicos (Frente 72)."""
+        return await run_in_threadpool(
+            self._repository.create_dimension_linear,
+            start_pt,
+            end_pt,
+            offset_distance,
+            plane_normal,
+            arrow_type,
+            unit,
+            precision,
+            custom_text
+        )
+
+    async def create_guide_line_infinite(
+        self,
+        point: list,
+        direction: list = None,
+        end_point: list = None,
+        is_infinite: bool = True,
+        extent_m: float = 500.0
+    ) -> dict:
+        """Cria linha de guia infinita ou finita SUGuideLineRef (Frente 73)."""
+        return await run_in_threadpool(
+            self._repository.create_guide_line_infinite,
+            point,
+            direction,
+            end_point,
+            is_infinite,
+            extent_m
+        )
+
+    async def create_guide_point(self, point: list) -> dict:
+        """Cria ponto de construção SUGuidePointRef (Frente 73)."""
+        return await run_in_threadpool(self._repository.create_guide_point, point)
+
+    async def intersect_guide_lines(self, line1: dict, line2: dict, tolerance: float = 0.001) -> dict:
+        """Calcula interseção 3D analítica entre duas linhas de guia (Frente 73)."""
+        return await run_in_threadpool(self._repository.intersect_guide_lines, line1, line2, tolerance)
+
+    async def configure_alpha_material(
+        self,
+        name: str,
+        texture_path: str,
+        alpha_mode: str = "MASK",
+        alpha_threshold: float = 0.5,
+        double_sided: bool = True
+    ) -> dict:
+        """Configura material com canal alfa e recorte de profundidade (Frente 74)."""
+        return await run_in_threadpool(
+            self._repository.configure_alpha_material,
+            name,
+            texture_path,
+            alpha_mode,
+            alpha_threshold,
+            double_sided
+        )
+
+    async def calculate_face_me_matrix(
+        self,
+        instance_position: list,
+        camera_position: list,
+        axial_only: bool = True
+    ) -> dict:
+        """Calcula matriz de rotação Face-Me para componente de vegetação/figura humana (Frente 74)."""
+        return await run_in_threadpool(
+            self._repository.calculate_face_me_matrix,
+            instance_position,
+            camera_position,
+            axial_only
+        )
+
+    async def resolve_nested_hierarchy_node(self, node_id: str, path_to_node: list) -> dict:
+        """Resolve matriz mundial acumulada e decomposição de nó aninhado (Frente 75)."""
+        return await run_in_threadpool(self._repository.resolve_nested_hierarchy_node, node_id, path_to_node)
+
+    async def convert_world_transform_to_local(self, desired_world_matrix: list, parent_world_matrix: list) -> dict:
+        """Converte matriz mundial de edição para matriz local de nó aninhado (Frente 75)."""
+        return await run_in_threadpool(
+            self._repository.convert_world_transform_to_local,
+            desired_world_matrix,
+            parent_world_matrix
+        )

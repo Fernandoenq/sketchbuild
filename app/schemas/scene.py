@@ -2049,3 +2049,151 @@ class ShadowInfoResponse(BaseModel):
     entity_type: str = "SUShadowInfo"
     shadow_info: dict[str, Any]
     status: str
+
+
+# ==============================================================================
+# FRENTES 71 A 75 - ENGENHARIA REVERSA PURA DO SKETCHUP (TEXTOS, COTAS, GUIAS, ALFA E HIERARQUIA)
+# ==============================================================================
+
+class ScreenTextRequest(BaseModel):
+    """Entrada para criação de texto 2D fixado na tela (HUD) SUTextRef."""
+
+    text: str = Field(description="Conteúdo do texto")
+    screen_x: float = Field(default=20.0, description="Posição horizontal em pixels")
+    screen_y: float = Field(default=20.0, description="Posição vertical em pixels")
+    font_name: str = Field(default="Arial")
+    font_size_pt: int = Field(default=12, ge=6, le=72)
+    color_hex: str = Field(default="#000000")
+    bold: bool = Field(default=False)
+    italic: bool = Field(default=False)
+
+
+class LeaderTextRequest(BaseModel):
+    """Entrada para criação de texto anotativo com linha de chamada (líder) SUTextRef."""
+
+    text: str = Field(description="Conteúdo da anotação")
+    anchor_point: list[float] = Field(description="Ponto 3D ancorado no modelo [x, y, z]")
+    offset_vector: list[float] = Field(default=[0.5, 0.5, 0.5], description="Vetor 3D de deslocamento do rótulo")
+    arrow_type: str = Field(default="ARROW", description="ARROW, DOT, NONE, SLASH")
+    font_name: str = Field(default="Arial")
+    font_size_pt: int = Field(default=10, ge=6, le=72)
+    color_hex: str = Field(default="#000000")
+
+
+class TextResponse(BaseModel):
+    """Resposta com dados de texto 2D ou rótulo de líder SUTextRef."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SUTextRef"
+    text_data: dict[str, Any]
+    status: str
+
+
+class DimensionLinearRequest(BaseModel):
+    """Entrada para cálculo de cota linear SUDimensionLinearRef."""
+
+    start_pt: list[float] = Field(description="Ponto inicial 3D cotado [x, y, z]")
+    end_pt: list[float] = Field(description="Ponto final 3D cotado [x, y, z]")
+    offset_distance: float = Field(default=0.2, description="Afastamento perpendicular da linha de cota em metros")
+    plane_normal: list[float] | None = Field(default=None, description="Normal do plano de apoio")
+    arrow_type: str = Field(default="SLASH", description="SLASH (tique 45°), ARROW, DOT")
+    unit: str = Field(default="m", description="m, cm, mm, in")
+    precision: int = Field(default=2, ge=0, le=4)
+    custom_text: str | None = Field(default=None, description="Texto customizado para sobrepor a distância medida")
+
+
+class DimensionLinearResponse(BaseModel):
+    """Resposta com dados gráficos da cota SUDimensionLinearRef."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SUDimensionLinearRef"
+    dimension_data: dict[str, Any]
+    status: str
+
+
+class GuideLineInfiniteRequest(BaseModel):
+    """Entrada para linha de guia infinita ou finita SUGuideLineRef."""
+
+    point: list[float] = Field(description="Ponto de passagem da guia [x, y, z]")
+    direction: list[float] | None = Field(default=None, description="Vetor diretor unitário [dx, dy, dz]")
+    end_point: list[float] | None = Field(default=None, description="Ponto final se guia for finita")
+    is_infinite: bool = Field(default=True, description="Se a guia se estende ao infinito")
+    extent_m: float = Field(default=500.0, ge=1.0, le=10000.0)
+
+
+class GuidePointCreateRequest(BaseModel):
+    """Entrada para ponto de construção auxiliar SUGuidePointRef."""
+
+    point: list[float] = Field(description="Coordenadas 3D do ponto [x, y, z]")
+
+
+class GuideLineIntersectRequest(BaseModel):
+    """Entrada para cálculo de interseção analítica entre duas linhas de guia."""
+
+    line1: dict[str, Any] = Field(description="Dados da primeira linha SUGuideLineRef")
+    line2: dict[str, Any] = Field(description="Dados da segunda linha SUGuideLineRef")
+    tolerance: float = Field(default=0.001, ge=1e-6, le=0.1)
+
+
+class InfiniteGuideResponse(BaseModel):
+    """Resposta de operações com linhas e pontos de guia."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SUGuideEntity"
+    guide_data: dict[str, Any]
+    status: str
+
+
+class AlphaMaterialRequest(BaseModel):
+    """Entrada para configuração de material com transparência alfa (PNG cutout)."""
+
+    name: str = Field(description="Nome do material")
+    texture_path: str = Field(description="Caminho ou URL do arquivo PNG com canal alfa")
+    alpha_mode: str = Field(default="MASK", description="'MASK' para alphaTest ou 'BLEND' para transparência suave")
+    alpha_threshold: float = Field(default=0.5, ge=0.01, le=0.99)
+    double_sided: bool = Field(default=True)
+
+
+class FaceMeRequest(BaseModel):
+    """Entrada para cálculo de matriz billboard de rotação Face-Me."""
+
+    instance_position: list[float] = Field(description="Posição 3D da instância [x, y, z]")
+    camera_position: list[float] = Field(description="Posição 3D da câmera [x, y, z]")
+    axial_only: bool = Field(default=True, description="True para girar apenas em torno de Z")
+
+
+class AlphaTextureResponse(BaseModel):
+    """Resposta com shader alfa ou matriz de rotação Face-Me."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "AlphaTextureResult"
+    result_data: dict[str, Any]
+    status: str
+
+
+class NestedHierarchyResolveRequest(BaseModel):
+    """Entrada para resolução de nó aninhado a partir de caminho hierárquico."""
+
+    node_id: str = Field(description="ID do nó folha a inspecionar")
+    path_to_node: list[dict[str, Any]] = Field(description="Lista de nós com matrizes locais da raiz até o nó")
+
+
+class WorldToLocalRequest(BaseModel):
+    """Entrada para converter transformação desejada no espaço mundial em matriz local."""
+
+    desired_world_matrix: list[float] = Field(description="Matriz 4x4 column-major desejada no mundo")
+    parent_world_matrix: list[float] = Field(description="Matriz 4x4 column-major acumulada dos pais")
+
+
+class NestedHierarchyResponse(BaseModel):
+    """Resposta com matrizes mundiais acumuladas e decomposição afim."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "NestedHierarchyResult"
+    hierarchy_data: dict[str, Any]
+    status: str
