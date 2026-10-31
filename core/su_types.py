@@ -147,6 +147,9 @@ SUAxesRef = make_ref_struct("SUAxesRef")
 # projeção (FOV devolve SU_ERROR_NO_DATA=9 se a câmera não for perspectiva;
 # aspect ratio devolve NO_DATA se for "automático", caso comum).
 SUCameraRef = make_ref_struct("SUCameraRef")
+SUSectionPlaneRef = make_ref_struct("SUSectionPlaneRef")
+SUGuideLineRef = make_ref_struct("SUGuideLineRef")
+SUGuidePointRef = make_ref_struct("SUGuidePointRef")
 
 
 class SUColor(ctypes.Structure):
@@ -170,6 +173,12 @@ class SUVector3D(ctypes.Structure):
     """model/geometry.h -- vetor 3D (ex.: normal de vertice)."""
 
     _fields_ = [("x", ctypes.c_double), ("y", ctypes.c_double), ("z", ctypes.c_double)]
+
+
+class SUPlane3D(ctypes.Structure):
+    """model/geometry.h -- plano 3D (equação analítica a*x + b*y + c*z + d = 0)."""
+
+    _fields_ = [("a", ctypes.c_double), ("b", ctypes.c_double), ("c", ctypes.c_double), ("d", ctypes.c_double)]
 
 
 class SUTransformation(ctypes.Structure):

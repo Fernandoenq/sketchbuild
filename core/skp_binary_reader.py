@@ -1463,3 +1463,124 @@ class SkpBinaryReader:
 
         return dims
 
+    @classmethod
+    def extract_section_planes(cls, file_path_or_bytes: Any) -> List[Dict[str, Any]]:
+        """Extrai todos os Planos e Cortes de Seção (SectionPlane) do modelo (Frente 17 - Zero DLL)."""
+        if isinstance(file_path_or_bytes, (str, os.PathLike)):
+            with open(file_path_or_bytes, "rb") as f:
+                data = f.read()
+        else:
+            data = file_path_or_bytes
+
+        mb = cls._extract_model_dat(data)
+        if not mb:
+            return []
+
+        section_planes = []
+        p = 0
+        while True:
+            pos = mb.find(b"\x5c\x44", p)
+            if pos == -1:
+                break
+
+            tlen = struct.unpack_from("<I", mb, pos + 2)[0]
+            if 40 <= tlen <= 600:
+                payload = mb[pos + 6 : pos + 6 + tlen]
+                # Subtag 0x445d: Equação do Plano (4 doubles IEEE-754)
+                p_5d = payload.find(b"\x5d\x44")
+                a = b = c = 0.0
+                d_in = 0.0
+                if p_5d != -1:
+                    a, b, c, d_in = struct.unpack_from("<4d", payload, p_5d + 6)
+
+                # Subtag 0x445e: Nome do corte
+                name = "Corte"
+                p_5e = payload.find(b"\x5e\x44")
+                if p_5e != -1:
+                    n_len = struct.unpack_from("<I", payload, p_5e + 2)[0]
+                    name_bytes = payload[p_5e + 6 : p_5e + 6 + n_len]
+                    name = name_bytes.decode("utf-8", "ignore").strip("\x00")
+
+                # Subtag 0x445f: Símbolo do corte
+                symbol = "A1"
+                p_5f = payload.find(b"\x5f\x44")
+                if p_5f != -1:
+                    s_len = struct.unpack_from("<I", payload, p_5f + 2)[0]
+                    symbol_bytes = payload[p_5f + 6 : p_5f + 6 + s_len]
+                    symbol = symbol_bytes.decode("utf-8", "ignore").strip("\x00")
+
+                section_planes.append({
+                    "type": "SectionPlane",
+                    "plane": [round(a, 6), round(b, 6), round(c, 6), round(d_in * 0.0254, 4)],
+                    "plane_inches": [round(a, 6), round(b, 6), round(c, 6), round(d_in, 4)],
+                    "name": name,
+                    "symbol": symbol,
+                })
+            p = pos + 1
+
+        return section_planes
+
+    @classmethod
+    def extract_guides(cls, file_path_or_bytes: Any) -> Dict[str, List[Dict[str, Any]]]:
+        """Extrai Linhas de Guia e Pontos de Construção (Tape Measure) do modelo (Frente 18 - Zero DLL)."""
+        if isinstance(file_path_or_bytes, (str, os.PathLike)):
+            with open(file_path_or_bytes, "rb") as f:
+                data = f.read()
+        else:
+            data = file_path_or_bytes
+
+        mb = cls._extract_model_dat(data)
+        if not mb:
+            return {"guide_lines": [], "guide_points": []}
+
+        guide_lines = []
+        guide_points = []
+
+        # 1. Varredura de GuideLines (Tag 0x4269)
+        p = 0
+        while True:
+            pos = mb.find(b"\x69\x42", p)
+            if pos == -1:
+                break
+            tlen = struct.unpack_from("<I", mb, pos + 2)[0]
+            if 30 <= tlen <= 400:
+                payload = mb[pos + 6 : pos + 6 + tlen]
+                p_6a = payload.find(b"\x6a\x42")
+                p_6b = payload.find(b"\x6b\x42")
+                if p_6a != -1:
+                    d8 = struct.unpack_from("<8d", payload, p_6a + 6)
+                    start_m = [round(c * 0.0254, 4) for c in d8[0:3]]
+                    end_m = [round(c * 0.0254, 4) for c in d8[3:6]]
+                    is_infinite = bool(struct.unpack_from("<H", payload, p_6b + 6)[0]) if p_6b != -1 else False
+                    guide_lines.append({
+                        "type": "GuideLine",
+                        "start": start_m,
+                        "end": end_m,
+                        "is_infinite": is_infinite,
+                    })
+            p = pos + 1
+
+        # 2. Varredura de GuidePoints (Tag 0x426c)
+        p = 0
+        while True:
+            pos = mb.find(b"\x6c\x42", p)
+            if pos == -1:
+                break
+            tlen = struct.unpack_from("<I", mb, pos + 2)[0]
+            if 20 <= tlen <= 300:
+                payload = mb[pos + 6 : pos + 6 + tlen]
+                p_6d = payload.find(b"\x6d\x42")
+                if p_6d != -1:
+                    d3 = struct.unpack_from("<3d", payload, p_6d + 6)
+                    pos_m = [round(c * 0.0254, 4) for c in d3]
+                    guide_points.append({
+                        "type": "GuidePoint",
+                        "position": pos_m,
+                    })
+            p = pos + 1
+
+        return {
+            "guide_lines": guide_lines,
+            "guide_points": guide_points,
+        }
+

@@ -62,6 +62,9 @@ class SkpBinarySession:
         self.modified_materials: Dict[str, Dict[str, Any]] = {}
         self.is_dirty: bool = False
         self.custom_zip_files: Dict[str, bytes] = {}
+        self.section_planes: List[Dict[str, Any]] = []
+        self.guide_lines: List[Dict[str, Any]] = []
+        self.guide_points: List[Dict[str, Any]] = []
 
     def close(self) -> None:
         self.raw_zip_data = b""
@@ -73,6 +76,9 @@ class SkpBinarySession:
         self.camera_offset = None
         self.active_scene_offset = None
         self.modified_materials.clear()
+        self.section_planes.clear()
+        self.guide_lines.clear()
+        self.guide_points.clear()
         self.is_dirty = False
 
 
@@ -2201,3 +2207,188 @@ class SkpBinaryWriter:
         res["face_count"] = n_pts + 2
         res["edge_count"] = 3 * n_pts
         return res
+
+    @classmethod
+    def add_section_plane(
+        cls,
+        plane_abcd: Tuple[float, float, float, float],
+        name: str = "Corte A-A",
+        symbol: str = "A1",
+    ) -> Dict[str, Any]:
+        """Injeta um Plano de Corte de Seção (SectionPlane - Frente 17 - Zero DLL)."""
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        mb = session.model_bytes
+
+        a, b, c, d_meters = plane_abcd
+        d_inches = (float(d_meters) * 100.0) / 2.54
+
+        # Codifica tags TLV de SectionPlane:
+        # Tag 0x445d: Equação analítica 4 doubles (32 bytes)
+        payload_5d = struct.pack("<4d", float(a), float(b), float(c), float(d_inches))
+        tag_5d = b"\x5d\x44" + struct.pack("<I", 32) + payload_5d
+
+        # Tag 0x445e: Nome (UTF-8)
+        name_bytes = name.encode("utf-8")
+        tag_5e = b"\x5e\x44" + struct.pack("<I", len(name_bytes)) + name_bytes
+
+        # Tag 0x445f: Símbolo (UTF-8)
+        symbol_bytes = symbol.encode("utf-8")
+        tag_5f = b"\x5f\x44" + struct.pack("<I", len(symbol_bytes)) + symbol_bytes
+
+        # Tag 0x445c: Container do SectionPlane
+        # Header de entidade (33 bytes) + tag_5d + tag_5e + tag_5f
+        entity_hdr = (
+            b"\xd0\x07\x14\x00\x00\x00\xdc\x05\x07\x00\x00\x00"
+            b"\xde\x05\x01\x00\x00\x00\x12\xd3\x07\x01\x00\x00\x00"
+            b"\x06"
+        )
+        sec_payload = entity_hdr + tag_5d + tag_5e + tag_5f
+        tag_5c = b"\x5c\x44" + struct.pack("<I", len(sec_payload)) + sec_payload
+
+        # Injeta logo antes do final do model.dat
+        mb.extend(tag_5c)
+        session.is_dirty = True
+
+        res = {
+            "entity_type": "SectionPlane",
+            "plane": [float(a), float(b), float(c), float(d_meters)],
+            "plane_inches": [float(a), float(b), float(c), float(d_inches)],
+            "name": name,
+            "symbol": symbol,
+        }
+        session.section_planes.append(res)
+        return res
+
+    @classmethod
+    def add_guide_line(
+        cls,
+        start_xyz_m: Tuple[float, float, float],
+        end_xyz_m: Tuple[float, float, float],
+        is_infinite: bool = False,
+    ) -> Dict[str, Any]:
+        """Injeta uma Linha de Guia / Tape Measure (Frente 18 - Zero DLL)."""
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        mb = session.model_bytes
+
+        # Converte para polegadas
+        p1_in = [(float(c) * 100.0) / 2.54 for c in start_xyz_m]
+        p2_in = [(float(c) * 100.0) / 2.54 for c in end_xyz_m]
+
+        # Tag 0x426a: 64 bytes (8 doubles = P1 + P2 + vetor aux)
+        dx = p2_in[0] - p1_in[0]
+        dy = p2_in[1] - p1_in[1]
+        dz = p2_in[2] - p1_in[2]
+        d8 = (p1_in[0], p1_in[1], p1_in[2], p2_in[0], p2_in[1], p2_in[2], dx, dy)
+        payload_6a = struct.pack("<8d", *d8)
+        tag_6a = b"\x6a\x42" + struct.pack("<I", 64) + payload_6a
+
+        # Tag 0x426b: is_infinite (2 bytes)
+        tag_6b = b"\x6b\x42" + struct.pack("<I", 2) + struct.pack("<H", 1 if is_infinite else 0)
+
+        # Tag 0x4268: EntityHeader (26 bytes)
+        tag_68 = (
+            b"\x68\x42\x1a\x00\x00\x00"
+            b"\xd0\x07\x14\x00\x00\x00\xdc\x05\x07\x00\x00\x00"
+            b"\xde\x05\x01\x00\x00\x00\x14\xd3\x07\x01\x00\x00\x00"
+            b"\x06"
+        )
+
+        line_payload = tag_68 + tag_6a + tag_6b
+        tag_69 = b"\x69\x42" + struct.pack("<I", len(line_payload)) + line_payload
+
+        mb.extend(tag_69)
+        session.is_dirty = True
+
+        res = {
+            "entity_type": "GuideLine",
+            "start": list(start_xyz_m),
+            "end": list(end_xyz_m),
+            "is_infinite": is_infinite,
+        }
+        session.guide_lines.append(res)
+        return res
+
+    @classmethod
+    def add_guide_point(
+        cls,
+        point_xyz_m: Tuple[float, float, float],
+    ) -> Dict[str, Any]:
+        """Injeta um Ponto de Construção (Frente 18 - Zero DLL)."""
+        if cls._ACTIVE_SESSION is None:
+            raise SceneSessionError("nenhuma sessão binária ativa")
+
+        session = cls._ACTIVE_SESSION
+        mb = session.model_bytes
+
+        # Converte para polegadas
+        p_in = [(float(c) * 100.0) / 2.54 for c in point_xyz_m]
+
+        # Tag 0x426d: 24 bytes (3 doubles)
+        payload_6d = struct.pack("<3d", *p_in)
+        tag_6d = b"\x6d\x42" + struct.pack("<I", 24) + payload_6d
+
+        # Tag 0x4268: EntityHeader (26 bytes)
+        tag_68 = (
+            b"\x68\x42\x1a\x00\x00\x00"
+            b"\xd0\x07\x14\x00\x00\x00\xdc\x05\x07\x00\x00\x00"
+            b"\xde\x05\x01\x00\x00\x00\x14\xd3\x07\x01\x00\x00\x00"
+            b"\x06"
+        )
+        tag_6e = b"\x6e\x42\x18\x00\x00\x00" + struct.pack("<3d", 0.0, 0.0, 0.0)
+        tag_6f = b"\x6f\x42\x01\x00\x00\x00\x00"
+
+        pt_payload = tag_68 + tag_6d + tag_6e + tag_6f
+        tag_6c = b"\x6c\x42" + struct.pack("<I", len(pt_payload)) + pt_payload
+
+        mb.extend(tag_6c)
+        session.is_dirty = True
+
+        res = {
+            "entity_type": "GuidePoint",
+            "position": list(point_xyz_m),
+        }
+        session.guide_points.append(res)
+        return res
+
+    @classmethod
+    def add_offset_face(
+        cls,
+        points_xyz_m: List[Tuple[float, float, float]],
+        distance_m: float,
+        inside: bool = True,
+        create_frame: bool = False,
+    ) -> Dict[str, Any]:
+        """Cria loop ou moldura deslocada por equidistância (Ferramenta Offset 'F' - Frente 30 - Zero DLL)."""
+        from core.offset_calculator import OffsetCalculator
+
+        offset_pts = OffsetCalculator.offset_polygon_3d(points_xyz_m, distance_m, inside=inside)
+
+        if not create_frame:
+            # Apenas a face interna/externa deslocada
+            res = cls.add_polygon_face(offset_pts)
+            res["entity_type"] = "OffsetFace"
+            res["distance_m"] = distance_m
+            res["inside"] = inside
+            return res
+
+        # Gera moldura com anel de faces conectando loop externo ao interno
+        frame_faces = OffsetCalculator.generate_frame_faces(points_xyz_m, offset_pts)
+        created_faces = []
+        for f in frame_faces:
+            res_face = cls.add_polygon_face(f)
+            created_faces.append(res_face)
+
+        return {
+            "entity_type": "OffsetFrame",
+            "distance_m": distance_m,
+            "inside": inside,
+            "outer_vertices": points_xyz_m,
+            "inner_vertices": offset_pts,
+            "frame_faces_count": len(created_faces),
+        }
