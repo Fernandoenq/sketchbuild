@@ -2555,3 +2555,136 @@ class SkpEngineRepository:
             "geo_data": res,
             "status": res["status"]
         }
+
+
+    def triangulate_face_with_holes(self, outer_loop_3d: list, inner_loops_3d: list = None) -> dict:
+        """Triangula face plana com furos internos SUPolyMeshRef (Frente 81)."""
+        from core.polymesh_loop_engine import PolyMeshLoopEngine
+        outer = [tuple(p) for p in outer_loop_3d]
+        holes = [[tuple(p) for p in h] for h in inner_loops_3d] if inner_loops_3d else None
+        res = PolyMeshLoopEngine.triangulate_face_with_holes(outer, holes)
+        return {
+            "entity_type": "SUPolyMeshRef",
+            "mesh_data": res,
+            "status": res["status"]
+        }
+
+    def calculate_align_view(self, face_vertices: list, fov_deg: float = 35.0, margin_factor: float = 1.25) -> dict:
+        """Calcula parâmetros de câmera perpendicular à face (Align View) (Frente 82)."""
+        from core.align_view_engine import AlignViewEngine
+        verts = [tuple(p) for p in face_vertices]
+        res = AlignViewEngine.calculate_align_view(verts, fov_deg, margin_factor)
+        return {
+            "entity_type": "AlignViewCamera",
+            "camera_data": res,
+            "status": res["status"]
+        }
+
+    def configure_background_sky(
+        self,
+        sky_enabled: bool = True,
+        ground_enabled: bool = True,
+        sky_color: str = "#b4d5fe",
+        ground_color: str = "#c2b8a3",
+        horizon_color: str = "#95afc0",
+        background_color: str = "#ffffff",
+        ground_transparency_percent: int = 50,
+        show_horizon: bool = True
+    ) -> dict:
+        """Configura estilos de céu, solo e horizonte SUStyleRef (Frente 83)."""
+        from core.background_sky_style_engine import BackgroundSkyStyleEngine
+        res = BackgroundSkyStyleEngine.configure_background_sky(
+            sky_enabled,
+            ground_enabled,
+            sky_color,
+            ground_color,
+            horizon_color,
+            background_color,
+            ground_transparency_percent,
+            show_horizon
+        )
+        return {
+            "entity_type": "SUStyleBackgroundSky",
+            "style_data": res,
+            "status": res["status"]
+        }
+
+    def calculate_dimension_tolerance(
+        self,
+        nominal_val: float,
+        unit: str = "mm",
+        tolerance_type: str = "BILATERAL",
+        upper_tol: float = 0.1,
+        lower_tol: float = 0.1,
+        iso_class: str = "m",
+        precision: int = 2
+    ) -> dict:
+        """Calcula tolerâncias dimensionais ISO 2768 / NBR 6492 (Frente 84)."""
+        from core.dimension_tolerance_engine import DimensionToleranceEngine
+        res = DimensionToleranceEngine.calculate_tolerance(
+            nominal_val,
+            unit,
+            tolerance_type,
+            upper_tol,
+            lower_tol,
+            iso_class,
+            precision
+        )
+        return {
+            "entity_type": "DimensionTolerance",
+            "tolerance_data": res,
+            "status": res["status"]
+        }
+
+    def record_undo_operation(
+        self,
+        name: str,
+        action_type: str,
+        target_id: str,
+        before_state: dict,
+        after_state: dict
+    ) -> dict:
+        """Registra operação reversível na pilha transacional (Frente 85)."""
+        from core.undo_redo_engine import DEFAULT_UNDO_REDO_ENGINE
+        return DEFAULT_UNDO_REDO_ENGINE.record_operation(name, action_type, target_id, before_state, after_state)
+
+    def execute_undo(self) -> dict:
+        """Desfaz a última operação registrada (Frente 85)."""
+        from core.undo_redo_engine import DEFAULT_UNDO_REDO_ENGINE
+        res = DEFAULT_UNDO_REDO_ENGINE.undo()
+        if not res:
+            return {
+                "entity_type": "UndoRedoAction",
+                "action": "UNDO",
+                "operation": None,
+                "restore_state": None,
+                "can_undo": False,
+                "can_redo": True,
+                "next_undo_name": None,
+                "next_redo_name": None,
+                "status": "NENHUMA OPERAÇÃO PARA DESFAZER"
+            }
+        return res
+
+    def execute_redo(self) -> dict:
+        """Refaz a última operação desfeita (Frente 85)."""
+        from core.undo_redo_engine import DEFAULT_UNDO_REDO_ENGINE
+        res = DEFAULT_UNDO_REDO_ENGINE.redo()
+        if not res:
+            return {
+                "entity_type": "UndoRedoAction",
+                "action": "REDO",
+                "operation": None,
+                "restore_state": None,
+                "can_undo": True,
+                "can_redo": False,
+                "next_undo_name": None,
+                "next_redo_name": None,
+                "status": "NENHUMA OPERAÇÃO PARA REFAZER"
+            }
+        return res
+
+    def get_undo_redo_history(self) -> dict:
+        """Retorna histórico e profundidade das pilhas de Undo e Redo (Frente 85)."""
+        from core.undo_redo_engine import DEFAULT_UNDO_REDO_ENGINE
+        return DEFAULT_UNDO_REDO_ENGINE.get_history()

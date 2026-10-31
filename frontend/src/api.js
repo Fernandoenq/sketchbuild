@@ -1197,3 +1197,73 @@ export function localPointToWgs84(localXyzM, originLat, originLon, originAltM = 
     north_angle_deg: northAngleDeg,
   });
 }
+
+/** Triangula face plana com furos internos SUPolyMeshRef (Frente 81). */
+export function triangulateFaceWithHoles(outerLoop3d, innerLoops3d = null) {
+  return postJson("/api/v1/scene/polymesh/triangulate", "POST", {
+    outer_loop_3d: outerLoop3d,
+    inner_loops_3d: innerLoops3d,
+  });
+}
+
+/** Calcula parâmetros de câmera perpendicular à face (Align View) (Frente 82). */
+export function calculateAlignView(faceVertices, fovDeg = 35.0, marginFactor = 1.25) {
+  return postJson("/api/v1/scene/camera/align-view", "POST", {
+    face_vertices: faceVertices,
+    fov_deg: fovDeg,
+    margin_factor: marginFactor,
+  });
+}
+
+/** Configura estilos de céu, solo e horizonte SUStyleRef (Frente 83). */
+export function configureBackgroundSky(skyEnabled = true, groundEnabled = true, skyColor = "#b4d5fe", groundColor = "#c2b8a3", horizonColor = "#95afc0", backgroundColor = "#ffffff", groundTransparencyPercent = 50, showHorizon = true) {
+  return postJson("/api/v1/scene/styles/background-sky", "POST", {
+    sky_enabled: skyEnabled,
+    ground_enabled: groundEnabled,
+    sky_color: skyColor,
+    ground_color: groundColor,
+    horizon_color: horizonColor,
+    background_color: backgroundColor,
+    ground_transparency_percent: groundTransparencyPercent,
+    show_horizon: showHorizon,
+  });
+}
+
+/** Calcula tolerâncias dimensionais ISO 2768 / NBR 6492 (Frente 84). */
+export function calculateDimensionTolerance(nominalVal, unit = "mm", toleranceType = "BILATERAL", upperTol = 0.1, lowerTol = 0.1, isoClass = "m", precision = 2) {
+  return postJson("/api/v1/scene/dimensions/tolerance", "POST", {
+    nominal_val: nominalVal,
+    unit,
+    tolerance_type: toleranceType,
+    upper_tol: upperTol,
+    lower_tol: lowerTol,
+    iso_class: isoClass,
+    precision,
+  });
+}
+
+/** Registra operação reversível na pilha transacional (Frente 85). */
+export function recordUndoOperation(name, actionType, targetId, beforeState = {}, afterState = {}) {
+  return postJson("/api/v1/scene/history/record", "POST", {
+    name,
+    action_type: actionType,
+    target_id: targetId,
+    before_state: beforeState,
+    after_state: afterState,
+  });
+}
+
+/** Desfaz a última operação registrada (Frente 85). */
+export function executeUndo() {
+  return postJson("/api/v1/scene/history/undo", "POST", {});
+}
+
+/** Refaz a última operação desfeita (Frente 85). */
+export function executeRedo() {
+  return postJson("/api/v1/scene/history/redo", "POST", {});
+}
+
+/** Retorna histórico e profundidade das pilhas de Undo e Redo (Frente 85). */
+export function getUndoRedoStatus() {
+  return getJson("/api/v1/scene/history/status");
+}

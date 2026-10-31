@@ -2319,3 +2319,128 @@ class GeoReferenceResponse(BaseModel):
     entity_type: str = "SUGeoReferenceRef"
     geo_data: dict[str, Any]
     status: str
+
+
+# ==============================================================================
+# FRENTES 81 A 85 - ENGENHARIA REVERSA PURA DO SKETCHUP (POLY MESH, ALIGN VIEW, SKY/GROUND, TOLERÂNCIAS E UNDO/REDO)
+# ==============================================================================
+
+class PolyMeshHolesRequest(BaseModel):
+    """Entrada para triangulação de face com furos SUPolyMeshRef."""
+
+    outer_loop_3d: list[list[float]] = Field(description="Loop externo [[x,y,z], ...]")
+    inner_loops_3d: list[list[list[float]]] | None = Field(default=None, description="Lista de loops internos (furos)")
+
+
+class PolyMeshResponse(BaseModel):
+    """Resposta com malha triangulada e normais SUPolyMeshRef."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SUPolyMeshRef"
+    mesh_data: dict[str, Any]
+    status: str
+
+
+class AlignViewRequest(BaseModel):
+    """Entrada para alinhamento de câmera à face selecionada (Align View)."""
+
+    face_vertices: list[list[float]] = Field(description="Vértices da face plana [[x,y,z], ...]")
+    fov_deg: float = Field(default=35.0, ge=5.0, le=90.0)
+    margin_factor: float = Field(default=1.25, ge=1.0, le=3.0)
+
+
+class AlignViewResponse(BaseModel):
+    """Resposta com posição e orientação de câmera alinhada à face."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "AlignViewCamera"
+    camera_data: dict[str, Any]
+    status: str
+
+
+class BackgroundSkyStyleRequest(BaseModel):
+    """Entrada para configuração de estilos de céu, solo e horizonte SUStyleRef."""
+
+    sky_enabled: bool = Field(default=True)
+    ground_enabled: bool = Field(default=True)
+    sky_color: str = Field(default="#b4d5fe")
+    ground_color: str = Field(default="#c2b8a3")
+    horizon_color: str = Field(default="#95afc0")
+    background_color: str = Field(default="#ffffff")
+    ground_transparency_percent: int = Field(default=50, ge=0, le=100)
+    show_horizon: bool = Field(default=True)
+
+
+class BackgroundSkyStyleResponse(BaseModel):
+    """Resposta com parâmetros de estilo de fundo WebGL."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SUStyleBackgroundSky"
+    style_data: dict[str, Any]
+    status: str
+
+
+class DimensionToleranceRequest(BaseModel):
+    """Entrada para cálculo e formatação de tolerâncias dimensionais ISO 2768 / NBR 6492."""
+
+    nominal_val: float = Field(description="Valor nominal da dimensão")
+    unit: str = Field(default="mm", description="mm, cm, m, in")
+    tolerance_type: str = Field(default="BILATERAL", description="BILATERAL, LIMITS, DEVIATION, ISO_CLASS")
+    upper_tol: float = Field(default=0.1, ge=0.0)
+    lower_tol: float = Field(default=0.1, ge=0.0)
+    iso_class: str = Field(default="m", description="f (fina), m (média), c (grossa), v (muito grossa)")
+    precision: int = Field(default=2, ge=0, le=4)
+
+
+class DimensionToleranceResponse(BaseModel):
+    """Resposta com limites dimensionais e texto técnico formatado."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "DimensionTolerance"
+    tolerance_data: dict[str, Any]
+    status: str
+
+
+class UndoRedoRecordRequest(BaseModel):
+    """Entrada para registro de operação atômica na pilha transacional."""
+
+    name: str = Field(description="Nome da operação (ex: 'Mover Viga')")
+    action_type: str = Field(description="Tipo de ação (TRANSFORM, ADD, DELETE, PAINT)")
+    target_id: str = Field(description="ID da entidade afetada")
+    before_state: dict[str, Any] = Field(description="Estado anterior antes da modificação")
+    after_state: dict[str, Any] = Field(description="Novo estado após a modificação")
+
+
+class UndoRedoActionResponse(BaseModel):
+    """Resposta ao executar desfazer (undo) ou refazer (redo)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "UndoRedoAction"
+    action: str
+    operation: dict[str, Any] | None = None
+    restore_state: dict[str, Any] | None = None
+    can_undo: bool
+    can_redo: bool
+    next_undo_name: str | None = None
+    next_redo_name: str | None = None
+    status: str
+
+
+class UndoRedoStatusResponse(BaseModel):
+    """Resposta com o estado atual da pilha de histórico."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "UndoRedoStatus"
+    can_undo: bool
+    can_redo: bool
+    undo_name: str | None = None
+    redo_name: str | None = None
+    undo_count: int
+    redo_count: int
+    recent_operations: list[str] = Field(default_factory=list)
