@@ -564,3 +564,52 @@ export function createOffsetFace(points, distance = 0.10, inside = true, createF
     create_frame: createFrame,
   });
 }
+
+
+// ============================================================================
+// Frentes 31 a 35: Follow Me, Arcos 3D, Rotação, Auditoria NBR 16071 e OBJ
+// ============================================================================
+
+/** Extrusão 3D Follow Me ao longo de caminho (Frente 31). */
+export function createFollowMe(pathPoints, profileType = "circle", radius = 0.10, profilePoints = null, closeCaps = true) {
+  return postJson("/api/v1/scene/geometry/follow-me", "POST", {
+    path_points: pathPoints,
+    profile_type: profileType,
+    radius: radius,
+    profile_points: profilePoints,
+    close_caps: closeCaps,
+  });
+}
+
+/** Gera arco circular 3D paramétrico (Frente 32). */
+export function createArc(start, end, sagitta = 0.30, numSegments = 12) {
+  return postJson("/api/v1/scene/geometry/arc", "POST", {
+    start: start,
+    end: end,
+    sagitta: sagitta,
+    num_segments: numSegments,
+  });
+}
+
+/** Aplica rotação analítica com transferidor (Frente 33). */
+export function applyRotation(instanceId, pivot, axis, angleDegrees = 45.0) {
+  return postJson("/api/v1/scene/geometry/rotate", "POST", {
+    instance_id: instanceId,
+    pivot: pivot,
+    axis: axis,
+    angle_degrees: angleDegrees,
+  });
+}
+
+/** Audita conformidade normativa de segurança infantil NBR 16071 (Frente 34). */
+export function auditNbr16071Safety() {
+  return getJson("/api/v1/scene/safety-audit-nbr16071");
+}
+
+/** Importa arquivo Wavefront OBJ para a sessão do .SKP (Frente 35). */
+export function importObj(filePath, scale = 1.0) {
+  return postJson("/api/v1/scene/import-obj", "POST", {
+    file_path: filePath,
+    scale: scale,
+  });
+}

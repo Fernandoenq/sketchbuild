@@ -631,6 +631,8 @@
             <div class="menu-dropdown-item" data-action="draw-rectangle" title="Cria uma face retangular real no chao"><span>Retângulo</span><span class="menu-dropdown-shortcut">R</span></div>
             <div class="menu-dropdown-item" data-action="draw-box" title="Cria um Sólido 3D Manifold (Frente 13)"><span>Bloco 3D (Push-Pull)</span><span class="menu-dropdown-shortcut">P</span></div>
             <div class="menu-dropdown-item" data-action="import-dxf" title="Converte e importa planta DXF para o modelo (Frente 20)"><span>Importar DXF...</span></div>
+            <div class="menu-dropdown-item" data-action="draw-arc" title="Cria um Arco 3D Paramétrico (Frente 32)"><span>Arco 3D (2 Pontos)</span><span class="menu-dropdown-shortcut">A</span></div>
+            <div class="menu-dropdown-item" data-action="import-obj" title="Importa malha Wavefront OBJ para .SKP (Frente 35)"><span>Importar OBJ...</span></div>
             <div class="menu-dropdown-item" data-action="draw-circle" title="Cria um Círculo B-Rep (Frente 14)"><span>Círculo</span><span class="menu-dropdown-shortcut">C</span></div>
             <div class="menu-dropdown-item" data-action="draw-cylinder" title="Cria um Cilindro/Poste 3D (Frente 14)"><span>Cilindro 3D</span></div>
             <div class="menu-dropdown-item disabled"><span>Retângulo Giratório</span></div>
@@ -806,7 +808,7 @@
       <button class="toolbar-btn tool-icon-btn" data-action="import-dxf" title="Importar Desenho CAD DXF (Frente 20)" aria-label="Importar DXF">
         <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z" /><line x1="4" y1="10" x2="20" y2="10" /><line x1="10" y1="4" x2="10" y2="20" /></svg>
       </button>
-      <button class="toolbar-btn disabled" title="Siga-me (fora de escopo)" aria-label="Siga-me" disabled>
+      <button class="toolbar-btn tool-icon-btn" data-action="tool-follow-me" title="Siga-me / Extrusão por Caminho 3D (Frente 31)" aria-label="Siga-me">
         <svg viewBox="0 0 24 24"><path d="M4 16c2-8 14-8 16 0" /><path d="M17 13l3 3-3 3" /></svg>
       </button>
     </div>
@@ -1165,6 +1167,25 @@
         <button id="btn-save-section-skp" class="panel-btn" style="width: 100%;">Gravar Corte no .SKP</button>
       </div>
     </div><!-- /tray-sections -->
+
+
+    <!-- Frente 34: Auditoria de Segurança Infantil ABNT NBR 16071 -->
+    <div class="tray-section collapsed" id="tray-safety">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">Auditoria de Segurança (NBR 16071)</span>
+        <span class="tray-arrow">&#9662;</span>
+      </div>
+      <div class="tray-body">
+        <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">
+          Inspeção normativa automática contra aprisionamento de cabeça/pescoço e altura máxima de queda.
+        </div>
+        <button id="btn-run-safety-audit" class="panel-btn" style="width: 100%; margin-bottom: 6px;">Executar Auditoria Normativa</button>
+        <div id="safety-audit-result" style="display: none; padding: 6px; background: #F0F7F2; border: 1px solid #A3D9B1; border-radius: 3px; font-size: 10.5px;">
+          <div id="safety-seal-badge" style="font-weight: bold; color: #1E7E34; margin-bottom: 4px;"></div>
+          <div id="safety-checks-detail" style="color: var(--text);"></div>
+        </div>
+      </div>
+    </div><!-- /tray-safety -->
 
     <!-- Frente 28: Estudo Solar e Heliodon -->
     <div class="tray-section collapsed" id="tray-solar">

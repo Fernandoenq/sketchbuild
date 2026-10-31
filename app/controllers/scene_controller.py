@@ -18,6 +18,16 @@ from app.domain.exceptions import (
     SceneSessionError,
 )
 from app.schemas.scene import (
+    FollowMeRequest,
+    FollowMeResponse,
+    ArcRequest,
+    ArcResponse,
+    RotateTransformRequest,
+    RotateTransformResponse,
+    SafetyAuditResponse,
+    ImportObjRequest,
+    ImportObjResponse,
+
     SectionPlaneRequest,
     SectionPlaneResponse,
     GuideLineRequest,
@@ -694,5 +704,51 @@ class SceneController:
             out_path = os.path.join(out_dir, body.output_filename)
             res = await self._service.export_executive_pdf(body.project_name, body.author, body.client_name, out_path)
             return ExecutivePdfExportResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_follow_me_geometry(self, body: FollowMeRequest) -> FollowMeResponse:
+        """Gera sólido extrudado ao longo de caminho 3D Follow Me (Frente 31)."""
+        try:
+            res = await self._service.create_follow_me_geometry(
+                body.path_points,
+                body.profile_type,
+                body.radius,
+                body.profile_points,
+                body.close_caps
+            )
+            return FollowMeResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def create_arc_geometry(self, body: ArcRequest) -> ArcResponse:
+        """Gera arco circular 3D paramétrico (Frente 32)."""
+        try:
+            res = await self._service.create_arc_geometry(body.start, body.end, body.sagitta, body.num_segments)
+            return ArcResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def apply_rotation_transform(self, body: RotateTransformRequest) -> RotateTransformResponse:
+        """Aplica rotação analítica com transferidor (Frente 33)."""
+        try:
+            res = await self._service.apply_rotation_transform(body.instance_id, body.pivot, body.axis, body.angle_degrees)
+            return RotateTransformResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def audit_nbr16071_safety(self) -> SafetyAuditResponse:
+        """Audita conformidade normativa de segurança infantil NBR 16071 (Frente 34)."""
+        try:
+            res = await self._service.audit_nbr16071_safety()
+            return SafetyAuditResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def import_obj_geometry(self, body: ImportObjRequest) -> ImportObjResponse:
+        """Importa arquivo Wavefront OBJ e converte para entidades B-Rep do .SKP (Frente 35)."""
+        try:
+            res = await self._service.import_obj_geometry(body.file_path, body.scale)
+            return ImportObjResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
