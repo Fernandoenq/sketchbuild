@@ -510,6 +510,8 @@
         <div class="menu-dropdown-item" data-action="export-assembly-manual"><span>Exportar &gt; Manual de Montagem HTML...</span></div>
         <div class="menu-dropdown-item" data-action="export-executive-pdf"><span>Exportar &gt; Proposta Executiva (.pdf)...</span></div>
         <div class="menu-dropdown-item" data-action="export-cam-dxf"><span>Exportar &gt; Arquivo para CNC/Laser (.dxf)...</span></div>
+        <div class="menu-dropdown-item" data-action="export-point-cloud"><span>Exportar &gt; Nuvem de Pontos LiDAR (.xyz)...</span></div>
+        <div class="menu-dropdown-item" data-action="export-qr-tag"><span>Exportar &gt; Placa Patrimonial com QR Code (.svg)...</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Enviar para o LayOut...</span></div>
         <div class="menu-dropdown-item disabled"><span>Imprimir...</span><span class="menu-dropdown-shortcut">Ctrl+P</span></div>
@@ -823,6 +825,9 @@
       </button>
       <button class="toolbar-btn tool-icon-btn" data-tool-mode="scale" data-action="tool-scale" title="Escala (S)" aria-label="Escala">
         <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" /><path d="M5 9V5h4M19 15v4h-4" /></svg>
+      </button>
+      <button class="toolbar-btn tool-icon-btn" data-action="tool-mirror" title="Espelhar / Simetria 3D (Frente 44)" aria-label="Espelhar">
+        <svg viewBox="0 0 24 24"><path d="M12 2v20M5 18l5-6-5-6M19 18l-5-6 5-6" /></svg>
       </button>
     </div>
     <div class="toolbar-group">
@@ -1201,6 +1206,11 @@
       <div class="tray-body">
         <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">
           Inspeção normativa automática contra aprisionamento de cabeça/pescoço e altura máxima de queda.
+        </div>
+        <button id="btn-calc-maintenance" class="panel-btn" style="width: 100%; margin-bottom: 8px; background: #007791; color: white;">Plano de Manutenção Preventiva NBR 16071-7</button>
+        <div id="maintenance-result" style="display: none; padding: 6px; background: #E6F4F8; border: 1px solid #99D5E8; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
+          <div id="maintenance-status-badge" style="font-weight: bold; color: #007791;"></div>
+          <div id="maintenance-details" style="color: var(--text);"></div>
         </div>
         <button id="btn-run-safety-audit" class="panel-btn" style="width: 100%; margin-bottom: 6px;">Executar Auditoria Normativa</button>
         <div id="safety-audit-result" style="display: none; padding: 6px; background: #F0F7F2; border: 1px solid #A3D9B1; border-radius: 3px; font-size: 10.5px;">

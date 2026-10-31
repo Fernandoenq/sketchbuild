@@ -1256,3 +1256,100 @@ class ExportCamDxfResponse(BaseModel):
     file_path: str
     size_bytes: int
     parts_count: int
+
+
+# ============================================================================
+# Frentes 41 a 45: Flythrough, Nuvem de Pontos, Manutenção NBR, Mirror e QR Tag
+# ============================================================================
+
+class CameraPathRequest(BaseModel):
+    """Entrada para interpolação de sobrevoo de câmera."""
+
+    waypoints: list[dict[str, Any]] = Field(description="Lista de câmeras [{'position': [x,y,z], 'target': [x,y,z]}]")
+    frames_per_segment: int = Field(default=24, ge=6, le=120, description="Frames por segmento de interpolação")
+
+
+class CameraPathResponse(BaseModel):
+    """Resposta com os keyframes contínuos de câmera."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "FlythroughPath"
+    waypoints_count: int
+    total_frames: int
+    duration_seconds: float
+    camera_positions: list[list[float]]
+    camera_targets: list[list[float]]
+
+
+class PointCloudExportRequest(BaseModel):
+    """Entrada para exportação de Nuvem de Pontos LiDAR."""
+
+    output_filename: str = Field(default="nuvem_pontos_modelo.xyz", description="Nome do arquivo .xyz")
+
+
+class PointCloudExportResponse(BaseModel):
+    """Resposta com dados do arquivo de nuvem de pontos gerado."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    file_path: str
+    size_bytes: int
+
+
+class MaintenancePlanRequest(BaseModel):
+    """Entrada para geração do cronograma de manutenção preventiva."""
+
+    installation_date_iso: str = Field(default="2026-03-01", description="Data de instalação (AAAA-MM-DD)")
+    environment_type: str = Field(default="urban", description="'urban', 'coastal' ou 'rural'")
+
+
+class MaintenancePlanResponse(BaseModel):
+    """Resposta com o plano de manutenção preventiva NBR 16071-7."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "MaintenancePlan"
+    installation_date: str
+    environment: str
+    monitored_components_count: int
+    expected_lifespan_years: float
+    tasks: list[dict[str, Any]]
+    next_urgent_inspection: str
+
+
+class MirrorRequest(BaseModel):
+    """Entrada para espelhamento e simetria 3D."""
+
+    instance_id: str = Field(description="ID da instância a espelhar")
+    plane_normal: list[float] = Field(default=[1.0, 0.0, 0.0], description="Vetor normal do plano de espelho")
+    plane_point: list[float] = Field(default=[0.0, 0.0, 0.0], description="Ponto do plano de espelho")
+
+
+class MirrorResponse(BaseModel):
+    """Resposta da operação de espelhamento."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    instance_id: str
+    plane_normal: list[float]
+    plane_point: list[float]
+    transform_matrix_16: list[float]
+
+
+class QrTagExportRequest(BaseModel):
+    """Entrada para emissão de placa/etiqueta técnica de patrimônio com QR Code."""
+
+    serial_number: str = Field(default="PKL-2026-X84", description="Número de série e lote")
+    product_name: str = Field(default="Playground Parkelô NBR 16071", description="Nome comercial da peça")
+    output_filename: str = Field(default="etiqueta_patrimonio.svg", description="Nome do arquivo SVG")
+
+
+class QrTagExportResponse(BaseModel):
+    """Resposta da geração da placa técnica."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    file_path: str
+    size_bytes: int
+    serial_number: str

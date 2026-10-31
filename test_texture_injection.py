@@ -8,7 +8,11 @@ import os
 import tempfile
 import io
 import ctypes
-from PIL import Image
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 from core.skp_binary_reader import SkpBinaryReader
 from core.skp_binary_writer import SkpBinaryWriter
@@ -30,10 +34,18 @@ def run_e2e_texture_test():
         os.remove(dst_skp)
 
     # Cria imagem PNG em memória (ex: textura mármore/madeira 64x64)
-    img = Image.new("RGB", (64, 64), color=(210, 160, 110))
-    img_buffer = io.BytesIO()
-    img.save(img_buffer, format="PNG")
-    png_bytes = img_buffer.getvalue()
+    if Image is not None:
+        img = Image.new("RGB", (64, 64), color=(210, 160, 110))
+        img_buffer = io.BytesIO()
+        img.save(img_buffer, format="PNG")
+        png_bytes = img_buffer.getvalue()
+    else:
+        # Minimal 1x1 PNG bytes (Pure Python - Zero DLL / No Pillow)
+        png_bytes = (
+            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01'
+            b'\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xd2\xa0n\x00'
+            b'\x02\xb6\x01>\xda\x0e\xc5\x13\x00\x00\x00\x00IEND\xaeB`\x82'
+        )
 
     mat_name = "Carvalho_Nativo_Python"
     img_filename = "carvalho.png"

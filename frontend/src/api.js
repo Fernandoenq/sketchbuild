@@ -666,3 +666,45 @@ export function exportCamDxf(parts, outputFilename = "pecas_usinagem_cnc.dxf") {
     output_filename: outputFilename,
   });
 }
+
+
+/** Interpola sobrevoo suave de camera Catmull-Rom (Frente 41). */
+export function calculateCameraPath(waypoints, framesPerSegment = 24) {
+  return postJson("/api/v1/scene/camera-path", "POST", {
+    waypoints: waypoints,
+    frames_per_segment: framesPerSegment,
+  });
+}
+
+/** Exporta nuvem de pontos LiDAR ASCII XYZ (Frente 42). */
+export function exportPointCloudXyz(outputFilename = "nuvem_pontos_modelo.xyz") {
+  return postJson("/api/v1/scene/export/point-cloud-xyz", "POST", {
+    output_filename: outputFilename,
+  });
+}
+
+/** Gera plano normativo de manutencao preventiva NBR 16071-7 (Frente 43). */
+export function generateMaintenancePlan(installationDateIso = "2026-03-01", envType = "urban") {
+  return postJson("/api/v1/scene/maintenance-plan", "POST", {
+    installation_date_iso: installationDateIso,
+    environment_type: envType,
+  });
+}
+
+/** Aplica espelhamento e simetria 3D de Householder (Frente 44). */
+export function applyMirror(instanceId, planeNormal = [1.0, 0.0, 0.0], planePoint = [0.0, 0.0, 0.0]) {
+  return postJson("/api/v1/scene/geometry/mirror", "POST", {
+    instance_id: instanceId,
+    plane_normal: planeNormal,
+    plane_point: planePoint,
+  });
+}
+
+/** Exporta placa patrimonial com QR Code em SVG (Frente 45). */
+export function exportQrTagSvg(serialNumber = "PKL-2026-X84", productName = "Playground Parkelo NBR 16071", outputFilename = "etiqueta_patrimonio.svg") {
+  return postJson("/api/v1/scene/export/qr-tag-svg", "POST", {
+    serial_number: serialNumber,
+    product_name: productName,
+    output_filename: outputFilename,
+  });
+}

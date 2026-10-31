@@ -1017,3 +1017,75 @@ A Frente 40 fecha o ciclo de engenharia permitindo exportar peças para corte au
 - Compatível diretamente com Aspire, SheetCAM, ArtCAM e Fusion 360 CAM.
 - **Módulo:** `core/cam_dxf_exporter.py` (`CamDxfExporter`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/export/cam-dxf`.
+
+
+---
+
+## 68. Frente 41: Interpolador de Caminho de Câmera e Voo Panorâmico (*Catmull-Rom Flythrough* - Zero DLL)
+
+A Frente 41 introduz o gerador de caminhos cinemáticos de sobrevoo de câmera (*camera flythrough*) para renderização e inspeção de projetos 3D.
+
+### A. Formulação Matemática da Spline de Catmull-Rom
+- Utiliza a formulação de spline cúbica com continuidade $C^1$:
+  $$\mathbf{P}(t) = 0.5 \cdot \left[ 2\mathbf{P}_1 + (-\mathbf{P}_0 + \mathbf{P}_2)t + (2\mathbf{P}_0 - 5\mathbf{P}_1 + 4\mathbf{P}_2 - \mathbf{P}_3)t^2 + (-\mathbf{P}_0 + 3\mathbf{P}_1 - 3\mathbf{P}_2 + \mathbf{P}_3)t^3 ight]$$
+- Clamping e extensão de extremidades ($\mathbf{P}_{-1} = \mathbf{P}_0$ e $\mathbf{P}_{N+1} = \mathbf{P}_N$) para aceleração suave sem descontinuidades tangenciais nos limites do percurso.
+- Interpolação síncrona da posição dos olhos da câmera ($ec{E}$) e do ponto focal de interesse (*Target* $ec{T}$).
+- **Módulo:** `core/camera_path_interpolator.py` (`CameraPathInterpolator`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/camera-path`.
+
+---
+
+## 69. Frente 42: Exportador de Nuvem de Pontos 3D LiDAR em ASCII XYZ (Zero DLL)
+
+A Frente 42 possibilita a exportação de malhas poligonais e sólidos 3D para nuvens de pontos densas (*Point Clouds*).
+
+### A. Estrutura e Amostragem Espacial
+- Gera arquivos ASCII `.xyz` compatíveis com CloudCompare, Autodesk Recap, Revit, MeshLab e drones de topografia.
+- Cada linha representa um vértice espacial no formato: `X Y Z R G B Intensity`.
+- Amostragem volumétrica e de centroides por peça, com atribuição cromática por tipo de material (madeira, aço, PEAD) e densidade de amostragem configurável.
+- **Módulo:** `core/point_cloud_exporter.py` (`PointCloudExporter`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/export/point-cloud-xyz`.
+
+---
+
+## 70. Frente 43: Planejador de Manutenção Preventiva e Vida Útil (NBR 16071-7 - Zero DLL)
+
+A Frente 43 implementa a inteligência normativa de durabilidade e conservação de playgrounds segundo a ABNT NBR 16071 Parte 7 (Guia de Instalação, Inspeção, Manutenção e Utilização).
+
+### A. Regime de Inspeções e Ciclo de Vida
+1. **Inspeção Visual de Rotina (Semanal/Quinzenal):** Limpeza, detritos, peças quebradas ou vandalizadas, estabilidade de ancoragem.
+2. **Inspeção Operacional (Mensal/Trimestral):** Desgaste de rolamentos, correntes, apertos de parafusos e porcas autotravantes, estanqueidade.
+3. **Inspeção Principal Anual:** Integridade estrutural profunda, decomposição de madeira tratada, corrosão galvânica e substituição preventiva.
+- Mapeamento dinâmico de severidade climática: ambientes litorâneos com alta salinidade aceleram o ciclo operacional para intervalos de 60 dias e ajustam a expectativa de vida útil.
+- **Módulo:** `core/maintenance_planner.py` (`MaintenancePlanner`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/maintenance-plan`.
+
+---
+
+## 71. Frente 44: Ferramenta de Espelhamento e Simetria 3D (*Mirror / Flip Tool* - Zero DLL)
+
+A Frente 44 implementa operações de reflexão e simetria analítica em 3 dimensões (*Mirror Tool*).
+
+### A. Matriz de Reflexão de Householder
+- Dado um plano arbitrário com vetor normal unitário $ec{n} = (n_x, n_y, n_z)$ e ponto $ec{P}_0$, a matriz de reflexão de Householder $4 	imes 4$ é dada por:
+  $$\mathbf{R} = \mathbf{I} - 2ec{n}ec{n}^T$$
+  com deslocamento $ec{t} = -2dec{n}$, onde $d = -ec{n} \cdot ec{P}_0$.
+- **Preservação de Orientação B-Rep (Winding Order):** Como $\det(\mathbf{R}) = -1$, a reflexão inverte a quiralidade do espaço. O algoritmo inverte a ordem dos vértices das faces (`reversed(loop)`) para garantir que os vetores normais das superfícies continuem apontando para o exterior do sólido (consistência manifold).
+- **Módulo:** `core/mirror_tool.py` (`MirrorTool`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/mirror`.
+
+---
+
+## 72. Frente 45: Gerador de QR Code Técnico e Placa Patrimonial em SVG (Zero DLL)
+
+A Frente 45 implementa a geração industrial de placas de patrimônio e etiquetas normativas com QR Code nativo para rastreabilidade de lote, garantia e manual técnico.
+
+### A. Síntese Analítica do QR Code e Vetorial SVG
+- Matriz 21x21 (QR Code Versão 1) analítica com *Finder Patterns* 7x7 nos três cantos, linhas de sincronização alternadas e codificação pura de bytes/texto.
+- Emissão de placas técnicas em formato SVG escalável para estamparia laser ou impressão vinílica, contendo:
+  - Logomarca e identificação Parkelô NBR 16071
+  - Número de série / lote
+  - Data de fabricação e material base
+  - QR Code para acesso direto ao manual de montagem e checklist de manutenção
+- **Módulo:** `core/qr_tag_generator.py` (`QrTagGenerator`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/export/qr-tag-svg`.

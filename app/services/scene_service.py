@@ -542,3 +542,23 @@ class SceneService:
     async def export_cam_dxf(self, parts: list, output_filename: str) -> dict:
         """Exporta contornos para máquinas CNC e Corte a Laser em DXF (Frente 40)."""
         return await run_in_threadpool(self._repository.export_cam_dxf, parts, output_filename)
+
+    async def calculate_camera_path(self, waypoints: list, frames_per_segment: int = 24) -> dict:
+        """Gera interpolação suave Catmull-Rom para sobrevoo de câmera (Frente 41)."""
+        return await run_in_threadpool(self._repository.calculate_camera_path, waypoints, frames_per_segment)
+
+    async def export_point_cloud_xyz(self, output_filename: str) -> dict:
+        """Exporta nuvem de pontos 3D LiDAR em formato ASCII XYZ (Frente 42)."""
+        return await run_in_threadpool(self._repository.export_point_cloud_xyz, output_filename)
+
+    async def generate_maintenance_plan(self, installation_date: str = "2026-03-01", env_type: str = "urban") -> dict:
+        """Gera plano normativo de manutenção preventiva NBR 16071-7 (Frente 43)."""
+        return await run_in_threadpool(self._repository.generate_maintenance_plan, installation_date, env_type)
+
+    async def apply_mirror_transform(self, instance_id: str, plane_normal: list, plane_point: list) -> dict:
+        """Aplica espelhamento e simetria 3D de Householder (Frente 44)."""
+        return await run_in_threadpool(self._repository.apply_mirror_transform, instance_id, plane_normal, plane_point)
+
+    async def export_qr_tag_svg(self, serial_number: str, product_name: str, output_filename: str) -> dict:
+        """Gera placa de identificação patrimonial com QR Code em SVG (Frente 45)."""
+        return await run_in_threadpool(self._repository.export_qr_tag_svg, serial_number, product_name, output_filename)

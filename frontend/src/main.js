@@ -66,6 +66,11 @@ import {
   calculateStructuralAnalysis,
   applyScale,
   exportCamDxf,
+  calculateCameraPath,
+  exportPointCloudXyz,
+  generateMaintenancePlan,
+  applyMirror,
+  exportQrTagSvg,
   ApiError,
 } from "./api.js";
 import {
@@ -2038,6 +2043,9 @@ const MENU_ACTIONS = {
   "draw-arc": () => handleDrawArc(),
   "import-obj": () => handleImportObj(),
   "export-cam-dxf": () => handleExportCamDxf(),
+  "export-point-cloud": () => handleExportPointCloud(),
+  "export-qr-tag": () => handleExportQrTag(),
+  "tool-mirror": () => handleMirrorTool(),
   "draw-terrain": () => handleDrawTerrain(),
   "import-dxf": () => {
     setToolMode("dxf");
@@ -3271,3 +3279,67 @@ async function handleExportCamDxf() {
     setStatus(`Erro ao exportar DXF CAM: ${err.message}`, true);
   }
 }
+
+
+// --- Frente 42: Exportação Nuvem de Pontos LiDAR (XYZ) ---
+async function handleExportPointCloud() {
+  setStatus("Exportando nuvem de pontos LiDAR ASCII XYZ...");
+  try {
+    const res = await exportPointCloudXyz("nuvem_pontos_sketchbuild.xyz");
+    setStatus(`Nuvem de pontos LiDAR exportada com sucesso: ${res.file_path} (${res.size_bytes} bytes).`);
+  } catch (err) {
+    setStatus(`Erro ao exportar nuvem de pontos: ${err.message}`, true);
+  }
+}
+
+// --- Frente 43: Plano de Manutenção Preventiva NBR 16071-7 ---
+async function handleMaintenancePlan() {
+  setStatus("Calculando cronograma de manutenção preventiva NBR 16071-7...");
+  try {
+    const res = await generateMaintenancePlan("2026-03-01", "urban");
+    const badge = document.getElementById("maintenance-status-badge");
+    const details = document.getElementById("maintenance-details");
+    const box = document.getElementById("maintenance-result");
+    if (badge && details && box) {
+      box.style.display = "block";
+      badge.textContent = `${res.environment} | Vida Útil: ${res.expected_lifespan_years} anos`;
+      details.innerHTML = `<strong>Próxima Inspeção:</strong> ${res.next_urgent_inspection}<br/>` +
+        res.tasks.map(t => `• <strong>${t.frequency}</strong>: ${t.action} (${t.responsible})`).join("<br/>");
+    }
+    setStatus(`Plano de Manutenção NBR 16071-7 gerado: ${res.tasks.length} ciclos normativos.`);
+  } catch (err) {
+    setStatus(`Erro ao gerar plano de manutenção: ${err.message}`, true);
+  }
+}
+
+// --- Frente 44: Espelhamento e Simetria 3D de Householder ---
+async function handleMirrorTool() {
+  if (!selectedMesh) {
+    setStatus("Selecione um componente para aplicar espelhamento/simetria 3D.", true);
+    return;
+  }
+  const instId = selectedMesh.userData.instanceId || selectedMesh.name;
+  setStatus(`Aplicando espelhamento 3D no plano X para ${instId}...`);
+  try {
+    const res = await applyMirror(instId, [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]);
+    // Inverte escala X visualmente no Three.js
+    selectedMesh.scale.x *= -1;
+    setStatus(`Espelhamento 3D aplicado com sucesso em ${res.instance_id} (Matriz Householder).`);
+  } catch (err) {
+    setStatus(`Erro ao espelhar componente: ${err.message}`, true);
+  }
+}
+
+// --- Frente 45: Placa Patrimonial com QR Code (SVG) ---
+async function handleExportQrTag() {
+  setStatus("Gerando placa técnica de patrimônio com QR Code em SVG...");
+  try {
+    const res = await exportQrTagSvg("PKL-2026-X84", "Playground Parkelô NBR 16071", "etiqueta_patrimonio.svg");
+    setStatus(`Placa técnica patrimonial com QR Code gerada: ${res.file_path} (${res.size_bytes} bytes).`);
+  } catch (err) {
+    setStatus(`Erro ao gerar placa patrimonial: ${err.message}`, true);
+  }
+}
+
+// Listener para botão de manutenção preventiva
+document.getElementById("btn-calc-maintenance")?.addEventListener("click", handleMaintenancePlan);
