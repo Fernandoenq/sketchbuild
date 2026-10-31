@@ -1416,6 +1416,7 @@ async function handleNewFromTemplate(templateId) {
     );
     return true;
   } catch (err) {
+    console.error("Erro ao criar modelo a partir do template:", err);
     const detail = err instanceof ApiError ? err.message : String(err);
     setStatus(`Erro ao criar modelo: ${detail}`, true);
     return false;
