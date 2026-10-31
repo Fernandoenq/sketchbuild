@@ -2823,3 +2823,88 @@ class SkpEngineRepository:
         return CamCutlistFabricationEngine.generate_cnc_cutlist(
             parts, saw_kerf_mm, trim_margin_mm, export_csv
         )
+
+    def generate_wall_with_openings(
+        self,
+        start_pt: list,
+        end_pt: list,
+        height_m: float = 2.80,
+        thickness_m: float = 0.15,
+        openings: list = None
+    ) -> dict:
+        """Gera parede paramétrica 3D com vãos de portas e janelas (Frente 96)."""
+        from core.architectural_wall_engine import ArchitecturalWallWindowEngine
+        s_pt = tuple(start_pt)
+        e_pt = tuple(end_pt)
+        return ArchitecturalWallWindowEngine.generate_wall_with_openings(
+            s_pt, e_pt, height_m, thickness_m, openings
+        )
+
+    def unfold_sheet_metal(
+        self,
+        base_length_mm: float,
+        base_width_mm: float,
+        thickness_mm: float = 2.0,
+        inner_radius_mm: float = 2.0,
+        k_factor: float = 0.44,
+        flanges: list = None
+    ) -> dict:
+        """Calcula o blank planificado e linhas de dobra DIN 6935 (Frente 97)."""
+        from core.sheet_metal_unfold_engine import SheetMetalUnfoldEngine
+        return SheetMetalUnfoldEngine.unfold_flanges(
+            base_length_mm, base_width_mm, thickness_mm, inner_radius_mm, k_factor, flanges
+        )
+
+    def calculate_projected_shadow(
+        self,
+        occluder_vertices: list,
+        sun_direction: list,
+        ground_elevation_z: float = 0.0
+    ) -> dict:
+        """Calcula projeção de sombra do oclusor sobre o solo ou superfície (Frente 98)."""
+        from core.shadow_casting_surface_engine import ShadowCastingSurfaceEngine
+        verts = [tuple(v) for v in occluder_vertices]
+        s_dir = tuple(sun_direction)
+        return ShadowCastingSurfaceEngine.project_shadow_on_plane(
+            verts, s_dir, ground_elevation_z
+        )
+
+    def configure_water_surface(
+        self,
+        shallow_color_hex: str = "#4db5ff",
+        deep_color_hex: str = "#004080",
+        clarity_percent: float = 85.0,
+        wave_amplitude_m: float = 0.05,
+        wave_wavelength_m: float = 1.2,
+        wave_speed_m_s: float = 1.0,
+        ior: float = 1.333,
+        caustics_intensity: float = 0.75,
+        enable_foam: bool = True
+    ) -> dict:
+        """Configura shader PBR de água, ondas Gerstner e cáusticas (Frente 99)."""
+        from core.water_caustics_shader_engine import WaterCausticsShaderEngine
+        return WaterCausticsShaderEngine.configure_water_surface(
+            shallow_color_hex,
+            deep_color_hex,
+            clarity_percent,
+            wave_amplitude_m,
+            wave_wavelength_m,
+            wave_speed_m_s,
+            ior,
+            caustics_intensity,
+            enable_foam
+        )
+
+    def generate_mesh_lod_chain(
+        self,
+        vertices: list,
+        triangles: list,
+        lod1_target_ratio: float = 0.50,
+        lod2_target_ratio: float = 0.25
+    ) -> dict:
+        """Gera cadeia de 3 níveis de detalhe (LOD0, LOD1, LOD2) para Three.js (Frente 100)."""
+        from core.skp_lod_optimizer_engine import SkpLODOptimizerEngine
+        verts = [tuple(v) for v in vertices]
+        return SkpLODOptimizerEngine.generate_lod_chain(
+            verts, triangles, lod1_target_ratio, lod2_target_ratio
+        )

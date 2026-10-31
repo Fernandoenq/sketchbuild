@@ -150,6 +150,16 @@ from app.schemas.scene import (
     CameraAnimationPathResponse,
     CamCutlistRequest,
     CamCutlistResponse,
+    ArchitecturalWallRequest,
+    ArchitecturalWallResponse,
+    SheetMetalUnfoldRequest,
+    SheetMetalUnfoldResponse,
+    ShadowCastingRequest,
+    ShadowCastingResponse,
+    WaterMaterialConfigRequest,
+    WaterMaterialConfigResponse,
+    SkpLODChainRequest,
+    SkpLODChainResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1798,5 +1808,77 @@ class SceneController:
                 body.export_csv
             )
             return CamCutlistResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_wall_with_openings(self, body: ArchitecturalWallRequest) -> ArchitecturalWallResponse:
+        """Gera parede paramétrica 3D com vãos de portas e janelas (Frente 96)."""
+        try:
+            res = await self._service.generate_wall_with_openings(
+                body.start_pt,
+                body.end_pt,
+                body.height_m,
+                body.thickness_m,
+                body.openings
+            )
+            return ArchitecturalWallResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def unfold_sheet_metal(self, body: SheetMetalUnfoldRequest) -> SheetMetalUnfoldResponse:
+        """Calcula o blank planificado e linhas de dobra DIN 6935 (Frente 97)."""
+        try:
+            res = await self._service.unfold_sheet_metal(
+                body.base_length_mm,
+                body.base_width_mm,
+                body.thickness_mm,
+                body.inner_radius_mm,
+                body.k_factor,
+                body.flanges
+            )
+            return SheetMetalUnfoldResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_projected_shadow(self, body: ShadowCastingRequest) -> ShadowCastingResponse:
+        """Calcula projeção de sombra do oclusor sobre o solo ou superfície (Frente 98)."""
+        try:
+            res = await self._service.calculate_projected_shadow(
+                body.occluder_vertices,
+                body.sun_direction,
+                body.ground_elevation_z
+            )
+            return ShadowCastingResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def configure_water_surface(self, body: WaterMaterialConfigRequest) -> WaterMaterialConfigResponse:
+        """Configura shader PBR de água, ondas Gerstner e cáusticas (Frente 99)."""
+        try:
+            res = await self._service.configure_water_surface(
+                body.shallow_color_hex,
+                body.deep_color_hex,
+                body.clarity_percent,
+                body.wave_amplitude_m,
+                body.wave_wavelength_m,
+                body.wave_speed_m_s,
+                body.ior,
+                body.caustics_intensity,
+                body.enable_foam
+            )
+            return WaterMaterialConfigResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_mesh_lod_chain(self, body: SkpLODChainRequest) -> SkpLODChainResponse:
+        """Gera cadeia de 3 níveis de detalhe (LOD0, LOD1, LOD2) para Three.js (Frente 100)."""
+        try:
+            res = await self._service.generate_mesh_lod_chain(
+                body.vertices,
+                body.triangles,
+                body.lod1_target_ratio,
+                body.lod2_target_ratio
+            )
+            return SkpLODChainResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

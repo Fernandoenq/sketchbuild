@@ -2710,3 +2710,137 @@ class CamCutlistResponse(BaseModel):
     parts: list[dict[str, Any]]
     csv_data: str
     status: str
+
+
+class ArchitecturalWallRequest(BaseModel):
+    """Entrada para geração de parede arquitetônica com vãos de portas/janelas (Frente 96)."""
+
+    start_pt: list[float] = Field(description="Ponto inicial do eixo da parede [x, y, z]")
+    end_pt: list[float] = Field(description="Ponto final do eixo da parede [x, y, z]")
+    height_m: float = Field(default=2.80, ge=0.5, le=50.0, description="Altura total da parede em metros")
+    thickness_m: float = Field(default=0.15, ge=0.05, le=2.0, description="Espessura da parede em metros")
+    openings: list[dict[str, Any]] | None = Field(default=None, description="Lista de aberturas [{'name': str, 'dist_from_start_m': float, 'width_m': float, 'sill_height_m': float, 'height_m': float}]")
+
+
+class ArchitecturalWallResponse(BaseModel):
+    """Resposta da malha de parede arquitetônica e sólidos B-Rep (Frente 96)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "ArchitecturalWallResult"
+    wall_length_m: float
+    height_m: float
+    thickness_m: float
+    openings_count: int
+    blocks_count: int = 1
+    vertices_count: int
+    faces_count: int
+    triangles_count: int
+    vertices: list[list[float]]
+    faces: list[list[int]]
+    triangles: list[list[int]]
+    gross_volume_m3: float = 0.0
+    void_volume_m3: float = 0.0
+    net_volume_m3: float
+    status: str
+
+
+class SheetMetalUnfoldRequest(BaseModel):
+    """Entrada para planificação de chapa dobrada DIN 6935 (Frente 97)."""
+
+    base_length_mm: float = Field(description="Comprimento da base plana em mm")
+    base_width_mm: float = Field(description="Largura da base plana em mm")
+    thickness_mm: float = Field(default=2.0, ge=0.1, le=50.0)
+    inner_radius_mm: float = Field(default=2.0, ge=0.1, le=50.0)
+    k_factor: float = Field(default=0.44, ge=0.1, le=0.9)
+    flanges: list[dict[str, Any]] | None = Field(default=None, description="Lista de abas [{'edge': 'LEFT'/'RIGHT'/'TOP'/'BOTTOM', 'length_mm': float, 'angle_deg': float}]")
+
+
+class SheetMetalUnfoldResponse(BaseModel):
+    """Resposta com dimensões de blank planificado e linhas de dobra (Frente 97)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SheetMetalUnfoldResult"
+    material_thickness_mm: float
+    inner_bend_radius_mm: float
+    k_factor: float
+    base_dimensions_mm: list[float]
+    blank_dimensions_mm: list[float]
+    blank_area_m2: float
+    flanges_count: int
+    flanges: list[dict[str, Any]]
+    bend_lines: list[dict[str, Any]]
+    status: str
+
+
+class ShadowCastingRequest(BaseModel):
+    """Entrada para cálculo de projeção de sombra em superfícies receptoras (Frente 98)."""
+
+    occluder_vertices: list[list[float]] = Field(description="Vértices do sólido oclusor [[x, y, z], ...]")
+    sun_direction: list[float] = Field(description="Vetor do sol descendente [sx, sy, sz]")
+    ground_elevation_z: float = Field(default=0.0)
+
+
+class ShadowCastingResponse(BaseModel):
+    """Resposta com contorno da sombra projetada e métricas solares (Frente 98)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "ProjectedShadowResult"
+    ground_elevation_z: float
+    sun_direction: list[float]
+    solar_zenith_angle_deg: float = 0.0
+    projected_vertices_count: int
+    projected_points: list[list[float]]
+    shadow_throw_length_m: float
+    shadow_bbox: list[float] = Field(default_factory=list)
+    shadow_bbox_area_m2: float
+    status: str
+
+
+class WaterMaterialConfigRequest(BaseModel):
+    """Entrada para configuração de shader PBR de água e ondas de Gerstner (Frente 99)."""
+
+    shallow_color_hex: str = Field(default="#4db5ff")
+    deep_color_hex: str = Field(default="#004080")
+    clarity_percent: float = Field(default=85.0, ge=0.0, le=100.0)
+    wave_amplitude_m: float = Field(default=0.05, ge=0.0, le=5.0)
+    wave_wavelength_m: float = Field(default=1.2, ge=0.1, le=100.0)
+    wave_speed_m_s: float = Field(default=1.0, ge=0.0, le=50.0)
+    ior: float = Field(default=1.333, ge=1.0, le=2.5)
+    caustics_intensity: float = Field(default=0.75, ge=0.0, le=2.0)
+    enable_foam: bool = Field(default=True)
+
+
+class WaterMaterialConfigResponse(BaseModel):
+    """Resposta com uniformes de água para Three.js (Frente 99)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "PBRWaterMaterialConfig"
+    optical_properties: dict[str, Any]
+    wave_dynamics: dict[str, Any]
+    three_uniforms: dict[str, Any]
+    status: str
+
+
+class SkpLODChainRequest(BaseModel):
+    """Entrada para decimação e geração de cadeia de LOD Three.js (Frente 100)."""
+
+    vertices: list[list[float]] = Field(description="Vértices da malha original [[x, y, z], ...]")
+    triangles: list[list[int]] = Field(description="Triângulos originais [[i1, i2, i3], ...]")
+    lod1_target_ratio: float = Field(default=0.50, ge=0.05, le=0.95)
+    lod2_target_ratio: float = Field(default=0.25, ge=0.02, le=0.50)
+
+
+class SkpLODChainResponse(BaseModel):
+    """Resposta com os 3 níveis de detalhe (LOD0, LOD1, LOD2) e distâncias (Frente 100)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SkpLODChainResult"
+    original_mesh: dict[str, int]
+    lod_levels: list[dict[str, Any]]
+    metrics: dict[str, Any]
+    status: str
