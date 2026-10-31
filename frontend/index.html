@@ -386,6 +386,29 @@
     }
     .autosave-discard-btn { background: #FFFFFF; border: 1px solid var(--border); color: var(--text); }
     .autosave-discard-btn:hover { background: #F5F5F5; }
+
+    /* Janelas Diálogos Flutuantes Nativas (Estilo SketchUp HtmlDialog) */
+    .su-dialog {
+      position: fixed; top: 100px; left: 80px; width: 440px; max-height: 80vh;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+      box-shadow: 0 12px 36px rgba(0,0,0,.35); z-index: 45;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .su-dialog.hidden { display: none !important; }
+    .su-dialog-header {
+      background: var(--toolbar); border-bottom: 1px solid var(--border);
+      padding: 6px 10px; font-size: 12px; font-weight: 600; color: var(--text);
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: move; user-select: none;
+    }
+    .su-dialog-close-btn {
+      background: none; border: none; font-size: 16px; line-height: 1;
+      cursor: pointer; color: var(--muted); padding: 1px 5px; border-radius: 2px;
+    }
+    .su-dialog-close-btn:hover { background: #DCDCDC; color: var(--text); }
+    .su-dialog-body {
+      padding: 10px 12px; overflow-y: auto; flex: 1; font-size: 11px;
+    }
   </style>
 </head>
 <body>
@@ -537,6 +560,30 @@
         <div class="menu-dropdown-item disabled"><span>Selecionar nenhum</span><span class="menu-dropdown-shortcut">Ctrl+T</span></div>
         <div class="menu-dropdown-item disabled"><span>Inverter Seleção</span><span class="menu-dropdown-shortcut">Ctrl+Shift+I</span></div>
         <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item" data-action="action-hide"><span>Ocultar</span><span class="menu-dropdown-shortcut">H</span></div>
+        <div class="menu-dropdown-item has-submenu"><span>Reexibir</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="unhide-all"><span>Tudo</span></div>
+            <div class="menu-dropdown-item" data-action="unhide-last"><span>Último</span></div>
+            <div class="menu-dropdown-item" data-action="unhide-selection"><span>Seleção</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item has-submenu"><span>Inverter ao longo de</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="flip-red"><span>Eixo Vermelho</span></div>
+            <div class="menu-dropdown-item" data-action="flip-green"><span>Eixo Verde</span></div>
+            <div class="menu-dropdown-item" data-action="flip-blue"><span>Eixo Azul</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-item has-submenu"><span>Interseccionar faces</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="intersect-model"><span>Com o modelo</span></div>
+            <div class="menu-dropdown-item" data-action="intersect-selection"><span>Com a seleção</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-item" data-action="weld-edges"><span>Soldar arestas</span></div>
+        <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item disabled"><span>Criar componente...</span><span class="menu-dropdown-shortcut">G</span></div>
         <div class="menu-dropdown-item" data-action="rect-as-group" title="Marca a opcao 'Criar como grupo' do painel de Retângulo -- SUGroupCreate/SUEntitiesAddGroup reais"><span>Criar grupo</span></div>
       </div>
@@ -623,7 +670,7 @@
         <div class="menu-dropdown-item disabled"><span>Modelo centralizado</span><span class="menu-dropdown-shortcut">Ctrl+Shift+E</span></div>
         <div class="menu-dropdown-item disabled"><span>Zoom na foto</span></div>
         <div class="menu-dropdown-sep"></div>
-        <div class="menu-dropdown-item disabled"><span>Posicionar a câmera</span></div>
+        <div class="menu-dropdown-item" data-action="camera-position"><span>Posicionar a câmera</span></div>
         <div class="menu-dropdown-item" id="menu-item-walk" data-action="camera-walk" title="Modo Primeira Pessoa: Clique para travar o mouse e use W/A/S/D para andar"><span>Percorrer</span></div>
         <div class="menu-dropdown-item" id="menu-item-look" data-action="camera-look" title="Girar a visão do observador sem mover a posição dos pés"><span>Girar</span></div>
         <div class="menu-dropdown-item disabled"><span>Iglu de imagens</span><span class="menu-dropdown-shortcut">I</span></div>
@@ -633,22 +680,28 @@
       Desenho
       <div class="menu-dropdown">
         <div class="menu-dropdown-item" data-action="tool-line" title="Desenha linhas e arestas interativas com inferência de eixos e snapping (L)"><span>Linhas</span><span class="menu-dropdown-shortcut">L</span></div>
-        <div class="menu-dropdown-item has-submenu disabled"><span>Arcos</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-item has-submenu"><span>Arcos</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="draw-arc"><span>Arco (2 Pontos)</span><span class="menu-dropdown-shortcut">A</span></div>
+          </div>
+        </div>
         <div class="menu-dropdown-item has-submenu"><span>Formas</span><span class="menu-dropdown-shortcut">&#9656;</span>
           <div class="menu-dropdown">
             <div class="menu-dropdown-item" data-action="draw-rectangle" title="Cria uma face retangular real no chao"><span>Retângulo</span><span class="menu-dropdown-shortcut">R</span></div>
             <div class="menu-dropdown-item" data-action="draw-box" title="Cria um Sólido 3D Manifold (Frente 13)"><span>Bloco 3D (Push-Pull)</span><span class="menu-dropdown-shortcut">P</span></div>
-            <div class="menu-dropdown-item" data-action="import-dxf" title="Converte e importa planta DXF para o modelo (Frente 20)"><span>Importar DXF...</span></div>
-            <div class="menu-dropdown-item" data-action="draw-arc" title="Cria um Arco 3D Paramétrico (Frente 32)"><span>Arco 3D (2 Pontos)</span><span class="menu-dropdown-shortcut">A</span></div>
-            <div class="menu-dropdown-item" data-action="draw-terrain" title="Gera Terreno Paramétrico Sandbox (Frente 37)"><span>Terreno Sandbox (Grid 3D)</span></div>
-            <div class="menu-dropdown-item" data-action="import-obj" title="Importa malha Wavefront OBJ para .SKP (Frente 35)"><span>Importar OBJ...</span></div>
             <div class="menu-dropdown-item" data-action="draw-circle" title="Cria um Círculo B-Rep (Frente 14)"><span>Círculo</span><span class="menu-dropdown-shortcut">C</span></div>
             <div class="menu-dropdown-item" data-action="draw-cylinder" title="Cria um Cilindro/Poste 3D (Frente 14)"><span>Cilindro 3D</span></div>
-            <div class="menu-dropdown-item disabled"><span>Retângulo Giratório</span></div>
-            <div class="menu-dropdown-item disabled"><span>Polígono</span></div>
+            <div class="menu-dropdown-item" data-action="draw-hip-roof" title="Telhado 4 Águas Paramétrico"><span>Telhado 4 Águas</span></div>
+            <div class="menu-dropdown-item" data-action="draw-spiral-tube" title="Tobogã Espiral 3D"><span>Tobogã Espiral</span></div>
           </div>
         </div>
-        <div class="menu-dropdown-item has-submenu disabled"><span>Sandbox</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-item has-submenu"><span>Caixa de Areia (Sandbox)</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="draw-terrain"><span>Gerar Terreno Sandbox (Grid TIN)</span></div>
+            <div class="menu-dropdown-item" data-action="import-dxf"><span>Importar Planta CAD DXF...</span></div>
+            <div class="menu-dropdown-item" data-action="import-obj"><span>Importar Malha OBJ...</span></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="menu-top-item" data-menu="ferramentas">
@@ -664,27 +717,28 @@
         <div class="menu-dropdown-item" data-action="tool-translate" title="Equivalente ao botao/atalho W ja existente no painel de edicao"><span>Mover</span><span class="menu-dropdown-shortcut">M</span></div>
         <div class="menu-dropdown-item" data-action="tool-rotate" title="Equivalente ao botao/atalho E ja existente no painel de edicao"><span>Rotar</span><span class="menu-dropdown-shortcut">Q</span></div>
         <div class="menu-dropdown-item" data-action="tool-scale" title="Equivalente ao botao/atalho R ja existente no painel de edicao"><span>Escala</span><span class="menu-dropdown-shortcut">S</span></div>
-        <div class="menu-dropdown-item has-submenu" title="Espelha a peca selecionada no eixo escolhido -- aplica via o mesmo PATCH /scene/instances/{id}/transform ja existente"><span>Virar ao longo de</span><span class="menu-dropdown-shortcut">&#9656;</span>
+        <div class="menu-dropdown-item" data-action="tool-mirror" title="Espelha a geometria com matriz de Householder"><span>Espelhar (Mirror)</span></div>
+        <div class="menu-dropdown-sep"></div>
+        <div class="menu-dropdown-item" data-action="tool-pushpull" title="Extrude uma face para sólido 3D (Push/Pull - Frente 24)"><span>Empurrar/Puxar</span><span class="menu-dropdown-shortcut">P</span></div>
+        <div class="menu-dropdown-item" data-action="tool-follow-me" title="Extrusão 3D ao longo de caminho"><span>Siga-me (Follow Me)</span></div>
+        <div class="menu-dropdown-item" data-action="tool-offset" title="Deslocamento paralelo equidistante de contorno"><span>Equidistância (Offset)</span><span class="menu-dropdown-shortcut">F</span></div>
+        <div class="menu-dropdown-item has-submenu"><span>Ferramentas de Sólidos</span><span class="menu-dropdown-shortcut">&#9656;</span>
           <div class="menu-dropdown">
-            <div class="menu-dropdown-item" data-action="flip-red"><span>Eixo Vermelho</span></div>
-            <div class="menu-dropdown-item" data-action="flip-green"><span>Eixo Verde</span></div>
-            <div class="menu-dropdown-item" data-action="flip-blue"><span>Eixo Azul</span></div>
+            <div class="menu-dropdown-item" data-action="solid-union"><span>União</span></div>
+            <div class="menu-dropdown-item" data-action="solid-subtract"><span>Subtração (Booleana CSG)</span></div>
+            <div class="menu-dropdown-item" data-action="solid-intersect"><span>Interseção</span></div>
+            <div class="menu-dropdown-item" data-action="solid-trim"><span>Aparar</span></div>
+            <div class="menu-dropdown-item" data-action="solid-split"><span>Dividir</span></div>
           </div>
         </div>
         <div class="menu-dropdown-sep"></div>
-        <div class="menu-dropdown-item" data-action="tool-pushpull" title="Extrude uma face para sólido 3D (Push/Pull - Frente 24)"><span>Empurrar/Puxar</span><span class="menu-dropdown-shortcut">P</span></div>
-        <div class="menu-dropdown-item disabled"><span>Siga-me</span></div>
-        <div class="menu-dropdown-item disabled"><span>Equidistância</span><span class="menu-dropdown-shortcut">F</span></div>
-        <div class="menu-dropdown-item disabled"><span>Carapaça externa</span></div>
-        <div class="menu-dropdown-item disabled"><span>Ferramentas de sólidos</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
-        <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item" data-action="tool-measure" title="Dois cliques na cena medem a distancia real (metros) entre os dois pontos, mostrada na barra de status"><span>Fita métrica</span><span class="menu-dropdown-shortcut">T</span></div>
         <div class="menu-dropdown-item" data-action="tool-protractor" title="Tres cliques (vertice + 2 lados) medem o angulo real entre eles, mostrado na barra de status"><span>Transferidor</span></div>
-        <div class="menu-dropdown-item" data-action="tool-axes" title="3 cliques (origem, direcao X, direcao Y) redefinem os eixos locais da peca clicada -- SUAxesCreateCustom/SUComponentDefinitionSetAxes, muda a definicao e afeta todas as instancias dela no arquivo"><span>Eixos</span></div>
+        <div class="menu-dropdown-item" data-action="tool-axes" title="3 cliques (origem, direcao X, direcao Y) redefinem os eixos locais da peca clicada"><span>Eixos</span></div>
         <div class="menu-dropdown-sep"></div>
-        <div class="menu-dropdown-item" data-action="tool-dimension" title="Dois cliques criam uma cota 3D real e persistente (linha + rotulo com a distancia) na cena"><span>Dimensões</span></div>
-        <div class="menu-dropdown-item" data-action="tool-text" title="Arma o modo Texto -- escreva o conteudo na caixa (VCB) que aparece no canto inferior direito e clique no viewport pra posicionar"><span>Texto</span></div>
-        <div class="menu-dropdown-item" data-action="tool-text3d" title="Extrusao real de fonte em malha (THREE.TextGeometry) -- escreva no campo de Texto e clique no botao, depois no viewport"><span>Texto 3D</span></div>
+        <div class="menu-dropdown-item" data-action="tool-dimension" title="Dois cliques criam uma cota 3D real e persistente"><span>Dimensões</span></div>
+        <div class="menu-dropdown-item" data-action="tool-text" title="Arma o modo Texto"><span>Texto</span></div>
+        <div class="menu-dropdown-item" data-action="tool-text3d" title="Extrusao real de fonte em malha (THREE.TextGeometry)"><span>Texto 3D</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item has-submenu" title="Corta de verdade a geometria usando THREE.Plane/clipping nativo do WebGL"><span>Plano de seção</span><span class="menu-dropdown-shortcut">&#9656;</span>
           <div class="menu-dropdown">
@@ -692,9 +746,8 @@
             <div class="menu-dropdown-item" data-action="section-clear"><span>Remover plano de seção</span></div>
           </div>
         </div>
-        <div class="menu-dropdown-item disabled"><span>Interagir</span></div>
         <div class="menu-dropdown-sep"></div>
-        <div class="menu-dropdown-item has-submenu disabled"><span>Sandbox</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-item" data-action="dialog-native-tools"><span>Painel Geral de Ferramentas Nativas...</span></div>
       </div>
     </div>
     <div class="menu-top-item" data-menu="janela">
@@ -702,46 +755,64 @@
       <div class="menu-dropdown">
         <div class="menu-dropdown-item has-submenu"><span>Bandeja padrão</span><span class="menu-dropdown-shortcut">&#9656;</span>
           <div class="menu-dropdown">
-            <div class="menu-dropdown-item disabled"><span>Ocultar bandeja</span></div>
-            <div class="menu-dropdown-item disabled"><span>Renomear bandeja</span></div>
-            <div class="menu-dropdown-item is-checked" id="menu-item-tray-entity-info" data-action="toggle-tray-entity-info" title="Equivalente ao painel Informações da entidade ja existente na Bandeja padrao real"><span><span class="menu-check">&#10003;</span>Informações da entidade</span></div>
-            <div class="menu-dropdown-item disabled" title="Catalogado via Bandeja padrao real (SketchUp 2026) -- biblioteca de materiais prontos por categoria (Argamassa/Asfalto/Azulejos/Cores solidas/...), fora de escopo (exigiria bundlar assets de textura reais da Trimble; aplicar UM material numa peca/face ja e real via Ferramentas > Pintura/Pintura por face)"><span>Materiais</span></div>
-            <div class="menu-dropdown-item disabled" title="Catalogado via Bandeja padrao real (SketchUp 2026) -- biblioteca de componentes pra INSERIR no modelo (abas Selecionar/Editar/Estatisticas, pastas 'Amostra de componentes'/'SMLC'), painel DIFERENTE da arvore de instancias do modelo (essa e 'Estrutura', ja implementada abaixo) -- fora de escopo, exigiria bundlar uma biblioteca de componentes real"><span>Componentes</span></div>
-            <div class="menu-dropdown-item disabled" title="Catalogado via Bandeja padrao real -- biblioteca de estilos visuais predefinidos, fora de escopo (os 5 estilos de face/arestas reais deste app ja ficam em Visualizar > Estilo de face/aresta)"><span>Estilos</span></div>
-            <div class="menu-dropdown-item disabled" title="Catalogado via Bandeja padrao real -- biblioteca de ambientes/fundos predefinidos, fora de escopo"><span>Ambientes</span></div>
-            <div class="menu-dropdown-item is-checked" id="menu-item-tray-tags" data-action="toggle-tray-tags" title="Lista as Etiquetas (Tags/Layers) reais do modelo via SUModelGetLayers/SULayerGetName, com visibilidade real via SULayerGetVisibility/SULayerSetVisibility -- ver REVERSE_ENGINEERING_NOTES.md secao 28.22"><span><span class="menu-check">&#10003;</span>Etiquetas</span></div>
-            <div class="menu-dropdown-item is-checked" id="menu-item-tray-scenes" data-action="toggle-tray-scenes" title="SUModelAddScenes/SUSceneActivate reais -- ver REVERSE_ENGINEERING_NOTES.md secao 28.20"><span><span class="menu-check">&#10003;</span>Cenas</span></div>
-            <div class="menu-dropdown-item" id="menu-item-tray-shadows" data-action="toggle-shadows" title="Mesmo toggle real de Visualizar > Sombras"><span><span class="menu-check">&#10003;</span>Sombras</span></div>
-            <div class="menu-dropdown-item" id="menu-item-tray-fog" data-action="toggle-fog" title="Mesmo toggle real de Visualizar > Névoa"><span><span class="menu-check">&#10003;</span>Névoa</span></div>
-            <div class="menu-dropdown-item disabled"><span>Adaptar à foto</span></div>
-            <div class="menu-dropdown-item disabled"><span>Suavizar arestas</span></div>
-            <div class="menu-dropdown-item disabled"><span>Sobreposições</span></div>
-            <div class="menu-dropdown-item disabled" title="Catalogado via Bandeja padrao real -- painel de ajuda contextual (dicas de uso da ferramenta ativa), nao expoe dado do modelo, fora de escopo"><span>Instrutor</span></div>
-            <div class="menu-dropdown-item is-checked" id="menu-item-tray-outliner" data-action="toggle-tray-outliner" title="CORRIGIDO via engenharia reversa (28.22): o painel real chamado 'Componentes' na Bandeja padrao e a biblioteca de insercao (ver item acima) -- a arvore de instancias do modelo e o painel real 'Estrutura' (Outliner), que e este"><span><span class="menu-check">&#10003;</span>Estrutura</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-tray-entity-info" data-action="toggle-tray-entity-info"><span><span class="menu-check">&#10003;</span>Informações da entidade</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-tray-tags" data-action="toggle-tray-tags"><span><span class="menu-check">&#10003;</span>Etiquetas</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-tray-outliner" data-action="toggle-tray-outliner"><span><span class="menu-check">&#10003;</span>Estrutura</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-tray-scenes" data-action="toggle-tray-scenes"><span><span class="menu-check">&#10003;</span>Cenas</span></div>
+            <div class="menu-dropdown-item is-checked" id="menu-item-tray-styles" data-action="toggle-tray-styles"><span><span class="menu-check">&#10003;</span>Estilos</span></div>
+            <div class="menu-dropdown-item" id="menu-item-tray-shadows" data-action="toggle-shadows"><span><span class="menu-check">&#10003;</span>Sombras</span></div>
+            <div class="menu-dropdown-item" id="menu-item-tray-fog" data-action="toggle-fog"><span><span class="menu-check">&#10003;</span>Névoa</span></div>
           </div>
         </div>
-        <div class="menu-dropdown-item disabled"><span>Gerenciar bandejas...</span></div>
-        <div class="menu-dropdown-item disabled"><span>Nova bandeja...</span></div>
         <div class="menu-dropdown-sep"></div>
-        <div class="menu-dropdown-item" data-action="model-info" title="Mostra as contagens reais do modelo aberto (definicoes/instancias/vertices/triangulos)"><span>Informações do modelo</span></div>
-        <div class="menu-dropdown-item disabled"><span>Preferências</span><span class="menu-dropdown-shortcut">Ctrl+,</span></div>
-        <div class="menu-dropdown-sep"></div>
-        <div class="menu-dropdown-item disabled" title="Depende de conta/API na nuvem da Trimble -- fora de escopo"><span>3D Warehouse...</span></div>
-        <div class="menu-dropdown-sep"></div>
-        <div class="menu-dropdown-item disabled"><span>Barra de colaboração</span></div>
-        <div class="menu-dropdown-item disabled"><span>Opções de componente</span></div>
-        <div class="menu-dropdown-item disabled"><span>Atributos de componente</span></div>
+        <div class="menu-dropdown-item" data-action="model-info"><span>Informações do modelo</span></div>
       </div>
     </div>
     <div class="menu-top-item" data-menu="extensoes">
       Extensões
       <div class="menu-dropdown">
-            <div class="menu-dropdown-item" id="menu-item-extensions" data-action="toggle-extensions"><span><span class="menu-check">&#10003;</span>Extensões</span></div>
-        <div class="menu-dropdown-item disabled"><span>Gerenciador de extensões</span></div>
-        <div class="menu-dropdown-item disabled"><span>Migrar extensões...</span></div>
-        <div class="menu-dropdown-item disabled"><span>Desenvolvedor</span><span class="menu-dropdown-shortcut">&#9656;</span></div>
+        <div class="menu-dropdown-item has-submenu"><span>BIM &amp; Orçamento</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="dialog-bim"><span>Orçamento SINAPI &amp; Quantitativos (BOM)...</span></div>
+            <div class="menu-dropdown-item" data-action="dialog-exploded"><span>Desmontador Parkelô (Vista Explodida)...</span></div>
+            <div class="menu-dropdown-item" data-action="dialog-advanced-engineering"><span>Cronograma 4D &amp; Gestão COBie...</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-item has-submenu"><span>Fabricação &amp; Marcenaria</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="dialog-engineering"><span>Nesting 1D Otimizado (Corte de Barras)...</span></div>
+            <div class="menu-dropdown-item" data-action="export-cutlist"><span>Lista de Corte Parkelô (.xlsx)...</span></div>
+            <div class="menu-dropdown-item" data-action="export-cam-dxf"><span>Exportar Usinagem CNC CAM (.dxf)...</span></div>
+            <div class="menu-dropdown-item" data-action="dialog-assembly"><span>Etapas do Manual de Montagem 3D...</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-item has-submenu"><span>Auditorias &amp; Normas (NBR)</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="dialog-safety"><span>Auditoria NBR 16071 (Playgrounds)...</span></div>
+            <div class="menu-dropdown-item" data-action="export-art-pdf"><span>Emitir Minuta de ART / RRT (.pdf)...</span></div>
+            <div class="menu-dropdown-item" data-action="export-inspection-checklist"><span>Ficha de Inspeção de Campo (.html)...</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-item has-submenu"><span>Engenharia Estrutural &amp; Mecânica</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="dialog-engineering"><span>Cálculo Estrutural NBR 7190 (Madeira)...</span></div>
+            <div class="menu-dropdown-item" data-action="dialog-advanced-engineering"><span>Tombamento, Espessura e Parafusos...</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-item has-submenu"><span>Sustentabilidade &amp; Ambiente</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="dialog-solar"><span>Estudo Solar &amp; Trajetória Heliodon...</span></div>
+            <div class="menu-dropdown-item" data-action="dialog-environment"><span>Carbono Neutro &amp; Simulação de Vento...</span></div>
+          </div>
+        </div>
+        <div class="menu-dropdown-item has-submenu"><span>Infraestrutura &amp; Instalações</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="dialog-infra"><span>Muro de Arrimo, Esgoto e Drenagem...</span></div>
+            <div class="menu-dropdown-item" data-action="dialog-mep"><span>Instalações Prediais MEP &amp; Energia...</span></div>
+          </div>
+        </div>
         <div class="menu-dropdown-sep"></div>
-        <div class="menu-dropdown-item disabled" title="Plugins de terceiros instalados no SketchUp real desta maquina -- nao fazem parte do SketchBuild"><span>(plugins instalados no SketchUp real -- fora de escopo)</span></div>
+        <div class="menu-dropdown-item" data-action="dialog-native-tools"><span>Ferramentas Nativas Oficiais do SketchUp...</span></div>
       </div>
     </div>
     <div class="menu-top-item" data-menu="ajuda">
@@ -968,7 +1039,7 @@
   </div>
 
   <div id="default-tray">
-    <div class="tray-section" id="tray-file">
+    <div class="tray-section" id="tray-file" style="display: none;">
       <div class="tray-header" data-section="tray-file">
         <span class="tray-arrow"></span>
         <span>Arquivo</span>
@@ -1113,13 +1184,113 @@
       </div>
     </div>
 
-    <!-- Opção 2: Desmontador Parkelo & Vista Explodida -->
-    <div class="tray-section" id="tray-exploded">
-      <div class="tray-header" data-section="tray-exploded">
-        <span class="tray-arrow"></span>
-        <span>Desmontador Parkelo (Vista Explodida)</span>
+    <!-- Frente 28: Sombras / Estudo Solar -->
+    <div class="tray-section collapsed" id="tray-solar">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">Sombras</span>
+        <span class="tray-arrow">&#9662;</span>
       </div>
       <div class="tray-body">
+        <div class="row" style="margin-bottom: 6px;">
+          <label style="font-size: 10px; color: var(--muted); display: block; margin-bottom: 2px;">Hora Solar: <span id="solar-hour-val" style="font-weight: bold; color: var(--text);">14:00</span></label>
+          <input id="solar-hour-slider" type="range" min="6" max="18" step="0.25" value="14" style="width: 100%;" />
+        </div>
+        <div class="row" style="margin-bottom: 8px;">
+          <label style="font-size: 10px; color: var(--muted); display: block; margin-bottom: 2px;">Data / Estação:</label>
+          <select id="solar-season-select" style="width: 100%; padding: 4px; font-size: 11px; border: 1px solid var(--border); border-radius: 2px;">
+            <option value="80">21 de Março (Equinócio de Outono)</option>
+            <option value="172">21 de Junho (Solstício de Inverno)</option>
+            <option value="266">23 de Setembro (Equinócio de Primavera)</option>
+            <option value="355">21 de Dezembro (Solstício de Verão)</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 6px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px;">
+            <span>Intensidade Luz (Sol):</span>
+            <span id="shadow-light-val">80%</span>
+          </div>
+          <input id="shadow-light-slider" type="range" min="0" max="100" value="80" style="width: 100%;" />
+          <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 2px;">
+            <span>Sombra Ambiente (Dark):</span>
+            <span id="shadow-dark-val">45%</span>
+          </div>
+          <input id="shadow-dark-slider" type="range" min="0" max="100" value="45" style="width: 100%;" />
+        </div>
+        <div id="solar-info-panel" style="background: #F8F9FA; border: 1px solid var(--border); border-radius: 3px; padding: 6px; font-size: 11px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span style="color: var(--muted);">Altitude Solar:</span>
+            <strong id="solar-alt-val">55.5°</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span style="color: var(--muted);">Azimute Solar:</span>
+            <strong id="solar-az-val">308.3°</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--muted);">Conforto Infantil:</span>
+            <strong id="solar-confort-val" style="color: #C53030;">NBR 16071</strong>
+          </div>
+        </div>
+        <button id="btn-animate-solar" class="panel-btn" style="width: 100%;">Animar Dia Solar (06h - 18h)</button>
+      </div>
+    </div>
+
+    <!-- Frentes 77, 83 e 104: Névoa e Ambiente -->
+    <div class="tray-section collapsed" id="tray-environment">
+      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="tray-title">Névoa</span>
+        <span class="tray-arrow">&#9662;</span>
+      </div>
+      <div class="tray-body">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+            <input type="checkbox" id="env-sky-checkbox" checked />
+            <span>Exibir Céu e Solo (Frente 83)</span>
+          </label>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+            <span>Cor do Céu:</span>
+            <input type="color" id="env-sky-color" value="#b4d5fe" style="width: 40px; height: 22px; padding: 0; border: none; cursor: pointer;" />
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+            <span>Cor do Solo:</span>
+            <input type="color" id="env-ground-color" value="#c2b8a3" style="width: 40px; height: 22px; padding: 0; border: none; cursor: pointer;" />
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; margin-bottom: 6px;">
+              <input type="checkbox" id="env-fog-checkbox" />
+              <span>Névoa Atmosférica (Fog / Frente 77)</span>
+            </label>
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+              <span>Cor da Névoa:</span>
+              <input type="color" id="env-fog-color" value="#dcdde1" style="width: 40px; height: 22px; padding: 0; border: none; cursor: pointer;" />
+            </div>
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px;">
+            <div style="font-size: 11px; font-weight: 600; margin-bottom: 4px;">Céu Físico Rayleigh &amp; Mie (Frente 104)</div>
+            <div class="row" style="margin-bottom: 4px;">
+              <label style="font-size: 10px; color: var(--muted); display: block;">Elevação Solar: <span id="sky-elevation-val">35°</span></label>
+              <input id="sky-elevation-slider" type="range" min="0" max="90" step="1" value="35" style="width: 100%;" />
+            </div>
+            <div class="row" style="margin-bottom: 6px;">
+              <label style="font-size: 10px; color: var(--muted); display: block;">Turbidez Atmosférica: <span id="sky-turbidity-val">3.0</span></label>
+              <input id="sky-turbidity-slider" type="range" min="1" max="15" step="0.5" value="3" style="width: 100%;" />
+            </div>
+            <button id="btn-apply-phys-sky" class="panel-btn" style="width: 100%; background: #2C5282; color: white;">Aplicar Céu Físico Rayleigh</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /default-tray -->
+
+  <!-- DIÁLOGOS FLUTUANTES (ESTILO SKETCHUP HTMLDIALOG) -->
+  <div id="su-dialogs-container">
+
+    <!-- Diálogo: Desmontador Parkelô -->
+    <div class="su-dialog hidden" id="dialog-exploded">
+      <div class="su-dialog-header">
+        <span>Desmontador Parkelô (Vista Explodida)</span>
+        <button class="su-dialog-close-btn" onclick="closeSuDialog('dialog-exploded')">&times;</button>
+      </div>
+      <div class="su-dialog-body">
         <div style="display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 600;">
             <span>Fator de Explosão:</span>
@@ -1136,12 +1307,13 @@
     </div>
 
     <!-- Opção 2: Orçamento BIM & BOM -->
-    <div class="tray-section" id="tray-bim">
-      <div class="tray-header" data-section="tray-bim">
-        <span class="tray-arrow"></span>
-        <span>Orçamento BIM & Quantitativos (BOM)</span>
+    <!-- Diálogo: Orçamento BIM & BOM -->
+    <div class="su-dialog hidden" id="dialog-bim">
+      <div class="su-dialog-header">
+        <span>Orçamento BIM &amp; Quantitativos (BOM)</span>
+        <button class="su-dialog-close-btn" onclick="closeSuDialog('dialog-bim')">&times;</button>
       </div>
-      <div class="tray-body">
+      <div class="su-dialog-body">
         <button id="btn-calc-bim" class="panel-btn" style="width: 100%; margin-bottom: 8px;">Atualizar Orçamento BIM</button>
         <button id="btn-export-cutlist" class="panel-btn" style="width: 100%; margin-bottom: 8px; background: #217346; color: white; border-color: #1e6b40;">Exportar Lista de Corte e Orçamento (.xlsx)</button>
         <div id="bim-summary-panel" style="background: #F8F9FA; border: 1px solid var(--border); border-radius: 3px; padding: 6px; font-size: 11px; margin-bottom: 8px; display: none;">
@@ -1162,19 +1334,19 @@
             <strong id="bim-total-cost">R$ 0,00</strong>
           </div>
         </div>
-        <div id="bim-items-list" style="font-size: 11px; max-height: 180px; overflow-y: auto;">
+        <div id="bim-items-list" style="font-size: 11px; max-height: 220px; overflow-y: auto;">
           <div style="font-style: italic; color: var(--muted);">Clique em Atualizar Orçamento para calcular.</div>
         </div>
       </div>
     </div>
 
-    <!-- Frente 26: Manual de Montagem Passo a Passo -->
-    <div class="tray-section collapsed" id="tray-assembly">
-      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
-        <span class="tray-title">Etapas de Montagem (Manual 3D)</span>
-        <span class="tray-arrow">&#9662;</span>
+    <!-- Diálogo: Manual de Montagem Passo a Passo -->
+    <div class="su-dialog hidden" id="dialog-assembly">
+      <div class="su-dialog-header">
+        <span>Etapas de Montagem (Manual 3D)</span>
+        <button class="su-dialog-close-btn" onclick="closeSuDialog('dialog-assembly')">&times;</button>
       </div>
-      <div class="tray-body">
+      <div class="su-dialog-body">
         <button id="btn-load-assembly" class="panel-btn" style="width: 100%; margin-bottom: 8px;">Carregar Sequência de Montagem</button>
         <div id="assembly-controls-panel" style="display: none;">
           <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
@@ -1190,16 +1362,15 @@
           <button id="btn-export-manual-html" class="panel-btn" style="width: 100%; background: #1B365D; color: white;">Gerar Manual HTML Imprimível</button>
         </div>
       </div>
-    </div><!-- /tray-assembly -->
+    </div>
 
-
-    <!-- Frente 17: Planos e Cortes de Seção (SectionPlane) -->
-    <div class="tray-section collapsed" id="tray-sections">
-      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
-        <span class="tray-title">Planos de Seção &amp; Cortes 3D</span>
-        <span class="tray-arrow">&#9662;</span>
+    <!-- Diálogo: Planos e Cortes de Seção -->
+    <div class="su-dialog hidden" id="dialog-sections">
+      <div class="su-dialog-header">
+        <span>Planos de Seção &amp; Cortes 3D</span>
+        <button class="su-dialog-close-btn" onclick="closeSuDialog('dialog-sections')">&times;</button>
       </div>
-      <div class="tray-body">
+      <div class="su-dialog-body">
         <div class="row" style="margin-bottom: 6px;">
           <label style="font-size: 10px; color: var(--muted); display: block; margin-bottom: 2px;">Altura do Corte (Z): <span id="section-height-val" style="font-weight: bold; color: var(--text);">1.20 m</span></label>
           <input id="section-height-slider" type="range" min="-1" max="4" step="0.05" value="1.20" style="width: 100%;" />
@@ -1210,17 +1381,17 @@
         </div>
         <button id="btn-save-section-skp" class="panel-btn" style="width: 100%;">Gravar Corte no .SKP</button>
       </div>
-    </div><!-- /tray-sections -->
+    </div>
 
 
 
-    <!-- Frentes 36 e 38: Engenharia Estrutural NBR 7190 & Nesting -->
-    <div class="tray-section collapsed" id="tray-engineering">
-      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
-        <span class="tray-title">Engenharia Estrutural &amp; Nesting</span>
-        <span class="tray-arrow">&#9662;</span>
+    <!-- Diálogo: Engenharia Estrutural NBR 7190 & Nesting -->
+    <div class="su-dialog hidden" id="dialog-engineering">
+      <div class="su-dialog-header">
+        <span>Engenharia Estrutural &amp; Nesting</span>
+        <button class="su-dialog-close-btn" onclick="closeSuDialog('dialog-engineering')">&times;</button>
       </div>
-      <div class="tray-body">
+      <div class="su-dialog-body">
         <button id="btn-calc-structural" class="panel-btn" style="width: 100%; margin-bottom: 6px;">Cálculo Estrutural NBR 7190</button>
         <div id="structural-result" style="display: none; padding: 6px; background: #EEF4F9; border: 1px solid #B8D5E5; border-radius: 3px; font-size: 10.5px; margin-bottom: 8px;">
           <div id="structural-status-badge" style="font-weight: bold; color: var(--accent);"></div>
@@ -1267,15 +1438,15 @@
           <div id="nesting-details" style="color: var(--text);"></div>
         </div>
       </div>
-    </div><!-- /tray-engineering -->
+    </div><!-- /dialog-engineering -->
 
-    <!-- Frente 34: Auditoria de Segurança Infantil ABNT NBR 16071 -->
-    <div class="tray-section collapsed" id="tray-safety">
-      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
-        <span class="tray-title">Auditoria de Segurança (NBR 16071)</span>
-        <span class="tray-arrow">&#9662;</span>
+    <!-- Diálogo: Auditoria de Segurança Infantil ABNT NBR 16071 -->
+    <div class="su-dialog hidden" id="dialog-safety">
+      <div class="su-dialog-header">
+        <span>Auditoria de Segurança (NBR 16071)</span>
+        <button class="su-dialog-close-btn" onclick="closeSuDialog('dialog-safety')">&times;</button>
       </div>
-      <div class="tray-body">
+      <div class="su-dialog-body">
         <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">
           Inspeção normativa automática contra aprisionamento de cabeça/pescoço e altura máxima de queda.
         </div>
@@ -1305,65 +1476,15 @@
           <div id="safety-checks-detail" style="color: var(--text);"></div>
         </div>
       </div>
-    </div><!-- /tray-safety -->
+    </div><!-- /dialog-safety -->
 
-    <!-- Frente 28: Estudo Solar e Heliodon -->
-    <div class="tray-section collapsed" id="tray-solar">
-      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
-        <span class="tray-title">Estudo Solar &amp; Sombras (NBR 16071)</span>
-        <span class="tray-arrow">&#9662;</span>
+    <!-- Diálogo: Arquitetura Paramétrica (NBR 9050 & Voronoi) -->
+    <div class="su-dialog hidden" id="dialog-architecture">
+      <div class="su-dialog-header">
+        <span>Arquitetura Paramétrica (NBR 9050 &amp; Voronoi)</span>
+        <button class="su-dialog-close-btn" onclick="closeSuDialog('dialog-architecture')">&times;</button>
       </div>
-      <div class="tray-body">
-        <div class="row" style="margin-bottom: 6px;">
-          <label style="font-size: 10px; color: var(--muted); display: block; margin-bottom: 2px;">Hora Solar: <span id="solar-hour-val" style="font-weight: bold; color: var(--text);">14:00</span></label>
-          <input id="solar-hour-slider" type="range" min="6" max="18" step="0.25" value="14" style="width: 100%;" />
-        </div>
-        <div class="row" style="margin-bottom: 8px;">
-          <label style="font-size: 10px; color: var(--muted); display: block; margin-bottom: 2px;">Data / Estação:</label>
-          <select id="solar-season-select" style="width: 100%; padding: 4px; font-size: 11px; border: 1px solid var(--border); border-radius: 2px;">
-            <option value="80">21 de Março (Equinócio de Outono)</option>
-            <option value="172">21 de Junho (Solstício de Inverno)</option>
-            <option value="266">23 de Setembro (Equinócio de Primavera)</option>
-            <option value="355">21 de Dezembro (Solstício de Verão)</option>
-          </select>
-        </div>
-        <div style="margin-bottom: 6px; display: flex; flex-direction: column; gap: 4px;">
-          <div style="display: flex; justify-content: space-between; font-size: 11px;">
-            <span>Intensidade Luz (Sol):</span>
-            <span id="shadow-light-val">80%</span>
-          </div>
-          <input id="shadow-light-slider" type="range" min="0" max="100" value="80" style="width: 100%;" />
-          <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 2px;">
-            <span>Sombra Ambiente (Dark):</span>
-            <span id="shadow-dark-val">45%</span>
-          </div>
-          <input id="shadow-dark-slider" type="range" min="0" max="100" value="45" style="width: 100%;" />
-        </div>
-        <div id="solar-info-panel" style="background: #F8F9FA; border: 1px solid var(--border); border-radius: 3px; padding: 6px; font-size: 11px; margin-bottom: 8px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-            <span style="color: var(--muted);">Altitude Solar:</span>
-            <strong id="solar-alt-val">55.5°</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-            <span style="color: var(--muted);">Azimute Solar:</span>
-            <strong id="solar-az-val">308.3°</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: var(--muted);">Conforto Infantil:</span>
-            <strong id="solar-confort-val" style="color: #C53030;">NBR 16071</strong>
-          </div>
-        </div>
-        <button id="btn-animate-solar" class="panel-btn" style="width: 100%;">Animar Dia Solar (06h - 18h)</button>
-      </div>
-    </div><!-- /tray-solar -->
-
-    <!-- Frentes 96, 101 e 102: Arquitetura Paramétrica (NBR 9050 & Voronoi) -->
-    <div class="tray-section collapsed" id="tray-architecture">
-      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
-        <span class="tray-title">Arquitetura Paramétrica (NBR 9050)</span>
-        <span class="tray-arrow">&#9662;</span>
-      </div>
-      <div class="tray-body">
+      <div class="su-dialog-body">
         <div style="font-size: 11px; font-weight: 600; color: #1B365D; margin-bottom: 4px;">Escada Paramétrica Blondel (NBR 9050)</div>
         <div class="row" style="display: flex; gap: 4px; margin-bottom: 6px;">
           <input id="stair-height-input" class="dim-input" type="number" step="0.1" min="0.5" value="2.80" style="flex: 1;" title="Desnível Total (m)" placeholder="Altura (m)" />
@@ -1386,61 +1507,15 @@
           <button id="btn-create-voronoi" class="panel-btn" style="background: #805AD5; color: white;">Gerar Voronoi</button>
         </div>
       </div>
-    </div><!-- /tray-architecture -->
+    </div><!-- /dialog-architecture -->
 
-    <!-- Frentes 77, 83 e 104: Ambiente, Céu Físico & Névoa -->
-    <div class="tray-section collapsed" id="tray-environment">
-      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
-        <span class="tray-title">Ambiente, Céu Físico &amp; Névoa</span>
-        <span class="tray-arrow">&#9662;</span>
+    <!-- Diálogo: Engenharia Especializada, MEP, Conforto e BIM 5D -->
+    <div class="su-dialog hidden" id="dialog-advanced-engineering">
+      <div class="su-dialog-header">
+        <span>Engenharia Especializada &amp; MEP</span>
+        <button class="su-dialog-close-btn" onclick="closeSuDialog('dialog-advanced-engineering')">&times;</button>
       </div>
-      <div class="tray-body">
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
-            <input type="checkbox" id="env-sky-checkbox" checked />
-            <span>Exibir Céu e Solo (Frente 83)</span>
-          </label>
-          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
-            <span>Cor do Céu:</span>
-            <input type="color" id="env-sky-color" value="#b4d5fe" style="width: 40px; height: 22px; padding: 0; border: none; cursor: pointer;" />
-          </div>
-          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
-            <span>Cor do Solo:</span>
-            <input type="color" id="env-ground-color" value="#c2b8a3" style="width: 40px; height: 22px; padding: 0; border: none; cursor: pointer;" />
-          </div>
-          <div style="border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px;">
-            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; margin-bottom: 6px;">
-              <input type="checkbox" id="env-fog-checkbox" />
-              <span>Névoa Atmosférica (Fog / Frente 77)</span>
-            </label>
-            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
-              <span>Cor da Névoa:</span>
-              <input type="color" id="env-fog-color" value="#dcdde1" style="width: 40px; height: 22px; padding: 0; border: none; cursor: pointer;" />
-            </div>
-          </div>
-          <div style="border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px;">
-            <div style="font-size: 11px; font-weight: 600; margin-bottom: 4px;">Céu Físico Rayleigh &amp; Mie (Frente 104)</div>
-            <div class="row" style="margin-bottom: 4px;">
-              <label style="font-size: 10px; color: var(--muted); display: block;">Elevação Solar: <span id="sky-elevation-val">35°</span></label>
-              <input id="sky-elevation-slider" type="range" min="0" max="90" step="1" value="35" style="width: 100%;" />
-            </div>
-            <div class="row" style="margin-bottom: 6px;">
-              <label style="font-size: 10px; color: var(--muted); display: block;">Turbidez Atmosférica: <span id="sky-turbidity-val">3.0</span></label>
-              <input id="sky-turbidity-slider" type="range" min="1" max="15" step="0.5" value="3" style="width: 100%;" />
-            </div>
-            <button id="btn-apply-phys-sky" class="panel-btn" style="width: 100%; background: #2C5282; color: white;">Aplicar Céu Físico Rayleigh</button>
-          </div>
-        </div>
-      </div>
-    </div><!-- /tray-environment -->
-
-    <!-- Frentes 106 a 115: Engenharia Especializada, MEP, Conforto e BIM 5D -->
-    <div class="tray-section collapsed" id="tray-advanced-engineering">
-      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
-        <span class="tray-title">Engenharia Especializada &amp; MEP</span>
-        <span class="tray-arrow">&#9662;</span>
-      </div>
-      <div class="tray-body">
+      <div class="su-dialog-body">
         <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">
           Física Newtoniana, Fatiamento 3D FDM, Geotecnia NBR 11682, MEP NBR 5626/5410, Conforto NBR 15220/10152/15215, Aço NBR 8800 e BIM 5D SINAPI.
         </div>
@@ -1515,15 +1590,15 @@
           <div id="sinapi-details" style="color: var(--text);"></div>
         </div>
       </div>
-    </div><!-- /tray-advanced-engineering -->
+    </div><!-- /dialog-advanced-engineering -->
 
-    <!-- Frentes 116 a 130: Infraestrutura, Geotecnia e Estruturas Avançadas -->
-    <div class="tray-section collapsed" id="tray-infra-structures">
-      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
-        <span class="tray-title">Infraestrutura &amp; Estruturas Avançadas</span>
-        <span class="tray-arrow">&#9662;</span>
+    <!-- Diálogo: Infraestrutura & Estruturas Avançadas -->
+    <div class="su-dialog hidden" id="dialog-infra">
+      <div class="su-dialog-header">
+        <span>Infraestrutura &amp; Estruturas Avançadas</span>
+        <button class="su-dialog-close-btn" onclick="closeSuDialog('dialog-infra')">&times;</button>
       </div>
-      <div class="tray-body">
+      <div class="su-dialog-body">
         <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">
           Drenagem NBR 10844, Pavimento NBR 16416, Esgoto NBR 9649, Brückner, Taludes Bishop, Estacas NBR 6122, Sapatas, Gabião, Fôrmas, Concreto ELU NBR 6118, Lajes Nervuradas, Protensão, Glulam e Treliças 3D.
         </div>
@@ -1547,15 +1622,15 @@
           <div id="infra-details" style="color: var(--text);"></div>
         </div>
       </div>
-    </div><!-- /tray-infra-structures -->
+    </div><!-- /dialog-infra -->
 
-    <!-- Frentes 131 a 145: Instalações, Energia, Gestão BIM 4D/7D e Sustentabilidade -->
-    <div class="tray-section collapsed" id="tray-mep-bim-sustainability">
-      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
-        <span class="tray-title">MEP, Energia, BIM 4D/7D &amp; Sustentabilidade</span>
-        <span class="tray-arrow">&#9662;</span>
+    <!-- Diálogo: MEP, Energia, BIM 4D/7D & Sustentabilidade -->
+    <div class="su-dialog hidden" id="dialog-mep">
+      <div class="su-dialog-header">
+        <span>MEP, Energia, BIM 4D/7D &amp; Sustentabilidade</span>
+        <button class="su-dialog-close-btn" onclick="closeSuDialog('dialog-mep')">&times;</button>
       </div>
-      <div class="tray-body">
+      <div class="su-dialog-body">
         <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">
           Gás NBR 15526, SPDA NBR 5419, Rota de Fuga NBR 9077, Carga Térmica HVAC, Iluminação NBR 8995, Solar FV, Ventilação Natural, Esquadrias, Fachada Ventilada, CFD 2D, BIM 4D, BIM 7D COBie, Canteiro NR-18, Acessibilidade NBR 9050 e ACV ISO 14040.
         </div>
@@ -1579,15 +1654,15 @@
           <div id="mep-bim-details" style="color: var(--text);"></div>
         </div>
       </div>
-    </div><!-- /tray-mep-bim-sustainability -->
+    </div><!-- /dialog-mep -->
 
-    <!-- Opção A: Ferramentas Nativas Oficiais do SketchUp -->
-    <div class="tray-section" id="tray-sketchup-native-tools">
-      <div class="tray-header" onclick="this.parentElement.classList.toggle('collapsed')">
-        <span class="tray-title" style="color: #C53030; font-weight: bold;">⭐ Ferramentas Nativas Oficiais do SketchUp</span>
-        <span class="tray-arrow">&#9662;</span>
+    <!-- Diálogo: Ferramentas Nativas Oficiais do SketchUp -->
+    <div class="su-dialog hidden" id="dialog-native-tools">
+      <div class="su-dialog-header">
+        <span>⭐ Ferramentas Nativas Oficiais do SketchUp</span>
+        <button class="su-dialog-close-btn" onclick="closeSuDialog('dialog-native-tools')">&times;</button>
       </div>
-      <div class="tray-body">
+      <div class="su-dialog-body">
         <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px;">
           Navegação 1ª Pessoa (Walk/Look Around/Position Camera), Caixa de Areia Oficial (Smoove, Stamp, Drape, Flip Edge), Adequar Foto (Match Photo), Marcas d'Água nos 9 Pontos, Interagir com Componentes Dinâmicos (Trimble DC Click) e Solid Tools Oficiais (Trim/Split/Union/Subtract/Intersect).
         </div>
@@ -1648,9 +1723,8 @@
           <div id="native-tools-details" style="color: var(--text);"></div>
         </div>
       </div>
-    </div><!-- /tray-sketchup-native-tools -->
-
-  </div>
+    </div><!-- /dialog-native-tools -->
+  </div><!-- /su-dialogs-container -->
 
   <div id="status">Clique em "Escolher arquivo..." pra abrir pelo seletor do Windows, ou cole o caminho completo e clique em Abrir.</div>
 
@@ -1662,6 +1736,6 @@
     }
   }
   </script>
-  <script type="module" src="src/main.js?v=20261031_02"></script>
+  <script type="module" src="src/main.js?v=20261031_03"></script>
 </body>
 </html>

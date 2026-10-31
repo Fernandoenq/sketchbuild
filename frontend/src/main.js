@@ -2453,7 +2453,146 @@ const MENU_ACTIONS = {
     setToolMode("dxf");
     dxfPathInputEl?.focus();
   },
+
+  // Diálogos Flutuantes Estilo SketchUp HtmlDialog
+  "dialog-bim": () => openSuDialog("dialog-bim"),
+  "dialog-exploded": () => openSuDialog("dialog-exploded"),
+  "dialog-assembly": () => openSuDialog("dialog-assembly"),
+  "dialog-sections": () => openSuDialog("dialog-sections"),
+  "dialog-engineering": () => openSuDialog("dialog-engineering"),
+  "dialog-safety": () => openSuDialog("dialog-safety"),
+  "dialog-architecture": () => openSuDialog("dialog-architecture"),
+  "dialog-advanced-engineering": () => openSuDialog("dialog-advanced-engineering"),
+  "dialog-infra": () => openSuDialog("dialog-infra"),
+  "dialog-mep": () => openSuDialog("dialog-mep"),
+  "dialog-native-tools": () => openSuDialog("dialog-native-tools"),
+  "dialog-solar": () => toggleTraySection("tray-solar", "menu-item-tray-shadows"),
+  "dialog-fog": () => toggleTraySection("tray-environment", "menu-item-tray-fog"),
+
+  // Ações de Ocultar / Reexibir Oficiais (Menu Editar)
+  "action-hide": () => handleHideSelected(),
+  "unhide-all": () => handleUnhideAll(),
+  "unhide-last": () => handleUnhideLast(),
+  "unhide-selection": () => handleUnhideLast(),
+
+  // Transformações e Ferramentas Nativas Oficiais
+  "intersect-model": () => document.getElementById("btn-native-intersect-faces")?.click(),
+  "intersect-selection": () => document.getElementById("btn-native-intersect-faces")?.click(),
+  "weld-edges": () => document.getElementById("btn-native-weld-edges")?.click(),
+  "camera-position": () => document.getElementById("btn-native-position-cam")?.click(),
+  "tool-solid-union": () => document.getElementById("btn-native-solid-tools")?.click(),
+  "tool-solid-subtract": () => document.getElementById("btn-native-solid-tools")?.click(),
+  "tool-solid-intersect": () => document.getElementById("btn-native-solid-tools")?.click(),
+  "tool-solid-trim": () => document.getElementById("btn-native-solid-tools")?.click(),
+  "tool-solid-split": () => document.getElementById("btn-native-solid-tools")?.click(),
+  "tool-offset": () => setToolMode("rect"),
+
+  // Bandeja Padrão (Menu Janela > Bandeja Padrão)
+  "toggle-tray-styles": () => toggleTraySection("tray-styles", "menu-item-tray-styles"),
+  "toggle-tray-shadows": () => toggleTraySection("tray-solar", "menu-item-tray-shadows"),
+  "toggle-tray-fog": () => toggleTraySection("tray-environment", "menu-item-tray-fog"),
 };
+
+// -- Gerenciamento de Entidades Ocultas (Editar > Ocultar / Reexibir) --------
+const hiddenMeshes = [];
+
+function handleHideSelected() {
+  if (!selectedMesh) {
+    setStatus("Nenhuma entidade selecionada para ocultar.");
+    return;
+  }
+  const meshToHide = selectedMesh;
+  meshToHide.visible = false;
+  hiddenMeshes.push(meshToHide);
+  deselectMesh();
+  setStatus(`Entidade ocultada (${meshToHide.name || "objeto"}).`);
+}
+
+function handleUnhideLast() {
+  if (hiddenMeshes.length === 0) {
+    setStatus("Nenhuma entidade oculta para reexibir.");
+    return;
+  }
+  const mesh = hiddenMeshes.pop();
+  if (mesh) {
+    mesh.visible = true;
+    selectMesh(mesh);
+    setStatus(`Entidade reexibida (${mesh.name || "objeto"}).`);
+  }
+}
+
+function handleUnhideAll() {
+  while (hiddenMeshes.length > 0) {
+    const mesh = hiddenMeshes.pop();
+    if (mesh) mesh.visible = true;
+  }
+  if (currentGroup) {
+    currentGroup.traverse((obj) => {
+      if (obj.isMesh) obj.visible = true;
+    });
+  }
+  setStatus("Todas as entidades ocultas foram reexibidas.");
+}
+
+// -- Gerenciamento de Diálogos Flutuantes Estilo SketchUp HtmlDialog --------
+export function openSuDialog(dialogId) {
+  const dlg = document.getElementById(dialogId);
+  if (!dlg) return;
+  dlg.classList.remove("hidden");
+  // Traz o diálogo ativo para o topo do z-index
+  const allDlgs = document.querySelectorAll(".su-dialog");
+  allDlgs.forEach((d) => (d.style.zIndex = "45"));
+  dlg.style.zIndex = "50";
+}
+
+export function closeSuDialog(dialogId) {
+  const dlg = document.getElementById(dialogId);
+  if (dlg) dlg.classList.add("hidden");
+}
+
+window.openSuDialog = openSuDialog;
+window.closeSuDialog = closeSuDialog;
+
+function initSuDialogs() {
+  document.querySelectorAll(".su-dialog").forEach((dlg) => {
+    const header = dlg.querySelector(".su-dialog-header");
+    if (!header) return;
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let initialLeft = 0, initialTop = 0;
+
+    header.addEventListener("mousedown", (e) => {
+      if (e.target.closest(".su-dialog-close-btn")) return;
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = dlg.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+      
+      const allDlgs = document.querySelectorAll(".su-dialog");
+      allDlgs.forEach((d) => (d.style.zIndex = "45"));
+      dlg.style.zIndex = "50";
+
+      const onMouseMove = (moveEvt) => {
+        if (!isDragging) return;
+        const dx = moveEvt.clientX - startX;
+        const dy = moveEvt.clientY - startY;
+        dlg.style.left = `${Math.max(10, initialLeft + dx)}px`;
+        dlg.style.top = `${Math.max(40, initialTop + dy)}px`;
+      };
+
+      const onMouseUp = () => {
+        isDragging = false;
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+      };
+
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    });
+  });
+}
 
 /** "Janela > Bandeja padrão > Informações da entidade/Componentes" --
  * equivalente real de mostrar/ocultar um painel da Bandeja padrao (ver
@@ -6862,3 +7001,6 @@ document.getElementById("btn-native-weld-edges")?.addEventListener("click", asyn
     setStatus(`Erro ao soldar arestas: ${err.message}`, true);
   }
 });
+
+// Inicialização das janelas de diálogo flutuantes (.su-dialog)
+initSuDialogs();
