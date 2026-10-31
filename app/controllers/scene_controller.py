@@ -130,6 +130,16 @@ from app.schemas.scene import (
     UndoRedoRecordRequest,
     UndoRedoActionResponse,
     UndoRedoStatusResponse,
+    SubDSubdivisionRequest,
+    SubDMeshResponse,
+    SectionDimensionRequest,
+    SectionDimensionResponse,
+    PanoramaSphericalRequest,
+    PanoramaSphericalResponse,
+    ClashDetectionRequest,
+    ClashDetectionResponse,
+    MassPropertiesRequest,
+    MassPropertiesResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1640,5 +1650,67 @@ class SceneController:
         try:
             res = await self._service.get_undo_redo_history()
             return UndoRedoStatusResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def subdivide_quad_mesh(self, body: SubDSubdivisionRequest) -> SubDMeshResponse:
+        """Aplica subdivisão Catmull-Clark sobre malha de controle QuadFace (Frente 86)."""
+        try:
+            res = await self._service.subdivide_quad_mesh(
+                body.vertices,
+                body.faces,
+                body.iterations
+            )
+            return SubDMeshResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def generate_auto_section_dimensions(self, body: SectionDimensionRequest) -> SectionDimensionResponse:
+        """Gera cotas ortogonais e marcas de nível NBR 6492 em cortes (Frente 87)."""
+        try:
+            res = await self._service.generate_auto_section_dimensions(
+                body.cut_loops_3d,
+                body.offset_m,
+                body.unit,
+                body.precision
+            )
+            return SectionDimensionResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_spherical_panorama(self, body: PanoramaSphericalRequest) -> PanoramaSphericalResponse:
+        """Calcula cubemap de 6 câmeras e malha de raios equirretangulares 360° (Frente 88)."""
+        try:
+            res = await self._service.calculate_spherical_panorama(
+                body.eye_position,
+                body.horizontal_samples,
+                body.vertical_samples,
+                body.sphere_radius_m
+            )
+            return PanoramaSphericalResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def detect_component_clashes(self, body: ClashDetectionRequest) -> ClashDetectionResponse:
+        """Detecta colisões físicas (Hard Clash) e folgas (Clearance Clash) entre componentes (Frente 89)."""
+        try:
+            res = await self._service.detect_component_clashes(
+                body.components,
+                body.clearance_tolerance_m
+            )
+            return ClashDetectionResponse(**res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def calculate_mesh_mass_properties(self, body: MassPropertiesRequest) -> MassPropertiesResponse:
+        """Calcula volume, massa, Centro de Gravidade e inércia de malha B-Rep fechada (Frente 90)."""
+        try:
+            res = await self._service.calculate_mesh_mass_properties(
+                body.vertices,
+                body.triangles,
+                body.material_type,
+                body.custom_density_kg_m3
+            )
+            return MassPropertiesResponse(**res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

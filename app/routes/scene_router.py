@@ -121,6 +121,16 @@ from app.schemas.scene import (
     UndoRedoRecordRequest,
     UndoRedoActionResponse,
     UndoRedoStatusResponse,
+    SubDSubdivisionRequest,
+    SubDMeshResponse,
+    SectionDimensionRequest,
+    SectionDimensionResponse,
+    PanoramaSphericalRequest,
+    PanoramaSphericalResponse,
+    ClashDetectionRequest,
+    ClashDetectionResponse,
+    MassPropertiesRequest,
+    MassPropertiesResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1695,3 +1705,63 @@ async def get_undo_redo_history(
     controller: SceneController = Depends(get_controller),
 ) -> UndoRedoStatusResponse:
     return await controller.get_undo_redo_history()
+
+
+@router.post(
+    "/geometry/subd",
+    response_model=SubDMeshResponse,
+    summary="Aplica subdivisão Catmull-Clark sobre malha de controle QuadFace (Frente 86)",
+)
+async def subdivide_quad_mesh(
+    body: SubDSubdivisionRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SubDMeshResponse:
+    return await controller.subdivide_quad_mesh(body)
+
+
+@router.post(
+    "/section-planes/dimensions",
+    response_model=SectionDimensionResponse,
+    summary="Gera cotas ortogonais e marcas de nível NBR 6492 em cortes (Frente 87)",
+)
+async def generate_auto_section_dimensions(
+    body: SectionDimensionRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SectionDimensionResponse:
+    return await controller.generate_auto_section_dimensions(body)
+
+
+@router.post(
+    "/camera/panorama-360",
+    response_model=PanoramaSphericalResponse,
+    summary="Calcula cubemap de 6 câmeras e malha de raios equirretangulares 360° (Frente 88)",
+)
+async def calculate_spherical_panorama(
+    body: PanoramaSphericalRequest,
+    controller: SceneController = Depends(get_controller),
+) -> PanoramaSphericalResponse:
+    return await controller.calculate_spherical_panorama(body)
+
+
+@router.post(
+    "/clash/detect",
+    response_model=ClashDetectionResponse,
+    summary="Detecta colisões físicas (Hard Clash) e folgas (Clearance Clash) entre componentes (Frente 89)",
+)
+async def detect_component_clashes(
+    body: ClashDetectionRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ClashDetectionResponse:
+    return await controller.detect_component_clashes(body)
+
+
+@router.post(
+    "/engineering/mass-properties",
+    response_model=MassPropertiesResponse,
+    summary="Calcula volume, massa, Centro de Gravidade e inércia de malha B-Rep fechada (Frente 90)",
+)
+async def calculate_mesh_mass_properties(
+    body: MassPropertiesRequest,
+    controller: SceneController = Depends(get_controller),
+) -> MassPropertiesResponse:
+    return await controller.calculate_mesh_mass_properties(body)
