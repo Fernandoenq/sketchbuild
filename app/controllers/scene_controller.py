@@ -439,6 +439,12 @@ class SceneController:
             ) from e
         return SaveSceneResponse(saved=True, path=saved_path)
 
+    async def get_skp_bytes(self) -> bytes:
+        try:
+            return await self._service.get_skp_bytes()
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+
     async def duplicate_instance(
         self,
         instance_id: str,

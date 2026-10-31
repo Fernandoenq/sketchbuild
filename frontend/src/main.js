@@ -114,6 +114,7 @@ import {
   calculateWindPressure,
   configureAtmosphericSky,
   exportIfc4Bim,
+  downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
 import {
@@ -815,6 +816,43 @@ window.addEventListener("keydown", (event) => {
     handleRedo();
     return;
   }
+  if ((event.ctrlKey || event.metaKey) && (event.key === "c" || event.key === "C")) {
+    event.preventDefault();
+    handleCopy();
+    return;
+  }
+  if ((event.ctrlKey || event.metaKey) && (event.key === "x" || event.key === "X")) {
+    event.preventDefault();
+    handleCut();
+    return;
+  }
+  if ((event.ctrlKey || event.metaKey) && (event.key === "v" || event.key === "V")) {
+    event.preventDefault();
+    handlePaste();
+    return;
+  }
+  if ((event.ctrlKey || event.metaKey) && (event.key === "s" || event.key === "S")) {
+    event.preventDefault();
+    handleSave();
+    return;
+  }
+  if ((event.ctrlKey || event.metaKey) && (event.key === "o" || event.key === "O")) {
+    event.preventDefault();
+    handleChooseFile();
+    return;
+  }
+  if ((event.ctrlKey || event.metaKey) && (event.key === "d" || event.key === "D")) {
+    event.preventDefault();
+    handleDuplicateSelected();
+    return;
+  }
+  if (event.key === "Delete" || event.key === "Backspace") {
+    if (selectedMesh) {
+      event.preventDefault();
+      handleDeleteSelected();
+      return;
+    }
+  }
 
   if (event.key === "w" || event.key === "W") setMode("translate");
   else if (event.key === "e" || event.key === "E") setMode("rotate");
@@ -1306,6 +1344,34 @@ async function handleNewFromTemplate(templateId) {
   }
 }
 
+let currentFileHandle = null;
+let hasUnsavedChanges = false;
+
+async function handleChooseFile() {
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{
+          description: "Modelos SketchUp (*.skp)",
+          accept: { "application/vnd.sketchup.skp": [".skp"] }
+        }],
+        multiple: false
+      });
+      if (handle) {
+        currentFileHandle = handle;
+        const file = await handle.getFile();
+        await handleOpenUpload(file);
+        setStatus(`Arquivo "${file.name}" aberto com escrita in-place (File System Access API). Ctrl+S salvará direto.`);
+        return;
+      }
+    } catch (err) {
+      if (err.name === "AbortError") return;
+      console.warn("File System Access API falhou, caindo para input tradicional:", err);
+    }
+  }
+  filePickerInputEl.click();
+}
+
 /** `overwriteConfirmed`: true so quando esta chamada e um retry depois do
  * usuario confirmar no window.confirm() abaixo -- nunca passar `true` na
  * chamada inicial (ver trava em app/repositories/skp_engine_repository.py
@@ -1314,10 +1380,59 @@ async function handleNewFromTemplate(templateId) {
 async function handleSave(overwriteConfirmed = false) {
   const path = savePathInputEl.value.trim();
   saveBtnEl.disabled = true;
-  setStatus(path ? `Salvando em ${path}...` : "Salvando (sobrescrevendo o arquivo aberto)...");
+  setStatus(path ? `Salvando em ${path}...` : "Salvando...");
 
+  // 1. Prioridade Web Moderna: Se temos um FileSystemFileHandle (in-place) e nenhum path manual digitado
+  if (currentFileHandle && !path) {
+    try {
+      setStatus(`Gravando in-place em "${currentFileHandle.name}" via File System Access API...`);
+      const blob = await downloadCurrentSkpBytes();
+      const writable = await currentFileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      hasUnsavedChanges = false;
+      setStatus(`Salvo in-place com sucesso em "${currentFileHandle.name}" (disco local)!`);
+      saveBtnEl.disabled = false;
+      return;
+    } catch (fsaErr) {
+      console.warn("Erro ao salvar via FSA handle:", fsaErr);
+    }
+  }
+
+  // 2. Se for modelo criado do zero na web sem path no input e o browser suportar showSaveFilePicker
+  if (!path && !currentFileHandle && window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: "modelo.skp",
+        types: [{
+          description: "Modelo SketchUp (*.skp)",
+          accept: { "application/vnd.sketchup.skp": [".skp"] }
+        }]
+      });
+      if (handle) {
+        currentFileHandle = handle;
+        const blob = await downloadCurrentSkpBytes();
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        hasUnsavedChanges = false;
+        setStatus(`Modelo gravado com sucesso em "${handle.name}"!`);
+        saveBtnEl.disabled = false;
+        return;
+      }
+    } catch (saveErr) {
+      if (saveErr.name === "AbortError") {
+        setStatus("Salvar cancelado.");
+        saveBtnEl.disabled = false;
+        return;
+      }
+    }
+  }
+
+  // 3. Fallback: Gravação local via backend (para sessões com model_path existente ou caminho informado)
   try {
     const result = await saveScene(path, overwriteConfirmed);
+    hasUnsavedChanges = false;
     setStatus(`Salvo em ${result.path}.`);
   } catch (err) {
     if (
@@ -2027,7 +2142,7 @@ sceneCreateBtnEl.addEventListener("click", handleCreateScene);
 // indisponiveis -- nunca escondidos, so inativos.
 const MENU_ACTIONS = {
   new: () => welcomeScreenEl.classList.remove("hidden"),
-  open: () => filePickerInputEl.click(),
+  open: () => handleChooseFile(),
   "open-binary": () => handleOpenBinary(),
   save: () => handleSave(),
   "save-as": () => savePathInputEl.focus(),
@@ -2035,6 +2150,13 @@ const MENU_ACTIONS = {
   "export-glb": () => handleExportGlb(),
   "export-ifc": () => handleExportIfc(),
   delete: () => handleDeleteSelected(),
+  "action-undo": () => handleUndo(),
+  "action-redo": () => handleRedo(),
+  "action-cut": () => handleCut(),
+  "action-copy": () => handleCopy(),
+  "action-paste": () => handlePaste(),
+  "camera-walk": () => handleStartWalk(),
+  "camera-look": () => handleStartWalk(),
   "toggle-axes": () => setAxesVisible(!axesVisible),
   "toggle-shadows": () => setShadowsEnabled(!shadowsEnabled),
   "toggle-fog": () => setFogEnabled(!fogEnabled),
@@ -2224,8 +2346,8 @@ pathInputEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter") handleOpen();
 });
 
-chooseFileBtnEl.addEventListener("click", () => filePickerInputEl.click());
-welcomeChooseFileBtnEl.addEventListener("click", () => filePickerInputEl.click());
+chooseFileBtnEl.addEventListener("click", () => handleChooseFile());
+welcomeChooseFileBtnEl.addEventListener("click", () => handleChooseFile());
 filePickerInputEl.addEventListener("change", () => {
   const file = filePickerInputEl.files[0];
   filePickerInputEl.value = ""; // permite escolher o mesmo arquivo de novo depois
@@ -2262,7 +2384,11 @@ function updateBillboards() {
 
 function animate() {
   requestAnimationFrame(animate);
-  controls.update();
+  if (isWalkMode) {
+    updateWalkMovement();
+  } else {
+    controls.update();
+  }
   updateBillboards();
   renderer.render(scene, camera);
 }
@@ -4241,4 +4367,172 @@ document.getElementById("export-ifc4-btn")?.addEventListener("click", async () =
     setStatus(`Erro ao exportar IFC4: ${err.message}`, true);
   }
 });
+
+// ============================================================================
+// Adaptações Web: Pointer Lock, Clipboard 3D, Context Recovery e Unsaved Guard
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// A. Navegação em Primeira Pessoa (Pointer Lock API / Walkthrough)
+// ----------------------------------------------------------------------------
+let isWalkMode = false;
+const walkEuler = new THREE.Euler(0, 0, 0, "YXZ");
+const walkKeys = { forward: false, backward: false, left: false, right: false };
+const eyeHeightM = 1.70;
+
+function updateWalkMovement() {
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  forward.y = 0;
+  forward.normalize();
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+  right.y = 0;
+  right.normalize();
+  const walkSpeed = 0.12;
+
+  if (walkKeys.forward) camera.position.addScaledVector(forward, walkSpeed);
+  if (walkKeys.backward) camera.position.addScaledVector(forward, -walkSpeed);
+  if (walkKeys.right) camera.position.addScaledVector(right, walkSpeed);
+  if (walkKeys.left) camera.position.addScaledVector(right, -walkSpeed);
+
+  camera.position.y = eyeHeightM;
+  controls.target.copy(camera.position).add(forward);
+}
+
+function handleStartWalk() {
+  if (isWalkMode) {
+    document.exitPointerLock?.();
+    return;
+  }
+  setStatus("Modo Percorrer (Walk) ativado. Use W/A/S/D ou Setas para andar, Mouse para olhar, Esc para sair.");
+  walkEuler.setFromQuaternion(camera.quaternion);
+  renderer.domElement.requestPointerLock?.();
+}
+
+document.addEventListener("pointerlockchange", () => {
+  if (document.pointerLockElement === renderer.domElement) {
+    isWalkMode = true;
+    controls.enabled = false;
+    document.getElementById("toolbar-walk-btn")?.classList.add("active");
+  } else {
+    isWalkMode = false;
+    controls.enabled = true;
+    document.getElementById("toolbar-walk-btn")?.classList.remove("active");
+    walkKeys.forward = false;
+    walkKeys.backward = false;
+    walkKeys.left = false;
+    walkKeys.right = false;
+    setStatus("Modo Percorrer finalizado.");
+  }
+});
+
+document.addEventListener("mousemove", (event) => {
+  if (isWalkMode && document.pointerLockElement === renderer.domElement) {
+    const movementX = event.movementX || 0;
+    const movementY = event.movementY || 0;
+    walkEuler.setFromQuaternion(camera.quaternion);
+    walkEuler.y -= movementX * 0.0025;
+    walkEuler.x -= movementY * 0.0025;
+    const maxPitch = (80 * Math.PI) / 180;
+    walkEuler.x = Math.max(-maxPitch, Math.min(maxPitch, walkEuler.x));
+    camera.quaternion.setFromEuler(walkEuler);
+  }
+});
+
+window.addEventListener("keydown", (event) => {
+  if (isWalkMode) {
+    if (event.key === "w" || event.key === "W" || event.key === "ArrowUp") { walkKeys.forward = true; event.preventDefault(); }
+    if (event.key === "s" || event.key === "S" || event.key === "ArrowDown") { walkKeys.backward = true; event.preventDefault(); }
+    if (event.key === "a" || event.key === "A" || event.key === "ArrowLeft") { walkKeys.left = true; event.preventDefault(); }
+    if (event.key === "d" || event.key === "D" || event.key === "ArrowRight") { walkKeys.right = true; event.preventDefault(); }
+  }
+});
+
+window.addEventListener("keyup", (event) => {
+  if (isWalkMode) {
+    if (event.key === "w" || event.key === "W" || event.key === "ArrowUp") walkKeys.forward = false;
+    if (event.key === "s" || event.key === "S" || event.key === "ArrowDown") walkKeys.backward = false;
+    if (event.key === "a" || event.key === "A" || event.key === "ArrowLeft") walkKeys.left = false;
+    if (event.key === "d" || event.key === "D" || event.key === "ArrowRight") walkKeys.right = false;
+  }
+});
+
+document.getElementById("toolbar-walk-btn")?.addEventListener("click", handleStartWalk);
+
+// ----------------------------------------------------------------------------
+// B. Área de Transferência 3D Web (Clipboard: Copiar, Colar e Recortar)
+// ----------------------------------------------------------------------------
+let clipboardInstance = null;
+
+function handleCopy() {
+  if (!selectedMesh) {
+    setStatus("Nenhuma instância selecionada para copiar.", true);
+    return;
+  }
+  clipboardInstance = {
+    id: selectedMesh.name,
+    matrix: selectedMesh.matrix.clone()
+  };
+  setStatus(`Instância "${selectedMesh.name}" copiada para a área de transferência (Ctrl+C).`);
+}
+
+async function handleCut() {
+  if (!selectedMesh) {
+    setStatus("Nenhuma instância selecionada para recortar.", true);
+    return;
+  }
+  handleCopy();
+  await handleDeleteSelected();
+  hasUnsavedChanges = true;
+  setStatus(`Instância recortada para a área de transferência (Ctrl+X).`);
+}
+
+async function handlePaste() {
+  if (!clipboardInstance) {
+    setStatus("Área de transferência 3D vazia. Selecione uma peça e pressione Ctrl+C primeiro.", true);
+    return;
+  }
+  setStatus("Colando instância clonada (Ctrl+V)...");
+  try {
+    const res = await duplicateInstance(clipboardInstance.id, { offsetDeltaCm: [50.0, 0.0, 0.0] });
+    if (res?.duplicated && res.instance) {
+      const original = currentGroup.getObjectByName(clipboardInstance.id);
+      if (original) {
+        const newMesh = original.clone();
+        newMesh.name = res.instance.instance_id;
+        newMesh.position.x += 0.5;
+        currentGroup.add(newMesh);
+        selectMesh(newMesh);
+        hasUnsavedChanges = true;
+        setStatus(`Instância "${res.instance.instance_id}" colada com sucesso na cena!`);
+      }
+    }
+  } catch (err) {
+    setStatus(`Erro ao colar: ${err.message}`, true);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// C. Proteção Contra Perda de Dados (beforeunload)
+// ----------------------------------------------------------------------------
+window.addEventListener("beforeunload", (event) => {
+  if (hasUnsavedChanges) {
+    event.preventDefault();
+    event.returnValue = "Existem alterações não salvas no modelo. Tem certeza que deseja sair?";
+    return event.returnValue;
+  }
+});
+
+// ----------------------------------------------------------------------------
+// D. Resiliência de Contexto WebGL (GPU Recovery)
+// ----------------------------------------------------------------------------
+renderer?.domElement?.addEventListener("webglcontextlost", (event) => {
+  event.preventDefault();
+  setStatus("Aviso: Conexão WebGL reiniciada pela placa de vídeo.", true);
+});
+
+renderer?.domElement?.addEventListener("webglcontextrestored", () => {
+  setStatus("Conexão WebGL restaurada com sucesso.");
+  renderer.render(scene, camera);
+});
+
 

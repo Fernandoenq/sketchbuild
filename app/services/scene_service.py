@@ -216,6 +216,9 @@ class SceneService:
     async def save_scene(self, path: str | None, overwrite_confirmed: bool = False) -> str:
         return await run_in_threadpool(self._repository.save, path, overwrite_confirmed)
 
+    async def get_skp_bytes(self) -> bytes:
+        return await run_in_threadpool(self._repository.get_skp_bytes)
+
     async def duplicate_instance(
         self,
         instance_id: str,
