@@ -2464,5 +2464,73 @@ Esta seção documenta a terceira rodada de ferramentas centrais do **SketchUp D
 - **Módulo Core:** `core/bim_ifc_property_set_engine.py` (`BimIfcPropertySetEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/bim/ifc-property-set`.
 
+---
+
+## 179. Opção A (Parte 6): Engenharia Reversa de Ferramentas Nativas Oficiais do SketchUp Desktop (Zero DLL / Pure Python)
+
+### 179.1 Ferramenta Adicionar Detalhe na Malha TIN (AddDetailSandboxEngine)
+- **Ferramenta Nativa:** Barra de ferramentas Caixa de Areia -> Adicionar Detalhe (Sandbox -> Add Detail Tool).
+- **Engenharia Reversa:**
+  - Subdivisão local de aresta compartilhada por dois triângulos adjacentes com criação de novo nó intermediário e retriangulação 2-manifold estanque (gerando 4 triângulos menores).
+  - Subdivisão de face por inserção de ponto interior/baricentro (gerando 3 triângulos menores por leque).
+  - Aumento cirúrgico da densidade geométrica sem inflar a malha topográfica inteira.
+- **Módulo Core:** `core/add_detail_sandbox_engine.py` (`AddDetailSandboxEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/add-detail-sandbox`.
+
+### 179.2 Ferramenta Girar Aresta Diagonal (FlipEdgeSandboxEngine)
+- **Ferramenta Nativa:** Barra de ferramentas Caixa de Areia -> Girar Aresta (Sandbox -> Flip Edge Tool).
+- **Engenharia Reversa:**
+  - Inversão da diagonal comum entre triângulos coplanares ($AC \to BD$) preservando o perímetro quadrilátero e a contagem total de triângulos da malha TIN.
+  - Teste de convexidade no plano $XY$ para garantia de ausência de dobras ou normais degeneradas.
+  - Redirecionamento da crista de terreno ou linhas de drenagem e escoamento.
+- **Módulo Core:** `core/flip_edge_sandbox_engine.py` (`FlipEdgeSandboxEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/flip-edge-sandbox`.
+
+### 179.3 Ferramenta Percorrer com Gravidade e Colisão (WalkCameraGravityEngine)
+- **Ferramenta Nativa:** Barra de ferramentas Câmera -> Percorrer (Camera -> Walk Tool).
+- **Engenharia Reversa:**
+  - Deslocamento cinemático horizontal projetado no plano ($u_{\text{fwd}}$ e $u_{\text{right}}$) mantendo altura dos olhos fixa ($1.68m$).
+  - Raycast vertical contra malha triangular de piso/terreno para ajuste contínuo da cota sob os pés do observador.
+  - Detecção e transposição automática de degraus de escada ($\Delta z \le 0.22m$) e bloqueio por obstáculos verticais / paredes.
+- **Módulo Core:** `core/walk_camera_gravity_engine.py` (`WalkCameraGravityEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/camera/walk-step`.
+
+### 179.4 Ferramenta Olhar ao Redor em Pan/Tilt (LookAroundCameraEngine)
+- **Ferramenta Nativa:** Barra de ferramentas Câmera -> Olhar ao Redor (Camera -> Look Around Tool).
+- **Engenharia Reversa:**
+  - Rotação sobre tripé estacionário nos eixos Pan/Yaw ($0^\circ$ a $360^\circ$) e Tilt/Pitch ($\pm 89^\circ$).
+  - Conversão de coordenadas esféricas em vetor de direção cartesiano unitário no padrão de eixos do SketchUp.
+  - Suporte ao ajuste vertical de altura do tripé via digitação no VCB.
+- **Módulo Core:** `core/look_around_camera_engine.py` (`LookAroundCameraEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/camera/look-around`.
+
+### 179.5 Ferramenta Posicionar Câmera na Cota do Piso (PositionCameraEngine)
+- **Ferramenta Nativa:** Barra de ferramentas Câmera -> Posicionar Câmera (Camera -> Position Camera Tool).
+- **Engenharia Reversa:**
+  - Fixação do observador na cota do ponto clicado acrescido da altura dos olhos ($z_{\text{click}} + 1.68m$).
+  - Cálculo de vetor de mira direcional via clique-e-arraste (click-and-drag).
+  - Transição instantânea para modo ativo de primeira pessoa (Walk / Look Around).
+- **Módulo Core:** `core/position_camera_engine.py` (`PositionCameraEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/camera/position-camera`.
+
+### 179.6 Gerenciador de Névoa Linear (FogSettingsEngine)
+- **Ferramenta Nativa:** Menu Visualizar -> Névoa (View -> Fog Settings Dialog).
+- **Engenharia Reversa:**
+  - Controle de visibilidade atmosférica com distâncias métricas analíticas de início (Near) e saturação total (Far).
+  - Vínculo automático à cor de fundo da cena ou cor personalizada.
+  - Síntese de payload nativo compatível com `THREE.Fog` / WebGL.
+- **Módulo Core:** `core/fog_settings_engine.py` (`FogSettingsEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/styles/fog-settings`.
+
+### 179.7 Exportador Gráfico 2D em Alta Definição (GraphicExport2DEngine)
+- **Ferramenta Nativa:** Menu Arquivo -> Exportar -> Gráfico 2D (File -> Export -> 2D Graphic).
+- **Engenharia Reversa:**
+  - Controle de resoluções arbitrárias em pixels (FHD, 4K, 8K) com trava de proporção de aspecto (aspect ratio lock).
+  - Resolução de impressão DPI (72 a 1200) com cálculo de dimensões físicas em centímetros e polegadas.
+  - Multiplicador de espessura de arestas e suporte a canal alpha (fundo transparente para PNG/PDF/TIFF).
+- **Módulo Core:** `core/graphic_export_2d_engine.py` (`GraphicExport2DEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/export/graphic-2d-config`.
+
+
 
 

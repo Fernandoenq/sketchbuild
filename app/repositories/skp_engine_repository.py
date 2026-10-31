@@ -3633,4 +3633,92 @@ class SkpEngineRepository:
             start_step_id=kwargs.get("start_step_id", 500),
         )
 
+    def add_detail_sandbox_apply(self, **kwargs) -> dict:
+        from core.add_detail_sandbox_engine import AddDetailSandboxEngine
+        mode = kwargs.get("mode", "EDGE")
+        if mode == "FACE":
+            return AddDetailSandboxEngine.subdivide_face_at_point(
+                tin_vertices=kwargs.get("tin_vertices", []),
+                tin_triangles=kwargs.get("tin_triangles", []),
+                triangle_index=kwargs.get("triangle_index", 0),
+                custom_point_xyz=kwargs.get("custom_point_xyz"),
+            )
+        return AddDetailSandboxEngine.subdivide_edge(
+            tin_vertices=kwargs.get("tin_vertices", []),
+            tin_triangles=kwargs.get("tin_triangles", []),
+            edge_v0=kwargs.get("edge_v0", 0),
+            edge_v1=kwargs.get("edge_v1", 1),
+        )
+
+    def flip_edge_sandbox_apply(self, **kwargs) -> dict:
+        from core.flip_edge_sandbox_engine import FlipEdgeSandboxEngine
+        return FlipEdgeSandboxEngine.flip_edge(
+            tin_vertices=kwargs.get("tin_vertices", []),
+            tin_triangles=kwargs.get("tin_triangles", []),
+            edge_v0=kwargs.get("edge_v0", 0),
+            edge_v1=kwargs.get("edge_v1", 1),
+        )
+
+    def walk_camera_gravity_step(self, **kwargs) -> dict:
+        from core.walk_camera_gravity_engine import WalkCameraGravityEngine
+        return WalkCameraGravityEngine.step_walk(
+            camera_eye_xyz=kwargs.get("camera_eye_xyz", [0.0, 0.0, 1.68]),
+            camera_target_xyz=kwargs.get("camera_target_xyz", [0.0, 10.0, 1.68]),
+            move_forward_m=kwargs.get("move_forward_m", 0.0),
+            strafe_right_m=kwargs.get("strafe_right_m", 0.0),
+            eye_height_m=kwargs.get("eye_height_m", 1.68),
+            ground_vertices=kwargs.get("ground_vertices"),
+            ground_triangles=kwargs.get("ground_triangles"),
+            max_step_height_m=kwargs.get("max_step_height_m", 0.22),
+            collision_detection=kwargs.get("collision_detection", True),
+        )
+
+    def look_around_camera_rotate(self, **kwargs) -> dict:
+        from core.look_around_camera_engine import LookAroundCameraEngine
+        return LookAroundCameraEngine.rotate_look_around(
+            camera_eye_xyz=kwargs.get("camera_eye_xyz", [0.0, 0.0, 1.68]),
+            current_yaw_deg=kwargs.get("current_yaw_deg", 0.0),
+            current_pitch_deg=kwargs.get("current_pitch_deg", 0.0),
+            delta_yaw_deg=kwargs.get("delta_yaw_deg", 0.0),
+            delta_pitch_deg=kwargs.get("delta_pitch_deg", 0.0),
+            target_distance_m=kwargs.get("target_distance_m", 10.0),
+            new_eye_height_m=kwargs.get("new_eye_height_m"),
+            base_ground_z=kwargs.get("base_ground_z", 0.0),
+        )
+
+    def position_camera_place(self, **kwargs) -> dict:
+        from core.position_camera_engine import PositionCameraEngine
+        return PositionCameraEngine.position_camera(
+            click_point_xyz=kwargs.get("click_point_xyz", [0.0, 0.0, 0.0]),
+            drag_target_xyz=kwargs.get("drag_target_xyz"),
+            eye_height_m=kwargs.get("eye_height_m", 1.68),
+            default_view_direction=kwargs.get("default_view_direction"),
+        )
+
+    def fog_settings_configure(self, **kwargs) -> dict:
+        from core.fog_settings_engine import FogSettingsEngine
+        return FogSettingsEngine.configure_fog(
+            enabled=kwargs.get("enabled", True),
+            use_background_color=kwargs.get("use_background_color", True),
+            fog_color_hex=kwargs.get("fog_color_hex", "#E0E8F0"),
+            background_color_hex=kwargs.get("background_color_hex", "#FFFFFF"),
+            near_distance_m=kwargs.get("near_distance_m", 10.0),
+            far_distance_m=kwargs.get("far_distance_m", 100.0),
+            camera_far_limit_m=kwargs.get("camera_far_limit_m", 1000.0),
+        )
+
+    def graphic_export_2d_configure(self, **kwargs) -> dict:
+        from core.graphic_export_2d_engine import GraphicExport2DEngine
+        return GraphicExport2DEngine.configure_2d_export(
+            image_format=kwargs.get("image_format", "PNG"),
+            width_px=kwargs.get("width_px", 1920),
+            height_px=kwargs.get("height_px"),
+            viewport_aspect_ratio=kwargs.get("viewport_aspect_ratio", 16.0 / 9.0),
+            dpi=kwargs.get("dpi", 300),
+            line_scale_multiplier=kwargs.get("line_scale_multiplier", 1.0),
+            anti_aliasing=kwargs.get("anti_aliasing", True),
+            transparent_background=kwargs.get("transparent_background", False),
+        )
+
+
 

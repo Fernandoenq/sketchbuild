@@ -2194,4 +2194,30 @@ class SceneService:
     async def bim_ifc_property_set_build(self, **kwargs) -> dict:
         return await run_in_threadpool(self._repository.bim_ifc_property_set_build, **kwargs)
 
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 6): MÉTODOS DE SERVIÇO NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def add_detail_sandbox_apply(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.add_detail_sandbox_apply, **kwargs)
+
+    async def flip_edge_sandbox_apply(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.flip_edge_sandbox_apply, **kwargs)
+
+    async def walk_camera_gravity_step(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.walk_camera_gravity_step, **kwargs)
+
+    async def look_around_camera_rotate(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.look_around_camera_rotate, **kwargs)
+
+    async def position_camera_place(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.position_camera_place, **kwargs)
+
+    async def fog_settings_configure(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.fog_settings_configure, **kwargs)
+
+    async def graphic_export_2d_configure(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.graphic_export_2d_configure, **kwargs)
+
+
 

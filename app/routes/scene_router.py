@@ -330,6 +330,20 @@ from app.schemas.scene import (
     PushPullCreateFaceResponse,
     BimIfcPropertySetRequest,
     BimIfcPropertySetResponse,
+    AddDetailSandboxRequest,
+    AddDetailSandboxResponse,
+    FlipEdgeSandboxRequest,
+    FlipEdgeSandboxResponse,
+    WalkCameraGravityRequest,
+    WalkCameraGravityResponse,
+    LookAroundCameraRequest,
+    LookAroundCameraResponse,
+    PositionCameraRequest,
+    PositionCameraResponse,
+    FogSettingsRequest,
+    FogSettingsResponse,
+    GraphicExport2DRequest,
+    GraphicExport2DResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -3004,5 +3018,101 @@ async def bim_ifc_property_set_build(
     controller: SceneController = Depends(get_controller)
 ) -> BimIfcPropertySetResponse:
     return await controller.bim_ifc_property_set_build(body)
+
+
+# -----------------------------------------------------------------------------
+# OPÇÃO A (PARTE 6): ROTAS DE FERRAMENTAS NATIVAS OFICIAIS DO SKETCHUP
+# -----------------------------------------------------------------------------
+
+@router.post(
+    "/tools/add-detail-sandbox",
+    response_model=AddDetailSandboxResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Subdivide localmente aresta ou face de malha TIN para aumentar detalhamento (Add Detail Tool)"
+)
+async def add_detail_sandbox_apply(
+    body: AddDetailSandboxRequest,
+    controller: SceneController = Depends(get_controller)
+) -> AddDetailSandboxResponse:
+    return await controller.add_detail_sandbox_apply(body)
+
+
+@router.post(
+    "/tools/flip-edge-sandbox",
+    response_model=FlipEdgeSandboxResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Inverte a diagonal comum entre dois triângulos da malha TIN (Flip Edge Tool)"
+)
+async def flip_edge_sandbox_apply(
+    body: FlipEdgeSandboxRequest,
+    controller: SceneController = Depends(get_controller)
+) -> FlipEdgeSandboxResponse:
+    return await controller.flip_edge_sandbox_apply(body)
+
+
+@router.post(
+    "/camera/walk-step",
+    response_model=WalkCameraGravityResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Avança um passo na caminhada em primeira pessoa com gravidade e colisão (Walk Tool)"
+)
+async def walk_camera_gravity_step(
+    body: WalkCameraGravityRequest,
+    controller: SceneController = Depends(get_controller)
+) -> WalkCameraGravityResponse:
+    return await controller.walk_camera_gravity_step(body)
+
+
+@router.post(
+    "/camera/look-around",
+    response_model=LookAroundCameraResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gira a orientação da visão em Pan/Tilt mantendo tripé fixo e altura dos olhos (Look Around Tool)"
+)
+async def look_around_camera_rotate(
+    body: LookAroundCameraRequest,
+    controller: SceneController = Depends(get_controller)
+) -> LookAroundCameraResponse:
+    return await controller.look_around_camera_rotate(body)
+
+
+@router.post(
+    "/camera/position-camera",
+    response_model=PositionCameraResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Posiciona o observador no ponto clicado do piso e ajusta mira na altura dos olhos (Position Camera)"
+)
+async def position_camera_place(
+    body: PositionCameraRequest,
+    controller: SceneController = Depends(get_controller)
+) -> PositionCameraResponse:
+    return await controller.position_camera_place(body)
+
+
+@router.post(
+    "/styles/fog-settings",
+    response_model=FogSettingsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Configura parâmetros analíticos de névoa linear para Three.js/WebGL (Fog Settings Dialog)"
+)
+async def fog_settings_configure(
+    body: FogSettingsRequest,
+    controller: SceneController = Depends(get_controller)
+) -> FogSettingsResponse:
+    return await controller.fog_settings_configure(body)
+
+
+@router.post(
+    "/export/graphic-2d-config",
+    response_model=GraphicExport2DResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Calcula parâmetros de exportação gráfica 2D técnica com DPI, linhas e transparência (Export 2D)"
+)
+async def graphic_export_2d_configure(
+    body: GraphicExport2DRequest,
+    controller: SceneController = Depends(get_controller)
+) -> GraphicExport2DResponse:
+    return await controller.graphic_export_2d_configure(body)
+
 
 

@@ -339,6 +339,20 @@ from app.schemas.scene import (
     PushPullCreateFaceResponse,
     BimIfcPropertySetRequest,
     BimIfcPropertySetResponse,
+    AddDetailSandboxRequest,
+    AddDetailSandboxResponse,
+    FlipEdgeSandboxRequest,
+    FlipEdgeSandboxResponse,
+    WalkCameraGravityRequest,
+    WalkCameraGravityResponse,
+    LookAroundCameraRequest,
+    LookAroundCameraResponse,
+    PositionCameraRequest,
+    PositionCameraResponse,
+    FogSettingsRequest,
+    FogSettingsResponse,
+    GraphicExport2DRequest,
+    GraphicExport2DResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2803,5 +2817,59 @@ class SceneController:
             return BimIfcPropertySetResponse(pset=res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    # --------------------------------------------------------------------------
+    # OPÇÃO A (PARTE 6): MÉTODOS NATIVOS DO SKETCHUP
+    # --------------------------------------------------------------------------
+
+    async def add_detail_sandbox_apply(self, body: AddDetailSandboxRequest) -> AddDetailSandboxResponse:
+        try:
+            res = await self._service.add_detail_sandbox_apply(**body.model_dump())
+            return AddDetailSandboxResponse(detail=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def flip_edge_sandbox_apply(self, body: FlipEdgeSandboxRequest) -> FlipEdgeSandboxResponse:
+        try:
+            res = await self._service.flip_edge_sandbox_apply(**body.model_dump())
+            return FlipEdgeSandboxResponse(flip=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def walk_camera_gravity_step(self, body: WalkCameraGravityRequest) -> WalkCameraGravityResponse:
+        try:
+            res = await self._service.walk_camera_gravity_step(**body.model_dump())
+            return WalkCameraGravityResponse(walk=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def look_around_camera_rotate(self, body: LookAroundCameraRequest) -> LookAroundCameraResponse:
+        try:
+            res = await self._service.look_around_camera_rotate(**body.model_dump())
+            return LookAroundCameraResponse(look_around=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def position_camera_place(self, body: PositionCameraRequest) -> PositionCameraResponse:
+        try:
+            res = await self._service.position_camera_place(**body.model_dump())
+            return PositionCameraResponse(position=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def fog_settings_configure(self, body: FogSettingsRequest) -> FogSettingsResponse:
+        try:
+            res = await self._service.fog_settings_configure(**body.model_dump())
+            return FogSettingsResponse(fog=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def graphic_export_2d_configure(self, body: GraphicExport2DRequest) -> GraphicExport2DResponse:
+        try:
+            res = await self._service.graphic_export_2d_configure(**body.model_dump())
+            return GraphicExport2DResponse(export_2d=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
 
 
