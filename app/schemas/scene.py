@@ -4341,4 +4341,119 @@ class BimIfcPropertySetResponse(BaseModel):
     pset: dict[str, Any]
     status: str = "success"
 
+# -----------------------------------------------------------------------------
+# OPÇÃO A (PARTE 6): FERRAMENTAS NATIVAS OFICIAIS DO SKETCHUP DESKTOP
+# -----------------------------------------------------------------------------
+
+# 1. Adicionar Detalhe na Malha TIN (Add Detail Tool)
+class AddDetailSandboxRequest(BaseModel):
+    tin_vertices: list[list[float]] = Field(description="Vértices da malha TIN [x, y, z]")
+    tin_triangles: list[list[int]] = Field(description="Triângulos da malha TIN [i0, i1, i2]")
+    mode: str = Field(default="EDGE", description="Modo de subdivisão: 'EDGE' ou 'FACE'")
+    edge_v0: int = Field(default=0, description="Vértice inicial da aresta")
+    edge_v1: int = Field(default=1, description="Vértice final da aresta")
+    triangle_index: int = Field(default=0, description="Índice da face a subdividir (se mode='FACE')")
+    custom_point_xyz: list[float] | None = Field(default=None, description="Ponto customizado de inserção")
+
+class AddDetailSandboxResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_add_detail_sandbox"
+    detail: dict[str, Any]
+    status: str = "success"
+
+# 2. Girar Aresta Diagonal TIN (Flip Edge Tool)
+class FlipEdgeSandboxRequest(BaseModel):
+    tin_vertices: list[list[float]] = Field(description="Vértices da malha TIN [x, y, z]")
+    tin_triangles: list[list[int]] = Field(description="Triângulos da malha TIN [i0, i1, i2]")
+    edge_v0: int = Field(default=0, description="Vértice inicial da diagonal a inverter")
+    edge_v1: int = Field(default=1, description="Vértice final da diagonal a inverter")
+
+class FlipEdgeSandboxResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_flip_edge_sandbox"
+    flip: dict[str, Any]
+    status: str = "success"
+
+# 3. Percorrer com Gravidade e Colisão (Walk Tool & Gravity)
+class WalkCameraGravityRequest(BaseModel):
+    camera_eye_xyz: list[float] = Field(default=[0.0, 0.0, 1.68], description="Posição do observador [x, y, z]")
+    camera_target_xyz: list[float] = Field(default=[0.0, 10.0, 1.68], description="Alvo do observador [x, y, z]")
+    move_forward_m: float = Field(default=0.0, description="Passo para frente (+) ou trás (-)")
+    strafe_right_m: float = Field(default=0.0, description="Passo lateral para direita (+) ou esquerda (-)")
+    eye_height_m: float = Field(default=1.68, ge=0.5, le=3.0, description="Altura dos olhos")
+    ground_vertices: list[list[float]] | None = Field(default=None, description="Malha de piso para raycast")
+    ground_triangles: list[list[int]] | None = Field(default=None, description="Triângulos da malha de piso")
+    max_step_height_m: float = Field(default=0.22, description="Altura máxima do degrau transponível")
+    collision_detection: bool = Field(default=True, description="Ativa detecção de obstáculos verticais")
+
+class WalkCameraGravityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_walk_camera_gravity"
+    walk: dict[str, Any]
+    status: str = "success"
+
+# 4. Olhar ao Redor (Look Around Tool)
+class LookAroundCameraRequest(BaseModel):
+    camera_eye_xyz: list[float] = Field(default=[0.0, 0.0, 1.68], description="Ponto do observador")
+    current_yaw_deg: float = Field(default=0.0, description="Ângulo azimutal / yaw atual em graus")
+    current_pitch_deg: float = Field(default=0.0, description="Ângulo de elevação / pitch atual em graus")
+    delta_yaw_deg: float = Field(default=0.0, description="Incremento de yaw")
+    delta_pitch_deg: float = Field(default=0.0, description="Incremento de pitch")
+    target_distance_m: float = Field(default=10.0, description="Distância do ponto de mira")
+    new_eye_height_m: float | None = Field(default=None, description="Nova altura dos olhos vinda do VCB")
+    base_ground_z: float = Field(default=0.0, description="Cota do piso base")
+
+class LookAroundCameraResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_look_around_camera"
+    look_around: dict[str, Any]
+    status: str = "success"
+
+# 5. Posicionar Câmera (Position Camera Tool)
+class PositionCameraRequest(BaseModel):
+    click_point_xyz: list[float] = Field(description="Ponto clicado no chão/piso [x, y, z]")
+    drag_target_xyz: list[float] | None = Field(default=None, description="Ponto alvo do arraste")
+    eye_height_m: float = Field(default=1.68, description="Altura dos olhos do observador")
+    default_view_direction: list[float] | None = Field(default=None, description="Direção padrão de visão")
+
+class PositionCameraResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_position_camera"
+    position: dict[str, Any]
+    status: str = "success"
+
+# 6. Gerenciador de Névoa (Fog Settings Dialog)
+class FogSettingsRequest(BaseModel):
+    enabled: bool = Field(default=True, description="Ativa/desativa névoa atmosférica")
+    use_background_color: bool = Field(default=True, description="Usa a cor de fundo da cena na névoa")
+    fog_color_hex: str = Field(default="#E0E8F0", description="Cor hex da névoa quando customizada")
+    background_color_hex: str = Field(default="#FFFFFF", description="Cor de fundo da cena")
+    near_distance_m: float = Field(default=10.0, description="Distância onde a névoa se inicia")
+    far_distance_m: float = Field(default=100.0, description="Distância onde a névoa atinge 100% de opacidade")
+    camera_far_limit_m: float = Field(default=1000.0, description="Limite do frustum da câmera")
+
+class FogSettingsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_fog_settings"
+    fog: dict[str, Any]
+    status: str = "success"
+
+# 7. Exportador Gráfico 2D (2D Graphic Export Options)
+class GraphicExport2DRequest(BaseModel):
+    image_format: str = Field(default="PNG", description="Formato da imagem: PNG, JPEG, PDF, EPS, BMP, TIFF")
+    width_px: int = Field(default=1920, ge=64, le=16384, description="Largura em pixels")
+    height_px: int | None = Field(default=None, description="Altura em pixels (calculada se None)")
+    viewport_aspect_ratio: float = Field(default=16.0 / 9.0, description="Proporção de aspecto do viewport")
+    dpi: int = Field(default=300, ge=72, le=1200, description="Resolução de impressão DPI")
+    line_scale_multiplier: float = Field(default=1.0, ge=0.1, le=10.0, description="Multiplicador de espessura de arestas")
+    anti_aliasing: bool = Field(default=True, description="Anti-aliasing ativo")
+    transparent_background: bool = Field(default=False, description="Fundo transparente (PNG/PDF/TIFF)")
+
+class GraphicExport2DResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sketchup_native_graphic_export_2d"
+    export_2d: dict[str, Any]
+    status: str = "success"
+
+
 

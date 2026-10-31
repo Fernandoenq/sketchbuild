@@ -2203,4 +2203,91 @@ export function buildBimIfcPropertySet(instanceId, ifcClass = "IfcBeam", psetNam
   });
 }
 
+// ----------------------------------------------------------------------------
+// Opção A (Parte 6): Funções de API Nativas Oficiais do SketchUp
+// ----------------------------------------------------------------------------
+
+export function applyAddDetailSandbox(tinVertices, tinTriangles, mode = "EDGE", edgeV0 = 0, edgeV1 = 1, triangleIndex = 0, customPointXYZ = null) {
+  return postJson("/api/v1/scene/tools/add-detail-sandbox", "POST", {
+    tin_vertices: tinVertices,
+    tin_triangles: tinTriangles,
+    mode: mode,
+    edge_v0: edgeV0,
+    edge_v1: edgeV1,
+    triangle_index: triangleIndex,
+    custom_point_xyz: customPointXYZ
+  });
+}
+
+export function applyFlipEdgeSandbox(tinVertices, tinTriangles, edgeV0 = 0, edgeV1 = 1) {
+  return postJson("/api/v1/scene/tools/flip-edge-sandbox", "POST", {
+    tin_vertices: tinVertices,
+    tin_triangles: tinTriangles,
+    edge_v0: edgeV0,
+    edge_v1: edgeV1
+  });
+}
+
+export function stepWalkCameraGravity(cameraEyeXYZ, cameraTargetXYZ, moveForwardM = 0.0, strafeRightM = 0.0, eyeHeightM = 1.68, groundVertices = null, groundTriangles = null, maxStepHeightM = 0.22, collisionDetection = true) {
+  return postJson("/api/v1/scene/camera/walk-step", "POST", {
+    camera_eye_xyz: cameraEyeXYZ,
+    camera_target_xyz: cameraTargetXYZ,
+    move_forward_m: moveForwardM,
+    strafe_right_m: strafeRightM,
+    eye_height_m: eyeHeightM,
+    ground_vertices: groundVertices,
+    ground_triangles: groundTriangles,
+    max_step_height_m: maxStepHeightM,
+    collision_detection: collisionDetection
+  });
+}
+
+export function rotateLookAroundCamera(cameraEyeXYZ, currentYawDeg = 0.0, currentPitchDeg = 0.0, deltaYawDeg = 0.0, deltaPitchDeg = 0.0, targetDistanceM = 10.0, newEyeHeightM = null, baseGroundZ = 0.0) {
+  return postJson("/api/v1/scene/camera/look-around", "POST", {
+    camera_eye_xyz: cameraEyeXYZ,
+    current_yaw_deg: currentYawDeg,
+    current_pitch_deg: currentPitchDeg,
+    delta_yaw_deg: deltaYawDeg,
+    delta_pitch_deg: deltaPitchDeg,
+    target_distance_m: targetDistanceM,
+    new_eye_height_m: newEyeHeightM,
+    base_ground_z: baseGroundZ
+  });
+}
+
+export function placePositionCamera(clickPointXYZ, dragTargetXYZ = null, eyeHeightM = 1.68, defaultViewDirection = null) {
+  return postJson("/api/v1/scene/camera/position-camera", "POST", {
+    click_point_xyz: clickPointXYZ,
+    drag_target_xyz: dragTargetXYZ,
+    eye_height_m: eyeHeightM,
+    default_view_direction: defaultViewDirection
+  });
+}
+
+export function configureFogSettings(enabled = true, useBackgroundColor = true, fogColorHex = "#E0E8F0", backgroundColorHex = "#FFFFFF", nearDistanceM = 10.0, farDistanceM = 100.0, cameraFarLimitM = 1000.0) {
+  return postJson("/api/v1/scene/styles/fog-settings", "POST", {
+    enabled: enabled,
+    use_background_color: useBackgroundColor,
+    fog_color_hex: fogColorHex,
+    background_color_hex: backgroundColorHex,
+    near_distance_m: nearDistanceM,
+    far_distance_m: farDistanceM,
+    camera_far_limit_m: cameraFarLimitM
+  });
+}
+
+export function configureGraphicExport2D(imageFormat = "PNG", widthPx = 1920, heightPx = null, viewportAspectRatio = 16.0 / 9.0, dpi = 300, lineScaleMultiplier = 1.0, antiAliasing = true, transparentBackground = false) {
+  return postJson("/api/v1/scene/export/graphic-2d-config", "POST", {
+    image_format: imageFormat,
+    width_px: widthPx,
+    height_px: heightPx,
+    viewport_aspect_ratio: viewportAspectRatio,
+    dpi: dpi,
+    line_scale_multiplier: lineScaleMultiplier,
+    anti_aliasing: antiAliasing,
+    transparent_background: transparentBackground
+  });
+}
+
+
 

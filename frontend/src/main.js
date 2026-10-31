@@ -199,6 +199,13 @@ import {
   executeEdgeDivide,
   extrudePushPullCreateFace,
   buildBimIfcPropertySet,
+  applyAddDetailSandbox,
+  applyFlipEdgeSandbox,
+  stepWalkCameraGravity,
+  rotateLookAroundCamera,
+  placePositionCamera,
+  configureFogSettings,
+  configureGraphicExport2D,
   downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
@@ -6509,6 +6516,188 @@ document.getElementById("btn-native-ifc-pset")?.addEventListener("click", async 
     }
   } catch (err) {
     setStatus(`Erro no conjunto de propriedades IFC: ${err.message}`, true);
+  }
+});
+
+// ----------------------------------------------------------------------------
+// Opção A (Parte 6): Listeners das Novas Ferramentas Nativas Oficiais
+// ----------------------------------------------------------------------------
+
+// 41. Adicionar Detalhe na Malha TIN (Add Detail Tool)
+document.getElementById("btn-native-add-detail")?.addEventListener("click", async () => {
+  setStatus("Subdividindo aresta localmente para refinar relevo (Add Detail Tool)...");
+  try {
+    const verts = [[0, 0, 0], [4, 0, 0], [2, 3, 0.5], [2, -3, -0.5]];
+    const tris = [[0, 1, 2], [0, 3, 1]];
+    const res = await applyAddDetailSandbox(verts, tris, "EDGE", 0, 1);
+    if (res?.detail) {
+      const dt = res.detail;
+      showNativeToolsResult(
+        "🔍 Adicionar Detalhe (Add Detail Tool)",
+        `Modo de subdivisão: <b>${dt.mode}</b><br>` +
+        `Novo vértice inserido: <b>[${dt.new_vertex_xyz.join(", ")}]</b> (Índice: ${dt.new_vertex_index})<br>` +
+        `Triângulos afetados: <b>${dt.affected_triangles_count}</b><br>` +
+        `Total de polígonos resultante: <b>${dt.total_triangles} triângulos</b> (${dt.total_vertices} vértices)`
+      );
+      setStatus("Aresta da malha subdividida com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao adicionar detalhe na malha: ${err.message}`, true);
+  }
+});
+
+// 42. Girar Aresta Diagonal TIN (Flip Edge Tool)
+document.getElementById("btn-native-flip-edge")?.addEventListener("click", async () => {
+  setStatus("Invertendo diagonal da malha TIN (Flip Edge Tool)...");
+  try {
+    const verts = [[0, 0, 0], [4, 0, 0], [2, 3, 0], [2, -3, 0]];
+    const tris = [[0, 1, 2], [0, 3, 1]];
+    const res = await applyFlipEdgeSandbox(verts, tris, 0, 1);
+    if (res?.flip) {
+      const fl = res.flip;
+      showNativeToolsResult(
+        "🔀 Girar Aresta (Flip Edge Tool)",
+        `Diagonal original: <b>(${fl.old_edge.join(" - ")})</b><br>` +
+        `Nova diagonal invertida: <b style="color: #2F855A;">(${fl.new_edge.join(" - ")})</b><br>` +
+        `Triângulos atualizados: <b>Índices [${fl.replaced_triangles_indices.join(", ")}]</b><br>` +
+        `Topologia: <b>${fl.total_triangles} triângulos preservados</b> (malha 2-manifold estanque)`
+      );
+      setStatus("Diagonal da malha invertida com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao girar aresta: ${err.message}`, true);
+  }
+});
+
+// 43. Percorrer com Gravidade e Colisão (Walk Tool & Gravity)
+document.getElementById("btn-native-walk")?.addEventListener("click", async () => {
+  setStatus("Avançando passo na ferramenta Percorrer (Walk Tool) com gravidade...");
+  try {
+    const eye = camera ? [camera.position.x, camera.position.y, camera.position.z] : [0, -5, 1.68];
+    const target = controls?.target ? [controls.target.x, controls.target.y, controls.target.z] : [0, 0, 1.68];
+    const res = await stepWalkCameraGravity(eye, target, 1.2, 0.0, 1.68, null, null, 0.22, true);
+    if (res?.walk) {
+      const wk = res.walk;
+      if (camera && controls) {
+        camera.position.set(wk.new_camera_eye[0], wk.new_camera_eye[1], wk.new_camera_eye[2]);
+        controls.target.set(wk.new_camera_target[0], wk.new_camera_target[1], wk.new_camera_target[2]);
+        controls.update();
+      }
+      showNativeToolsResult(
+        "🚶 Percorrer (Walk Tool & Gravity)",
+        `Nova posição do observador: <b>[${wk.new_camera_eye.join(", ")}]</b><br>` +
+        `Altura dos olhos: <b>${wk.eye_height_m}m</b> | Cota do piso detectada: <b>${wk.ground_elevation_m}m</b><br>` +
+        `Degrau transposto: <b>${wk.step_climbed ? "Sim" : "Piso Nivelado"}</b> | Colisão bloqueada: <b>${wk.collision_blocked ? "Sim" : "Não"}</b>`
+      );
+      setStatus(`Passo executado: Câmera em (${wk.new_camera_eye[0]}m, ${wk.new_camera_eye[1]}m, ${wk.new_camera_eye[2]}m).`);
+    }
+  } catch (err) {
+    setStatus(`Erro na ferramenta Percorrer: ${err.message}`, true);
+  }
+});
+
+// 44. Olhar ao Redor em Pan/Tilt (Look Around Tool)
+document.getElementById("btn-native-look-around")?.addEventListener("click", async () => {
+  setStatus("Rotacionando olhar ao redor sobre o tripé virtual (Look Around Tool)...");
+  try {
+    const eye = camera ? [camera.position.x, camera.position.y, camera.position.z] : [0, 0, 1.68];
+    const res = await rotateLookAroundCamera(eye, 0.0, 10.0, 30.0, -5.0, 15.0, 1.75, 0.0);
+    if (res?.look_around) {
+      const la = res.look_around;
+      if (camera && controls) {
+        camera.position.set(la.camera_eye[0], la.camera_eye[1], la.camera_eye[2]);
+        controls.target.set(la.camera_target[0], la.camera_target[1], la.camera_target[2]);
+        controls.update();
+      }
+      showNativeToolsResult(
+        "👁️ Olhar ao Redor (Look Around Tool)",
+        `Orientação angular: <b>Yaw: ${la.yaw_deg}° | Pitch: ${la.pitch_deg}°</b><br>` +
+        `Posição do tripé fixo: <b>[${la.camera_eye.join(", ")}]</b> (Altura dos olhos: ${la.eye_height_m}m)<br>` +
+        `Alvo de visão (Foco): <b>[${la.camera_target.join(", ")}]</b>`
+      );
+      setStatus("Visão rotacionada com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao olhar ao redor: ${err.message}`, true);
+  }
+});
+
+// 45. Posicionar Câmera na Cota do Piso (Position Camera)
+document.getElementById("btn-native-position-cam")?.addEventListener("click", async () => {
+  setStatus("Posicionando câmera na cota do piso (Position Camera Tool)...");
+  try {
+    const clickPt = [0.0, -3.0, 0.0];
+    const dragTarget = [0.0, 5.0, 1.0];
+    const res = await placePositionCamera(clickPt, dragTarget, 1.68, null);
+    if (res?.position) {
+      const pc = res.position;
+      if (camera && controls) {
+        camera.position.set(pc.camera_eye[0], pc.camera_eye[1], pc.camera_eye[2]);
+        controls.target.set(pc.camera_target[0], pc.camera_target[1], pc.camera_target[2]);
+        controls.update();
+      }
+      showNativeToolsResult(
+        "📍 Posicionar Câmera (Position Camera)",
+        `Ponto clicado no chão: <b>[${pc.ground_point_xyz.join(", ")}]</b><br>` +
+        `Câmera posicionada na altura: <b>${pc.eye_height_m}m</b> -> Olhos: <b>[${pc.camera_eye.join(", ")}]</b><br>` +
+        `Mira direcionada para: <b>[${pc.camera_target.join(", ")}]</b> (Yaw: ${pc.yaw_deg}°, Pitch: ${pc.pitch_deg}°)<br>` +
+        `Status de navegação: <b style="color: #2F855A;">${pc.active_mode}</b>`
+      );
+      setStatus("Câmera posicionada no piso com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao posicionar câmera: ${err.message}`, true);
+  }
+});
+
+// 46. Gerenciador de Névoa Linear (Fog Settings Dialog)
+document.getElementById("btn-native-fog")?.addEventListener("click", async () => {
+  setStatus("Configurando névoa atmosférica de estilo (Fog Settings)...");
+  try {
+    const res = await configureFogSettings(true, false, "#CBD5E0", "#FFFFFF", 5.0, 45.0, 500.0);
+    if (res?.fog) {
+      const fg = res.fog;
+      if (scene) {
+        if (fg.enabled) {
+          scene.fog = new THREE.Fog(fg.three_fog_payload.color_int, fg.near_distance_m, fg.far_distance_m);
+        } else {
+          scene.fog = null;
+        }
+        renderer?.render(scene, camera);
+      }
+      showNativeToolsResult(
+        "🌫️ Névoa Atmosférica (Fog Settings)",
+        `Névoa ativa: <b>${fg.enabled ? "Sim" : "Não"}</b> | Usar cor de fundo: <b>${fg.use_background_color ? "Sim" : "Não"}</b><br>` +
+        `Cor da névoa: <span style="color: ${fg.resolved_fog_color_hex};">■ ${fg.resolved_fog_color_hex}</span><br>` +
+        `Distâncias: Início em <b>${fg.near_distance_m}m</b> -> 100% Opaca em <b>${fg.far_distance_m}m</b> (Extensão: ${fg.fog_span_m}m)<br>` +
+        `Payload Three.js: <code>THREE.Fog(${fg.three_fog_payload.color_int}, ${fg.near_distance_m}, ${fg.far_distance_m})</code>`
+      );
+      setStatus("Névoa atmosférica configurada e aplicada no viewport.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao configurar névoa: ${err.message}`, true);
+  }
+});
+
+// 47. Exportar Gráfico 2D em Alta Resolução (Export 2D)
+document.getElementById("btn-native-export-2d")?.addEventListener("click", async () => {
+  setStatus("Configurando opções de exportação gráfica 2D técnica (Export 2D)...");
+  try {
+    const res = await configureGraphicExport2D("PNG", 3840, 2160, 16.0 / 9.0, 300, 1.5, true, true);
+    if (res?.export_2d) {
+      const exp = res.export_2d;
+      showNativeToolsResult(
+        "🖼️ Exportar Gráfico 2D (2D Graphic Export)",
+        `Formato: <b>${exp.format}</b> | Resolução: <b>${exp.resolution_px[0]} x ${exp.resolution_px[1]} px (4K UHD)</b><br>` +
+        `Resolução de impressão: <b>${exp.dpi} DPI</b> | Proporção: <b>${exp.aspect_ratio} (16:9)</b><br>` +
+        `Dimensões físicas impressas: <b>${exp.print_size_cm[0]} x ${exp.print_size_cm[1]} cm</b> (${exp.print_size_inches[0]} x ${exp.print_size_inches[1]} pol.)<br>` +
+        `Multiplicador de espessura de arestas: <b>${exp.line_scale_multiplier}x</b> (Aresta: ${exp.effective_edge_width_px}px)<br>` +
+        `Fundo transparente: <b>${exp.transparent_background ? "Ativado (Canal Alpha)" : "Desativado"}</b> | Anti-Aliasing: <b>${exp.anti_aliasing ? "Ativado" : "Desativado"}</b>`
+      );
+      setStatus("Parâmetros de exportação 2D calibrados com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro nas opções de exportação 2D: ${err.message}`, true);
   }
 });
 
