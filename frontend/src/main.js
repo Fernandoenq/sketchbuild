@@ -385,8 +385,10 @@ controls.enableDamping = true;
 const transformControls = new TransformControls(camera, renderer.domElement);
 scene.add(transformControls.getHelper());
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambientLight);
 const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+const dirLight = keyLight;
 keyLight.position.set(5, 8, 5);
 // Frustum/resolucao fixos do shadow camera -- simplificacao conhecida (nao
 // se adapta ao tamanho real de cada modelo carregado, ver REVERSE_ENGINEERING_NOTES.md
@@ -697,6 +699,15 @@ function selectInstanceById(instanceId) {
     currentOutliner?.setSelected(instanceId);
     updateEntityInfoDisplay(null);
   }
+}
+
+/** Atualiza a árvore do Outliner com os dados da cena fornecida */
+function updateOutliner(sceneDTO) {
+  if (!outlinerTreeEl || !sceneDTO) return;
+  outlinerTreeEl.innerHTML = "";
+  currentOutliner = buildOutlinerTree(sceneDTO, selectInstanceById);
+  outlinerTreeEl.appendChild(currentOutliner.element);
+  if (outlinerEmptyEl) outlinerEmptyEl.classList.add("hidden");
 }
 
 /** Le os campos numericos do painel e aplica no mesh selecionado -- mesmo
@@ -1285,10 +1296,7 @@ function applySceneDTO(sceneDTO) {
   setEdgesVisible(edgesVisible);
   setFaceStyle(faceStyle);
 
-  outlinerTreeEl.innerHTML = "";
-  currentOutliner = buildOutlinerTree(sceneDTO, selectInstanceById);
-  outlinerTreeEl.appendChild(currentOutliner.element);
-  outlinerEmptyEl.classList.add("hidden");
+  updateOutliner(sceneDTO);
   sceneNameInputEl.disabled = false;
   sceneCreateBtnEl.disabled = false;
   refreshScenePages();
@@ -1582,6 +1590,30 @@ async function handleDeleteSelected() {
   } catch (err) {
     const detail = err instanceof ApiError ? err.message : String(err);
     setStatus(`Erro ao excluir ${mesh.name}: ${detail}`, true);
+  }
+}
+
+/** Duplica a instância 3D selecionada aplicando um offset padrão de 50cm no eixo X */
+async function handleDuplicateSelected() {
+  if (!selectedMesh) {
+    setStatus("Nenhuma instância selecionada para duplicar.", true);
+    return;
+  }
+  const instId = selectedMesh.name || selectedMesh.userData?.instanceId;
+  setStatus(`Duplicando instância ${instId} (Ctrl+D)...`);
+  try {
+    const res = await duplicateInstance(instId, { offsetDeltaCm: [50.0, 0.0, 0.0] });
+    if (res?.duplicated && res.instance) {
+      const newMesh = selectedMesh.clone();
+      newMesh.name = res.instance.instance_id;
+      newMesh.position.x += 0.5;
+      currentGroup.add(newMesh);
+      selectMesh(newMesh);
+      hasUnsavedChanges = true;
+      setStatus(`Instância "${res.instance.instance_id}" duplicada com sucesso!`);
+    }
+  } catch (err) {
+    setStatus(`Erro ao duplicar: ${err.message}`, true);
   }
 }
 
@@ -5604,7 +5636,7 @@ document.getElementById("btn-native-watermark")?.addEventListener("click", async
 document.getElementById("btn-native-interact-dc")?.addEventListener("click", async () => {
   setStatus("Executando fórmula interativa onClick em Componente Dinâmico...");
   try {
-    const instId = selectedInstanceId || "porta_principal_01";
+    const instId = (selectedMesh?.name || selectedMesh?.userData?.instanceId) || "porta_principal_01";
     const dynamicAttrs = {
       onclick: 'ANIMATE("roty", 0, 90); ALERT("Porta aberta com sucesso!")',
       roty: 0
@@ -5658,7 +5690,7 @@ document.getElementById("btn-native-solid-tools")?.addEventListener("click", asy
 document.getElementById("btn-native-ifc-classify")?.addEventListener("click", async () => {
   setStatus("Atribuindo classificação IFC oficial ao componente selecionado...");
   try {
-    const instId = selectedInstanceId || "inst_viga_01";
+    const instId = (selectedMesh?.name || selectedMesh?.userData?.instanceId) || "inst_viga_01";
     const res = await ifcClassifyComponent(instId, "Viga Estrutural W200x35", "IFC4", "IfcBeam", "BEAM", "Viga de concreto/aço modelada no SketchUp");
     if (res?.classification) {
       const c = res.classification;
@@ -6010,7 +6042,8 @@ document.getElementById("btn-native-adv-selection")?.addEventListener("click", a
   setStatus("Executando seleção avançada (Inverter Seleção)...");
   try {
     const allIds = ["inst_1", "inst_2", "inst_3", "inst_4", "inst_5"];
-    const currentSelected = selectedInstanceId ? [selectedInstanceId] : ["inst_1", "inst_2"];
+    const activeId = selectedMesh?.name || selectedMesh?.userData?.instanceId;
+    const currentSelected = activeId ? [activeId] : ["inst_1", "inst_2"];
     const res = await advancedSelectionExecute("invert", allIds, currentSelected);
     if (res) {
       showNativeToolsResult(
