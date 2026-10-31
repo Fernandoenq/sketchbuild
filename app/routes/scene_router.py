@@ -69,6 +69,20 @@ from app.schemas.scene import (
     TwoPointPerspectiveResponse,
     TextureProjectionRequest,
     TextureProjectionResponse,
+    CurveWeldRequest,
+    CurveArcCreateRequest,
+    CurveResponse,
+    SectionPlaneCreateRequest,
+    SectionPlaneSliceRequest,
+    SUSectionPlaneResponse,
+    FaceStyleResolveRequest,
+    GlassMaterialRequest,
+    FaceStyleResponse,
+    SceneCreateRequest,
+    SceneAnimationTimelineRequest,
+    SceneAnimationResponse,
+    ShadowInfoRequest,
+    ShadowInfoResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -1238,3 +1252,111 @@ async def project_texture_uv(
     controller: SceneController = Depends(get_controller),
 ) -> TextureProjectionResponse:
     return await controller.project_texture_uv(body)
+
+
+@router.post(
+    "/curves/weld",
+    response_model=CurveResponse,
+    summary="Solda arestas contiguas em curvas SUCurveRef (Frente 66)",
+)
+async def weld_curve_edges(
+    body: CurveWeldRequest,
+    controller: SceneController = Depends(get_controller),
+) -> CurveResponse:
+    return await controller.weld_curve_edges(body)
+
+
+@router.post(
+    "/curves/arc",
+    response_model=CurveResponse,
+    summary="Cria arco analitico parametrico SUArcCurveRef (Frente 66)",
+)
+async def create_arc_curve(
+    body: CurveArcCreateRequest,
+    controller: SceneController = Depends(get_controller),
+) -> CurveResponse:
+    return await controller.create_arc_curve(body)
+
+
+@router.post(
+    "/section-planes/create",
+    response_model=SUSectionPlaneResponse,
+    summary="Cria ou configura plano de corte SUSectionPlaneRef (Frente 67)",
+)
+async def create_or_reverse_section_plane(
+    body: SectionPlaneCreateRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SUSectionPlaneResponse:
+    return await controller.create_or_reverse_section_plane(body)
+
+
+@router.post(
+    "/section-planes/slice",
+    response_model=SUSectionPlaneResponse,
+    summary="Fatia malha 3D gerando contornos e loops de corte transversal (Frente 67)",
+)
+async def slice_geometry_by_plane(
+    body: SectionPlaneSliceRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SUSectionPlaneResponse:
+    return await controller.slice_geometry_by_plane(body)
+
+
+@router.post(
+    "/styles/face-rendering",
+    response_model=FaceStyleResponse,
+    summary="Resolve shaders e propriedades PBR de estilos de faces (Frente 68)",
+)
+async def resolve_face_render_style(
+    body: FaceStyleResolveRequest,
+    controller: SceneController = Depends(get_controller),
+) -> FaceStyleResponse:
+    return await controller.resolve_face_render_style(body)
+
+
+@router.post(
+    "/materials/glass-pbr",
+    response_model=FaceStyleResponse,
+    summary="Cria material de vidro fisico PBR (Frente 68)",
+)
+async def create_glass_pbr_material(
+    body: GlassMaterialRequest,
+    controller: SceneController = Depends(get_controller),
+) -> FaceStyleResponse:
+    return await controller.create_glass_pbr_material(body)
+
+
+@router.post(
+    "/scenes/create",
+    response_model=SceneAnimationResponse,
+    summary="Cria definicao canonica de cena SUSceneRef (Frente 69)",
+)
+async def create_presentation_scene(
+    body: SceneCreateRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SceneAnimationResponse:
+    return await controller.create_presentation_scene(body)
+
+
+@router.post(
+    "/scenes/animate",
+    response_model=SceneAnimationResponse,
+    summary="Gera timeline continua de transicao entre cenas (Frente 69)",
+)
+async def generate_scene_animation_timeline(
+    body: SceneAnimationTimelineRequest,
+    controller: SceneController = Depends(get_controller),
+) -> SceneAnimationResponse:
+    return await controller.generate_scene_animation_timeline(body)
+
+
+@router.post(
+    "/shadows/heliodon",
+    response_model=ShadowInfoResponse,
+    summary="Calcula parametros de iluminacao solar e sombreamento SUShadowInfoRef (Frente 70)",
+)
+async def calculate_shadow_and_sun_info(
+    body: ShadowInfoRequest,
+    controller: SceneController = Depends(get_controller),
+) -> ShadowInfoResponse:
+    return await controller.calculate_shadow_and_sun_info(body)

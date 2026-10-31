@@ -549,8 +549,8 @@
         <div class="menu-dropdown-item disabled"><span>Geometria oculta</span></div>
         <div class="menu-dropdown-item disabled"><span>Objetos ocultos</span></div>
         <div class="menu-dropdown-sep"></div>
-        <div class="menu-dropdown-item disabled"><span>Planos de seção</span></div>
-        <div class="menu-dropdown-item disabled"><span>Cortes de seção</span></div>
+        <div class="menu-dropdown-item" id="menu-item-section-planes" data-action="toggle-section-planes"><span><span class="menu-check">&#10003;</span>Planos de seção</span></div>
+        <div class="menu-dropdown-item" id="menu-item-section-reverse" data-action="reverse-section-cut"><span>Inverter corte de seção</span></div>
         <div class="menu-dropdown-item disabled"><span>Preenchimento de seção</span></div>
         <div class="menu-dropdown-sep"></div>
         <div class="menu-dropdown-item is-checked" id="menu-item-axes" data-action="toggle-axes"><span><span class="menu-check">&#10003;</span>Eixos</span></div>
@@ -574,7 +574,7 @@
             <div class="menu-dropdown-item" id="menu-item-face-xray" data-action="face-style-xray"><span><span class="menu-check">&#10003;</span>Raios X</span></div>
             <div class="menu-dropdown-item disabled"><span>Oclusão ambiental</span></div>
             <div class="menu-dropdown-item" id="menu-item-face-wireframe" data-action="face-style-wireframe"><span><span class="menu-check">&#10003;</span>Grade de linhas</span></div>
-            <div class="menu-dropdown-item disabled"><span>Linha oculta</span></div>
+            <div class="menu-dropdown-item" id="menu-item-face-hidden-line" data-action="face-style-hidden-line"><span><span class="menu-check">&#10003;</span>Linha oculta</span></div>
             <div class="menu-dropdown-item" id="menu-item-face-flat" data-action="face-style-flat"><span><span class="menu-check">&#10003;</span>Sombreado</span></div>
             <div class="menu-dropdown-item is-checked" id="menu-item-face-textured" data-action="face-style-textured"><span><span class="menu-check">&#10003;</span>Sombreado com texturas</span></div>
             <div class="menu-dropdown-item" id="menu-item-face-monochrome" data-action="face-style-monochrome"><span><span class="menu-check">&#10003;</span>Monocromático</span></div>
@@ -1044,6 +1044,10 @@
           <button id="scene-create-btn" class="panel-btn" disabled title="Janela &gt; Bandeja padrao &gt; Cenas &gt; + -- SUSceneCreate/SUModelAddScenes real, captura so o nome (sem camera)">+ Criar cena</button>
         </div>
         <div id="scene-pages-list"><div style="font-size: 11px; color: var(--muted); font-style: italic;">Nenhum modelo aberto.</div></div>
+        <div style="display: flex; gap: 4px; margin-top: 6px;">
+          <button id="btn-add-scene-cam" class="panel-btn" style="flex: 1; font-size: 10px;">+ Cena c/ Câmera</button>
+          <button id="btn-play-scenes-anim" class="panel-btn" style="flex: 1; font-size: 10px; background: #3C7FB1; color: white;">▶ Animar Cenas</button>
+        </div>
       </div>
     </div>
     
@@ -1278,6 +1282,18 @@
             <option value="266">23 de Setembro (Equinócio de Primavera)</option>
             <option value="355">21 de Dezembro (Solstício de Verão)</option>
           </select>
+        </div>
+        <div style="margin-bottom: 6px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px;">
+            <span>Intensidade Luz (Sol):</span>
+            <span id="shadow-light-val">80%</span>
+          </div>
+          <input id="shadow-light-slider" type="range" min="0" max="100" value="80" style="width: 100%;" />
+          <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 2px;">
+            <span>Sombra Ambiente (Dark):</span>
+            <span id="shadow-dark-val">45%</span>
+          </div>
+          <input id="shadow-dark-slider" type="range" min="0" max="100" value="45" style="width: 100%;" />
         </div>
         <div id="solar-info-panel" style="background: #F8F9FA; border: 1px solid var(--border); border-radius: 3px; padding: 6px; font-size: 11px; margin-bottom: 8px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">

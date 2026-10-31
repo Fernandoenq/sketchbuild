@@ -882,3 +882,172 @@ class SceneService:
             scale_v_m,
             rotation_deg
         )
+
+
+    async def weld_curve_edges(self, edges: list, tolerance: float = 0.0001) -> dict:
+        """Solda arestas contíguas em curvas SUCurveRef (Frente 66)."""
+        return await run_in_threadpool(self._repository.weld_curve_edges, edges, tolerance)
+
+    async def create_arc_curve(
+        self,
+        center: list,
+        radius: float,
+        normal: list,
+        start_angle_rad: float = 0.0,
+        end_angle_rad: float = 6.283185,
+        num_segments: int = 24
+    ) -> dict:
+        """Cria arco analítico paramétrico SUArcCurveRef (Frente 66)."""
+        return await run_in_threadpool(
+            self._repository.create_arc_curve,
+            center,
+            radius,
+            normal,
+            start_angle_rad,
+            end_angle_rad,
+            num_segments
+        )
+
+    async def create_or_reverse_section_plane(
+        self,
+        name: str = "Corte Transversal",
+        symbol: str = "A",
+        normal: list = None,
+        distance: float = 1.0,
+        is_active: bool = True,
+        reverse: bool = False
+    ) -> dict:
+        """Cria ou inverte plano de corte SUSectionPlaneRef (Frente 67)."""
+        return await run_in_threadpool(
+            self._repository.create_or_reverse_section_plane,
+            name,
+            symbol,
+            normal,
+            distance,
+            is_active,
+            reverse
+        )
+
+    async def slice_geometry_by_plane(
+        self,
+        vertices: list,
+        faces: list,
+        plane_equation: list
+    ) -> dict:
+        """Fatia malha 3D gerando contornos e loops de corte transversal (Frente 67)."""
+        return await run_in_threadpool(
+            self._repository.slice_geometry_by_plane,
+            vertices,
+            faces,
+            plane_equation
+        )
+
+    async def resolve_face_render_style(
+        self,
+        mode: str = "SHADED_WITH_TEXTURES",
+        material_color: str = None,
+        texture_path: str = None,
+        opacity: float = 1.0,
+        is_back_face: bool = False
+    ) -> dict:
+        """Resolve shaders e propriedades PBR de estilos de faces (Frente 68)."""
+        return await run_in_threadpool(
+            self._repository.resolve_face_render_style,
+            mode,
+            material_color,
+            texture_path,
+            opacity,
+            is_back_face
+        )
+
+    async def create_glass_pbr_material(
+        self,
+        name: str = "Vidro Arquitetônico Transparente",
+        color: str = "#dff9fb",
+        opacity: float = 0.3,
+        refraction_index: float = 1.52
+    ) -> dict:
+        """Cria material de vidro físico PBR (Frente 68)."""
+        return await run_in_threadpool(
+            self._repository.create_glass_pbr_material,
+            name,
+            color,
+            opacity,
+            refraction_index
+        )
+
+    async def create_presentation_scene(
+        self,
+        name: str,
+        eye: list,
+        target: list,
+        up: list = None,
+        fov: float = 35.0,
+        is_orthographic: bool = False,
+        transition_time: float = 1.5,
+        delay_time: float = 1.0,
+        include_in_animation: bool = True
+    ) -> dict:
+        """Cria definição canônica de cena SUSceneRef (Frente 69)."""
+        return await run_in_threadpool(
+            self._repository.create_presentation_scene,
+            name,
+            eye,
+            target,
+            up,
+            fov,
+            is_orthographic,
+            transition_time,
+            delay_time,
+            include_in_animation
+        )
+
+    async def generate_scene_animation_timeline(
+        self,
+        scenes: list,
+        fps: int = 30,
+        loop: bool = True
+    ) -> dict:
+        """Gera timeline contínua de transição entre cenas (Frente 69)."""
+        return await run_in_threadpool(
+            self._repository.generate_scene_animation_timeline,
+            scenes,
+            fps,
+            loop
+        )
+
+    async def calculate_shadow_and_sun_info(
+        self,
+        year: int = 2026,
+        month: int = 3,
+        day: int = 21,
+        hour: int = 14,
+        minute: int = 0,
+        latitude: float = -23.5505,
+        longitude: float = -46.6333,
+        tz_offset: float = -3.0,
+        north_angle: float = 0.0,
+        light_intensity: int = 80,
+        dark_intensity: int = 45,
+        display_shadows: bool = True,
+        use_sun_for_shading: bool = True,
+        edges_cast_shadows: bool = False
+    ) -> dict:
+        """Calcula parâmetros de iluminação solar e sombreamento SUShadowInfoRef (Frente 70)."""
+        return await run_in_threadpool(
+            self._repository.calculate_shadow_and_sun_info,
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            latitude,
+            longitude,
+            tz_offset,
+            north_angle,
+            light_intensity,
+            dark_intensity,
+            display_shadows,
+            use_sun_for_shading,
+            edges_cast_shadows
+        )

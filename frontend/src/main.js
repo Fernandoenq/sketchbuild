@@ -91,6 +91,9 @@ import {
   configureEdgeStyles,
   calculateTwoPointPerspective,
   projectTextureUv,
+  createPresentationScene,
+  generateSceneAnimationTimeline,
+  calculateShadowAndSunInfo,
   ApiError,
 } from "./api.js";
 import {
@@ -1070,6 +1073,7 @@ function setEdgesVisible(visible) {
 const FACE_STYLE_MENU_IDS = {
   textured: "menu-item-face-textured",
   flat: "menu-item-face-flat",
+  hidden_line: "menu-item-face-hidden-line",
   monochrome: "menu-item-face-monochrome",
   wireframe: "menu-item-face-wireframe",
   xray: "menu-item-face-xray",
@@ -1088,7 +1092,16 @@ function setFaceStyle(style) {
     material.transparent = style === "xray";
     material.opacity = style === "xray" ? 0.3 : 1;
     material.depthWrite = style !== "xray";
-    material.color.set(style === "monochrome" ? 0xCCCCCC : 0x8c99a6);
+    if (style === "hidden_line") {
+      material.color.set(0xffffff);
+      material.roughness = 1.0;
+    } else if (style === "monochrome") {
+      material.color.set(0xCCCCCC);
+      material.roughness = 0.8;
+    } else {
+      material.color.set(0x8c99a6);
+      material.roughness = 0.5;
+    }
     material.needsUpdate = true;
   }
   for (const [key, id] of Object.entries(FACE_STYLE_MENU_IDS)) {
@@ -1993,7 +2006,10 @@ const MENU_ACTIONS = {
   "toggle-edges": () => setEdgesVisible(!edgesVisible),
   "face-style-textured": () => setFaceStyle("textured"),
   "face-style-flat": () => setFaceStyle("flat"),
+  "face-style-hidden-line": () => setFaceStyle("hidden_line"),
   "face-style-monochrome": () => setFaceStyle("monochrome"),
+  "toggle-section-planes": () => handleToggleSectionPlanes(),
+  "reverse-section-cut": () => handleReverseSectionCut(),
   "face-style-wireframe": () => setFaceStyle("wireframe"),
   "face-style-xray": () => setFaceStyle("xray"),
   "view-alto": () => setStandardView("alto"),
@@ -3686,3 +3702,117 @@ document.getElementById("tag-folder-create-btn")?.addEventListener("click", asyn
     setStatus(`Erro ao criar pasta de etiquetas: ${err.message}`, true);
   }
 });
+
+
+// --- Frentes 66 a 70: Engenharia Reversa SketchUp ---
+
+function handleToggleSectionPlanes() {
+  if (!renderer) return;
+  const isClipped = renderer.clippingPlanes && renderer.clippingPlanes.length > 0;
+  if (isClipped) {
+    renderer.clippingPlanes = [];
+    setStatus("Planos de corte de seção desativados.");
+    document.getElementById("menu-item-section-planes")?.classList.remove("is-checked");
+  } else if (sectionPlane) {
+    renderer.clippingPlanes = [sectionPlane];
+    setStatus("Plano de corte de seção ativado.");
+    document.getElementById("menu-item-section-planes")?.classList.add("is-checked");
+  } else {
+    setStatus("Nenhum plano de seção criado. Use a ferramenta Plano de Seção para posicionar um corte.");
+  }
+  renderer.render(scene, camera);
+}
+
+function handleReverseSectionCut() {
+  if (!sectionPlane) {
+    setStatus("Nenhum plano de seção ativo para inverter.");
+    return;
+  }
+  sectionPlane.normal.negate();
+  sectionPlane.constant = -sectionPlane.constant;
+  setStatus(`Sentido de corte invertido (Normal: [${sectionPlane.normal.x.toFixed(2)}, ${sectionPlane.normal.y.toFixed(2)}, ${sectionPlane.normal.z.toFixed(2)}]).`);
+  if (renderer) renderer.render(scene, camera);
+}
+
+// Cenas salvas locais com camera
+let presentationScenes = [];
+
+document.getElementById("btn-add-scene-cam")?.addEventListener("click", async () => {
+  if (!camera || !controls) return;
+  const sceneName = window.prompt("Nome da cena com câmera:", `Cena ${presentationScenes.length + 1}`);
+  if (!sceneName) return;
+  const eye = [camera.position.x, camera.position.y, camera.position.z];
+  const target = [controls.target.x, controls.target.y, controls.target.z];
+  try {
+    const res = await createPresentationScene(sceneName, eye, target, [0, 1, 0], camera.fov || 35.0);
+    presentationScenes.push(res);
+    setStatus(`Cena '${sceneName}' salva com posição de câmera e parâmetros SketchUp.`);
+  } catch (err) {
+    setStatus(`Erro ao criar cena: ${err.message}`, true);
+  }
+});
+
+let isPlayingAnimation = false;
+document.getElementById("btn-play-scenes-anim")?.addEventListener("click", async () => {
+  if (presentationScenes.length < 2) {
+    setStatus("É necessário ter pelo menos 2 cenas salvas para animar.");
+    return;
+  }
+  if (isPlayingAnimation) {
+    isPlayingAnimation = false;
+    setStatus("Animação interrompida.");
+    return;
+  }
+  setStatus("Gerando transições suaves de animação entre cenas...");
+  try {
+    const res = await generateSceneAnimationTimeline(presentationScenes, 30, true);
+    const frames = res.timeline.frames;
+    if (!frames || frames.length === 0) return;
+    isPlayingAnimation = true;
+    setStatus(`Reproduzindo animação (${res.timeline.total_duration_sec}s, ${frames.length} quadros)...`);
+    let frameIdx = 0;
+    const interval = setInterval(() => {
+      if (!isPlayingAnimation || frameIdx >= frames.length) {
+        clearInterval(interval);
+        isPlayingAnimation = false;
+        setStatus("Animação concluída.");
+        return;
+      }
+      const f = frames[frameIdx++];
+      camera.position.set(f.eye[0], f.eye[1], f.eye[2]);
+      controls.target.set(f.target[0], f.target[1], f.target[2]);
+      controls.update();
+      renderer.render(scene, camera);
+    }, 1000 / 30);
+  } catch (err) {
+    setStatus(`Erro ao reproduzir animação: ${err.message}`, true);
+  }
+});
+
+// Controles Heliodon / SUShadowInfo
+const shadowLightSlider = document.getElementById("shadow-light-slider");
+const shadowDarkSlider = document.getElementById("shadow-dark-slider");
+
+async function updateHeliodonLighting() {
+  const lightVal = parseInt(shadowLightSlider?.value || "80", 10);
+  const darkVal = parseInt(shadowDarkSlider?.value || "45", 10);
+  document.getElementById("shadow-light-val").textContent = `${lightVal}%`;
+  document.getElementById("shadow-dark-val").textContent = `${darkVal}%`;
+  try {
+    const res = await calculateShadowAndSunInfo({
+      light_intensity: lightVal,
+      dark_intensity: darkVal,
+    });
+    if (dirLight) {
+      dirLight.intensity = res.shadow_info.three_lighting.directional_light.intensity;
+      dirLight.color.set(res.shadow_info.three_lighting.directional_light.color);
+    }
+    if (ambientLight) {
+      ambientLight.intensity = res.shadow_info.three_lighting.ambient_light.intensity;
+    }
+    renderer?.render(scene, camera);
+  } catch (err) {}
+}
+
+shadowLightSlider?.addEventListener("input", updateHeliodonLighting);
+shadowDarkSlider?.addEventListener("input", updateHeliodonLighting);

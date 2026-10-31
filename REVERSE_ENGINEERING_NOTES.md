@@ -1364,3 +1364,89 @@ A Frente 65 implementa os algoritmos de projeção contínua de materiais sobre 
 - **Projeção Cilíndrica:** Mapeamento azimutal em torno do eixo principal para colunas, postes redondos e tubos helicoidais, evitando costuras aparentes na textura de veios de madeira.
 - **Módulo:** `core/texture_projection_engine.py` (`TextureProjectionEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/materials/project-uv`.
+
+
+---
+
+## 93. Frente 66: Curvas Soldadas e Arcos Analíticos (SUCurveRef & SUArcCurveRef - Zero DLL)
+
+A Frente 66 implementa a abstração e manipulação de cadeias de arestas contíguas e arcos geométricos analíticos no formato `.skp`.
+
+### A. Soldagem de Arestas (Weld Edges / SUCurveRef)
+- No SketchUp C API e no `.skp`, arestas consecutivas podem ser marcadas com a entidade `SUCurveRef`.
+- O algoritmo `CurveEngine.weld_edges` percorre conjuntos de arestas não ordenadas e costura segmentos adjacentes com tolerância infinitesimal ($10^{-4}$ m) em polilinhas ou splines contínuas, permitindo seleção por cadeia e operações de extrusão suave (*Follow Me* contínuo).
+
+### B. Detecção e Geração de Arcos Analíticos (SUArcCurveRef)
+- `CurveEngine.detect_arc`: Inspeciona cadeias de vértices 3D, ajusta o plano médio, calcula centro analítico, raio, vetor normal, vetor de referência e erro máximo de ajuste (RMS).
+- `CurveEngine.create_arc`: Gera arcos paramétricos com segmentação arbitrária (ex: 24 segmentos), gerando metadados canônicos compatíveis com `SUArcCurveCreate`.
+- **Módulo:** `core/curve_engine.py` (`CurveEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/curves/weld` e `POST /api/v1/scene/curves/arc`.
+
+---
+
+## 94. Frente 67: Planos de Corte Múltiplos, Aninhamento e Inversão (SUSectionPlaneRef - Zero DLL)
+
+A Frente 67 aprofunda a engenharia reversa de planos de corte (`SUSectionPlaneRef`), habilitando controle volumétrico, inversão e cálculo geométrico de seções.
+
+### A. Equação Analítica e Inversão de Corte
+- Representação canônica: $Ax + By + Cz + D = 0$.
+- Inversão de sentido de corte (*Reverse Cut*): inverte os coeficientes $(-A, -B, -C, -D)$.
+- Mapeamento direto para os planos de corte do WebGL (`THREE.Plane`).
+
+### B. Fatiamento Analítico de Malhas B-Rep (Section Cut / Slicing)
+- `SectionPlaneEngine.slice_mesh`: Realiza o teste de corte em cada triângulo da geometria, calcula os pontos de interseção de arestas e une os segmentos em loops fechados de contorno (*boundary loops*), viabilizando preenchimento de seção (*Section Fill / Hatching*).
+- **Módulo:** `core/section_plane_engine.py` (`SectionPlaneEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/section-planes/create` e `POST /api/v1/scene/section-planes/slice`.
+
+---
+
+## 95. Frente 68: Estilos de Faces e Materiais PBR Translúcidos de Vidro (FaceStylesEngine - Zero DLL)
+
+A Frente 68 padroniza os 6 modos de renderização de faces nativos do SketchUp e o shader de transmissão física de vidro.
+
+### A. Os 6 Modos Nativos de Face
+1. **Wireframe:** Faces invisíveis, apenas arestas estruturais.
+2. **Hidden Line (Linha Oculta):** Faces opacas brancas sem sombras ou texturas, ocluindo arestas traseiras para desenho técnico.
+3. **Shaded:** Sombreado por cores difusas de materiais, sem mapas de textura.
+4. **Shaded with Textures:** Sombreado difuso com coordenadas UV e texturas.
+5. **Monochrome:** Renderiza faces apenas pelas cores padrão frontal e posterior (azul acinzentado `#7f8fa6`), essencial para detectar e inverter faces com normais invertidas.
+6. **X-Ray:** Transparência uniforme a 50% com `depthWrite: false`.
+
+### B. Material PBR Vidro Físico
+- Suporte a transparência com transmissão física (`transmission: 0.92`, `ior: 1.52`, `roughness: 0.05`), permitindo simular vidro de esquadrias, janelas e policarbonato de coberturas.
+- **Módulo:** `core/face_styles_engine.py` (`FaceStylesEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/styles/face-rendering` e `POST /api/v1/scene/materials/glass-pbr`.
+
+---
+
+## 96. Frente 69: Gerenciador de Cenas com Interpolação de Animação (SUPageRef / SUSceneRef - Zero DLL)
+
+A Frente 69 implementa a reprodução e transição suave de páginas/cenas do SketchUp (*Play Animation*).
+
+### A. Metadados Canônicos de Cena (SUPageRef)
+- Retenção granular de propriedades: `use_camera`, `use_shadow_info`, `use_layer_visibility`, `use_section_planes`, `use_style`.
+- Tempos de transição configuráveis: `transition_time` (tempo de interpolação entre câmeras) e `delay_time` (tempo de pausa de apresentação na cena).
+
+### B. Motor de Interpolação Suave (Smoothstep / Keyframing)
+- `ScenesAnimationEngine.generate_animation_timeline`: Concatena cenas ativas, interpola vetores de olho (`eye`), ponto alvo (`target`), vetor `up` e campo de visão (`fov`) com curvas de aceleração suave a 30fps/60fps.
+- Gera timeline contínua reproduzível diretamente no Three.js do visualizador.
+- **Módulo:** `core/scenes_animation_engine.py` (`ScenesAnimationEngine`).
+- **Endpoints FastAPI:** `POST /api/v1/scene/scenes/create` e `POST /api/v1/scene/scenes/animate`.
+
+---
+
+## 97. Frente 70: Motor de Sombras e Heliodon Astronômico Integrado (SUShadowInfoRef - Zero DLL)
+
+A Frente 70 integra o modelo astronômico completo de sombreamento e heliodon do SketchUp.
+
+### A. Parâmetros Canônicos SUShadowInfoRef
+- `latitude`, `longitude`, `date_time`, `tz_offset`, `north_angle`.
+- `light_intensity` (0 a 100): Controla a intensidade da luz solar direta.
+- `dark_intensity` (0 a 100): Controla a intensidade da luz ambiente (sombra difusa do céu).
+- `display_shadows` e `edges_cast_shadows`.
+
+### B. Cálculo Astronômico e Iluminação Three.js
+- Calcula elevação solar, azimute corrigido pelo ângulo do Norte e vetor solar unitário 3D.
+- Gera parâmetros de cor com temperatura Kelvin dinâmica (alaranjado/quente ao amanhecer e branco neutro ao meio-dia solar) para a luz direcional e ambiente do Three.js.
+- **Módulo:** `core/shadow_heliodon_engine.py` (`ShadowHeliodonEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/shadows/heliodon`.
