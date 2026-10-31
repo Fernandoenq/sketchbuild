@@ -1417,3 +1417,77 @@ class SceneService:
     async def get_undo_redo_history(self) -> dict:
         """Retorna histórico e profundidade das pilhas de Undo e Redo (Frente 85)."""
         return await run_in_threadpool(self._repository.get_undo_redo_history)
+
+    async def subdivide_quad_mesh(
+        self,
+        vertices: list,
+        faces: list,
+        iterations: int = 1
+    ) -> dict:
+        """Aplica subdivisão Catmull-Clark sobre malha de controle QuadFace (Frente 86)."""
+        return await run_in_threadpool(
+            self._repository.subdivide_quad_mesh,
+            vertices,
+            faces,
+            iterations
+        )
+
+    async def generate_auto_section_dimensions(
+        self,
+        cut_loops_3d: list,
+        offset_m: float = 0.25,
+        unit: str = "m",
+        precision: int = 2
+    ) -> dict:
+        """Gera cotas ortogonais e marcas de nível NBR 6492 em cortes (Frente 87)."""
+        return await run_in_threadpool(
+            self._repository.generate_auto_section_dimensions,
+            cut_loops_3d,
+            offset_m,
+            unit,
+            precision
+        )
+
+    async def calculate_spherical_panorama(
+        self,
+        eye_position: list,
+        horizontal_samples: int = 16,
+        vertical_samples: int = 8,
+        sphere_radius_m: float = 10.0
+    ) -> dict:
+        """Calcula cubemap de 6 câmeras e malha de raios equirretangulares 360° (Frente 88)."""
+        return await run_in_threadpool(
+            self._repository.calculate_spherical_panorama,
+            eye_position,
+            horizontal_samples,
+            vertical_samples,
+            sphere_radius_m
+        )
+
+    async def detect_component_clashes(
+        self,
+        components: list,
+        clearance_tolerance_m: float = 0.01
+    ) -> dict:
+        """Detecta colisões físicas (Hard Clash) e folgas (Clearance Clash) entre componentes (Frente 89)."""
+        return await run_in_threadpool(
+            self._repository.detect_component_clashes,
+            components,
+            clearance_tolerance_m
+        )
+
+    async def calculate_mesh_mass_properties(
+        self,
+        vertices: list,
+        triangles: list,
+        material_type: str = "madeira_eucalipto",
+        custom_density_kg_m3: float = 0.0
+    ) -> dict:
+        """Calcula volume, massa, Centro de Gravidade e inércia de malha B-Rep fechada (Frente 90)."""
+        return await run_in_threadpool(
+            self._repository.calculate_mesh_mass_properties,
+            vertices,
+            triangles,
+            material_type,
+            custom_density_kg_m3
+        )

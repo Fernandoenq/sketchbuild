@@ -2688,3 +2688,55 @@ class SkpEngineRepository:
         """Retorna histórico e profundidade das pilhas de Undo e Redo (Frente 85)."""
         from core.undo_redo_engine import DEFAULT_UNDO_REDO_ENGINE
         return DEFAULT_UNDO_REDO_ENGINE.get_history()
+
+    def subdivide_quad_mesh(self, vertices: list, faces: list, iterations: int = 1) -> dict:
+        """Aplica subdivisão Catmull-Clark sobre malha de controle QuadFace (Frente 86)."""
+        from core.quad_mesh_subd_engine import QuadMeshSubDEngine
+        verts = [tuple(v) for v in vertices]
+        return QuadMeshSubDEngine.subdivide_catmull_clark(verts, faces, iterations)
+
+    def generate_auto_section_dimensions(self, cut_loops_3d: list, offset_m: float = 0.25, unit: str = "m", precision: int = 2) -> dict:
+        """Gera cotas ortogonais e marcas de nível NBR 6492 em cortes (Frente 87)."""
+        from core.section_dimension_engine import SectionDimensionEngine
+        loops = [[tuple(p) for p in loop] for loop in cut_loops_3d]
+        return SectionDimensionEngine.generate_auto_section_dimensions(loops, offset_m, unit, precision)
+
+    def calculate_spherical_panorama(
+        self,
+        eye_position: list,
+        horizontal_samples: int = 16,
+        vertical_samples: int = 8,
+        sphere_radius_m: float = 10.0
+    ) -> dict:
+        """Calcula cubemap de 6 câmeras e malha de raios equirretangulares 360° (Frente 88)."""
+        from core.panorama_spherical_engine import EquirectangularPanoramaEngine
+        eye = tuple(eye_position)
+        cubemap = EquirectangularPanoramaEngine.calculate_cubemap_cameras(eye)
+        grid = EquirectangularPanoramaEngine.calculate_equirectangular_grid(
+            eye, horizontal_samples, vertical_samples, sphere_radius_m
+        )
+        return {
+            "entity_type": "PanoramaSphericalResult",
+            "cubemap": cubemap,
+            "grid": grid,
+            "status": "PANORAMA ESFÉRICO 360° CALCULADO COM SUCESSO"
+        }
+
+    def detect_component_clashes(self, components: list, clearance_tolerance_m: float = 0.01) -> dict:
+        """Detecta colisões físicas (Hard Clash) e folgas (Clearance Clash) entre componentes (Frente 89)."""
+        from core.clash_collision_engine import CollisionClashDetectionEngine
+        return CollisionClashDetectionEngine.detect_clashes(components, clearance_tolerance_m)
+
+    def calculate_mesh_mass_properties(
+        self,
+        vertices: list,
+        triangles: list,
+        material_type: str = "madeira_eucalipto",
+        custom_density_kg_m3: float = 0.0
+    ) -> dict:
+        """Calcula volume, massa, Centro de Gravidade e inércia de malha B-Rep fechada (Frente 90)."""
+        from core.mass_properties_engine import MassPropertiesCenterOfGravityEngine
+        verts = [tuple(v) for v in vertices]
+        return MassPropertiesCenterOfGravityEngine.calculate_mesh_properties(
+            verts, triangles, material_type, custom_density_kg_m3
+        )

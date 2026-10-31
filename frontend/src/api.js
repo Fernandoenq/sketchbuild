@@ -1267,3 +1267,50 @@ export function executeRedo() {
 export function getUndoRedoStatus() {
   return getJson("/api/v1/scene/history/status");
 }
+
+/** Aplica subdivisão Catmull-Clark sobre malha de controle QuadFace (Frente 86). */
+export function subdivideQuadMesh(vertices, faces, iterations = 1) {
+  return postJson("/api/v1/scene/geometry/subd", "POST", {
+    vertices,
+    faces,
+    iterations,
+  });
+}
+
+/** Gera cotas ortogonais e marcas de nível NBR 6492 em cortes (Frente 87). */
+export function generateAutoSectionDimensions(cutLoops3d, offsetM = 0.25, unit = "m", precision = 2) {
+  return postJson("/api/v1/scene/section-planes/dimensions", "POST", {
+    cut_loops_3d: cutLoops3d,
+    offset_m: offsetM,
+    unit,
+    precision,
+  });
+}
+
+/** Calcula cubemap de 6 câmeras e malha de raios equirretangulares 360° (Frente 88). */
+export function calculateSphericalPanorama(eyePosition, horizontalSamples = 16, verticalSamples = 8, sphereRadiusM = 10.0) {
+  return postJson("/api/v1/scene/camera/panorama-360", "POST", {
+    eye_position: eyePosition,
+    horizontal_samples: horizontalSamples,
+    vertical_samples: verticalSamples,
+    sphere_radius_m: sphereRadiusM,
+  });
+}
+
+/** Detecta colisões físicas (Hard Clash) e folgas (Clearance Clash) entre componentes (Frente 89). */
+export function detectComponentClashes(components, clearanceToleranceM = 0.01) {
+  return postJson("/api/v1/scene/clash/detect", "POST", {
+    components,
+    clearance_tolerance_m: clearanceToleranceM,
+  });
+}
+
+/** Calcula volume, massa, Centro de Gravidade e inércia de malha B-Rep fechada (Frente 90). */
+export function calculateMeshMassProperties(vertices, triangles, materialType = "madeira_eucalipto", customDensityKgM3 = 0.0) {
+  return postJson("/api/v1/scene/engineering/mass-properties", "POST", {
+    vertices,
+    triangles,
+    material_type: materialType,
+    custom_density_kg_m3: customDensityKgM3,
+  });
+}

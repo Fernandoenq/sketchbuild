@@ -1655,3 +1655,68 @@ A Frente 85 reproduz o subsistema transacional de histórico de comandos do Sket
 - **Invalidação de Histórico:** Qualquer nova modificação na cena limpa automaticamente a pilha de Redo.
 - **Módulo:** `core/undo_redo_engine.py` (`UndoRedoCommandEngine`).
 - **Endpoints FastAPI:** `POST /api/v1/scene/history/record`, `POST /api/v1/scene/history/undo`, `POST /api/v1/scene/history/redo` e `GET /api/v1/scene/history/status`.
+
+---
+
+## 113. Frente 86: Decodificador de Malhas SubD e Subdivisão de Superfície (QuadFace & Catmull-Clark - Zero DLL)
+
+A Frente 86 implementa a topologia quadrilátera estruturada (*QuadFace Tools*) e o algoritmo analítico de subdivisão Catmull-Clark para modelagem orgânica e suavização de superfícies no SketchUp.
+
+### A. Algoritmo Analítico de Catmull-Clark
+- **Face Points:** Calcula o baricentro de cada face poligonal (triângulos e quadriláteros).
+- **Edge Points:** Para arestas internas compartilhadas, calcula a média dos pontos extremos e dos face points adjacentes; para arestas de borda, calcula o ponto médio.
+- **Vertex Points:** Atualiza a posição de cada vértice original pela fórmula clássica $V' = \frac{F + 2R + (n-3)V}{n}$, onde $F$ é a média dos face points adjacentes, $R$ é a média dos pontos médios das arestas incidentes e $n$ é a valência do vértice.
+- **Geração de Quadriláteros:** Divide cada face de $k$ lados em $k$ novos quadriláteros perfeitos, gerando malhas refinadas de alta fidelidade visual.
+- **Módulo:** `core/quad_mesh_subd_engine.py` (`QuadMeshSubDEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/geometry/subd`.
+
+---
+
+## 114. Frente 87: Motor de Cortes com Cota Automática de Seção (Section Dimensioning - Zero DLL)
+
+A Frente 87 reproduz a automação executiva de desenhos de corte, sintetizando cotas lineares e cotas de nível de projeto imediatamente após a ativação de um plano de seção (`SUSectionPlaneRef`).
+
+### A. Cotas Ortogonais e Níveis NBR 6492
+- **Cotas Totais Automáticas:** Varre os loops gerados pela interseção do plano de corte e sintetiza a cota horizontal de vão total (*Horizontal Span*) e a cota vertical de altura máxima (*Vertical Height*).
+- **Marcas de Nível Arquitetônico:** Insere anotações de nível de base ($\pm 0.00\text{ m}$) e de topo/cumeeira ($+2.80\text{ m}$) ancoradas nos extremos verticais da seção transversal.
+- **Módulo:** `core/section_dimension_engine.py` (`SectionDimensionEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/section-planes/dimensions`.
+
+---
+
+## 115. Frente 88: Decodificador de Projeção Esférica e Panorama 360° (Equirectangular Panorama & Cubemap - Zero DLL)
+
+A Frente 88 implementa o suporte analítico a renderização esférica e navegação em realidade virtual (VR / WebXR / Three.js).
+
+### A. Cubemap de 6 Câmeras e Malha Equirretangular
+- **Cubemap Ortho-Frustum:** Posiciona 6 câmeras perpendiculares a $90^\circ$ de FOV com proporção $1:1$ nos eixos $+X, -X, +Y, -Y, +Z, -Z$.
+- **Grid Equirretangular $360^\circ \times 180^\circ$:** Discretiza raios espaciais com coordenadas esféricas $(\theta, \phi)$, calculando vetores unitários de visada e coordenadas de textura UV normalizadas compatíveis com `THREE.EquirectangularReflectionMapping`.
+- **Módulo:** `core/panorama_spherical_engine.py` (`EquirectangularPanoramaEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/camera/panorama-360`.
+
+---
+
+## 116. Frente 89: Motor de Detecção de Interseção e Colisão entre Componentes (Clash Detection BIM - Zero DLL)
+
+A Frente 89 implementa o sistema de auditoria de interferências e colisões espaciais (Clash Detection) para modelos BIM e componentes do SketchUp.
+
+### A. Algoritmo de Auditoria e Severidade
+- **Fase Ampla (Broadphase) e Estrita:** Avalia a sobreposição tridimensional entre caixas delimitadoras orientadas e alinhadas (AABB/OBB).
+- **Classificação:**
+  - `HARD_CLASH` (Severidade Crítica): Penetração física real entre volumes de componentes distintos, com cálculo da profundidade máxima de penetração e estimativa do volume de colisão.
+  - `CLEARANCE_CLASH` (Aviso): Componentes que violam a distância mínima de folga normatizada (ex: proximidade entre tubulações e estruturas de concreto).
+- **Módulo:** `core/clash_collision_engine.py` (`CollisionClashDetectionEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/clash/detect`.
+
+---
+
+## 117. Frente 90: Exportador de Relatório de Propriedades Físicas e Centro de Massa B-Rep (Mass Properties & CG - Zero DLL)
+
+A Frente 90 implementa o cálculo exato de propriedades mecânicas e inerciais de sólidos B-Rep do SketchUp via integração volumétrica.
+
+### A. Teorema da Divergência e Tensor de Inércia
+- **Volume Exato:** Decompõe a malha B-Rep fechada em tetraedros orientados em relação à origem $(0, 0, 0)$ através do produto misto $V_t = \frac{1}{6} \vec{P}_1 \cdot (\vec{P}_2 \times \vec{P}_3)$.
+- **Centro de Gravidade (CG):** Ponderação baricêntrica volumétrica exata $(C_x, C_y, C_z)$.
+- **Massa e Densidades Normativas:** Integração com catálogo de materiais (Madeiras, Aço, Alumínio, PEAD, Concreto, Vidro) e cálculo dos momentos principais de inércia $I_{xx}, I_{yy}, I_{zz}$ em relação ao CG.
+- **Módulo:** `core/mass_properties_engine.py` (`MassPropertiesCenterOfGravityEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/engineering/mass-properties`.

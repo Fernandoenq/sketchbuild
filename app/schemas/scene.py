@@ -2444,3 +2444,121 @@ class UndoRedoStatusResponse(BaseModel):
     undo_count: int
     redo_count: int
     recent_operations: list[str] = Field(default_factory=list)
+
+
+class SubDSubdivisionRequest(BaseModel):
+    """Entrada para subdivisão de superfície Catmull-Clark / QuadMesh (Frente 86)."""
+
+    vertices: list[list[float]] = Field(description="Vértices da malha de controle [[x, y, z], ...]")
+    faces: list[list[int]] = Field(description="Faces de controle poligonais (quads/tris) [[idx, ...], ...]")
+    iterations: int = Field(default=1, ge=1, le=3, description="Níveis de subdivisão Catmull-Clark")
+
+
+class SubDMeshResponse(BaseModel):
+    """Resposta da malha orgânica suavizada por Catmull-Clark (Frente 86)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SubDMeshResult"
+    iterations: int
+    original_vertices_count: int
+    original_faces_count: int
+    subdivided_vertices_count: int
+    subdivided_quad_faces_count: int
+    triangles_count: int
+    vertices: list[list[float]]
+    quad_faces: list[list[int]]
+    triangles: list[list[int]]
+    status: str
+
+
+class SectionDimensionRequest(BaseModel):
+    """Entrada para geração automática de cotas e níveis em corte de seção (Frente 87)."""
+
+    cut_loops_3d: list[list[list[float]]] = Field(description="Loops fechados 3D gerados pelo corte de seção")
+    offset_m: float = Field(default=0.25, ge=0.05, le=5.0, description="Distância de afastamento das linhas de cota")
+    unit: str = Field(default="m", description="m, cm, mm, in")
+    precision: int = Field(default=2, ge=0, le=4)
+
+
+class SectionDimensionResponse(BaseModel):
+    """Resposta com cotas lineares e marcas de nível NBR 6492 (Frente 87)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "SectionDimensionResult"
+    dimensions_count: int
+    dimensions: list[dict[str, Any]]
+    level_marks: list[dict[str, Any]]
+    bbox_min: list[float]
+    bbox_max: list[float]
+    span_horizontal_m: float
+    span_vertical_m: float
+    status: str
+
+
+class PanoramaSphericalRequest(BaseModel):
+    """Entrada para cálculo de panorama esférico 360° e cubemap (Frente 88)."""
+
+    eye_position: list[float] = Field(description="Posição do observador [x, y, z] em metros")
+    horizontal_samples: int = Field(default=16, ge=4, le=64)
+    vertical_samples: int = Field(default=8, ge=2, le=32)
+    sphere_radius_m: float = Field(default=10.0, ge=1.0, le=100.0)
+
+
+class PanoramaSphericalResponse(BaseModel):
+    """Resposta com cubemap de 6 câmeras e malha de raios equirretangulares (Frente 88)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str
+    cubemap: dict[str, Any]
+    grid: dict[str, Any]
+    status: str
+
+
+class ClashDetectionRequest(BaseModel):
+    """Entrada para auditoria de colisões e interferências entre componentes (Frente 89)."""
+
+    components: list[dict[str, Any]] = Field(description="Lista de componentes [{'id': str, 'name': str, 'bbox_min': [x,y,z], 'bbox_max': [x,y,z]}]")
+    clearance_tolerance_m: float = Field(default=0.01, ge=0.0, le=1.0, description="Tolerância de proximidade em metros")
+
+
+class ClashDetectionResponse(BaseModel):
+    """Resposta com relatório de interferências críticas e avisos de folga (Frente 89)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "ClashDetectionReport"
+    components_analyzed_count: int
+    total_clashes_count: int
+    hard_clashes_count: int
+    clearance_clashes_count: int
+    clashes: list[dict[str, Any]]
+    status: str
+
+
+class MassPropertiesRequest(BaseModel):
+    """Entrada para cálculo de propriedades físicas, massa e Centro de Gravidade (Frente 90)."""
+
+    vertices: list[list[float]] = Field(description="Vértices da malha B-Rep fechada [[x, y, z], ...]")
+    triangles: list[list[int]] = Field(description="Índices dos triângulos com normais externas [[i1, i2, i3], ...]")
+    material_type: str = Field(default="madeira_eucalipto", description="madeira_eucalipto, madeira_pinus, aco, aluminio, pead_plastico, concreto, vidro")
+    custom_density_kg_m3: float = Field(default=0.0, ge=0.0, description="Densidade personalizada (se > 0 substitui o material)")
+
+
+class MassPropertiesResponse(BaseModel):
+    """Resposta com propriedades físicas completas, massa, CG e inércia (Frente 90)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    entity_type: str = "MassPropertiesReport"
+    material_type: str
+    density_kg_m3: float
+    volume_m3: float
+    surface_area_m2: float
+    total_mass_kg: float
+    center_of_gravity: list[float]
+    dimensions_bbox_m: list[float]
+    moments_of_inertia_kg_m2: dict[str, float]
+    status: str
