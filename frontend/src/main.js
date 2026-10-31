@@ -2634,6 +2634,7 @@ function hideWelcomeScreen() {
     welcomeScreenEl.style.display = "none";
   }
 }
+window.hideWelcomeScreen = hideWelcomeScreen;
 
 /** Abre um caminho a partir da Pagina Inicial (card de recente ou campo de
  * "Abrir arquivo") -- reusa o mesmo handleOpen() do painel principal. */

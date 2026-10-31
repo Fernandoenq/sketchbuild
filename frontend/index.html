@@ -396,7 +396,7 @@
           <svg viewBox="0 0 24 24"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5" /><line x1="12" y1="3" x2="12" y2="12" /><line x1="4" y1="7.5" x2="12" y2="12" /><line x1="20" y1="7.5" x2="12" y2="12" /></svg>
         </span>
         <span>Bem-vindo(a) ao SketchBuild</span>
-        <button id="welcome-close-btn" title="Fechar" aria-label="Fechar">&times;</button>
+        <button id="welcome-close-btn" title="Fechar" aria-label="Fechar" onclick="const ws=document.getElementById('welcome-screen');if(ws){ws.classList.add('hidden');ws.style.display='none';}">&times;</button>
       </div>
       <div class="welcome-body">
         <nav class="welcome-sidebar">
@@ -1662,6 +1662,6 @@
     }
   }
   </script>
-  <script type="module" src="src/main.js"></script>
+  <script type="module" src="src/main.js?v=20261031_02"></script>
 </body>
 </html>
