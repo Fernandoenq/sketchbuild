@@ -370,6 +370,16 @@ from app.schemas.scene import (
     RadialArcDimensionResponse,
     SoftSmoothAngleRequest,
     SoftSmoothAngleResponse,
+    AbntDrawingSheetRequest,
+    AbntDrawingSheetResponse,
+    ArchitecturalHatchingRequest,
+    ArchitecturalHatchingResponse,
+    FurnitureEdgeBandingRequest,
+    FurnitureEdgeBandingResponse,
+    CabinetHardwareDrillingRequest,
+    CabinetHardwareDrillingResponse,
+    SheetNesting2DRequest,
+    SheetNesting2DResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -2946,6 +2956,45 @@ class SceneController:
             return SoftSmoothAngleResponse(smooth_settings=res)
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    # --------------------------------------------------------------------------
+    # FRENTES AVANÇADAS: LAYOUT ABNT & MARCENARIA INDUSTRIAL
+    # --------------------------------------------------------------------------
+    async def abnt_drawing_sheet_create(self, body: AbntDrawingSheetRequest) -> AbntDrawingSheetResponse:
+        try:
+            res = await self._service.abnt_drawing_sheet_create(**body.model_dump())
+            return AbntDrawingSheetResponse(sheet=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def architectural_hatching_generate(self, body: ArchitecturalHatchingRequest) -> ArchitecturalHatchingResponse:
+        try:
+            res = await self._service.architectural_hatching_generate(**body.model_dump())
+            return ArchitecturalHatchingResponse(hatching=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def furniture_edge_banding_process(self, body: FurnitureEdgeBandingRequest) -> FurnitureEdgeBandingResponse:
+        try:
+            res = await self._service.furniture_edge_banding_process(**body.model_dump())
+            return FurnitureEdgeBandingResponse(banding_plan=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def cabinet_hardware_drilling_calculate(self, body: CabinetHardwareDrillingRequest) -> CabinetHardwareDrillingResponse:
+        try:
+            res = await self._service.cabinet_hardware_drilling_calculate(**body.model_dump())
+            return CabinetHardwareDrillingResponse(drilling_plan=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    async def sheet_nesting_2d_optimize(self, body: SheetNesting2DRequest) -> SheetNesting2DResponse:
+        try:
+            res = await self._service.sheet_nesting_2d_optimize(**body.model_dump())
+            return SheetNesting2DResponse(nesting_plan=res)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
 
 
 

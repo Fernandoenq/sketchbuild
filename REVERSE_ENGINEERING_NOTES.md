@@ -2732,3 +2732,62 @@ Consolidação da sétima rodada de implementação das ferramentas nativas ofic
   - Interpolação de normais de vértice ponderadas pela área de cada triângulo para sombreamento contínuo no WebGL.
 - **Módulo Core:** `core/soft_smooth_angle_engine.py` (`SoftSmoothAngleEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/tools/soft-smooth-angle`.
+
+---
+
+## 185. FRENTES AVANÇADAS: LAYOUT & PRANCHAS TÉCNICAS ABNT + MARCENARIA INDUSTRIAL SOB MEDIDA
+
+### 185.1 Pranchas Técnicas Normativas ABNT e Viewports com Escala (AbntDrawingSheetEngine)
+- **Normas Oficiais:** ABNT NBR 10068 (Folha de desenho - leiaute e dimensões) e NBR 6492 (Representação de projetos de arquitetura).
+- **Engenharia Reversa Zero DLL / Pure Python:**
+  - Formatos métricos normalizados: A0 (1189x841mm), A1 (841x594mm), A2 (594x420mm), A3 (420x297mm) e A4 (210x297mm).
+  - Margem esquerda padronizada de 25mm para encadernação e arquivamento, margens perimetrais de 10mm ou 7mm.
+  - Selo / Carimbo normativo posicionado no canto inferior direito (175x64mm) com campos obrigatórios: projeto, título da prancha, autor/responsável técnico, cliente, escala principal, data e revisão.
+  - Cálculo analítico de Viewport arquitetônico: conversão da escala do modelo 3D ($1:20$, $1:25$, $1:50$, $1:100$, $1:200$) em milímetros nominais no papel ($mm = \frac{1000}{escala} \cdot metros$).
+- **Módulo Core:** `core/abnt_drawing_sheet_engine.py` (`AbntDrawingSheetEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/abnt-drawing-sheet`.
+
+### 185.2 Hachuras Técnicas Normativas ABNT NBR 6492 (ArchitecturalHatchingEngine)
+- **Norma Oficial:** ABNT NBR 6492 - Convenções de desenho arquitetônico para cortes e seções.
+- **Engenharia Reversa Zero DLL / Pure Python:**
+  - Geração analítica vetorial de padrões de hachura para cortes transversais e longitudinais.
+  - Padrões implementados:
+    - `MASONRY` (Alvenaria): linhas paralelas inclinadas a 45° com espaçamento milimétrico uniforme.
+    - `CONCRETE` (Concreto armado / magro): linhas paralelas intercaladas com símbolos triangulares de brita/agregado graúdo.
+    - `WOOD` (Madeira de lei e compensado): ondulações e anéis de crescimento da madeira.
+    - `EARTH` (Terreno / Corte de terra): blocos ortogonais alternados de hachura.
+  - Algoritmo de recorte analítico (*line-polygon clipping*) para conter os segmentos de linha perfeitamente dentro dos limites do polígono do corte 2D.
+- **Módulo Core:** `core/architectural_hatching_engine.py` (`ArchitecturalHatchingEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/architectural-hatching`.
+
+### 185.3 Fita de Borda para Marcenaria Sob Medida e Desconto de Corte (FurnitureEdgeBandingEngine)
+- **Norma Oficial:** ABNT NBR 14810 (Painéis de partículas de madeira - MDP/MDF) e manuais de colagem de borda industrial.
+- **Engenharia Reversa Zero DLL / Pure Python:**
+  - Mapeamento e gestão das 4 bordas de cada painel: Topo (`top`), Base (`bottom`), Lateral Esquerda (`left`) e Lateral Direita (`right`).
+  - Desconto analítico dimensional na chapa crua (*Cut List Deduction*): fitas espessas de PVC/ABS ($\ge 0.8\text{mm}$, ex: $1.0\text{mm}$ e $2.0\text{mm}$ antichoque) são automaticamente abatidas da cota de corte cru da esquadrejadeira / seccionadora.
+  - Cálculo métrico linear de consumo com tolerância normativa de refilo e destopo nas pontas (overhead técnico de 10%).
+  - Consolidação e rateio de custos por tipo/cor/espessura de fita para orçamentação e lista de compras.
+- **Módulo Core:** `core/furniture_edge_banding_engine.py` (`FurnitureEdgeBandingEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/furniture-edge-banding`.
+
+### 185.4 Furação Industrial Sistema 32, Dobradiças Caneco e Minifix (CabinetHardwareDrillingEngine)
+- **Norma Oficial:** DIN 68858 (System 32 Drilling) e padrões de ferragens Blum / Hettich / FGV.
+- **Engenharia Reversa Zero DLL / Pure Python:**
+  - Padrão Universal Sistema 32: passo vertical padronizado de $32\text{mm}$, recuo frontal e traseiro de $37\text{mm}$ e furos de $\varnothing 5\text{mm}$ para prateleiras móveis e calços de dobradiça.
+  - Dobradiça Caneco $\varnothing 35\text{mm}$ (Concealed Hinges): cálculo de distância $K=5\text{mm}$ da borda (centro do furo a $22.5\text{mm}$), profundidade $12\text{mm}$, furos de fixação do caneco com recuo de $9.5\text{mm}$ e distribuição vertical da quantidade de dobradiças (2 a 5 unidades) conforme altura da porta.
+  - Conectores Minifix / Rafix $\varnothing 15\text{mm}$ e Cavilhas $\varnothing 8\text{mm}$: furação de tambor excêntrico com centro a $34\text{mm}$ da borda, furos passantes de topo para o parafuso metálico e cavilhas de madeira de travamento estrutural.
+- **Módulo Core:** `core/cabinet_hardware_drilling_engine.py` (`CabinetHardwareDrillingEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/cabinet-hardware-drilling`.
+
+### 185.5 Otimizador de Corte e Nesting 2D Guilhotinado para Chapas MDF/MDP (SheetNesting2DEngine)
+- **Norma Oficial:** Algoritmo 2D Guillotine Bin Packing para seccionadoras e esquadrejadeiras de precisão.
+- **Engenharia Reversa Zero DLL / Pure Python:**
+  - Chapa padrão industrial brasileira: $2750\text{ mm} \times 1830\text{ mm}$ (ou $2750 \times 1850\text{ mm}$).
+  - Refilo perimetral de esquadrejamento da chapa bruta ($10\text{mm}$ a $15\text{mm}$).
+  - Espessura do dente de serra (*Saw Kerf*, padrão $3.2\text{mm}$ a $4.0\text{mm}$).
+  - Restrição obrigatória de sentido do veio da madeira (*Grain Direction*): impede rotação em painéis amadeirados texturizados (`can_rotate: False`).
+  - Algoritmo guilhotinado de partição de retângulos livres (Right split e Top split): gera plano de corte com simulação dos cortes de ponta a ponta.
+  - Cálculo analítico de aproveitamento global percentual (*Yield Rate*), retalhos úteis e sobras.
+- **Módulo Core:** `core/sheet_nesting_2d_engine.py` (`SheetNesting2DEngine`).
+- **Endpoint FastAPI:** `POST /api/v1/scene/tools/sheet-nesting-2d`.
+

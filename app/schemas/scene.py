@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -4576,4 +4576,77 @@ class SoftSmoothAngleResponse(BaseModel):
     entity_type: str = "sketchup_native_soft_smooth_angle"
     smooth_settings: dict[str, Any]
     status: str = "success"
+
+
+# ==============================================================================
+# FRENTES AVANÇADAS: LAYOUT & PRANCHAS TÉCNICAS ABNT + MARCENARIA INDUSTRIAL
+# ==============================================================================
+
+# 1. Pranchas Técnicas ABNT e Viewports com Escala (AbntDrawingSheetEngine)
+class AbntDrawingSheetRequest(BaseModel):
+    sheet_format: str = Field(default="A3", description="Formato normativo: 'A0', 'A1', 'A2', 'A3', 'A4'")
+    orientation: str = Field(default="landscape", description="'landscape' (paisagem) ou 'portrait' (retrato)")
+    title_block: Optional[dict[str, Any]] = Field(default=None, description="Metadados do carimbo: title, author, sheet_num, etc.")
+    viewports: Optional[list[dict[str, Any]]] = Field(default=None, description="Lista de viewports a posicionar na prancha")
+
+class AbntDrawingSheetResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "abnt_drawing_sheet"
+    sheet: dict[str, Any]
+    status: str = "success"
+
+
+# 2. Hachuras Normativas ABNT NBR 6492 (ArchitecturalHatchingEngine)
+class ArchitecturalHatchingRequest(BaseModel):
+    polygon_points: list[list[float]] = Field(..., description="Pontos 2D do polígono do corte [[x, y], ...]")
+    pattern: str = Field(default="MASONRY", description="Padrão: 'MASONRY', 'CONCRETE', 'WOOD', 'EARTH'")
+    spacing_m: float = Field(default=0.15, description="Espaçamento métrico entre linhas de hachura")
+    angle_deg: float = Field(default=45.0, description="Ângulo de inclinação em graus")
+
+class ArchitecturalHatchingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "architectural_hatching"
+    hatching: dict[str, Any]
+    status: str = "success"
+
+
+# 3. Fita de Borda para Marcenaria Sob Medida (FurnitureEdgeBandingEngine)
+class FurnitureEdgeBandingRequest(BaseModel):
+    cabinet_name: str = Field(default="Gabinete Cozinha", description="Nome do móvel")
+    panels: list[dict[str, Any]] = Field(..., description="Lista de peças com dimensões e bordas top/bottom/left/right")
+    overhead_ratio: float = Field(default=0.10, description="Margem de perda/refilo para coladeira (0.10 = 10%)")
+
+class FurnitureEdgeBandingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "furniture_edge_banding"
+    banding_plan: dict[str, Any]
+    status: str = "success"
+
+
+# 4. Furação Industrial Sistema 32, Dobradiças e Minifix (CabinetHardwareDrillingEngine)
+class CabinetHardwareDrillingRequest(BaseModel):
+    operation: str = Field(default="system_32", description="'system_32', 'hinges' ou 'minifix'")
+    params: dict[str, Any] = Field(default_factory=dict, description="Parâmetros específicos da operação de furação")
+
+class CabinetHardwareDrillingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "cabinet_hardware_drilling"
+    drilling_plan: dict[str, Any]
+    status: str = "success"
+
+
+# 5. Nesting 2D Guilhotinado para Chapas MDF/MDP (SheetNesting2DEngine)
+class SheetNesting2DRequest(BaseModel):
+    parts: list[dict[str, Any]] = Field(..., description="Lista de peças a cortar com width_mm, height_mm, quantity, can_rotate")
+    sheet_width_mm: float = Field(default=2750.0, description="Largura da chapa MDF em mm")
+    sheet_height_mm: float = Field(default=1830.0, description="Altura da chapa MDF em mm")
+    trim_margin_mm: float = Field(default=10.0, description="Refilo de borda da chapa em mm")
+    saw_kerf_mm: float = Field(default=3.2, description="Espessura do corte da serra em mm")
+
+class SheetNesting2DResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_type: str = "sheet_nesting_2d"
+    nesting_plan: dict[str, Any]
+    status: str = "success"
+
 

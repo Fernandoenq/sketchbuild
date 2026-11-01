@@ -3864,6 +3864,92 @@ class SkpEngineRepository:
             soften_coplanar=soften_coplanar,
         )
 
+    # ==========================================================================
+    # FRENTES AVANÇADAS: LAYOUT ABNT & MARCENARIA INDUSTRIAL
+    # ==========================================================================
+
+    def abnt_drawing_sheet_create(self, **kwargs) -> dict:
+        from core.abnt_drawing_sheet_engine import AbntDrawingSheetEngine
+        sheet_format = kwargs.get("sheet_format", "A3")
+        orientation = kwargs.get("orientation", "landscape")
+        title_block = kwargs.get("title_block")
+        viewports = kwargs.get("viewports")
+        return AbntDrawingSheetEngine.create_drawing_sheet(
+            sheet_format=sheet_format,
+            orientation=orientation,
+            title_block=title_block,
+            viewports=viewports,
+        )
+
+    def architectural_hatching_generate(self, **kwargs) -> dict:
+        from core.architectural_hatching_engine import ArchitecturalHatchingEngine
+        raw_pts = kwargs.get("polygon_points", [])
+        polygon_points = [(float(p[0]), float(p[1])) for p in raw_pts]
+        pattern = kwargs.get("pattern", "MASONRY")
+        spacing_m = kwargs.get("spacing_m", 0.15)
+        angle_deg = kwargs.get("angle_deg", 45.0)
+        return ArchitecturalHatchingEngine.generate_hatch_lines(
+            polygon_points=polygon_points,
+            pattern=pattern,
+            spacing_m=spacing_m,
+            angle_deg=angle_deg,
+        )
+
+    def furniture_edge_banding_process(self, **kwargs) -> dict:
+        from core.furniture_edge_banding_engine import FurnitureEdgeBandingEngine
+        cab_name = kwargs.get("cabinet_name", "Gabinete Padrão")
+        panels = kwargs.get("panels", [])
+        overhead = kwargs.get("overhead_ratio", 0.10)
+        return FurnitureEdgeBandingEngine.process_furniture_cabinet(
+            cabinet_name=cab_name,
+            panels=panels,
+            overhead_ratio=overhead,
+        )
+
+    def cabinet_hardware_drilling_calculate(self, **kwargs) -> dict:
+        from core.cabinet_hardware_drilling_engine import CabinetHardwareDrillingEngine
+        op = kwargs.get("operation", "system_32")
+        params = kwargs.get("params", {})
+        if op == "system_32":
+            return CabinetHardwareDrillingEngine.calculate_system_32_shelf_holes(
+                side_height_mm=params.get("side_height_mm", 720.0),
+                side_depth_mm=params.get("side_depth_mm", 550.0),
+                front_setback_mm=params.get("front_setback_mm", 37.0),
+                rear_setback_mm=params.get("rear_setback_mm", 37.0),
+                margin_top_mm=params.get("margin_top_mm", 120.0),
+                margin_bottom_mm=params.get("margin_bottom_mm", 120.0),
+            )
+        elif op == "hinges":
+            return CabinetHardwareDrillingEngine.calculate_door_hinge_drillings(
+                door_height_mm=params.get("door_height_mm", 715.0),
+                door_width_mm=params.get("door_width_mm", 395.0),
+                hinge_margin_end_mm=params.get("hinge_margin_end_mm", 90.0),
+            )
+        elif op == "minifix":
+            return CabinetHardwareDrillingEngine.calculate_minifix_joint(
+                joint_width_mm=params.get("joint_width_mm", 550.0),
+                panel_thickness_mm=params.get("panel_thickness_mm", 18.0),
+                drum_setback_mm=params.get("drum_setback_mm", 34.0),
+            )
+        else:
+            return {"status": "error", "message": f"Operação de furação desconhecida: {op}"}
+
+    def sheet_nesting_2d_optimize(self, **kwargs) -> dict:
+        from core.sheet_nesting_2d_engine import SheetNesting2DEngine
+        parts = kwargs.get("parts", [])
+        sheet_w = kwargs.get("sheet_width_mm", 2750.0)
+        sheet_h = kwargs.get("sheet_height_mm", 1830.0)
+        trim = kwargs.get("trim_margin_mm", 10.0)
+        saw_kerf = kwargs.get("saw_kerf_mm", 3.2)
+        return SheetNesting2DEngine.optimize_cut_list(
+            parts=parts,
+            sheet_width_mm=sheet_w,
+            sheet_height_mm=sheet_h,
+            trim_margin_mm=trim,
+            saw_kerf_mm=saw_kerf,
+        )
+
+
 
 
 
