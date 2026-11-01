@@ -2372,3 +2372,47 @@ export function applySoftSmoothAngle(vertices, triangles, maxAngleDeg = 35.0, so
   });
 }
 
+export function createAbntDrawingSheet(sheetFormat = "A3", orientation = "landscape", titleBlock = null, viewports = null) {
+  return postJson("/api/v1/scene/tools/abnt-drawing-sheet", "POST", {
+    sheet_format: sheetFormat,
+    orientation: orientation,
+    title_block: titleBlock,
+    viewports: viewports,
+  });
+}
+
+export function generateArchitecturalHatching(polygonPoints, pattern = "MASONRY", spacingM = 0.15, angleDeg = 45.0) {
+  return postJson("/api/v1/scene/tools/architectural-hatching", "POST", {
+    polygon_points: polygonPoints,
+    pattern: pattern,
+    spacing_m: spacingM,
+    angle_deg: angleDeg,
+  });
+}
+
+export function processFurnitureEdgeBanding(cabinetName, panels, overheadRatio = 0.10) {
+  return postJson("/api/v1/scene/tools/furniture-edge-banding", "POST", {
+    cabinet_name: cabinetName,
+    panels: panels,
+    overhead_ratio: overheadRatio,
+  });
+}
+
+export function calculateCabinetHardwareDrilling(operation = "system_32", params = {}) {
+  return postJson("/api/v1/scene/tools/cabinet-hardware-drilling", "POST", {
+    operation: operation,
+    params: params,
+  });
+}
+
+export function optimizeSheetNesting2D(parts, sheetWidthMm = 2750.0, sheetHeightMm = 1830.0, trimMarginMm = 10.0, sawKerfMm = 3.2) {
+  return postJson("/api/v1/scene/tools/sheet-nesting-2d", "POST", {
+    parts: parts,
+    sheet_width_mm: sheetWidthMm,
+    sheet_height_mm: sheetHeightMm,
+    trim_margin_mm: trimMarginMm,
+    saw_kerf_mm: sawKerfMm,
+  });
+}
+
+

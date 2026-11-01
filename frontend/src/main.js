@@ -215,6 +215,11 @@ import {
   createAlignedDimension,
   createRadialArcDimension,
   applySoftSmoothAngle,
+  createAbntDrawingSheet,
+  generateArchitecturalHatching,
+  processFurnitureEdgeBanding,
+  calculateCabinetHardwareDrilling,
+  optimizeSheetNesting2D,
   downloadCurrentSkpBytes,
   ApiError,
 } from "./api.js";
@@ -7169,6 +7174,161 @@ document.getElementById("btn-native-soft-angle")?.addEventListener("click", asyn
     }
   } catch (err) {
     setStatus(`Erro na suavização angular: ${err.message}`, true);
+  }
+});
+
+// ==============================================================================
+// FRENTES AVANÇADAS: LAYOUT ABNT & MARCENARIA INDUSTRIAL
+// ==============================================================================
+
+// 57. Pranchas Técnicas Normativas ABNT e Viewports com Escala (LayOut ABNT)
+document.getElementById("btn-layout-abnt-sheet")?.addEventListener("click", async () => {
+  setStatus("Gerando prancha técnica ABNT NBR 10068 e calculando viewports com escala...");
+  try {
+    const titleBlock = {
+      title: "Residência Unifamiliar - Planta Baixa Executiva",
+      author: "Arq. SketchBuild Studio",
+      scale: "1:50",
+      sheet_number: "01/04",
+      date: "2026-10-31",
+      revision: "R02",
+    };
+    const vps = [
+      { name: "Planta Térreo", scale: "1:50", model_bounds: { min_x: 0, min_y: 0, max_x: 12, max_y: 8 }, x_mm: 50, y_mm: 80 },
+      { name: "Corte AA", scale: "1:25", model_bounds: { min_x: 0, min_y: 0, max_x: 6, max_y: 3 }, x_mm: 200, y_mm: 180 },
+    ];
+    const res = await createAbntDrawingSheet("A3", "landscape", titleBlock, vps);
+    if (res?.sheet) {
+      const s = res.sheet;
+      showNativeToolsResult(
+        "📐 LayOut ABNT: Prancha Técnica NBR 10068",
+        `Formato: <b>${s.format} (${s.dimensions_mm.width} x ${s.dimensions_mm.height} mm)</b> | Orientação: <b>${s.orientation}</b><br>` +
+        `Margem Esquerda (Encadernação): <b>${s.margins_mm.left}mm</b> | Área Útil: <b>${s.usable_area_mm.width} x ${s.usable_area_mm.height} mm</b><br>` +
+        `Carimbo Normativo: <b>${s.title_block?.title || "OK"}</b> (${s.title_block?.scale})<br>` +
+        `Viewports Posicionados: <b>${s.viewports?.length || 0} vistas com escala analítica</b>`
+      );
+      setStatus("Prancha técnica ABNT gerada com carimbo e viewports em escala.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao gerar prancha ABNT: ${err.message}`, true);
+  }
+});
+
+// 58. Hachuras Normativas ABNT NBR 6492 (Cortes Arquitetônicos)
+document.getElementById("btn-layout-hatching")?.addEventListener("click", async () => {
+  setStatus("Gerando padrão vetorial de hachura arquitetônica NBR 6492...");
+  try {
+    const polygon = [[0.0, 0.0], [3.0, 0.0], [3.0, 2.5], [0.0, 2.5]];
+    const res = await generateArchitecturalHatching(polygon, "MASONRY", 0.15, 45.0);
+    if (res?.hatching) {
+      const h = res.hatching;
+      showNativeToolsResult(
+        "🧱 Hachuras Arquitetônicas NBR 6492",
+        `Padrão: <b>${h.pattern}</b> | Espaçamento: <b>${h.spacing_m}m</b> | Ângulo: <b>${h.angle_deg}°</b><br>` +
+        `Linhas de Hachura Recortadas no Polígono: <b>${h.lines_count} segmentos vetoriais</b>`
+      );
+      setStatus("Hachura NBR 6492 gerada e recortada com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao gerar hachura arquitetônica: ${err.message}`, true);
+  }
+});
+
+// 59. Fita de Borda para Marcenaria Sob Medida (NBR 14810)
+document.getElementById("btn-furniture-edge-banding")?.addEventListener("click", async () => {
+  setStatus("Calculando fitas de borda, descontos de corte e custos...");
+  try {
+    const panels = [
+      {
+        panel_id: "LAT_DIR",
+        name: "Lateral Direita",
+        width_mm: 550,
+        height_mm: 720,
+        thickness_mm: 18,
+        edges: {
+          top: { enabled: true, thickness_mm: 0.45, material: "PVC Carvalho Hanôver", cost_per_meter: 1.80 },
+          bottom: { enabled: true, thickness_mm: 0.45, material: "PVC Carvalho Hanôver", cost_per_meter: 1.80 },
+          left: { enabled: true, thickness_mm: 1.0, material: "PVC Antichoque Carvalho", cost_per_meter: 3.50 },
+          right: { enabled: false },
+        },
+      },
+      {
+        panel_id: "PORTA_SUP",
+        name: "Porta Superior",
+        width_mm: 395,
+        height_mm: 715,
+        thickness_mm: 18,
+        edges: {
+          top: { enabled: true, thickness_mm: 1.0, material: "PVC Antichoque Carvalho", cost_per_meter: 3.50 },
+          bottom: { enabled: true, thickness_mm: 1.0, material: "PVC Antichoque Carvalho", cost_per_meter: 3.50 },
+          left: { enabled: true, thickness_mm: 1.0, material: "PVC Antichoque Carvalho", cost_per_meter: 3.50 },
+          right: { enabled: true, thickness_mm: 1.0, material: "PVC Antichoque Carvalho", cost_per_meter: 3.50 },
+        },
+      },
+    ];
+    const res = await processFurnitureEdgeBanding("Armário Cozinha Aéreo", panels, 0.10);
+    if (res?.banding_plan) {
+      const b = res.banding_plan;
+      showNativeToolsResult(
+        "🪚 Fita de Borda & Plano de Coladeira NBR 14810",
+        `Móvel: <b>${b.cabinet_name}</b> | Painéis Processados: <b>${b.panel_count}</b><br>` +
+        `Metragem Líquida: <b>${b.totals.net_linear_meters} m</b> | Metragem Bruta (com refilo 10%): <b>${b.totals.gross_with_overhead_meters} m</b><br>` +
+        `Custo Total de Fitas: <b>R$ ${b.totals.total_edge_banding_cost.toFixed(2)}</b>`
+      );
+      setStatus("Fitas de borda e plano de coladeira calculados.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao calcular fita de borda: ${err.message}`, true);
+  }
+});
+
+// 60. Furação Industrial Sistema 32, Dobradiças e Minifix
+document.getElementById("btn-furniture-drilling")?.addEventListener("click", async () => {
+  setStatus("Calculando furação industrial Sistema 32 e ferragens...");
+  try {
+    const res = await calculateCabinetHardwareDrilling("hinges", {
+      door_height_mm: 715.0,
+      door_width_mm: 395.0,
+      hinge_margin_end_mm: 90.0,
+    });
+    if (res?.drilling_plan) {
+      const d = res.drilling_plan;
+      showNativeToolsResult(
+        "🔩 Furação Industrial & Ferragens (Sistema 32)",
+        `Porta: <b>${d.door_width_mm} x ${d.door_height_mm} mm</b> | Dobradiças Caneco 35mm: <b>${d.recommended_hinge_count} unidades</b><br>` +
+        `Furos de Caneco e Parafusos na Porta: <b>${d.door_cup_drillings?.length || 0} furos</b><br>` +
+        `Furos de Calço na Lateral (Recuo 37mm, Passo 32mm): <b>${d.cabinet_mounting_plates?.length || 0} furos</b>`
+      );
+      setStatus("Furação industrial de ferragens calculada.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao calcular furação industrial: ${err.message}`, true);
+  }
+});
+
+// 61. Plano de Corte e Nesting 2D Guilhotinado para Chapas MDF/MDP
+document.getElementById("btn-furniture-nesting")?.addEventListener("click", async () => {
+  setStatus("Otimizando plano de corte 2D guilhotinado com kerf de serra...");
+  try {
+    const parts = [
+      { id: "P01", name: "Lateral Esquerda", width_mm: 550, height_mm: 720, quantity: 2, can_rotate: false },
+      { id: "P02", name: "Base / Topo", width_mm: 550, height_mm: 764, quantity: 2, can_rotate: false },
+      { id: "P03", name: "Portas Aéreas", width_mm: 395, height_mm: 715, quantity: 2, can_rotate: false },
+      { id: "P04", name: "Prateleira Interna", width_mm: 520, height_mm: 764, quantity: 1, can_rotate: true },
+    ];
+    const res = await optimizeSheetNesting2D(parts, 2750, 1830, 10, 3.2);
+    if (res?.nesting_plan) {
+      const n = res.nesting_plan;
+      showNativeToolsResult(
+        "📐 Nesting 2D & Otimizador de Corte Guilhotinado",
+        `Chapa Padrão: <b>2750 x 1830 mm</b> | Refilo: <b>${n.trim_margin_mm}mm</b> | Kerf de Serra: <b>${n.saw_kerf_mm}mm</b><br>` +
+        `Peças Encaixadas: <b>${n.parts_placed} de ${n.parts_requested}</b> em <b>${n.sheet_count} chapa(s)</b><br>` +
+        `Aproveitamento Global da Chapa: <b>${n.global_yield_percent}%</b> (Perda / Retalho: <b>${n.global_waste_percent}%</b>)`
+      );
+      setStatus("Plano de corte 2D guilhotinado otimizado com sucesso.");
+    }
+  } catch (err) {
+    setStatus(`Erro ao otimizar plano de corte: ${err.message}`, true);
   }
 });
 

@@ -2246,6 +2246,25 @@ class SceneService:
     async def soft_smooth_angle_apply(self, **kwargs) -> dict:
         return await run_in_threadpool(self._repository.soft_smooth_angle_apply, **kwargs)
 
+    # --------------------------------------------------------------------------
+    # FRENTES AVANÇADAS: LAYOUT ABNT & MARCENARIA INDUSTRIAL
+    # --------------------------------------------------------------------------
+    async def abnt_drawing_sheet_create(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.abnt_drawing_sheet_create, **kwargs)
+
+    async def architectural_hatching_generate(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.architectural_hatching_generate, **kwargs)
+
+    async def furniture_edge_banding_process(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.furniture_edge_banding_process, **kwargs)
+
+    async def cabinet_hardware_drilling_calculate(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.cabinet_hardware_drilling_calculate, **kwargs)
+
+    async def sheet_nesting_2d_optimize(self, **kwargs) -> dict:
+        return await run_in_threadpool(self._repository.sheet_nesting_2d_optimize, **kwargs)
+
+
 
 
 

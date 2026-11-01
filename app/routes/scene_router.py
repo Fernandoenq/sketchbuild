@@ -361,6 +361,16 @@ from app.schemas.scene import (
     RadialArcDimensionResponse,
     SoftSmoothAngleRequest,
     SoftSmoothAngleResponse,
+    AbntDrawingSheetRequest,
+    AbntDrawingSheetResponse,
+    ArchitecturalHatchingRequest,
+    ArchitecturalHatchingResponse,
+    FurnitureEdgeBandingRequest,
+    FurnitureEdgeBandingResponse,
+    CabinetHardwareDrillingRequest,
+    CabinetHardwareDrillingResponse,
+    SheetNesting2DRequest,
+    SheetNesting2DResponse,
 
     FollowMeRequest,
     FollowMeResponse,
@@ -3237,6 +3247,76 @@ async def soft_smooth_angle_apply(
     controller: SceneController = Depends(get_controller)
 ) -> SoftSmoothAngleResponse:
     return await controller.soft_smooth_angle_apply(body)
+
+
+# ==============================================================================
+# FRENTES AVANÇADAS: LAYOUT ABNT & MARCENARIA INDUSTRIAL
+# ==============================================================================
+
+@router.post(
+    "/tools/abnt-drawing-sheet",
+    response_model=AbntDrawingSheetResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gera pranchas técnicas normativas ABNT (A0-A4) com margens, carimbo e viewports em escala"
+)
+async def abnt_drawing_sheet_create(
+    body: AbntDrawingSheetRequest,
+    controller: SceneController = Depends(get_controller)
+) -> AbntDrawingSheetResponse:
+    return await controller.abnt_drawing_sheet_create(body)
+
+
+@router.post(
+    "/tools/architectural-hatching",
+    response_model=ArchitecturalHatchingResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gera padrões de hachuras técnicas normativas NBR 6492 (alvenaria, concreto, madeira, terra)"
+)
+async def architectural_hatching_generate(
+    body: ArchitecturalHatchingRequest,
+    controller: SceneController = Depends(get_controller)
+) -> ArchitecturalHatchingResponse:
+    return await controller.architectural_hatching_generate(body)
+
+
+@router.post(
+    "/tools/furniture-edge-banding",
+    response_model=FurnitureEdgeBandingResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Calcula fitas de borda de 4 faces, descontos dimensionais na chapa crua e custos por material"
+)
+async def furniture_edge_banding_process(
+    body: FurnitureEdgeBandingRequest,
+    controller: SceneController = Depends(get_controller)
+) -> FurnitureEdgeBandingResponse:
+    return await controller.furniture_edge_banding_process(body)
+
+
+@router.post(
+    "/tools/cabinet-hardware-drilling",
+    response_model=CabinetHardwareDrillingResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Calcula coordenadas industriais de furação Sistema 32, dobradiças caneco 35mm e fixadores Minifix"
+)
+async def cabinet_hardware_drilling_calculate(
+    body: CabinetHardwareDrillingRequest,
+    controller: SceneController = Depends(get_controller)
+) -> CabinetHardwareDrillingResponse:
+    return await controller.cabinet_hardware_drilling_calculate(body)
+
+
+@router.post(
+    "/tools/sheet-nesting-2d",
+    response_model=SheetNesting2DResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Calcula plano de corte e nesting 2D guilhotinado com kerf de serra, refilo e restrição de veio"
+)
+async def sheet_nesting_2d_optimize(
+    body: SheetNesting2DRequest,
+    controller: SceneController = Depends(get_controller)
+) -> SheetNesting2DResponse:
+    return await controller.sheet_nesting_2d_optimize(body)
+
 
 
 
