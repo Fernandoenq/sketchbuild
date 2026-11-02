@@ -409,6 +409,28 @@
     .su-dialog-body {
       padding: 10px 12px; overflow-y: auto; flex: 1; font-size: 11px;
     }
+
+    /* SketchUp Classic Pencil Cursor & Inference Tooltip */
+    .su-pencil-cursor {
+      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><polygon points="1,23 1,18 17,2 22,7 6,23" fill="%23f7c948" stroke="%23222222" stroke-width="1.2"/><polygon points="1,23 1,18 6,23" fill="%23111111"/><polygon points="17,2 22,7 20,9 15,4" fill="%23e15b64"/><line x1="5" y1="14" x2="10" y2="19" stroke="%23222222" stroke-width="1.2"/></svg>') 1 23, crosshair !important;
+    }
+
+    #su-inference-tooltip {
+      display: none;
+      position: fixed;
+      pointer-events: none;
+      z-index: 99999;
+      background: #ffffd8;
+      border: 1px solid #707050;
+      padding: 2px 6px;
+      font-family: Tahoma, Arial, sans-serif;
+      font-size: 11px;
+      color: #111111;
+      box-shadow: 1px 2px 4px rgba(0,0,0,0.25);
+      border-radius: 2px;
+      white-space: nowrap;
+      line-height: 1.2;
+    }
   </style>
 </head>
 <body>
@@ -1746,6 +1768,7 @@
     </div><!-- /dialog-native-tools -->
   </div><!-- /su-dialogs-container -->
 
+  <div id="su-inference-tooltip"></div>
   <div id="status">Clique em "Escolher arquivo..." pra abrir pelo seletor do Windows, ou cole o caminho completo e clique em Abrir.</div>
 
   <script type="importmap">
@@ -1756,6 +1779,6 @@
     }
   }
   </script>
-  <script type="module" src="src/main.js?v=20261102_05"></script>
+  <script type="module" src="src/main.js?v=20261102_06"></script>
 </body>
 </html>

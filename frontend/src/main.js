@@ -232,7 +232,7 @@ import {
 } from "./sceneBuilder.js";
 import { buildOutlinerTree } from "./outliner.js";
 import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
-import { InferenceEngine } from "./inferenceEngine.js?v=20261102_05";
+import { InferenceEngine } from "./inferenceEngine.js?v=20261102_06";
 
 function sendBrowserLog(type, msg, extra = {}) {
   try {
@@ -629,10 +629,13 @@ function setToolMode(mode) {
       inferenceEngine.hideHelpers();
       inferenceEngine.setLockedAxis(null);
     }
+    renderer.domElement.classList.remove("su-pencil-cursor");
     renderer.domElement.style.cursor = "default";
+    const suTip = document.getElementById("su-inference-tooltip");
+    if (suTip) suTip.style.display = "none";
     controls.mouseButtons.LEFT = (mode === "select") ? THREE.MOUSE.ROTATE : null;
   } else {
-    renderer.domElement.style.cursor = "crosshair";
+    renderer.domElement.classList.add("su-pencil-cursor");
     controls.mouseButtons.LEFT = null; // Impede que o botão esquerdo mova a câmera na ferramenta Linha
     controls.mouseButtons.MIDDLE = THREE.MOUSE.ROTATE;
     controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
@@ -835,19 +838,27 @@ transformControls.addEventListener("dragging-changed", (event) => {
 });
 
 let linePointerDownPos = null;
+let linePointerDownTime = 0;
 
 renderer.domElement.addEventListener("pointerdown", (event) => {
   if (toolMode === "line" && event.button === 0) {
     linePointerDownPos = { x: event.clientX, y: event.clientY };
+    linePointerDownTime = performance.now();
   }
 });
 
 renderer.domElement.addEventListener("pointerup", (event) => {
   if (toolMode === "line" && event.button === 0 && linePointerDownPos) {
     const dist = Math.hypot(event.clientX - linePointerDownPos.x, event.clientY - linePointerDownPos.y);
+    const dt = performance.now() - linePointerDownTime;
     linePointerDownPos = null;
-    if (dist < 8) { // Tolerância CAD para clique seguro (sem falso arrasto)
+
+    if (dist < 12 || dt < 450) {
+      // Clique simples: inicia ou conecta aresta
       handleLineClick(event);
+    } else if (dist >= 12 && lineStartPoint) {
+      // Click-drag: soltou mouse arrastado -> finaliza o segmento
+      handleLineClick(event, true);
     }
   }
 });
@@ -1062,8 +1073,14 @@ window.addEventListener("keydown", (event) => {
         inferenceEngine.hideHelpers();
         inferenceEngine.setLockedAxis(null);
       }
+      const suTip = document.getElementById("su-inference-tooltip");
+      if (suTip) suTip.style.display = "none";
       setStatus("Desenho de linha cancelado.");
     }
+  }
+  else if (event.code === "Space" && document.activeElement.tagName !== "INPUT") {
+    event.preventDefault();
+    setToolMode("select");
   }
   else if (event.key === "l" || event.key === "L") {
     setToolMode("line");
@@ -3266,6 +3283,24 @@ renderer.domElement.addEventListener("pointermove", (event) => {
   const inf = inferenceEngine.computeInference(raycaster, lineStartPoint, event, firstPt);
   lastLineInference = inf;
 
+  // Tooltip flutuante de inferência no estilo nativo do SketchUp
+  const suTip = document.getElementById("su-inference-tooltip");
+  if (suTip) {
+    if (inf && inf.label) {
+      suTip.textContent = inf.label;
+      suTip.style.display = "block";
+      suTip.style.left = `${event.clientX + 16}px`;
+      suTip.style.top = `${event.clientY + 12}px`;
+      if (inf.color) {
+        suTip.style.borderLeft = `4px solid #${inf.color.toString(16).padStart(6, "0")}`;
+      } else {
+        suTip.style.borderLeft = "1px solid #707050";
+      }
+    } else {
+      suTip.style.display = "none";
+    }
+  }
+
   if (lineStartPoint) {
     const dist = lineStartPoint.distanceTo(inf.point);
     if (lineLengthInputEl && document.activeElement !== lineLengthInputEl) {
@@ -3275,12 +3310,12 @@ renderer.domElement.addEventListener("pointermove", (event) => {
 
     if (!rubberbandLine) {
       const geom = new THREE.BufferGeometry().setFromPoints([lineStartPoint, inf.point]);
-      const mat = new THREE.LineBasicMaterial({ color: inf.color || 0x222222, linewidth: 2 });
+      const mat = new THREE.LineBasicMaterial({ color: inf.color || 0x111111, linewidth: 2 });
       rubberbandLine = new THREE.Line(geom, mat);
       scene.add(rubberbandLine);
     } else {
       rubberbandLine.geometry.setFromPoints([lineStartPoint, inf.point]);
-      rubberbandLine.material.color.setHex(inf.color || 0x222222);
+      rubberbandLine.material.color.setHex(inf.color || 0x111111);
       rubberbandLine.visible = true;
     }
   } else {
@@ -3290,6 +3325,11 @@ renderer.domElement.addEventListener("pointermove", (event) => {
     if (lineSnapInfoEl) lineSnapInfoEl.textContent = inf.label || "Clique para iniciar a linha";
     if (rubberbandLine) rubberbandLine.visible = false;
   }
+});
+
+renderer.domElement.addEventListener("mouseleave", () => {
+  const suTip = document.getElementById("su-inference-tooltip");
+  if (suTip) suTip.style.display = "none";
 });
 
 async function commitLineSegment(p1, p2) {
@@ -3357,7 +3397,7 @@ if (lineLengthInputEl) {
   });
 }
 
-async function handleLineClick(event) {
+async function handleLineClick(event, isDragRelease = false) {
   if (!inferenceEngine) return;
   const rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -3389,6 +3429,8 @@ async function handleLineClick(event) {
     currentLinePoints = [];
     if (rubberbandLine) rubberbandLine.visible = false;
     inferenceEngine.hideHelpers();
+    const suTip = document.getElementById("su-inference-tooltip");
+    if (suTip) suTip.style.display = "none";
 
     try {
       const res = await addFaceGeometry(skpPoints);
@@ -3403,24 +3445,23 @@ async function handleLineClick(event) {
   const p1 = lineStartPoint.clone();
   const p2 = clickPoint.clone();
   await commitLineSegment(p1, p2);
+
+  if (isDragRelease) {
+    lineStartPoint = null;
+    currentLinePoints = [];
+    if (rubberbandLine) rubberbandLine.visible = false;
+    inferenceEngine.hideHelpers();
+    const suTip = document.getElementById("su-inference-tooltip");
+    if (suTip) suTip.style.display = "none";
+  }
 }
 
 function createVisualLineSegment(p1, p2) {
   const geom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
-  const mat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+  const mat = new THREE.LineBasicMaterial({ color: 0x111111, linewidth: 2 });
   const line = new THREE.Line(geom, mat);
   line.renderOrder = 5;
   userDrawingsGroup.add(line);
-
-  // Marcadores de vértice nos extremos para feedback tátil idêntico ao SketchUp
-  const dotGeom = new THREE.SphereGeometry(0.02, 8, 8);
-  const dotMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
-  const dot1 = new THREE.Mesh(dotGeom, dotMat);
-  dot1.position.copy(p1);
-  const dot2 = new THREE.Mesh(dotGeom, dotMat);
-  dot2.position.copy(p2);
-  userDrawingsGroup.add(dot1);
-  userDrawingsGroup.add(dot2);
 }
 
 function createVisualPolygonFace(points) {
