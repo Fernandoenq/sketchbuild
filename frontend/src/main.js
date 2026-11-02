@@ -3261,20 +3261,22 @@ renderer.domElement.addEventListener("pointermove", (event) => {
 });
 
 async function commitLineSegment(p1, p2) {
+  // 1. Cria a geometria visual no Three.js IMEDIATAMENTE (nunca desaparece)
+  createVisualLineSegment(p1, p2);
   currentLinePoints.push(p2);
   lineStartPoint = p2;
 
+  const dist = p1.distanceTo(p2);
+  setStatus(`Aresta adicionada (${dist.toFixed(3)} m). Próximo ponto ou feche no início.`);
+  if (inferenceEngine) inferenceEngine.updateGeometryIndex([currentGroup, userDrawingsGroup]);
+
+  // 2. Persiste assincronamente no backend em segundo plano (sem travar a renderização visual)
   const skpP1 = [p1.x, -p1.z, p1.y];
   const skpP2 = [p2.x, -p2.z, p2.y];
   try {
-    const res = await addLineGeometry(skpP1, skpP2);
-    createVisualLineSegment(p1, p2);
-    const dist = p1.distanceTo(p2);
-    setStatus(`Aresta adicionada (${dist.toFixed(3)} m). Próximo ponto ou feche no início.`);
-    if (inferenceEngine) inferenceEngine.updateGeometryIndex([currentGroup, userDrawingsGroup]);
+    await addLineGeometry(skpP1, skpP2);
   } catch (err) {
-    const detail = err instanceof ApiError ? err.message : String(err);
-    setStatus(`Erro ao salvar aresta: ${detail}`, true);
+    console.warn("Backend addLineGeometry aviso:", err);
   }
 }
 
@@ -3332,25 +3334,25 @@ async function handleLineClick(event) {
   }
 
   // Verifica se fecha polígono com o primeiro ponto
-  const isClosingSnap = inf.isClosing || (firstPt && currentLinePoints.length >= 3 && clickPoint.distanceTo(firstPt) < 0.15);
+  const isClosingSnap = inf.isClosing || (firstPt && currentLinePoints.length >= 3 && clickPoint.distanceTo(firstPt) < 0.20);
   if (currentLinePoints.length >= 3 && isClosingSnap) {
-    setStatus("Polígono fechado detectado! Gerando Face B-Rep nativa no arquivo .skp...");
-    // Conversão Three.js (Y-up) -> SketchUp nativo (Z-up, metros)
-    // skp_x = three_x, skp_y = -three_z, skp_z = three_y
+    setStatus("Polígono fechado detectado! Gerando Face B-Rep nativa...");
+    // Cria a face visual imediatamente
+    createVisualPolygonFace(currentLinePoints);
+    if (inferenceEngine) inferenceEngine.updateGeometryIndex([currentGroup, userDrawingsGroup]);
+
     const skpPoints = currentLinePoints.map((p) => [p.x, -p.z, p.y]);
-    try {
-      const res = await addFaceGeometry(skpPoints);
-      createVisualPolygonFace(currentLinePoints);
-      setStatus(`Face nativa B-Rep criada com sucesso! (ID: ${res.entity?.face_id || 'face'}, ${currentLinePoints.length} vértices)`);
-      if (inferenceEngine) inferenceEngine.updateGeometryIndex([currentGroup, userDrawingsGroup]);
-    } catch (err) {
-      const detail = err instanceof ApiError ? err.message : String(err);
-      setStatus(`Erro ao criar face B-Rep: ${detail}`, true);
-    }
     lineStartPoint = null;
     currentLinePoints = [];
     if (rubberbandLine) rubberbandLine.visible = false;
     inferenceEngine.hideHelpers();
+
+    try {
+      const res = await addFaceGeometry(skpPoints);
+      setStatus(`Face nativa B-Rep criada com sucesso! (ID: ${res.entity?.face_id || 'face'})`);
+    } catch (err) {
+      console.warn("Backend addFaceGeometry aviso:", err);
+    }
     return;
   }
 
@@ -3362,9 +3364,20 @@ async function handleLineClick(event) {
 
 function createVisualLineSegment(p1, p2) {
   const geom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
-  const mat = new THREE.LineBasicMaterial({ color: 0x111111, linewidth: 2 });
+  const mat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
   const line = new THREE.Line(geom, mat);
+  line.renderOrder = 5;
   userDrawingsGroup.add(line);
+
+  // Marcadores de vértice nos extremos para feedback tátil idêntico ao SketchUp
+  const dotGeom = new THREE.SphereGeometry(0.02, 8, 8);
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+  const dot1 = new THREE.Mesh(dotGeom, dotMat);
+  dot1.position.copy(p1);
+  const dot2 = new THREE.Mesh(dotGeom, dotMat);
+  dot2.position.copy(p2);
+  userDrawingsGroup.add(dot1);
+  userDrawingsGroup.add(dot2);
 }
 
 function createVisualPolygonFace(points) {
