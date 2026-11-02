@@ -232,7 +232,7 @@ import {
 } from "./sceneBuilder.js";
 import { buildOutlinerTree } from "./outliner.js";
 import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
-import { InferenceEngine } from "./inferenceEngine.js";
+import { InferenceEngine } from "./inferenceEngine.js?v=20261102_05";
 
 function sendBrowserLog(type, msg, extra = {}) {
   try {

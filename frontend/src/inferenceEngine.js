@@ -1,18 +1,48 @@
-// Motor de Inferência e Snapping do SketchUp para Three.js (Frente 22 Aprimorada)
+// Motor de Inferência e Snapping do SketchUp para Three.js (Frente 22 - Fidelidade Matemática)
 //
-// Implementa:
+// Implementa a arquitetura de inferência exata do SketchUp Desktop Classic:
 // 1. Snap a Vértices (Extremidade / Endpoint - Marcador Verde)
-// 2. Snap a Fechamento de Polígono (Fechar Face - Ponto Verde preenchido)
+// 2. Snap a Fechamento de Polígono (Fechar Face - Ponto Verde preenchido com prioridade)
 // 3. Snap a Ponto Médio de Arestas (Midpoint - Marcador Ciano)
 // 4. Snap a Arestas Existentes (On Edge - Marcador Quadrado Vermelho)
 // 5. Snap a Faces e Superfícies 3D Existentes (On Face - Ponto na Malha)
-// 6. Inferência de Eixos Cartesianos com Projeção 3D Exata:
-//    - Eixo Vermelho: X do SketchUp/Three.js (#ff2222)
-//    - Eixo Verde: Y do SketchUp (Z do Three.js #22aa22)
-//    - Eixo Azul: Z do SketchUp (Y vertical do Three.js #2244ff) com plano vertical de projeção
-// 7. Trava manual de eixo via Setas do teclado (Direita=Vermelho, Esquerda=Verde, Cima=Azul, Baixo=Livre)
+// 6. Inferência de Eixos em Espaço de Tela 2D (Screen-Space Angular Tolerance):
+//    - Compara o vetor 2D do cursor com as projeções em tela dos 3 eixos cartesianos
+//    - Eixo Vermelho: X (#ff2222) -> Trava Y e Z absolutos (a linha só vai para o lado!)
+//    - Eixo Verde: Y do SketchUp / Z do Three.js (#22aa22) -> Trava X e Y absolutos
+//    - Eixo Azul: Z do SketchUp / Y vertical do Three.js (#2244ff) -> Trava X e Z absolutos
+//    - Projeção 3D calculada via menor distância entre o raio da câmera e a reta 3D do eixo
+// 7. Plano de Trabalho Ativo (Active Working Plane) para movimento livre:
+//    - Plano horizontal passando por startPoint (Y = startPoint.y), impedindo deriva para o infinito
+// 8. Trava manual de eixo via Setas do teclado ou tecla Shift:
+//    - Direita: Eixo Vermelho (X)
+//    - Esquerda: Eixo Verde (Y SketchUp / Z Three.js)
+//    - Cima: Eixo Azul (Z SketchUp / Y vertical)
+//    - Baixo: Livre
 
 import * as THREE from "three";
+
+/**
+ * Calcula o ponto mais próximo entre uma reta 3D e o raio da câmera
+ * Reta: P(t) = lineOrigin + t * lineDir (lineDir normalizado)
+ * Raio: R(s) = rayOrigin + s * rayDir (rayDir normalizado)
+ */
+function closestPointOnLineToRay(lineOrigin, lineDir, rayOrigin, rayDir) {
+  const w0 = new THREE.Vector3().subVectors(lineOrigin, rayOrigin);
+  const u = lineDir;
+  const v = rayDir;
+  const b = u.dot(v);
+  const d = u.dot(w0);
+  const e = v.dot(w0);
+  const denom = 1.0 - b * b;
+
+  if (Math.abs(denom) < 1e-6) {
+    return lineOrigin.clone();
+  }
+
+  const t = (b * e - d) / denom;
+  return new THREE.Vector3().copy(lineOrigin).addScaledVector(lineDir, t);
+}
 
 export class InferenceEngine {
   constructor(camera, scene, domElement) {
@@ -21,8 +51,8 @@ export class InferenceEngine {
     this.domElement = domElement;
 
     this.snapRadiusPx = 14;
-    this.axisThresholdRad = 0.087; // ~5 graus
     this.lockedAxis = null; // "red", "green", "blue" ou null
+    this.lastInferredAxis = null; // Mantém histórico para trava via Shift
 
     this.verticesCache = [];
     this.midpointsCache = [];
@@ -40,7 +70,7 @@ export class InferenceEngine {
     this.helperGroup = new THREE.Group();
     this.helperGroup.name = "inference_helpers";
 
-    // 1. Marcador de Snap (esfera iluminada com depthTest=false para ficar sempre visível)
+    // 1. Marcador de Snap (esfera com depthTest=false para ficar sempre visível em cima do modelo)
     const snapGeom = new THREE.SphereGeometry(0.045, 12, 12);
     this.snapMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
@@ -53,15 +83,15 @@ export class InferenceEngine {
     this.snapMarker.renderOrder = 999;
     this.helperGroup.add(this.snapMarker);
 
-    // 2. Linha Guia Tracejada do Eixo Inferido
+    // 2. Linha Guia Tracejada Infinita do Eixo Inferido
     const guideGeom = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(-100, 0, 0),
-      new THREE.Vector3(100, 0, 0),
+      new THREE.Vector3(-500, 0, 0),
+      new THREE.Vector3(500, 0, 0),
     ]);
     this.guideMaterial = new THREE.LineDashedMaterial({
       color: 0xff0000,
-      dashSize: 0.2,
-      gapSize: 0.12,
+      dashSize: 0.25,
+      gapSize: 0.15,
       depthTest: false,
     });
     this.guideLine = new THREE.Line(guideGeom, this.guideMaterial);
@@ -87,18 +117,14 @@ export class InferenceEngine {
     const groupList = Array.isArray(groups) ? groups : [groups];
 
     const tempV = new THREE.Vector3();
-    const tempV2 = new THREE.Vector3();
 
     for (const group of groupList) {
       if (!group) continue;
       group.traverse((obj) => {
         // Coleta malhas para raycasting de faces (On Face)
-        if (obj.isMesh && obj.visible) {
+        if (obj.isMesh && obj.visible && obj.geometry) {
           this.meshTargets.push(obj);
-        }
 
-        // Processa malhas trianguladas
-        if (obj.isMesh && obj.geometry) {
           const geom = obj.geometry;
           const posAttr = geom.getAttribute("position");
           if (!posAttr) return;
@@ -135,7 +161,7 @@ export class InferenceEngine {
         }
 
         // Processa linhas desenhadas pelo usuário (Line / LineSegments)
-        if (obj.isLine && obj.geometry) {
+        if (obj.isLine && obj.visible && obj.geometry) {
           const geom = obj.geometry;
           const posAttr = geom.getAttribute("position");
           if (!posAttr) return;
@@ -165,34 +191,50 @@ export class InferenceEngine {
   }
 
   /**
+   * Converte coordenadas 3D de mundo para pixels (x, y) na tela
+   * @param {THREE.Vector3} worldPos
+   * @param {DOMRect} rect
+   * @returns {{x: number, y: number, inFront: boolean}}
+   */
+  _projectToScreen(worldPos, rect) {
+    const p = worldPos.clone().project(this.camera);
+    return {
+      x: ((p.x + 1) * rect.width) / 2,
+      y: ((-p.y + 1) * rect.height) / 2,
+      inFront: p.z <= 1.0,
+    };
+  }
+
+  /**
    * Calcula o ponto inferido a partir do raycaster do mouse e ponto de partida opcional
    * @param {THREE.Raycaster} raycaster
    * @param {THREE.Vector3|null} startPoint
-   * @param {MouseEvent} event
+   * @param {MouseEvent|PointerEvent|null} event
    * @param {THREE.Vector3|null} firstPoint (ponto inicial da cadeia de linhas para fechar face)
    * @returns {{ point: THREE.Vector3, type: string, label: string, color: number, isClosing: boolean }}
    */
   computeInference(raycaster, startPoint = null, event = null, firstPoint = null) {
     const rect = this.domElement.getBoundingClientRect();
-    const mouseX = event ? event.clientX - rect.left : 0;
-    const mouseY = event ? event.clientY - rect.top : 0;
+    const mouseX = event ? event.clientX - rect.left : rect.width / 2;
+    const mouseY = event ? event.clientY - rect.top : rect.height / 2;
 
     let bestPoint = null;
     let snapType = "none";
     let snapLabel = "";
-    let snapColor = 0x000000;
+    let snapColor = 0x222222;
     let minScreenDist = this.snapRadiusPx;
     let isClosing = false;
 
-    // 1. Testa Snap ao Primeiro Ponto (Fechar Face / Extremidade Inicial)
+    // ------------------------------------------------------------------------
+    // FASE 1: Snaps em Geometria Física Existente (Prioridade Máxima)
+    // ------------------------------------------------------------------------
+
+    // 1.1 Snap ao Primeiro Ponto (Fechar Face)
     if (event && firstPoint && startPoint && firstPoint !== startPoint) {
-      const screenPos = new THREE.Vector3();
-      screenPos.copy(firstPoint).project(this.camera);
-      if (screenPos.z <= 1.0) {
-        const sx = ((screenPos.x + 1) * rect.width) / 2;
-        const sy = ((-screenPos.y + 1) * rect.height) / 2;
-        const dist = Math.hypot(mouseX - sx, mouseY - sy);
-        if (dist < minScreenDist + 4) {
+      const sPos = this._projectToScreen(firstPoint, rect);
+      if (sPos.inFront) {
+        const dist = Math.hypot(mouseX - sPos.x, mouseY - sPos.y);
+        if (dist < minScreenDist + 6) {
           minScreenDist = dist;
           bestPoint = firstPoint.clone();
           snapType = "endpoint";
@@ -203,17 +245,13 @@ export class InferenceEngine {
       }
     }
 
-    // 2. Testa Snap a Vértice Existente (Endpoint - Verde)
+    // 1.2 Snap a Vértice Existente (Endpoint - Verde)
     if (!bestPoint && event && this.verticesCache.length) {
-      const screenPos = new THREE.Vector3();
       for (const v of this.verticesCache) {
-        screenPos.copy(v).project(this.camera);
-        if (screenPos.z > 1.0) continue; // atrás da câmera
+        const sPos = this._projectToScreen(v, rect);
+        if (!sPos.inFront) continue;
 
-        const sx = ((screenPos.x + 1) * rect.width) / 2;
-        const sy = ((-screenPos.y + 1) * rect.height) / 2;
-        const dist = Math.hypot(mouseX - sx, mouseY - sy);
-
+        const dist = Math.hypot(mouseX - sPos.x, mouseY - sPos.y);
         if (dist < minScreenDist) {
           minScreenDist = dist;
           bestPoint = v.clone();
@@ -224,17 +262,13 @@ export class InferenceEngine {
       }
     }
 
-    // 3. Testa Snap a Ponto Médio (Midpoint - Ciano)
+    // 1.3 Snap a Ponto Médio (Midpoint - Ciano)
     if (!bestPoint && event && this.midpointsCache.length) {
-      const screenPos = new THREE.Vector3();
       for (const m of this.midpointsCache) {
-        screenPos.copy(m).project(this.camera);
-        if (screenPos.z > 1.0) continue;
+        const sPos = this._projectToScreen(m, rect);
+        if (!sPos.inFront) continue;
 
-        const sx = ((screenPos.x + 1) * rect.width) / 2;
-        const sy = ((-screenPos.y + 1) * rect.height) / 2;
-        const dist = Math.hypot(mouseX - sx, mouseY - sy);
-
+        const dist = Math.hypot(mouseX - sPos.x, mouseY - sPos.y);
         if (dist < minScreenDist) {
           minScreenDist = dist;
           bestPoint = m.clone();
@@ -245,28 +279,19 @@ export class InferenceEngine {
       }
     }
 
-    // 4. Testa Snap a Aresta (On Edge - Vermelho)
+    // 1.4 Snap a Aresta (On Edge - Vermelho)
     if (!bestPoint && event && this.edgesCache.length) {
-      const p1Screen = new THREE.Vector3();
-      const p2Screen = new THREE.Vector3();
-
       for (const edge of this.edgesCache) {
-        p1Screen.copy(edge.p1).project(this.camera);
-        p2Screen.copy(edge.p2).project(this.camera);
-        if (p1Screen.z > 1.0 && p2Screen.z > 1.0) continue;
+        const s1 = this._projectToScreen(edge.p1, rect);
+        const s2 = this._projectToScreen(edge.p2, rect);
+        if (!s1.inFront && !s2.inFront) continue;
 
-        const sx1 = ((p1Screen.x + 1) * rect.width) / 2;
-        const sy1 = ((-p1Screen.y + 1) * rect.height) / 2;
-        const sx2 = ((p2Screen.x + 1) * rect.width) / 2;
-        const sy2 = ((-p2Screen.y + 1) * rect.height) / 2;
+        const lineLen = Math.hypot(s2.x - s1.x, s2.y - s1.y);
+        if (lineLen < 2) continue;
 
-        const lineLen = Math.hypot(sx2 - sx1, sy2 - sy1);
-        if (lineLen < 1) continue;
-
-        // Projeção paramétrica t na linha de tela
-        const t = Math.max(0, Math.min(1, ((mouseX - sx1) * (sx2 - sx1) + (mouseY - sy1) * (sy2 - sy1)) / (lineLen * lineLen)));
-        const projX = sx1 + t * (sx2 - sx1);
-        const projY = sy1 + t * (sy2 - sy1);
+        const t = Math.max(0, Math.min(1, ((mouseX - s1.x) * (s2.x - s1.x) + (mouseY - s1.y) * (s2.y - s1.y)) / (lineLen * lineLen)));
+        const projX = s1.x + t * (s2.x - s1.x);
+        const projY = s1.y + t * (s2.y - s1.y);
         const dist = Math.hypot(mouseX - projX, mouseY - projY);
 
         if (dist < minScreenDist - 2) {
@@ -279,7 +304,7 @@ export class InferenceEngine {
       }
     }
 
-    // 5. Testa Snap a Superfície de Malha 3D Existente (On Face)
+    // 1.5 Snap a Superfície de Malha 3D Existente (On Face)
     if (!bestPoint && this.meshTargets.length) {
       const hits = raycaster.intersectObjects(this.meshTargets, false);
       if (hits.length > 0) {
@@ -290,88 +315,179 @@ export class InferenceEngine {
       }
     }
 
-    // 6. Se não houver snap a objeto ou face, calcula ponto no chão horizontal
-    if (!bestPoint) {
-      const groundHit = new THREE.Vector3();
-      if (raycaster.ray.intersectPlane(this.groundPlane, groundHit)) {
-        bestPoint = groundHit;
-        snapType = "ground";
-        snapLabel = "No plano horizontal";
-      } else {
-        // Fallback: plano perpendicular à câmera
-        const camDir = this.camera.getWorldDirection(new THREE.Vector3());
-        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
-          camDir.clone().negate(),
-          this.camera.position.clone().add(camDir.clone().multiplyScalar(5))
+    // ------------------------------------------------------------------------
+    // FASE 2: Inferência de Eixos em Espaço de Tela 2D (Canônica do SketchUp)
+    // ------------------------------------------------------------------------
+    // Se o usuário já definiu o ponto inicial (Rubberband ativo) e não fechou polígono:
+    if (startPoint && !isClosing) {
+      // Determina se há eixo travado manualmente (Setas ou Shift)
+      let activeLockedAxis = this.lockedAxis;
+      if (!activeLockedAxis && event && event.shiftKey && this.lastInferredAxis) {
+        activeLockedAxis = this.lastInferredAxis;
+      }
+
+      // Projeta o startPoint na tela 2D
+      const sStart = this._projectToScreen(startPoint, rect);
+
+      // Definição dos 3 eixos cartesianos:
+      // Red: X do SketchUp / X do Three.js (#ff2222)
+      // Green: Y do SketchUp / Z do Three.js (#22aa22)
+      // Blue: Z vertical do SketchUp / Y vertical do Three.js (#2244ff)
+      const axes = [
+        {
+          id: "red",
+          dir: new THREE.Vector3(1, 0, 0),
+          label: "No Eixo Vermelho (X)",
+          color: 0xff2222,
+        },
+        {
+          id: "green",
+          dir: new THREE.Vector3(0, 0, 1),
+          label: "No Eixo Verde (Y)",
+          color: 0x22aa22,
+        },
+        {
+          id: "blue",
+          dir: new THREE.Vector3(0, 1, 0),
+          label: "No Eixo Azul (Vertical Z)",
+          color: 0x2244ff,
+        },
+      ];
+
+      // Vetor do mouse na tela a partir do startPoint
+      const mouseScreenVec = new THREE.Vector2(mouseX - sStart.x, mouseY - sStart.y);
+      const mouseDistPx = mouseScreenVec.length();
+
+      let detectedAxis = null;
+
+      if (activeLockedAxis) {
+        // Trava forçada pelo usuário (Setas ou Shift)
+        detectedAxis = axes.find((a) => a.id === activeLockedAxis) || null;
+      } else if (mouseDistPx > 10) {
+        // Tolerância Angular em Tela: testa alinhamento com a projeção 2D de cada eixo
+        const normMouseScreen = mouseScreenVec.clone().normalize();
+        let maxAlignment = 0;
+        let candidateAxis = null;
+
+        for (const axis of axes) {
+          // Projeta um ponto 2 metros à frente ao longo do eixo na tela
+          const ptAlongAxis = startPoint.clone().addScaledVector(axis.dir, 2.0);
+          const sAxisPt = this._projectToScreen(ptAlongAxis, rect);
+          const axisScreenVec = new THREE.Vector2(sAxisPt.x - sStart.x, sAxisPt.y - sStart.y);
+          const axisLenPx = axisScreenVec.length();
+
+          // Se o eixo estiver de frente para a câmera (degenerado na tela), ignora
+          if (axisLenPx < 3) continue;
+
+          const normAxisScreen = axisScreenVec.normalize();
+          // Produto escalar absoluto: a linha pode seguir no sentido positivo ou negativo do eixo
+          const alignment = Math.abs(normMouseScreen.dot(normAxisScreen));
+
+          // Tolerância angular do SketchUp: ~18 graus (cos(18°) ≈ 0.951)
+          if (alignment > maxAlignment) {
+            maxAlignment = alignment;
+            if (alignment >= 0.94) {
+              candidateAxis = axis;
+            }
+          }
+        }
+
+        if (candidateAxis) {
+          detectedAxis = candidateAxis;
+        }
+      }
+
+      // Se um eixo cartesiano foi detectado (ou travado) E não há snap em vértice/aresta física:
+      if (detectedAxis && (!bestPoint || snapType === "face" || snapType === "none")) {
+        // Calcula a posição 3D exata usando a reta mais próxima ao raio da câmera
+        const linePt = closestPointOnLineToRay(
+          startPoint,
+          detectedAxis.dir,
+          raycaster.ray.origin,
+          raycaster.ray.direction
         );
-        bestPoint = new THREE.Vector3();
-        raycaster.ray.intersectPlane(plane, bestPoint);
-      }
-    }
 
-    // 7. Inferência Inteligente de Eixos Cartesianos com ponto de partida (Rubberband)
-    if (startPoint && bestPoint && !isClosing) {
-      const forcedAxis = this.lockedAxis;
+        bestPoint = linePt;
 
-      // Cria plano vertical passando por startPoint e voltado para a câmera para capturar altura Y (Eixo Azul)
-      const camPos = this.camera.position;
-      const normalH = new THREE.Vector3(camPos.x - startPoint.x, 0, camPos.z - startPoint.z).normalize();
-      const verticalPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(normalH, startPoint);
-      const verticalHit = new THREE.Vector3();
-      const hasVerticalHit = raycaster.ray.intersectPlane(verticalPlane, verticalHit);
+        // Limpeza estrita de coordenadas para fidelidade absoluta aos eixos:
+        if (detectedAxis.id === "red") {
+          // Eixo Vermelho: Y e Z NUNCA se alteram em relação ao startPoint!
+          bestPoint.y = startPoint.y;
+          bestPoint.z = startPoint.z;
+        } else if (detectedAxis.id === "green") {
+          // Eixo Verde: X e Y NUNCA se alteram em relação ao startPoint!
+          bestPoint.x = startPoint.x;
+          bestPoint.y = startPoint.y;
+        } else if (detectedAxis.id === "blue") {
+          // Eixo Azul: X e Z NUNCA se alteram em relação ao startPoint!
+          bestPoint.x = startPoint.x;
+          bestPoint.z = startPoint.z;
+        }
 
-      const delta = bestPoint.clone().sub(startPoint);
-      const absX = Math.abs(delta.x);
-      const absZ = Math.abs(delta.z); // Verde (Y do SketchUp)
+        snapType = `axis_${detectedAxis.id}`;
+        snapLabel = detectedAxis.label;
+        snapColor = detectedAxis.color;
+        this.lastInferredAxis = detectedAxis.id;
 
-      let verticalDy = 0;
-      if (hasVerticalHit) {
-        verticalDy = verticalHit.y - startPoint.y;
-      }
-
-      // Projeção na tela do deslocamento do mouse a partir do startPoint
-      const startScreen = startPoint.clone().project(this.camera);
-      const startSx = ((startScreen.x + 1) * rect.width) / 2;
-      const startSy = ((-startScreen.y + 1) * rect.height) / 2;
-      const screenDx = mouseX - startSx;
-      const screenDy = mouseY - startSy;
-      const isScreenVertical = Math.abs(screenDy) > 1.8 * Math.abs(screenDx) && Math.abs(screenDy) > 20;
-
-      // 7.1 EIXO AZUL (Vertical - Z do SketchUp / Y do Three.js)
-      if (forcedAxis === "blue" || (!forcedAxis && hasVerticalHit && (isScreenVertical || Math.abs(verticalDy) > Math.max(absX, absZ) * 1.5))) {
-        bestPoint.x = startPoint.x;
-        bestPoint.z = startPoint.z;
-        bestPoint.y = hasVerticalHit ? verticalHit.y : bestPoint.y;
-        snapType = "axis_blue";
-        snapLabel = "No Eixo Azul (Vertical Z)";
-        snapColor = 0x2244ff;
-        this._showGuideLine(startPoint, new THREE.Vector3(0, 1, 0), snapColor);
-      }
-      // 7.2 EIXO VERMELHO (X do SketchUp / X do Three.js)
-      else if (forcedAxis === "red" || (!forcedAxis && absX > 0.12 && absZ < 0.3 * absX)) {
-        bestPoint.y = startPoint.y;
-        bestPoint.z = startPoint.z;
-        snapType = "axis_red";
-        snapLabel = "No Eixo Vermelho (X)";
-        snapColor = 0xff2222;
-        this._showGuideLine(startPoint, new THREE.Vector3(1, 0, 0), snapColor);
-      }
-      // 7.3 EIXO VERDE (Y do SketchUp / Z do Three.js)
-      else if (forcedAxis === "green" || (!forcedAxis && absZ > 0.12 && absX < 0.3 * absZ)) {
-        bestPoint.x = startPoint.x;
-        bestPoint.y = startPoint.y;
-        snapType = "axis_green";
-        snapLabel = "No Eixo Verde (Y)";
-        snapColor = 0x22aa22;
-        this._showGuideLine(startPoint, new THREE.Vector3(0, 0, 1), snapColor);
+        // Exibe a linha guia infinita tracejada
+        this._showGuideLine(startPoint, detectedAxis.dir, detectedAxis.color);
       } else {
         this.guideLine.visible = false;
+        if (!detectedAxis) {
+          this.lastInferredAxis = null;
+        }
       }
     } else {
       this.guideLine.visible = false;
     }
 
-    // 8. Atualiza o Marcador Visual de Snap
+    // ------------------------------------------------------------------------
+    // FASE 3: Plano de Trabalho Ativo 2D para Movimento Livre (Fora dos Eixos)
+    // ------------------------------------------------------------------------
+    if (!bestPoint) {
+      if (startPoint) {
+        // Se já começou o desenho, o plano de trabalho horizontal fica na ALTURA do startPoint!
+        // Impede completamente que a linha "afunde" para Y=0 ou derive obliquamente para o infinito.
+        const activeHorizontalPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -startPoint.y);
+        const planeHit = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(activeHorizontalPlane, planeHit)) {
+          bestPoint = planeHit;
+          bestPoint.y = startPoint.y; // Força coplanaridade perfeita
+          snapType = "working_plane";
+          snapLabel = "No plano de trabalho";
+        } else {
+          // Fallback se a câmera olhar paralela ao chão: plano perpendicular à câmera passando por startPoint
+          const camDir = this.camera.getWorldDirection(new THREE.Vector3());
+          const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(camDir.clone().negate(), startPoint);
+          bestPoint = new THREE.Vector3();
+          raycaster.ray.intersectPlane(plane, bestPoint);
+          snapType = "view_plane";
+          snapLabel = "No plano de visão";
+        }
+      } else {
+        // Primeiro clique no vazio: intersecta o chão horizontal do mundo (Y=0)
+        const groundHit = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(this.groundPlane, groundHit)) {
+          bestPoint = groundHit;
+          snapType = "ground";
+          snapLabel = "No plano horizontal";
+        } else {
+          const camDir = this.camera.getWorldDirection(new THREE.Vector3());
+          const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+            camDir.clone().negate(),
+            this.camera.position.clone().add(camDir.clone().multiplyScalar(5))
+          );
+          bestPoint = new THREE.Vector3();
+          raycaster.ray.intersectPlane(plane, bestPoint);
+          snapType = "view_plane";
+          snapLabel = "No espaço";
+        }
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // FASE 4: Atualiza o Marcador Visual de Snap
+    // ------------------------------------------------------------------------
     if (snapType === "endpoint" || snapType === "midpoint" || snapType === "edge") {
       this.snapMarker.position.copy(bestPoint);
       this.snapMaterial.color.setHex(snapColor);
@@ -391,8 +507,8 @@ export class InferenceEngine {
 
   _showGuideLine(origin, dir, color) {
     const pts = [
-      origin.clone().addScaledVector(dir, -100),
-      origin.clone().addScaledVector(dir, 100),
+      origin.clone().addScaledVector(dir, -500),
+      origin.clone().addScaledVector(dir, 500),
     ];
     this.guideLine.geometry.setFromPoints(pts);
     this.guideLine.computeLineDistances();
