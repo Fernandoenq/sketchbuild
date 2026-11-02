@@ -623,6 +623,12 @@ function setToolMode(mode) {
       inferenceEngine.hideHelpers();
       inferenceEngine.setLockedAxis(null);
     }
+    renderer.domElement.style.cursor = "default";
+  } else {
+    renderer.domElement.style.cursor = "crosshair";
+    if (inferenceEngine) {
+      inferenceEngine.updateGeometryIndex([currentGroup, userDrawingsGroup]);
+    }
   }
   if (mode === "erase") setStatus("Modo Apagar: clique numa peca pra excluir na hora.");
   else if (mode === "measure") setStatus("Modo Fita metrica: clique no primeiro ponto.");
@@ -638,7 +644,7 @@ function setToolMode(mode) {
   else if (mode === "axes") setStatus("Modo Eixos: clique na peca pra definir a ORIGEM dos eixos novos.");
   else if (mode === "pushpull") setStatus("Modo Empurrar/Puxar (P): clique numa face para selecionar e digite a distância no VCB ou clique para extrudar.");
   else if (mode === "circle") setStatus("Modo Círculo / Cilindro (C): defina raio e altura no canto inferior direito e clique em Criar.");
-  else if (mode === "line") setStatus("Modo Linha (L): clique para fixar o 1o ponto. Setas travam eixos (Direita=X/Vermelho, Esquerda=Y/Verde, Cima=Z/Azul).");
+  else if (mode === "line") setStatus("Modo Linha (L): clique para fixar o 1º ponto. Aponte e digite a medida no VCB (Enter) ou use as setas para travar eixos (Direita=X/Vermelho, Esquerda=Y/Verde, Cima=Z/Azul).");
   else if (mode === "rect") setStatus("Modo Retangulo: informe largura/profundidade na caixa no canto inferior direito e clique em Criar.");
   else if (mode === "box") setStatus("Modo Bloco 3D (Push-Pull): informe largura, comprimento e altura na caixa no canto inferior direito e clique em Criar Bloco.");
   else if (mode === "dxf") setStatus("Modo Importar DXF: informe o caminho do arquivo CAD DXF e clique em Converter DXF.");
@@ -951,6 +957,16 @@ function handleProtractorClick(worldPoint) {
 window.addEventListener("keydown", (event) => {
   const tag = event.target.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA") return; // nao rouba atalho de quem esta digitando
+
+  // Captura direta de digitação de medidas para o VCB na ferramenta Linha
+  if (toolMode === "line" && lineStartPoint && /^[0-9.,]$/.test(event.key)) {
+    if (lineLengthInputEl) {
+      event.preventDefault();
+      lineLengthInputEl.focus();
+      lineLengthInputEl.value = event.key;
+      return;
+    }
+  }
 
   if ((event.ctrlKey || event.metaKey) && (event.key === "z" || event.key === "Z")) {
     event.preventDefault();
@@ -3205,6 +3221,8 @@ async function handleExportIfc() {
 // Frente 22: Autoria Interativa de Desenho (Snapping, Inferência, Linhas e Faces)
 // ============================================================================
 
+let lastLineInference = null;
+
 renderer.domElement.addEventListener("pointermove", (event) => {
   if (toolMode !== "line" || !inferenceEngine) return;
   const rect = renderer.domElement.getBoundingClientRect();
@@ -3212,10 +3230,15 @@ renderer.domElement.addEventListener("pointermove", (event) => {
   pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
 
-  const inf = inferenceEngine.computeInference(raycaster, lineStartPoint, event);
+  const firstPt = (currentLinePoints && currentLinePoints.length > 0) ? currentLinePoints[0] : null;
+  const inf = inferenceEngine.computeInference(raycaster, lineStartPoint, event, firstPt);
+  lastLineInference = inf;
+
   if (lineStartPoint) {
     const dist = lineStartPoint.distanceTo(inf.point);
-    if (lineLengthInputEl) lineLengthInputEl.value = `${dist.toFixed(3)} m`;
+    if (lineLengthInputEl && document.activeElement !== lineLengthInputEl) {
+      lineLengthInputEl.value = `${dist.toFixed(3)} m`;
+    }
     if (lineSnapInfoEl) lineSnapInfoEl.textContent = inf.label || "";
 
     if (!rubberbandLine) {
@@ -3229,11 +3252,65 @@ renderer.domElement.addEventListener("pointermove", (event) => {
       rubberbandLine.visible = true;
     }
   } else {
-    if (lineLengthInputEl) lineLengthInputEl.value = "0.000 m";
-    if (lineSnapInfoEl) lineSnapInfoEl.textContent = inf.label || "Ponto inicial";
+    if (lineLengthInputEl && document.activeElement !== lineLengthInputEl) {
+      lineLengthInputEl.value = "0.000 m";
+    }
+    if (lineSnapInfoEl) lineSnapInfoEl.textContent = inf.label || "Clique para iniciar a linha";
     if (rubberbandLine) rubberbandLine.visible = false;
   }
 });
+
+async function commitLineSegment(p1, p2) {
+  currentLinePoints.push(p2);
+  lineStartPoint = p2;
+
+  const skpP1 = [p1.x, -p1.z, p1.y];
+  const skpP2 = [p2.x, -p2.z, p2.y];
+  try {
+    const res = await addLineGeometry(skpP1, skpP2);
+    createVisualLineSegment(p1, p2);
+    const dist = p1.distanceTo(p2);
+    setStatus(`Aresta adicionada (${dist.toFixed(3)} m). Próximo ponto ou feche no início.`);
+    if (inferenceEngine) inferenceEngine.updateGeometryIndex([currentGroup, userDrawingsGroup]);
+  } catch (err) {
+    const detail = err instanceof ApiError ? err.message : String(err);
+    setStatus(`Erro ao salvar aresta: ${detail}`, true);
+  }
+}
+
+async function applyLineLengthFromVcb() {
+  if (!lineStartPoint || !lineLengthInputEl) return;
+  const rawText = lineLengthInputEl.value.replace(/m/gi, "").replace(",", ".").trim();
+  const dist = parseFloat(rawText);
+  if (isNaN(dist) || dist <= 0) {
+    setStatus("Comprimento inválido. Digite um número positivo (ex: 2.5).", true);
+    return;
+  }
+
+  // Determina o vetor direção a partir do mouse/inferência atual
+  let dir = new THREE.Vector3(1, 0, 0);
+  if (lastLineInference && lastLineInference.point) {
+    const delta = lastLineInference.point.clone().sub(lineStartPoint);
+    if (delta.lengthSq() > 0.0001) {
+      dir = delta.normalize();
+    }
+  }
+
+  const p1 = lineStartPoint.clone();
+  const p2 = p1.clone().add(dir.clone().multiplyScalar(dist));
+  await commitLineSegment(p1, p2);
+  lineLengthInputEl.value = `${dist.toFixed(3)} m`;
+  lineLengthInputEl.blur();
+}
+
+if (lineLengthInputEl) {
+  lineLengthInputEl.addEventListener("keydown", async (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      await applyLineLengthFromVcb();
+    }
+  });
+}
 
 async function handleLineClick(event) {
   if (!inferenceEngine) return;
@@ -3242,20 +3319,21 @@ async function handleLineClick(event) {
   pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
 
-  const inf = inferenceEngine.computeInference(raycaster, lineStartPoint, event);
+  const firstPt = (currentLinePoints && currentLinePoints.length > 0) ? currentLinePoints[0] : null;
+  const inf = inferenceEngine.computeInference(raycaster, lineStartPoint, event, firstPt);
+  lastLineInference = inf;
   const clickPoint = inf.point.clone();
 
   if (!lineStartPoint) {
     lineStartPoint = clickPoint;
     currentLinePoints = [clickPoint];
-    setStatus(`Ponto inicial fixado em (${clickPoint.x.toFixed(2)}, ${clickPoint.y.toFixed(2)}, ${clickPoint.z.toFixed(2)}). Clique no próximo ponto.`);
+    setStatus(`Ponto inicial fixado em (${clickPoint.x.toFixed(2)}, ${clickPoint.y.toFixed(2)}, ${clickPoint.z.toFixed(2)}). Aponte a direção e clique ou digite o valor no VCB.`);
     return;
   }
 
   // Verifica se fecha polígono com o primeiro ponto
-  const firstPt = currentLinePoints[0];
-  const distToFirst = clickPoint.distanceTo(firstPt);
-  if (currentLinePoints.length >= 3 && distToFirst < 0.08) {
+  const isClosingSnap = inf.isClosing || (firstPt && currentLinePoints.length >= 3 && clickPoint.distanceTo(firstPt) < 0.15);
+  if (currentLinePoints.length >= 3 && isClosingSnap) {
     setStatus("Polígono fechado detectado! Gerando Face B-Rep nativa no arquivo .skp...");
     // Conversão Three.js (Y-up) -> SketchUp nativo (Z-up, metros)
     // skp_x = three_x, skp_y = -three_z, skp_z = three_y
@@ -3264,7 +3342,7 @@ async function handleLineClick(event) {
       const res = await addFaceGeometry(skpPoints);
       createVisualPolygonFace(currentLinePoints);
       setStatus(`Face nativa B-Rep criada com sucesso! (ID: ${res.entity?.face_id || 'face'}, ${currentLinePoints.length} vértices)`);
-      if (currentGroup) inferenceEngine.updateGeometryIndex(currentGroup);
+      if (inferenceEngine) inferenceEngine.updateGeometryIndex([currentGroup, userDrawingsGroup]);
     } catch (err) {
       const detail = err instanceof ApiError ? err.message : String(err);
       setStatus(`Erro ao criar face B-Rep: ${detail}`, true);
@@ -3279,20 +3357,7 @@ async function handleLineClick(event) {
   // Adiciona aresta conectada
   const p1 = lineStartPoint.clone();
   const p2 = clickPoint.clone();
-  currentLinePoints.push(p2);
-  lineStartPoint = p2;
-
-  const skpP1 = [p1.x, -p1.z, p1.y];
-  const skpP2 = [p2.x, -p2.z, p2.y];
-  try {
-    const res = await addLineGeometry(skpP1, skpP2);
-    createVisualLineSegment(p1, p2);
-    setStatus(`Aresta adicionada (${p1.distanceTo(p2).toFixed(3)} m). Próximo ponto ou feche no início.`);
-    if (currentGroup) inferenceEngine.updateGeometryIndex(currentGroup);
-  } catch (err) {
-    const detail = err instanceof ApiError ? err.message : String(err);
-    setStatus(`Erro ao salvar aresta: ${detail}`, true);
-  }
+  await commitLineSegment(p1, p2);
 }
 
 function createVisualLineSegment(p1, p2) {
