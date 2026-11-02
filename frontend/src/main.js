@@ -232,7 +232,7 @@ import {
 } from "./sceneBuilder.js";
 import { buildOutlinerTree } from "./outliner.js";
 import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
-import { InferenceEngine } from "./inferenceEngine.js?v=20261102_06";
+import { InferenceEngine } from "./inferenceEngine.js?v=20261102_07";
 
 function sendBrowserLog(type, msg, extra = {}) {
   try {
@@ -390,36 +390,57 @@ const welcomeTemplateCardEls = document.querySelectorAll(
 
 const scene = new THREE.Scene();
 
-// Fundo "ceu" degrade + chao solido, reproduzindo o estilo padrao do
-// SketchUp Desktop (cores reais extraidas via screenshot do SketchUp 2026
-// rodando nesta mesma maquina -- ver REVERSE_ENGINEERING_NOTES.md secao
-// 25). O ceu e so um degrade em screen-space (THREE.Scene.background com
-// um Texture simples nao acompanha a orientacao da camera) -- suficiente
-// pros angulos de camera deste visualizador; o chao, esse sim, e uma
-// malha 3D de verdade e recebe perspectiva/paralaxe normal ao orbitar.
-function createSkyTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 2;
-  canvas.height = 256;
-  const ctx = canvas.getContext("2d");
-  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  gradient.addColorStop(0, "#40B3E2");
-  gradient.addColorStop(1, "#BFE5F5");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  return new THREE.CanvasTexture(canvas);
-}
-scene.background = createSkyTexture();
+// Fundo "Céu + Chão" Oficial do SketchUp Classic (Horizonte Infinito)
+// O chão cinza é renderizado no fundo do mundo com depthWrite=false e renderOrder=-1000.
+// Não é um plano de malha 3D opaco cortando o espaço no eixo zero:
+// Se a câmera descer ou se houver geometria/linhas abaixo de Z=0 (eixo azul negativo),
+// ela NUNCA corta a visão! Tudo permanece 100% visível na frente do fundo.
+const skyGeom = new THREE.SphereGeometry(950, 32, 16);
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide,
+  depthWrite: false,
+  depthTest: false,
+  uniforms: {
+    skyColorTop: { value: new THREE.Color("#40B3E2") },
+    skyColorHorizon: { value: new THREE.Color("#BFE5F5") },
+    groundColor: { value: new THREE.Color("#BFBFC6") },
+  },
+  vertexShader: `
+    varying vec3 vNormalDir;
+    void main() {
+      vNormalDir = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vNormalDir;
+    uniform vec3 skyColorTop;
+    uniform vec3 skyColorHorizon;
+    uniform vec3 groundColor;
+    void main() {
+      vec3 dir = normalize(vNormalDir);
+      if (dir.y >= 0.0) {
+        float t = clamp(dir.y, 0.0, 1.0);
+        gl_FragColor = vec4(mix(skyColorHorizon, skyColorTop, pow(t, 0.6)), 1.0);
+      } else {
+        gl_FragColor = vec4(groundColor, 1.0);
+      }
+    }
+  `,
+});
+const skyDome = new THREE.Mesh(skyGeom, skyMat);
+skyDome.renderOrder = -1000;
+scene.add(skyDome);
 
-// MeshStandardMaterial (em vez de MeshBasicMaterial) so pra poder receber
-// sombra quando "Visualizar > Sombras" estiver ligado -- material Basic
-// nunca participa do shadow map do three.js. Mesma cor/aparencia de antes.
+// Plano receptor de sombras no chão (Y=0) com ShadowMaterial transparente
+// Onde não há sombra, é 100% invisível; onde há sombra, projeta sombra suave no nível zero sem bloquear visão
 const groundPlane = new THREE.Mesh(
-  new THREE.PlaneGeometry(4000, 4000),
-  new THREE.MeshStandardMaterial({ color: 0xBFBFC6, side: THREE.DoubleSide, roughness: 1, metalness: 0 })
+  new THREE.PlaneGeometry(2000, 2000),
+  new THREE.ShadowMaterial({ opacity: 0.25, depthWrite: false })
 );
-groundPlane.rotation.x = -Math.PI / 2; // PlaneGeometry nasce no plano XY -- deita no XZ (chao, Y=0 pra cima)
+groundPlane.rotation.x = -Math.PI / 2;
 groundPlane.receiveShadow = true;
+groundPlane.renderOrder = -1;
 scene.add(groundPlane);
 
 const camera = new THREE.PerspectiveCamera(
@@ -2826,6 +2847,7 @@ function animate() {
   } else {
     controls.update();
   }
+  if (skyDome) skyDome.position.copy(camera.position);
   updateBillboards();
   renderer.render(scene, camera);
 }
