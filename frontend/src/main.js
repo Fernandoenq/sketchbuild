@@ -438,6 +438,12 @@ viewportEl.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+// Padrão SketchUp Oficial: Botão do meio (MMB) orbita, botão direito (RMB) faz Pan, scroll faz zoom
+controls.mouseButtons = {
+  LEFT: THREE.MOUSE.ROTATE,
+  MIDDLE: THREE.MOUSE.ROTATE,
+  RIGHT: THREE.MOUSE.PAN,
+};
 
 const transformControls = new TransformControls(camera, renderer.domElement);
 scene.add(transformControls.getHelper());
@@ -624,8 +630,12 @@ function setToolMode(mode) {
       inferenceEngine.setLockedAxis(null);
     }
     renderer.domElement.style.cursor = "default";
+    controls.mouseButtons.LEFT = (mode === "select") ? THREE.MOUSE.ROTATE : null;
   } else {
     renderer.domElement.style.cursor = "crosshair";
+    controls.mouseButtons.LEFT = null; // Impede que o botão esquerdo mova a câmera na ferramenta Linha
+    controls.mouseButtons.MIDDLE = THREE.MOUSE.ROTATE;
+    controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
     if (inferenceEngine) {
       inferenceEngine.updateGeometryIndex([currentGroup, userDrawingsGroup]);
     }
