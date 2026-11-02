@@ -834,9 +834,31 @@ transformControls.addEventListener("dragging-changed", (event) => {
   }
 });
 
+let linePointerDownPos = null;
+
+renderer.domElement.addEventListener("pointerdown", (event) => {
+  if (toolMode === "line" && event.button === 0) {
+    linePointerDownPos = { x: event.clientX, y: event.clientY };
+  }
+});
+
+renderer.domElement.addEventListener("pointerup", (event) => {
+  if (toolMode === "line" && event.button === 0 && linePointerDownPos) {
+    const dist = Math.hypot(event.clientX - linePointerDownPos.x, event.clientY - linePointerDownPos.y);
+    linePointerDownPos = null;
+    if (dist < 8) { // Tolerância CAD para clique seguro (sem falso arrasto)
+      handleLineClick(event);
+    }
+  }
+});
+
 renderer.domElement.addEventListener("click", (event) => {
   if (suppressNextClick) {
     suppressNextClick = false;
+    return;
+  }
+  if (toolMode === "line") {
+    // A ferramenta Linha é processada exclusivamente via pointerup de alta precisão
     return;
   }
   if (!currentGroup) return;
@@ -3271,10 +3293,21 @@ renderer.domElement.addEventListener("pointermove", (event) => {
 });
 
 async function commitLineSegment(p1, p2) {
+  if (p1.distanceTo(p2) < 0.01) {
+    // Ignora micro-cliques acidentais no mesmo ponto exato
+    return;
+  }
+
   // 1. Cria a geometria visual no Three.js IMEDIATAMENTE (nunca desaparece)
   createVisualLineSegment(p1, p2);
   currentLinePoints.push(p2);
   lineStartPoint = p2;
+
+  // Atualiza imediatamente o elástico para partir do novo ponto
+  if (rubberbandLine) {
+    rubberbandLine.geometry.setFromPoints([p2, p2]);
+    rubberbandLine.visible = true;
+  }
 
   const dist = p1.distanceTo(p2);
   setStatus(`Aresta adicionada (${dist.toFixed(3)} m). Próximo ponto ou feche no início.`);
