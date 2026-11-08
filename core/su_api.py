@@ -31,6 +31,7 @@ import os
 
 from core.su_types import (
     SUModelRef,
+    make_ref_struct,
     SUEntitiesRef,
     SUComponentDefinitionRef,
     SUFaceRef,
@@ -55,8 +56,11 @@ from core.su_types import (
     su_check,
 )
 
-DEFAULT_DLL_PATH = (
-    r"C:\Program Files\SketchUp\SketchUp 2026\SketchUp\SketchUpAPI.dll"
+# SKETCHUP_API_DLL permite usar a DLL do SDK oficial (sem o SketchUp
+# Desktop instalado), ex.: <SDK>\binaries\sketchup\x64\SketchUpAPI.dll.
+DEFAULT_DLL_PATH = os.getenv(
+    "SKETCHUP_API_DLL",
+    r"C:\Program Files\SketchUp\SketchUp 2026\SketchUp\SketchUpAPI.dll",
 )
 
 if sys.version_info[:2] != (3, 12):
@@ -178,9 +182,10 @@ class SketchUpAPI:
         ]
         dll.SUEntitiesGetNumFaces.restype = ctypes.c_int
 
-        # SU_RESULT SUEntitiesGetNumEdges(SUEntitiesRef entities, size_t* count);
+        # SU_RESULT SUEntitiesGetNumEdges(SUEntitiesRef entities, bool standalone_only, size_t* count);
         dll.SUEntitiesGetNumEdges.argtypes = [
             SUEntitiesRef,
+            ctypes.c_bool,
             ctypes.POINTER(ctypes.c_size_t),
         ]
         dll.SUEntitiesGetNumEdges.restype = ctypes.c_int
@@ -473,9 +478,13 @@ class SketchUpAPI:
 
         # SU_RESULT SUGeometryInputAddFace(SUGeometryInputRef geometry_input,
         #     SULoopInputRef* loop_input); -- consome e zera *loop_input.
+        # SU_RESULT SUGeometryInputAddFace(SUGeometryInputRef, SULoopInputRef* outer_loop,
+        #     size_t* added_face_index); -- o 3o parametro faltava (a DLL gravava num
+        # ponteiro solto); conferido no header do SDK oficial.
         dll.SUGeometryInputAddFace.argtypes = [
             SUGeometryInputRef,
             ctypes.POINTER(SULoopInputRef),
+            ctypes.POINTER(ctypes.c_size_t),
         ]
         dll.SUGeometryInputAddFace.restype = ctypes.c_int
 
@@ -518,6 +527,47 @@ class SketchUpAPI:
         # pra checar.
         dll.SUComponentInstanceToDrawingElement.argtypes = [SUComponentInstanceRef]
         dll.SUComponentInstanceToDrawingElement.restype = SUDrawingElementRef
+
+        # Leitura de cor (usada pelo mesh_extractor pra colorir a cena):
+        # SU_RESULT SUDrawingElementGetMaterial(SUDrawingElementRef elem, SUMaterialRef* material);
+        # SU_RESULT SUFaceGetFrontMaterial(SUFaceRef face, SUMaterialRef* material);
+        # SU_RESULT SUMaterialGetColor(SUMaterialRef material, SUColor* color);
+        # Os 3 devolvem SU_ERROR_NO_DATA quando nao ha material (nao e erro).
+        dll.SUDrawingElementGetMaterial.argtypes = [
+            SUDrawingElementRef,
+            ctypes.POINTER(SUMaterialRef),
+        ]
+        dll.SUDrawingElementGetMaterial.restype = ctypes.c_int
+        dll.SUFaceGetFrontMaterial.argtypes = [SUFaceRef, ctypes.POINTER(SUMaterialRef)]
+        dll.SUFaceGetFrontMaterial.restype = ctypes.c_int
+        dll.SUMaterialGetColor.argtypes = [SUMaterialRef, ctypes.POINTER(SUColor)]
+        dll.SUMaterialGetColor.restype = ctypes.c_int
+
+        # Biblioteca Empresa (inserir um .skp como componente):
+        # SU_RESULT SUModelLoadDefinitionWithStatus(SUModelRef model, const char* filename,
+        #     SUComponentDefinitionRef* definition, enum SUModelLoadStatus* status);
+        # SU_RESULT SUComponentDefinitionCreateInstance(SUComponentDefinitionRef comp_def,
+        #     SUComponentInstanceRef* instance);
+        # SU_RESULT SUEntitiesAddInstance(SUEntitiesRef entities,
+        #     SUComponentInstanceRef instance, SUStringRef* name);
+        dll.SUModelLoadDefinitionWithStatus.argtypes = [
+            SUModelRef,
+            ctypes.c_char_p,
+            ctypes.POINTER(SUComponentDefinitionRef),
+            ctypes.POINTER(ctypes.c_int),
+        ]
+        dll.SUModelLoadDefinitionWithStatus.restype = ctypes.c_int
+        dll.SUComponentDefinitionCreateInstance.argtypes = [
+            SUComponentDefinitionRef,
+            ctypes.POINTER(SUComponentInstanceRef),
+        ]
+        dll.SUComponentDefinitionCreateInstance.restype = ctypes.c_int
+        dll.SUEntitiesAddInstance.argtypes = [
+            SUEntitiesRef,
+            SUComponentInstanceRef,
+            ctypes.c_void_p,
+        ]
+        dll.SUEntitiesAddInstance.restype = ctypes.c_int
 
         # SU_RESULT SUDrawingElementSetMaterial(SUDrawingElementRef drawing_elem,
         #     SUMaterialRef material);
@@ -996,7 +1046,7 @@ class SketchUpAPI:
                     "SULoopInputAddVertexIndex",
                 )
             su_check(
-                dll.SUGeometryInputAddFace(geometry_input, ctypes.byref(loop_input)),
+                dll.SUGeometryInputAddFace(geometry_input, ctypes.byref(loop_input), ctypes.byref(ctypes.c_size_t())),
                 "SUGeometryInputAddFace",
             )  # a partir daqui o loop_input foi consumido (ownership transfer)
 
@@ -1004,6 +1054,33 @@ class SketchUpAPI:
                 dll.SUEntitiesFill(entities, geometry_input, ctypes.c_bool(True)),
                 "SUEntitiesFill",
             )
+        finally:
+            su_check(dll.SUGeometryInputRelease(ctypes.byref(geometry_input)), "SUGeometryInputRelease")
+
+    def add_triangle_mesh(
+        self, entities: SUEntitiesRef, vertices: list[float], indices: list[int]
+    ) -> None:
+        """Grava uma malha de triangulos inteira (vertices em polegadas, 3
+        floats cada; 3 indices por triangulo) num GeometryInput so -- mesmo
+        fluxo de add_face(), mas com N faces e vertices compartilhados.
+        Usado pelo conversor de modelos leves (tools/converter_leve.py)."""
+        dll = self._dll
+        geometry_input = SUGeometryInputRef()
+        su_check(dll.SUGeometryInputCreate(ctypes.byref(geometry_input)), "SUGeometryInputCreate")
+        try:
+            for i in range(0, len(vertices), 3):
+                vertex = SUPoint3D(x=vertices[i], y=vertices[i + 1], z=vertices[i + 2])
+                su_check(dll.SUGeometryInputAddVertex(geometry_input, ctypes.byref(vertex)), "SUGeometryInputAddVertex")
+            for t in range(0, len(indices), 3):
+                loop_input = SULoopInputRef()
+                su_check(dll.SULoopInputCreate(ctypes.byref(loop_input)), "SULoopInputCreate")
+                for k in range(3):
+                    su_check(
+                        dll.SULoopInputAddVertexIndex(loop_input, ctypes.c_size_t(indices[t + k])),
+                        "SULoopInputAddVertexIndex",
+                    )
+                su_check(dll.SUGeometryInputAddFace(geometry_input, ctypes.byref(loop_input), ctypes.byref(ctypes.c_size_t())), "SUGeometryInputAddFace")
+            su_check(dll.SUEntitiesFill(entities, geometry_input, ctypes.c_bool(True)), "SUEntitiesFill")
         finally:
             su_check(dll.SUGeometryInputRelease(ctypes.byref(geometry_input)), "SUGeometryInputRelease")
 
@@ -1071,6 +1148,105 @@ class SketchUpAPI:
             dll.SUEntitiesAddGroup(parent_entities, group), "SUEntitiesAddGroup"
         )
         return group
+
+    def purge_unused_definitions(self, model: SUModelRef) -> int:
+        """Tira do modelo os componentes que nao estao mais em uso (o
+        "Limpar nao utilizados" do SketchUp). Brinquedo excluido do projeto
+        continuava dentro do .skp (45 MB num projeto vazio). Repete ate nao
+        sobrar nenhum, porque tirar um libera os que so ele usava."""
+        dll = self._dll
+        total = 0
+        for _ in range(20):
+            n = ctypes.c_size_t()
+            su_check(dll.SUModelGetNumComponentDefinitions(model, ctypes.byref(n)), "SUModelGetNumComponentDefinitions")
+            if not n.value:
+                break
+            defs = (SUComponentDefinitionRef * n.value)()
+            lidos = ctypes.c_size_t()
+            su_check(dll.SUModelGetComponentDefinitions(model, n.value, defs, ctypes.byref(lidos)), "SUModelGetComponentDefinitions")
+            sobras = []
+            for d in defs[: lidos.value]:
+                usados = ctypes.c_size_t()
+                if dll.SUComponentDefinitionGetNumUsedInstances(d, ctypes.byref(usados)) == 0 and usados.value == 0:
+                    sobras.append(d)
+            if not sobras:
+                break
+            arr = (SUComponentDefinitionRef * len(sobras))(*sobras)
+            su_check(dll.SUModelRemoveComponentDefinitions(model, len(sobras), arr), "SUModelRemoveComponentDefinitions")
+            total += len(sobras)
+        return total
+
+    def insert_component_file(
+        self, model: SUModelRef, entities: SUEntitiesRef, path: str, transform: list[float],
+        cache: dict | None = None, nome: str | None = None,
+    ) -> SUComponentInstanceRef:
+        """Carrega um .skp inteiro como componente e coloca uma instancia
+        dele em `entities` -- equivalente do "Arquivo > Importar" /
+        arrastar da biblioteca de Componentes do SketchUp. Usado pela
+        Biblioteca Empresa (brinquedo da fabricante entra no projeto).
+        `transform` e a matriz 4x4 local (polegadas na translacao)."""
+        dll = self._dll
+        # Empresa: o mesmo arquivo colocado de novo reaproveita a definicao ja
+        # carregada (bem mais rapido) e a definicao ganha o NOME DO ARQUIVO --
+        # sem isso ela vem com o nome de dentro do .skp ("Scandere#1", "Exp_75")
+        # e o orcamento nao acha o item da biblioteca.
+        definition = cache.get(path) if cache is not None else None
+        if definition is None:
+            definition = SUComponentDefinitionRef()
+            status = ctypes.c_int(0)
+            su_check(
+                dll.SUModelLoadDefinitionWithStatus(
+                    model,
+                    path.encode("utf-8"),
+                    ctypes.byref(definition),
+                    ctypes.byref(status),
+                ),
+                "SUModelLoadDefinitionWithStatus",
+            )
+            if nome:
+                dll.SUComponentDefinitionSetName(definition, nome.encode("utf-8"))
+            if cache is not None:
+                cache[path] = definition
+        instance = SUComponentInstanceRef()
+        su_check(
+            dll.SUComponentDefinitionCreateInstance(definition, ctypes.byref(instance)),
+            "SUComponentDefinitionCreateInstance",
+        )
+        su_transform = SUTransformation(values=(ctypes.c_double * 16)(*transform))
+        su_check(
+            dll.SUComponentInstanceSetTransform(instance, ctypes.byref(su_transform)),
+            "SUComponentInstanceSetTransform",
+        )
+        su_check(
+            dll.SUEntitiesAddInstance(entities, instance, None),
+            "SUEntitiesAddInstance",
+        )
+        return instance
+
+    def create_definition(self, model, nome: str) -> tuple[SUComponentDefinitionRef, SUEntitiesRef]:
+        """Componente novo e vazio no modelo (o conversor de qualidade grava
+        a peca repetida UMA vez e so posiciona as copias)."""
+        dll = self._dll
+        dll.SUComponentDefinitionCreate.argtypes = [ctypes.POINTER(SUComponentDefinitionRef)]
+        dll.SUComponentDefinitionCreate.restype = ctypes.c_int
+        dll.SUModelAddComponentDefinitions.argtypes = [SUModelRef, ctypes.c_size_t, ctypes.POINTER(SUComponentDefinitionRef)]
+        dll.SUModelAddComponentDefinitions.restype = ctypes.c_int
+        definition = SUComponentDefinitionRef()
+        su_check(dll.SUComponentDefinitionCreate(ctypes.byref(definition)), "SUComponentDefinitionCreate")
+        su_check(dll.SUComponentDefinitionSetName(definition, nome.encode("utf-8")), "SUComponentDefinitionSetName")
+        arr = (SUComponentDefinitionRef * 1)(definition)
+        su_check(dll.SUModelAddComponentDefinitions(model._model, 1, arr), "SUModelAddComponentDefinitions")
+        entities = SUEntitiesRef()
+        su_check(dll.SUComponentDefinitionGetEntities(definition, ctypes.byref(entities)), "SUComponentDefinitionGetEntities")
+        return definition, entities
+
+    def add_definition_instance(self, entities: SUEntitiesRef, definition: SUComponentDefinitionRef, transform: list[float]) -> None:
+        dll = self._dll
+        instance = SUComponentInstanceRef()
+        su_check(dll.SUComponentDefinitionCreateInstance(definition, ctypes.byref(instance)), "SUComponentDefinitionCreateInstance")
+        t = SUTransformation(values=(ctypes.c_double * 16)(*transform))
+        su_check(dll.SUComponentInstanceSetTransform(instance, ctypes.byref(t)), "SUComponentInstanceSetTransform")
+        su_check(dll.SUEntitiesAddInstance(entities, instance, None), "SUEntitiesAddInstance")
 
     def get_group_entities(self, group: SUGroupRef) -> SUEntitiesRef:
         entities = SUEntitiesRef()
@@ -1273,6 +1449,22 @@ class SketchUpAPI:
         )
         return bool(visible.value)
 
+    def instance_invisivel(self, instance: SUComponentInstanceRef) -> bool:
+        """Escondida no SketchUp (Ocultar) ou numa Etiqueta desligada. Os
+        modelos da fabricante guardam variacoes escondidas (outros escorregadores,
+        balancos, escadas): no KMP-0102 eram 68% dos triangulos (04/11/2026)."""
+        dll = self._dll
+        if not getattr(dll.SUDrawingElementGetHidden, "_sb", False):
+            dll.SUDrawingElementGetHidden.argtypes = [SUDrawingElementRef, ctypes.POINTER(ctypes.c_bool)]
+            dll.SUDrawingElementGetHidden.restype = ctypes.c_int
+            dll.SUDrawingElementGetHidden._sb = True
+        elem = dll.SUComponentInstanceToDrawingElement(instance)
+        oculto = ctypes.c_bool()
+        if dll.SUDrawingElementGetHidden(elem, ctypes.byref(oculto)) == 0 and oculto.value:
+            return True
+        layer = self.get_drawing_element_layer(elem)
+        return layer is not None and not self.get_layer_visibility(layer)
+
     def set_layer_visibility(self, layer: SULayerRef, visible: bool) -> None:
         """SULayerSetVisibility -- equivalente real do olho (toggle de
         visibilidade) ao lado de cada Etiqueta na Bandeja padrao real."""
@@ -1303,6 +1495,30 @@ class SketchUpAPI:
             "SUModelGetDefaultLayer",
         )
         return layer
+
+    def _material_rgb(self, material: SUMaterialRef) -> list[int] | None:
+        color = SUColor()
+        if self._dll.SUMaterialGetColor(material, ctypes.byref(color)) != 0:
+            return None
+        return [color.red, color.green, color.blue]
+
+    def get_instance_color(self, instance: SUComponentInstanceRef) -> list[int] | None:
+        """Cor [r, g, b] do material aplicado na instancia/grupo (o que o
+        SketchUp herda pras faces "Padrao" de dentro dele), ou None."""
+        dll = self._dll
+        material = SUMaterialRef()
+        drawing_elem = dll.SUComponentInstanceToDrawingElement(instance)
+        if dll.SUDrawingElementGetMaterial(drawing_elem, ctypes.byref(material)) != 0:
+            return None
+        return self._material_rgb(material)
+
+    def get_face_color(self, face: SUFaceRef) -> list[int] | None:
+        """Cor [r, g, b] do material da frente da face, ou None (face "Padrao",
+        que herda a cor da instancia que a contem)."""
+        material = SUMaterialRef()
+        if self._dll.SUFaceGetFrontMaterial(face, ctypes.byref(material)) != 0:
+            return None
+        return self._material_rgb(material)
 
     def get_instance_tag_name(
         self, model: SUModelRef, instance: SUComponentInstanceRef
@@ -1457,6 +1673,85 @@ class SketchUpAPI:
         )
         return bool(behavior.component_always_face_camera)
 
+    def _bind_model_attributes(self) -> None:
+        """Bindings do dicionario de atributos do MODELO (texto guardado
+        dentro do .skp, igual um plugin do SketchUp faria). Feito sob demanda
+        pra nao pesar o __init__."""
+        dll = self._dll
+        if getattr(self, "_model_attrs_bound", False):
+            return
+        AttrDict = make_ref_struct("SUAttributeDictionaryRef")
+        TypedValue = make_ref_struct("SUTypedValueRef")
+        self._AttrDict, self._TypedValue = AttrDict, TypedValue
+        # SU_RESULT SUModelGetAttributeDictionary(SUModelRef, const char*, SUAttributeDictionaryRef*);
+        dll.SUModelGetAttributeDictionary.argtypes = [SUModelRef, ctypes.c_char_p, ctypes.POINTER(AttrDict)]
+        # SU_RESULT SUAttributeDictionarySetValue(SUAttributeDictionaryRef, const char*, SUTypedValueRef);
+        dll.SUAttributeDictionarySetValue.argtypes = [AttrDict, ctypes.c_char_p, TypedValue]
+        # SU_RESULT SUAttributeDictionaryGetValue(SUAttributeDictionaryRef, const char*, SUTypedValueRef*);
+        dll.SUAttributeDictionaryGetValue.argtypes = [AttrDict, ctypes.c_char_p, ctypes.POINTER(TypedValue)]
+        dll.SUTypedValueCreate.argtypes = [ctypes.POINTER(TypedValue)]
+        dll.SUTypedValueRelease.argtypes = [ctypes.POINTER(TypedValue)]
+        dll.SUTypedValueSetString.argtypes = [TypedValue, ctypes.c_char_p]
+        dll.SUTypedValueGetString.argtypes = [TypedValue, ctypes.POINTER(SUStringRef)]
+        for name in (
+            "SUModelGetAttributeDictionary", "SUAttributeDictionarySetValue",
+            "SUAttributeDictionaryGetValue", "SUTypedValueCreate", "SUTypedValueRelease",
+            "SUTypedValueSetString", "SUTypedValueGetString",
+        ):
+            getattr(dll, name).restype = ctypes.c_int
+        self._model_attrs_bound = True
+
+    def set_model_string(self, model: SUModelRef, dictionary: str, key: str, value: str) -> None:
+        """Grava um texto no dicionario `dictionary` do modelo (vai junto no .skp)."""
+        self._bind_model_attributes()
+        dll = self._dll
+        attrs = self._AttrDict()
+        su_check(
+            dll.SUModelGetAttributeDictionary(model, dictionary.encode("utf-8"), ctypes.byref(attrs)),
+            "SUModelGetAttributeDictionary",
+        )
+        typed = self._TypedValue()
+        su_check(dll.SUTypedValueCreate(ctypes.byref(typed)), "SUTypedValueCreate")
+        try:
+            su_check(dll.SUTypedValueSetString(typed, value.encode("utf-8")), "SUTypedValueSetString")
+            su_check(
+                dll.SUAttributeDictionarySetValue(attrs, key.encode("utf-8"), typed),
+                "SUAttributeDictionarySetValue",
+            )
+        finally:
+            dll.SUTypedValueRelease(ctypes.byref(typed))
+
+    def get_model_string(self, model: SUModelRef, dictionary: str, key: str) -> str | None:
+        """Le o texto gravado por set_model_string, ou None se nao existir."""
+        self._bind_model_attributes()
+        dll = self._dll
+        attrs = self._AttrDict()
+        if dll.SUModelGetAttributeDictionary(model, dictionary.encode("utf-8"), ctypes.byref(attrs)) != 0:
+            return None
+        typed = self._TypedValue()
+        su_check(dll.SUTypedValueCreate(ctypes.byref(typed)), "SUTypedValueCreate")
+        text = SUStringRef()
+        su_check(self._dll.SUStringCreate(ctypes.byref(text)), "SUStringCreate")
+        try:
+            if dll.SUAttributeDictionaryGetValue(attrs, key.encode("utf-8"), ctypes.byref(typed)) != 0:
+                return None
+            if dll.SUTypedValueGetString(typed, ctypes.byref(text)) != 0:
+                return None
+            length = ctypes.c_size_t()
+            su_check(dll.SUStringGetUTF8Length(text, ctypes.byref(length)), "SUStringGetUTF8Length")
+            buf = ctypes.create_string_buffer(length.value + 1)
+            actual = ctypes.c_size_t()
+            su_check(dll.SUStringGetUTF8(text, length.value + 1, buf, ctypes.byref(actual)), "SUStringGetUTF8")
+            return buf.value.decode("utf-8")
+        finally:
+            dll.SUStringRelease(ctypes.byref(text))
+            dll.SUTypedValueRelease(ctypes.byref(typed))
+
+    def count_faces(self, entities: SUEntitiesRef) -> int:
+        count = ctypes.c_size_t()
+        su_check(self._dll.SUEntitiesGetNumFaces(entities, ctypes.byref(count)), "SUEntitiesGetNumFaces")
+        return count.value
+
     def get_definition_name(self, definition: SUComponentDefinitionRef) -> str:
         name_ref = SUStringRef()
         su_check(self._dll.SUStringCreate(ctypes.byref(name_ref)), "SUStringCreate")
@@ -1554,6 +1849,15 @@ class SketchUpAPI:
 
     # -- modelo ------------------------------------------------------------
 
+    def create_blank_model(self) -> "SketchUpModel":
+        """Modelo vazio (SUModelCreate) -- base do "Novo espaco" da Empresa,
+        sem depender dos templates do SketchUp Desktop instalado."""
+        self._dll.SUModelCreate.argtypes = [ctypes.POINTER(SUModelRef)]
+        self._dll.SUModelCreate.restype = ctypes.c_int
+        model = SUModelRef()
+        su_check(self._dll.SUModelCreate(ctypes.byref(model)), "SUModelCreate")
+        return SketchUpModel(self._dll, model)
+
     def open_model(self, file_path: str) -> "SketchUpModel":
         """Abre um .skp a partir de um caminho de arquivo, via
         SUModelCreateFromFileWithStatus.
@@ -1613,7 +1917,7 @@ class SketchUpAPI:
 class SketchUpModel:
     """Representa um SUModelRef aberto; libera no __exit__/close()."""
 
-    def __init__(self, dll: ctypes.WinDLL, model_ref: SUModelRef):
+    def __init__(self, dll: "ctypes.WinDLL", model_ref: SUModelRef):
         self._dll = dll
         self._model = model_ref
         self._closed = False
@@ -1682,7 +1986,7 @@ class SketchUpModel:
 
         num_edges = ctypes.c_size_t()
         su_check(
-            self._dll.SUEntitiesGetNumEdges(entities, ctypes.byref(num_edges)),
+            self._dll.SUEntitiesGetNumEdges(entities, False, ctypes.byref(num_edges)),
             "SUEntitiesGetNumEdges",
         )
 

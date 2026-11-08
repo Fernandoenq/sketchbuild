@@ -90,6 +90,31 @@
     .toolbar-btn.active svg { stroke: #FFFFFF; }
     .toolbar-btn.disabled { opacity: .35; cursor: default; pointer-events: none; }
 
+    /* Ferramentas CAD Estendidas e Cenario */
+    .pk-fer-btn.active { background: var(--accent); color: #fff; border-radius: 4px; }
+    .pk-fer-caixa, .pk-cen-caixa {
+      position: fixed; z-index: 50; top: 105px; right: 290px; width: 280px;
+      max-height: calc(100vh - 140px); overflow-y: auto; background: #FFFFFF;
+      border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      padding: 12px; display: flex; flex-direction: column; gap: 10px; font-size: 12px;
+    }
+    .pk-fer-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+    .pk-fer-x { border: 0; background: none; font-size: 18px; line-height: 1; color: #64748B; cursor: pointer; padding: 2px 6px; }
+    .pk-fer-lista { display: flex; flex-direction: column; gap: 6px; }
+    .pk-fer-linha { display: flex; gap: 6px; align-items: center; }
+    .pk-fer-acao { font: inherit; font-size: 12px; font-weight: 600; padding: 6px 10px; border: 0; border-radius: 6px; background: #EAF0FD; color: #0B3D91; cursor: pointer; text-align: center; }
+    .pk-fer-acao:hover { background: #DCE7FB; }
+    .pk-fer-acao.primario { background: #1565F7; color: #fff; }
+    .pk-fer-acao.perigo { background: #FDE4E2; color: #A3221A; }
+    .pk-fer-nome { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pk-fer-mini { padding: 4px 8px; font-size: 11px; }
+    .pk-fer-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .pk-fer-check { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .pk-fer-campo { display: flex; flex-direction: column; gap: 3px; }
+    .pk-fer-campo select, .pk-fer-campo input[type="text"], .pk-fer-campo input[type="date"] {
+      font: inherit; font-size: 12px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px;
+    }
+
     /* "Large Tool Set" real do SketchUp -- ferramentas por icone em vez
        de botoes com rotulo de texto (ver REVERSE_ENGINEERING_NOTES.md /
        README.md: catalogada via screenshot do SketchUp 2026 real rodando
@@ -431,6 +456,385 @@
       white-space: nowrap;
       line-height: 1.2;
     }
+
+/* ---------- edição colaborativa (src/aovivo.js) ---------- */
+#ao-avisos { position: fixed; left: 16px; bottom: 44px; z-index: 9000; display: flex; flex-direction: column; gap: 6px; pointer-events: none; max-width: min(360px, calc(100vw - 32px)); }
+.ao-aviso { background: #1E293B; color: #fff; font-size: 12px; padding: 7px 11px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.25); animation: ao-entra .18s ease-out; }
+.ao-aviso.ao-erro { background: #991B1B; }
+@keyframes ao-entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+#ao-banner { position: fixed; top: 54px; left: 50%; transform: translateX(-50%); z-index: 9001; background: #B45309; color: #fff; font-size: 12px; padding: 6px 14px; border-radius: 8px; max-width: calc(100vw - 32px); text-align: center; }
+#ao-etiquetas { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
+.ao-etiqueta { position: fixed; transform: translate(-50%, -100%); color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; text-shadow: 0 1px 1px rgba(0,0,0,.35); }
+.ao-cursor-etiqueta { position: fixed; z-index: 41; pointer-events: none; transform: translate(-50%, -100%); padding: 2px 8px; border-radius: 999px; color: #fff; font: 700 11px/1.3 var(--su-font); white-space: nowrap; box-shadow: 0 3px 10px rgba(0, 0, 0, .3); display: flex; align-items: center; gap: 4px; transition: opacity 0.3s ease; will-change: transform, left, top; }
+.ao-cursor-etiqueta::after { content: ""; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); border-width: 4px 4px 0 4px; border-style: solid; border-color: inherit transparent transparent transparent; }
+/* Marcador 3D / Ponto indicado (Ping) */
+.ao-marcador-etiqueta {
+  position: fixed;
+  z-index: 42;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #fff;
+  font: 700 11px/1.3 var(--su-font);
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35), 0 0 0 2px rgba(255, 255, 255, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  animation: ao-ping-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: opacity 0.4s ease, transform 0.2s ease;
+  will-change: transform, left, top;
+}
+.ao-marcador-etiqueta::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px 5px 0 5px;
+  border-style: solid;
+  border-color: inherit transparent transparent transparent;
+}
+.ao-marcador-alvo {
+  font-weight: 400;
+  opacity: 0.92;
+  font-size: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.4);
+  padding-left: 5px;
+  margin-left: 2px;
+}
+@keyframes ao-ping-bounce {
+  0% { transform: translate(-50%, -60%) scale(0.6); opacity: 0; }
+  60% { transform: translate(-50%, -110%) scale(1.08); opacity: 1; }
+  100% { transform: translate(-50%, -100%) scale(1); opacity: 1; }
+}
+body.pk-modo-apontar #viewport canvas,
+body.pk-modo-apontar #viewport {
+  cursor: crosshair !important;
+}
+.toolbar-btn.modo-apontar-ativo {
+  background: #E0E7FF !important;
+  border-color: #6366F1 !important;
+}
+.toolbar-btn.modo-apontar-ativo svg {
+  stroke: #4F46E5 !important;
+  fill: #EEF2FF !important;
+}
+#ao-placar {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9002;
+  min-width: min(440px, calc(100vw - 32px));
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #F8FAFC;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 16px 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.ao-placar-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #94A3B8;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+/* Bandeja: cabeçalho estilizado de Colaboradores */
+.ao-header-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.ao-header-title {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--text);
+}
+.ao-live-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #DCFCE7;
+  color: #15803D;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 1px 6px;
+  border-radius: 10px;
+  border: 1px solid #BBF7D0;
+}
+.ao-live-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22C55E;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  animation: ao-pulse 1.8s infinite;
+}
+@keyframes ao-pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+.ao-contador-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+}
+
+/* Bandeja: corpo e cartões de pessoas */
+#tray-na-sala .tray-body {
+  padding: 10px 12px;
+  background: #FAFAFA;
+}
+.ao-tray-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ao-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ao-pessoa {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.15s ease;
+}
+.ao-pessoa:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+.ao-pessoa.ao-voce {
+  border-color: #BAE6FD;
+  background: linear-gradient(to right, #F0F9FF, #FFFFFF);
+}
+
+/* Avatar circular com inicial */
+.ao-avatar-wrap {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 28px;
+}
+.ao-bolinha {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  flex: none;
+}
+.ao-avatar-status {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid #FFFFFF;
+}
+.ao-avatar-status.ao-online {
+  background: #22C55E;
+}
+.ao-avatar-status.ao-offline {
+  background: #F59E0B;
+}
+
+/* Informações do usuário */
+.ao-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ao-info-topo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.ao-nome {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1E293B;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ao-badge-voce {
+  font-size: 9px;
+  font-weight: 700;
+  color: #0284C7;
+  background: #E0F2FE;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid #BAE6FD;
+  letter-spacing: .03em;
+  flex: none;
+}
+.ao-subtitulo {
+  font-size: 11px;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ao-subtitulo.ao-ocupado {
+  color: #D97706;
+  font-weight: 500;
+}
+
+/* Badge de latência (ms) */
+.ao-ms {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.ao-ms-pill {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #475569;
+}
+.ao-ping-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.ao-ms-offline {
+  color: #D97706;
+  background: #FEF3C7;
+  border-color: #FDE68A;
+}
+
+/* Estilo do item no Placar Tab escuro */
+#ao-placar .ao-pessoa {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+#ao-placar .ao-pessoa:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+#ao-placar .ao-nome {
+  color: #F8FAFC;
+}
+#ao-placar .ao-subtitulo {
+  color: #94A3B8;
+}
+#ao-placar .ao-ms-pill {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #E2E8F0;
+}
+#ao-placar .ao-avatar-status {
+  border-color: #0F172A;
+}
+
+/* Dica / atalho do Tab */
+.ao-dica-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 6px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #64748B;
+}
+.ao-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  color: #334155;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-bottom: 2px solid #94A3B8;
+  border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+/* Aviso de sala com 1 pessoa */
+.ao-sozinho-aviso {
+  padding: 10px 12px;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 8px;
+  margin-top: 2px;
+  text-align: center;
+}
+.ao-sozinho-titulo {
+  font-size: 11px;
+  font-weight: 600;
+  color: #166534;
+  margin-bottom: 3px;
+}
+.ao-sozinho-desc {
+  font-size: 10px;
+  color: #15803D;
+  line-height: 1.35;
+}
+
+.ao-dica { font-size: 10px; color: var(--muted, #6B6B6B); margin-top: 6px; }
+.outliner-row.ao-travada { opacity: .7; }
+.outliner-row.ao-travada::after { content: "🔒 " attr(data-ao-nome); margin-left: 8px; font-size: 10px; }
+
   </style>
 </head>
 <body>
@@ -1301,6 +1705,34 @@
         </div>
       </div>
     </div>
+    <!-- Edição colaborativa: quem está no projeto (src/aovivo.js) -->
+    <div class="tray-section" id="tray-na-sala" style="display: none;">
+      <div class="tray-header" data-section="tray-na-sala">
+        <span class="tray-arrow"></span>
+        <div class="ao-header-wrap">
+          <span class="ao-header-title">Colaboradores</span>
+          <span class="ao-live-tag"><span class="ao-live-pulse"></span>AO VIVO</span>
+          <span id="ao-contador" class="ao-contador-badge"></span>
+        </div>
+      </div>
+      <div class="tray-body">
+        <div class="ao-tray-content">
+          <ul id="ao-lista" class="ao-lista"></ul>
+          <div id="ao-sozinho-aviso" class="ao-sozinho-aviso" style="display: none;">
+            <div class="ao-sozinho-titulo">Você está sozinho no projeto</div>
+            <div class="ao-sozinho-desc">Quando outra pessoa abrir este mesmo projeto, ela aparecerá aqui em tempo real.</div>
+          </div>
+          <div class="ao-dica-card">
+            <kbd class="ao-kbd">Alt</kbd> + <kbd class="ao-kbd">Clique</kbd>
+            <span>Apontar quina ou chão (ou tecla <kbd class="ao-kbd">P</kbd>)</span>
+          </div>
+          <div class="ao-dica-card">
+            <kbd class="ao-kbd">Tab</kbd>
+            <span>Segure para ver o placar rápido</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div><!-- /default-tray -->
 
   <!-- DIÁLOGOS FLUTUANTES (ESTILO SKETCHUP HTMLDIALOG) -->
@@ -1780,5 +2212,6 @@
   }
   </script>
   <script type="module" src="src/main.js?v=20261102_07"></script>
+  <script type="module" src="src/aovivo.js?v=20261108_01"></script>
 </body>
 </html>

@@ -233,6 +233,7 @@ import {
 import { buildOutlinerTree } from "./outliner.js";
 import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
 import { InferenceEngine } from "./inferenceEngine.js?v=20261102_07";
+import { iniciarFerramentas } from "./ferramentas.js";
 
 function sendBrowserLog(type, msg, extra = {}) {
   try {
@@ -760,6 +761,8 @@ function updateEntityInfoDisplay(mesh) {
 
 function selectMesh(mesh) {
   if (selectedMesh === mesh) return;
+  // Edição colaborativa (src/aovivo.js): item em edição por outra pessoa não se seleciona
+  if (window.sketchbuild?.aoVivo?.barrar(mesh.name)) return;
   selectedMesh = mesh;
   // o mesh foi montado com matrixAutoUpdate=false e matriz composta
   // direto (ver sceneBuilder.js) -- o TransformControls le/escreve via
@@ -772,10 +775,12 @@ function selectMesh(mesh) {
   selectedLabelEl.textContent = `Selecionado: ${mesh.name}`;
   currentOutliner?.setSelected(mesh.name);
   updateEntityInfoDisplay(mesh);
+  window.dispatchEvent(new CustomEvent("sb:select", { detail: { target: mesh } }));
 }
 
 function deselectMesh() {
   transformControls.detach();
+  window.dispatchEvent(new CustomEvent("sb:select", { detail: { target: null } }));
   selectedMesh = null;
   selectedLabelEl.textContent = "Nenhuma instancia selecionada.";
   currentOutliner?.setSelected(null);
@@ -845,6 +850,7 @@ async function applyTransformEdit(mesh) {
 
 transformControls.addEventListener("objectChange", () => {
   if (selectedMesh) updateEntityInfoDisplay(selectedMesh);
+  window.dispatchEvent(new CustomEvent("sb:moved"));
 });
 
 transformControls.addEventListener("dragging-changed", (event) => {
@@ -854,6 +860,7 @@ transformControls.addEventListener("dragging-changed", (event) => {
     setTimeout(() => {
       suppressNextClick = false;
     }, 0);
+    window.dispatchEvent(new CustomEvent("sb:moved"));
     if (selectedMesh) applyTransformEdit(selectedMesh);
   }
 });
@@ -1037,6 +1044,12 @@ window.addEventListener("keydown", (event) => {
     handleUndo();
     return;
   }
+  // Shift+Z = "Zoom extensões" do SketchUp: enquadra o modelo todo sem mudar o angulo da camera.
+  if (event.shiftKey && !event.ctrlKey && !event.metaKey && (event.key === "z" || event.key === "Z")) {
+    event.preventDefault();
+    setStandardView("extents");
+    return;
+  }
   if ((event.ctrlKey || event.metaKey) && (event.key === "y" || event.key === "Y")) {
     event.preventDefault();
     handleRedo();
@@ -1185,9 +1198,14 @@ function projectionDistanceScale() {
  * centralizada na bounding box do grupo carregado. */
 function setStandardView(viewName) {
   if (!currentGroup) return;
-  const { direction, up } = STANDARD_VIEWS[viewName];
+  const { direction, up } =
+    viewName === "extents"
+      ? { direction: camera.position.clone().sub(controls.target), up: new THREE.Vector3(0, 1, 0) }
+      : STANDARD_VIEWS[viewName];
 
   const box = new THREE.Box3().setFromObject(currentGroup);
+  const ambiente = scene.getObjectByName("ambiente-sketchbuild");
+  ambiente?.children.filter((c) => c.name !== "entorno").forEach((c) => box.expandByObject(c));
   if (box.isEmpty()) return;
 
   const size = box.getSize(new THREE.Vector3());
@@ -1467,6 +1485,8 @@ function applySceneDTO(sceneDTO) {
   refreshTags();
 
   sendBrowserLog("applySceneDTO", "step 7: done");
+  if (window.sketchbuild) window.sketchbuild.ultimaCena = { sceneDTO, group: currentGroup };
+  window.dispatchEvent(new CustomEvent("sb:scene", { detail: { sceneDTO, group: currentGroup } }));
   return {
     totalDefinitions: sceneDTO.definitions.length,
     totalInstances: sceneDTO.instances.length,
@@ -1495,6 +1515,7 @@ async function handleOpen() {
         `instancias, ${counts.totalVertices} vertices, ${counts.totalTriangles} triangulos.`
     );
     captureAndUploadThumbnail(path);
+    window.dispatchEvent(new CustomEvent("sb:projeto", { detail: { id: path } }));
     return true;
   } catch (err) {
     const detail = err instanceof ApiError ? err.message : String(err);
@@ -1526,11 +1547,13 @@ async function handleOpenBinary() {
     const counts = applySceneDTO(sceneDTO);
     const matCount = sceneDTO.materials ? Object.keys(sceneDTO.materials).length : 0;
     hideWelcomeScreen();
+    window.dispatchEvent(new CustomEvent("sb:projeto", { detail: { id: file.name } }));
     setStatus(
       `OK (Zero DLL) -- ${counts.totalDefinitions} defs, ${counts.totalInstances} ` +
         `instâncias, ${counts.totalVertices} vértices, ${counts.totalTriangles} triângulos, ${matCount} materiais PBR.`
     );
     captureAndUploadThumbnail(path);
+    window.dispatchEvent(new CustomEvent("sb:projeto", { detail: { id: path } }));
     return true;
   } catch (err) {
     const detail = err instanceof ApiError ? err.message : String(err);
@@ -1558,6 +1581,7 @@ async function handleOpenUpload(file) {
     const sceneDTO = await openUploadedScene(file);
     const counts = applySceneDTO(sceneDTO);
     hideWelcomeScreen();
+    window.dispatchEvent(new CustomEvent("sb:projeto", { detail: { id: file.name } }));
     setStatus(
       `OK -- ${counts.totalDefinitions} definicoes, ${counts.totalInstances} ` +
         `instancias, ${counts.totalVertices} vertices, ${counts.totalTriangles} triangulos. ` +
@@ -2874,6 +2898,68 @@ function hideWelcomeScreen() {
 }
 window.hideWelcomeScreen = hideWelcomeScreen;
 
+/** Foto do 3D limpa em PNG (sem helpers, eixos ou caixas de selecao). */
+function snapshotPNG(hideNames = []) {
+  const hidden = [];
+  const hide = (obj) => { if (obj && obj.visible) { obj.visible = false; hidden.push(obj); } };
+  hide(transformControls?.getHelper?.());
+  axisLines.forEach(hide);
+  hideNames.forEach((n) => hide(scene.getObjectByName(n)));
+  const background = scene.background;
+  scene.background = new THREE.Color(0xdde9f6);
+  renderer.render(scene, camera);
+  const url = renderer.domElement.toDataURL("image/png");
+  scene.background = background;
+  hidden.forEach((obj) => (obj.visible = true));
+  return url;
+}
+
+/** Guarda e restaura a camera da cena. */
+function saveCamera() {
+  const pos = camera.position.clone(), target = controls.target.clone(), up = camera.up.clone();
+  return () => { camera.position.copy(pos); controls.target.copy(target); camera.up.copy(up); controls.update(); };
+}
+
+window.sketchbuild = {
+  applySceneDTO,
+  scene,
+  camera,
+  canvas: renderer.domElement,
+  setStatus,
+  deselectMesh,
+  setStandardView,
+  hideWelcomeScreen,
+  snapshotPNG,
+  saveCamera,
+  setAxesVisible,
+  axesVisible: () => axesVisible,
+  renderer,
+  controls,
+  keyLight,
+  setProjectionMode,
+  setShadowsEnabled,
+  selectMesh,
+  startWalk: handleStartWalk,
+  getGroup: () => currentGroup,
+  // Edição colaborativa ao vivo (src/aovivo.js)
+  selectInstanceById,
+  arrastando: () => !!transformControls.dragging,
+  selecionadoId: () => selectedMesh?.name ?? null,
+  getSelectedMesh: () => selectedMesh,
+};
+
+// Inicia as ferramentas CAD estendidas (Planta 2D, Cenas, Etiquetas 3D, Foto 4K, Camadas, Sol, Corte, Estilo, Passeio)
+setTimeout(() => {
+  try {
+    iniciarFerramentas({
+      sb: window.sketchbuild,
+      getEspaco: () => ({ cenario: [], desenhos: [] }),
+    });
+  } catch (err) {
+    console.warn("Falha ao inicializar ferramentas CAD:", err);
+  }
+}, 100);
+
 /** Abre um caminho a partir da Pagina Inicial (card de recente ou campo de
  * "Abrir arquivo") -- reusa o mesmo handleOpen() do painel principal. */
 async function openFromWelcomeScreen(path) {
@@ -2900,6 +2986,7 @@ async function handleRecoverDraft(draftId) {
     const sceneDTO = await recoverAutosaveDraft(draftId);
     const counts = applySceneDTO(sceneDTO);
     hideWelcomeScreen();
+    window.dispatchEvent(new CustomEvent("sb:projeto", { detail: { id: file.name } }));
     setStatus(
       `Sessao recuperada -- ${counts.totalDefinitions} definicoes, ${counts.totalInstances} ` +
         `instancias. As edicoes nao salvas foram restauradas; "Salvar" sobrescreve o arquivo original.`

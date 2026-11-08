@@ -37,6 +37,8 @@ REVERSE_ENGINEERING_NOTES.md secao 15).
 
 from __future__ import annotations
 
+from core import cache_malhas
+
 IDENTITY_4X4 = [
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
@@ -170,6 +172,7 @@ def _build_definition_mesh(api, entities, faces_registry: dict) -> dict:
                     "face_id": face_id,
                     "triangle_start": triangle_start,
                     "triangle_count": triangle_count,
+                    "color": api.get_face_color(face),
                 }
             )
             faces_registry[face_id] = face
@@ -190,7 +193,38 @@ def _collect_definition(
     de frente para a camera")."""
     if def_id in definitions:
         return
-    mesh = _build_definition_mesh(api, entities, faces_registry)
+    # Cache de malha por definicao (so quando quem chamou passou um, ex.: a
+    # Biblioteca Empresa inserindo brinquedo): triangular de novo um brinquedo
+    # que nao mudou levava segundos a cada insercao. A chave inclui o numero
+    # de faces, entao uma definicao editada (empurrar/puxar etc.) e refeita.
+    cache = _MESH_CACHE
+    key = None
+    if cache is not None and def_id != "root":
+        key = (def_id, api.count_faces(entities))
+        hit = cache.get(key)
+        if hit is not None:
+            mesh, faces = hit
+            faces_registry.update(faces)
+            definitions[def_id] = mesh
+            return
+    own_faces: dict = {}
+    # Cache em disco (core/cache_malhas.py): peca grande ja triangulada antes
+    # (em qualquer projeto) volta pronta; so as faces sao listadas de novo.
+    mesh = None
+    chave_disco = faces_lista = None
+    if def_id != "root":
+        n_faces = api.count_faces(entities)
+        if n_faces >= cache_malhas.MINIMO_FACES:
+            faces_lista = api.get_faces(entities)
+            chave_disco = cache_malhas.chave(api, name, faces_lista)
+            achado = cache_malhas.ler(chave_disco, faces_lista)
+            if achado is not None:
+                mesh, own_faces = achado
+    if mesh is None:
+        mesh = _build_definition_mesh(api, entities, own_faces)
+        if chave_disco is not None:
+            cache_malhas.gravar(chave_disco, mesh, faces_lista)
+    faces_registry.update(own_faces)
     always_faces_camera = (
         api.get_definition_always_faces_camera(definition_ref)
         if definition_ref is not None
@@ -202,6 +236,8 @@ def _collect_definition(
         "always_faces_camera": always_faces_camera,
         **mesh,
     }
+    if key is not None:
+        cache[key] = (definitions[def_id], own_faces)
 
 
 def _walk_instances(
@@ -215,6 +251,7 @@ def _walk_instances(
     faces_registry: dict,
     model_ref,
     parent_instance_id: str | None = None,
+    inherited_color: list[int] | None = None,
 ) -> None:
     # Grupos sao uma colecao SEPARADA de ComponentInstances no SDK
     # (SUEntitiesGetGroups, nunca aparecem em SUEntitiesGetInstances) --
@@ -228,12 +265,18 @@ def _walk_instances(
     ]
 
     for instance in all_instances:
+        # Escondida no SketchUp (ou etiqueta desligada): nao aparece la, nao
+        # aparece aqui (variacoes que a fabricante deixa guardadas no modelo).
+        if api.instance_invisivel(instance):
+            continue
         definition = api.get_instance_definition(instance)
         def_id = f"def_{definition.ptr or 0:x}"
         local = api.get_instance_transform(instance)
         world = matmul4(parent_world, local)
 
         instance_id = f"inst_{len(instances)}"
+        # Faces "Padrao" herdam a cor do grupo/componente mais proximo que tem material.
+        color = api.get_instance_color(instance) or inherited_color
         instances.append(
             {
                 "instance_id": instance_id,
@@ -245,6 +288,7 @@ def _walk_instances(
                 # ate entao a atribuicao de Etiqueta (28.18) era write-only,
                 # nunca refletida de volta no DTO/UI.
                 "tag": api.get_instance_tag_name(model_ref, instance),
+                "color": color,
             }
         )
         # `entities` aqui e o Entities DIRETO (pai) onde essa instancia
@@ -277,10 +321,23 @@ def _walk_instances(
             faces_registry,
             model_ref,
             instance_id,
+            color,
         )
 
 
-def extract_scene_with_registry(api, model) -> tuple[dict, dict, dict]:
+_MESH_CACHE: dict | None = None
+
+
+def extract_scene_with_registry(api, model, mesh_cache: dict | None = None) -> tuple[dict, dict, dict]:
+    global _MESH_CACHE
+    _MESH_CACHE = mesh_cache
+    try:
+        return _extract_scene_with_registry(api, model)
+    finally:
+        _MESH_CACHE = None
+
+
+def _extract_scene_with_registry(api, model) -> tuple[dict, dict, dict]:
     """Devolve (dto, registry, faces_registry). `registry`/`faces_registry`
     so sao uteis enquanto o `model` continuar aberto (os Refs guardados
     neles apontam pra objetos vivos dentro do SUModelRef aberto) -- ver
@@ -302,6 +359,7 @@ def extract_scene_with_registry(api, model) -> tuple[dict, dict, dict]:
             "transform": list(IDENTITY_4X4),
             "parent_instance_id": None,
             "tag": None,
+            "color": None,
         }
     )
     registry["inst_root"] = {

@@ -5,7 +5,8 @@ path, metodo, schema de entrada/saida, e delega pro controller.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
+from app.core.cena_binaria import quer_binario, responder_cena
 
 from app.controllers.scene_controller import SceneController
 from app.schemas.scene import (
@@ -555,8 +556,17 @@ async def new_scene_from_template(
     summary="Reextrai a sessao JA ABERTA em memoria sem tocar o disco (cobre reload da pagina com o backend ainda rodando) -- 409 se nao ha sessao",
 )
 async def get_current_session(
+    request: Request,
     controller: SceneController = Depends(get_controller),
 ) -> SceneResponse:
+    if quer_binario(request):
+        from fastapi.concurrency import run_in_threadpool
+        from app.repositories.skp_engine_repository import SkpEngineRepository
+        from app.core.cena_binaria import TIPO, empacotar
+        dados = await run_in_threadpool(SkpEngineRepository().pacote_da_sessao, empacotar)
+        if dados is None:
+            raise HTTPException(status_code=409, detail="nenhum modelo aberto nesta sessao")
+        return Response(dados, media_type=TIPO, headers={"Cache-Control": "no-store"})
     return await controller.get_current_session()
 
 

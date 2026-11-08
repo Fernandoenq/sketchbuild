@@ -12,6 +12,73 @@ export class ApiError extends Error {
   }
 }
 
+/** Cena 3D em binario compacto (app/core/cena_binaria.py): 221 MB de JSON
+ * viravam ~20 MB. Monta o mesmo DTO de sempre, com arrays tipados. */
+export async function lerCena(res) {
+  const tipo = res.headers.get("content-type") || "";
+  if (!tipo.includes("x-sketchbuild-cena")) return res.json();
+  const buf = await res.arrayBuffer();
+  const tamanho = new DataView(buf).getUint32(4, true);
+  const cab = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 8, tamanho)));
+  const base = 8 + tamanho;
+  const arr = (T, [inicio, qtd]) => new T(buf, base + inicio, qtd);
+  for (const d of cab.definitions) {
+    const b = d.bin;
+    if (!b) continue;
+    d.vertices = arr(Float32Array, b.v);
+    d.indices = arr(b.i[2] === 16 ? Uint16Array : Uint32Array, b.i);
+    if (b.n8) d.normals8 = arr(Int8Array, b.n8);
+    if (b.fs) {
+      const fs = arr(Uint32Array, b.fs), fc = arr(Uint32Array, b.fc), fk = arr(Uint32Array, b.fk);
+      const fl = arr(Uint32Array, b.fl), fh = arr(Uint32Array, b.fh);
+      if (fs.length > 50000) {
+        // Peca enorme: junta as faces seguidas da mesma cor.
+        d.face_ranges = [];
+        let atual = null;
+        for (let k = 0; k < fs.length; k++) {
+          if (atual && fk[k] === atual.k && fs[k] === atual.triangle_start + atual.triangle_count) {
+            atual.triangle_count += fc[k];
+            continue;
+          }
+          const p = cab.paleta[fk[k]];
+          atual = { k: fk[k], face_id: "face_" + (fh[k] * 4294967296 + fl[k]).toString(16), triangle_start: fs[k], triangle_count: fc[k], color: p.color, material_name: p.material_name };
+          d.face_ranges.push(atual);
+        }
+        delete d.bin;
+        continue;
+      }
+      d.face_ranges = new Array(fs.length);
+      for (let k = 0; k < fs.length; k++) {
+        const p = cab.paleta[fk[k]];
+        d.face_ranges[k] = {
+          face_id: "face_" + (fh[k] * 4294967296 + fl[k]).toString(16),
+          triangle_start: fs[k],
+          triangle_count: fc[k],
+          color: p.color,
+          material_name: p.material_name,
+        };
+      }
+    }
+    delete d.bin;
+  }
+  return cab;
+}
+
+/** POST que pede a cena em binario (rotas que devolvem cena). */
+export async function postCena(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Cena": "bin" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try { detail = (await res.json()).detail ?? detail; } catch { /* sem JSON */ }
+    throw new ApiError(typeof detail === "string" ? detail : detail?.message || res.statusText, res.status, detail);
+  }
+  return lerCena(res);
+}
+
 async function postJson(url, method, body) {
   const res = await fetch(url, {
     method,
@@ -51,13 +118,13 @@ async function getJson(url) {
 }
 
 export function openScene(path) {
-  return postJson("/api/v1/scene/open", "POST", { path });
+  return postCena("/api/v1/scene/open", { path });
 }
 
 /** Abre um .skp usando o leitor nativo binario Pure Python (Zero DLL),
  * renderizando malha, UVs analiticas, materiais PBR e instâncias no Three.js. */
 export function openBinaryScene(path) {
-  return postJson("/api/v1/scene/open-binary", "POST", { path });
+  return postCena("/api/v1/scene/open-binary", { path });
 }
 
 /** Abre um .skp enviado via upload real do navegador (`<input
@@ -70,7 +137,11 @@ export function openBinaryScene(path) {
 export async function openUploadedScene(file) {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch("/api/v1/scene/open-upload", { method: "POST", body: formData });
+  const res = await fetch("/api/v1/scene/open-upload", {
+    method: "POST",
+    headers: { "X-Cena": "bin" },
+    body: formData,
+  });
   if (!res.ok) {
     let detail = res.statusText;
     try {
@@ -82,7 +153,7 @@ export async function openUploadedScene(file) {
     const message = typeof detail === "string" ? detail : detail?.message || res.statusText;
     throw new ApiError(message, res.status, detail);
   }
-  return res.json();
+  return lerCena(res);
 }
 
 /** Cria um modelo novo a partir de um template real da Trimble (ver
@@ -282,10 +353,10 @@ export function setInstanceAxes(instanceId, origin, xPoint, yPoint) {
  * `null` quando o backend nao tem nenhuma sessao aberta no momento
  * (acabou de reiniciar, ou ninguem abriu nada ainda nesta execucao). */
 export async function getCurrentSession() {
-  const res = await fetch("/api/v1/scene/session");
+  const res = await fetch("/api/v1/scene/session", { headers: { "X-Cena": "bin" } });
   if (res.status === 409) return null;
   if (!res.ok) throw new ApiError(res.statusText, res.status);
-  return res.json();
+  return lerCena(res);
 }
 
 /** Lista rascunhos de autosave reais disponiveis pra recuperacao (ver

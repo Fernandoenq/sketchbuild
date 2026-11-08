@@ -3,6 +3,7 @@
 // pronto pra entrar na cena. Nenhuma chamada de rede aqui.
 
 import * as THREE from "three";
+import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
 
 // A SketchUpAPI.dll devolve coordenadas em POLEGADAS (unidade interna
 // fixa do formato .skp, independente da unidade de exibicao do
@@ -35,7 +36,10 @@ function buildGeometry(definitionDTO, materialsMap = null) {
   }
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
 
-  if (definitionDTO.normals && definitionDTO.normals.length === definitionDTO.vertices.length) {
+  if (definitionDTO.normals8 && definitionDTO.normals8.length === definitionDTO.vertices.length) {
+    // normal em 1 byte por eixo (cena binaria): normalizada pelo proprio WebGL
+    geometry.setAttribute("normal", new THREE.BufferAttribute(definitionDTO.normals8, 3, true));
+  } else if (definitionDTO.normals && definitionDTO.normals.length === definitionDTO.vertices.length) {
     geometry.setAttribute(
       "normal",
       new THREE.BufferAttribute(new Float32Array(definitionDTO.normals), 3)
@@ -50,9 +54,11 @@ function buildGeometry(definitionDTO, materialsMap = null) {
     );
   }
 
-  geometry.setIndex(definitionDTO.indices);
+  geometry.setIndex(Array.isArray(definitionDTO.indices)
+    ? definitionDTO.indices
+    : new THREE.BufferAttribute(definitionDTO.indices, 1));
 
-  if (!definitionDTO.normals || !definitionDTO.normals.length) {
+  if ((!definitionDTO.normals || !definitionDTO.normals.length) && !definitionDTO.normals8) {
     geometry.computeVertexNormals();
   }
 
@@ -79,6 +85,18 @@ function buildGeometry(definitionDTO, materialsMap = null) {
     }
   }
 
+  // Sombreado suave nas pecas curvas (brinquedo vindo de STL e versoes leves):
+  // cada face do .skp vem com normal propria, o que deixa tudo "facetado".
+  // Quinas de mais de 35 graus continuam vivas (caixa, degrau, tabua).
+  // Mesma ordem de triangulos, entao clique por face e grupos continuam valendo.
+  const triangles = definitionDTO.indices.length / 3;
+  if (triangles > 500 && triangles < 400000) {
+    const smooth = toCreasedNormals(geometry, THREE.MathUtils.degToRad(35));
+    smooth.userData = geometry.userData;
+    if (smooth !== geometry) geometry.dispose();
+    return smooth;
+  }
+
   return geometry;
 }
 
@@ -91,6 +109,18 @@ function buildGeometry(definitionDTO, materialsMap = null) {
 export function skpPointToThree(x, y, z) {
   const v = new THREE.Vector3(x, y, z).multiplyScalar(INCHES_TO_METERS);
   return v.applyMatrix4(SKP_TO_THREE_UP);
+}
+
+/** Matriz de mundo (16 numeros do servidor, polegadas/Z-up) -> Matrix4 em metros/Y-up, igual ao buildSceneGroup.
+ * Usada pra aplicar a edicao de outra pessoa sem reconstruir a cena (edicao colaborativa). */
+export function skpTransformToWorld(arr16) {
+  const raw = new THREE.Matrix4().fromArray(arr16);
+  const position = new THREE.Vector3();
+  const quaternion = new THREE.Quaternion();
+  const scale = new THREE.Vector3();
+  raw.decompose(position, quaternion, scale);
+  position.multiplyScalar(INCHES_TO_METERS);
+  return new THREE.Matrix4().compose(position, quaternion, scale).premultiply(SKP_TO_THREE_UP);
 }
 
 /**
@@ -114,7 +144,55 @@ export function skpDirectionToThree(x, y, z) {
 // cena nem percorrer malha por malha.
 const EDGE_LINE_MATERIAL = new THREE.LineBasicMaterial({ color: 0x2b2b2b });
 
-export function buildSceneGroup(sceneDTO) {
+/** Um material por cor [r, g, b] (0-255), reaproveitado entre instancias. */
+function colorMaterial(rgb, cache) {
+  const key = rgb.join(",");
+  if (!cache.has(key)) {
+    cache.set(
+      key,
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255),
+        side: THREE.DoubleSide,
+        roughness: 0.6,
+        metalness: 0.05,
+      })
+    );
+  }
+  return cache.get(key);
+}
+
+// Geometrias ja montadas, por definicao. So sao reaproveitadas quando quem
+// chama pede (reuseGeometries: inserir brinquedo da Biblioteca Empresa, em
+// que o backend devolve sem vertices o que o navegador ja tem). Qualquer
+// cena completa recomeca o cache (os ids sao ponteiros da sessao).
+let geometryCache = new Map();
+
+// EdgesGeometry de malha grande custa caro: calcula uma vez por geometria
+// e reaproveita entre instancias e entre reconstrucoes da cena.
+function edgesFor(geometry) {
+  if (!geometry.userData.edges) {
+    const triangulos = geometry.index ? geometry.index.count / 3 : 0;
+    if (triangulos > 60000) {
+      // Peca grande (Scandere: 448 mil triangulos): o contorno levava ~1,5 s e
+      // segurava o projeto inteiro na tela. Aparece o projeto primeiro e o
+      // contorno e preenchido logo depois, no mesmo objeto de linhas.
+      const depois = new THREE.BufferGeometry();
+      geometry.userData.edges = depois;
+      setTimeout(() => {
+        const pronto = new THREE.EdgesGeometry(geometry, 25);
+        depois.setAttribute("position", pronto.getAttribute("position"));
+        depois.computeBoundingSphere();
+      }, 50);
+    } else {
+      geometry.userData.edges = new THREE.EdgesGeometry(geometry, 25);
+    }
+  }
+  return geometry.userData.edges;
+}
+
+export function buildSceneGroup(sceneDTO, { reuseGeometries = false } = {}) {
+  const previousGeometries = reuseGeometries ? geometryCache : new Map();
+  geometryCache = new Map();
   const group = new THREE.Group();
   group.name = sceneDTO.model_path;
 
@@ -152,17 +230,24 @@ export function buildSceneGroup(sceneDTO) {
     }
   }
 
+  const colorMaterials = new Map();
+  const parentByInstanceId = new Map();
+  const worldByInstanceId = new Map();
   const geometriesByDefinitionId = new Map();
   const definitionsById = new Map();
   for (const definitionDTO of sceneDTO.definitions) {
     definitionsById.set(definitionDTO.definition_id, definitionDTO);
-    if (!definitionDTO.vertices.length) continue; // definicao sem geometria propria (ex.: "root")
-    geometriesByDefinitionId.set(definitionDTO.definition_id, buildGeometry(definitionDTO, materialsMap));
+    const geometry = definitionDTO.vertices.length
+      ? buildGeometry(definitionDTO, materialsMap)
+      : previousGeometries.get(definitionDTO.definition_id);
+    if (!geometry) continue; // definicao sem geometria propria (ex.: "root")
+    geometryCache.set(definitionDTO.definition_id, geometry);
+    geometriesByDefinitionId.set(definitionDTO.definition_id, geometry);
   }
 
   for (const instanceDTO of sceneDTO.instances) {
     const geometry = geometriesByDefinitionId.get(instanceDTO.definition_id);
-    if (!geometry) continue;
+    parentByInstanceId.set(instanceDTO.instance_id, instanceDTO.parent_instance_id);
 
     // transform do backend esta em polegadas (translacao inclusa);
     // a geometria ja foi convertida pra metros, entao escalamos so a
@@ -175,6 +260,10 @@ export function buildSceneGroup(sceneDTO) {
     position.multiplyScalar(INCHES_TO_METERS);
     const world = new THREE.Matrix4().compose(position, quaternion, scale);
     world.premultiply(SKP_TO_THREE_UP);
+    // Guardado pra TODA instancia (inclusive grupos sem geometria propria):
+    // e o pivo usado pra mover o brinquedo inteiro (ver selectMesh em main.js).
+    worldByInstanceId.set(instanceDTO.instance_id, world.clone());
+    if (!geometry) continue;
 
     // Determina o material da instância (multi-material ou material único PBR)
     let instanceMaterial = defaultMaterial;
@@ -188,6 +277,13 @@ export function buildSceneGroup(sceneDTO) {
       } else {
         instanceMaterial = Array.from(materialsMap.values())[0] || defaultMaterial;
       }
+    } else {
+      // Motor ctypes: cor real do .skp -- material da face, senao o herdado
+      // do grupo/componente (faces "Padrao"), igual o SketchUp mostra.
+      const defDTO = definitionsById.get(instanceDTO.definition_id);
+      const faceColor = defDTO?.face_ranges?.find((r) => r.color)?.color;
+      const rgb = faceColor || instanceDTO.color;
+      if (rgb) instanceMaterial = colorMaterial(rgb, colorMaterials);
     }
 
     const mesh = new THREE.Mesh(geometry, instanceMaterial);
@@ -203,7 +299,7 @@ export function buildSceneGroup(sceneDTO) {
     // Overlay de arestas (Visualizar > Estilo de aresta > Bordas) -- filho
     // do mesh, entao herda a matriz dele (world ou billboard) automaticamente
     // sem logica extra. Comeca invisivel; main.js liga via setEdgesVisible().
-    const edgesMesh = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 25), EDGE_LINE_MATERIAL);
+    const edgesMesh = new THREE.LineSegments(edgesFor(geometry), EDGE_LINE_MATERIAL);
     edgesMesh.visible = false;
     edgesMesh.matrixAutoUpdate = false; // acompanha a matriz identidade local -- so o pai (mesh) se move
     mesh.add(edgesMesh);
@@ -240,6 +336,8 @@ export function buildSceneGroup(sceneDTO) {
   }
 
   group.userData.sharedMaterial = defaultMaterial;
+  group.userData.parentByInstanceId = parentByInstanceId;
+  group.userData.worldByInstanceId = worldByInstanceId;
   return group;
 }
 

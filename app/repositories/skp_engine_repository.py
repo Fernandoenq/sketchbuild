@@ -58,6 +58,9 @@ class _Session:
     registry: dict = field(default_factory=dict)  # instance_id -> {"ref", "parent_world"}
     tags: dict = field(default_factory=dict)  # nome da etiqueta -> SULayerRef (cache pra reusar a MESMA etiqueta entre cliques, nao criar uma nova a cada vez)
     faces: dict = field(default_factory=dict)  # face_id -> SUFaceRef (usado por paint_face())
+    mesh_cache: dict = field(default_factory=dict)  # malhas ja trianguladas
+    versao: int = 0
+    pacote: tuple[int, bytes] | None = None
 
     def close(self) -> None:
         self.model.close()
@@ -114,6 +117,12 @@ class SkpEngineRepository:
             lambda api: api.open_model_from_bytes(data),
             "falha ao abrir o .skp enviado",
             None,
+        )
+
+    def open_blank(self) -> dict:
+        """Modelo vazio em memoria, sem caminho (o primeiro "Salvar" pede onde gravar)."""
+        return self._open_and_extract(
+            lambda api: api.create_blank_model(), "falha ao criar o modelo vazio", None
         )
 
     def _open_and_extract(self, opener, open_error_prefix: str, session_path: str | None) -> dict:
@@ -174,12 +183,28 @@ class SkpEngineRepository:
         if _SESSION is None:
             return None
         dto, registry, faces_registry = extract_scene_with_registry(
-            _SESSION.api, _SESSION.model
+            _SESSION.api, _SESSION.model, getattr(_SESSION, "mesh_cache", None)
         )
         _SESSION.registry = registry
         _SESSION.faces = faces_registry
         dto["model_path"] = _SESSION.model_path
         return dto
+
+    def pacote_da_sessao(self, empacotar) -> bytes | None:
+        if _SESSION is None:
+            return None
+        versao = getattr(_SESSION, "versao", 0)
+        guardado = getattr(_SESSION, "pacote", None)
+        if guardado and guardado[0] == versao:
+            return guardado[1]
+        dto = self.get_current_session()
+        dados = empacotar(dto)
+        _SESSION.pacote = (versao, dados)
+        return dados
+
+    def guardar_pacote(self, dados: bytes) -> None:
+        if _SESSION is not None:
+            _SESSION.pacote = (getattr(_SESSION, "versao", 0), dados)
 
     def list_autosave_drafts(self) -> list[dict]:
         return self._autosave_repo.list_drafts()
@@ -199,7 +224,10 @@ class SkpEngineRepository:
         ainda nao tem uma chave estavel pra associar o rascunho -- mesma
         exigencia ja feita pelo "Salvar" de verdade). Melhor esforco: uma
         falha aqui nunca pode quebrar a edicao que a originou."""
-        if _SESSION is None or _SESSION.model_path is None:
+        if _SESSION is None:
+            return
+        _SESSION.versao = getattr(_SESSION, "versao", 0) + 1
+        if _SESSION.model_path is None:
             return
         try:
             draft_path = self._autosave_repo.draft_file_path(_SESSION.model_path)
@@ -3969,6 +3997,17 @@ class SkpEngineRepository:
             trim_margin_mm=trim,
             saw_kerf_mm=saw_kerf,
         )
+
+
+# Motor D: no Linux/Mac ou com SKETCHBUILD_MOTOR=d, opera em Pure Python sem DLL
+from app.repositories import motor_d as _motor_d  # noqa: E402
+
+if _motor_d.ativo():
+    _SkpEngineRepositorySDK = SkpEngineRepository
+
+    class SkpEngineRepository(_motor_d.MotorD, _SkpEngineRepositorySDK):  # type: ignore[no-redef]
+        pass
+
 
 
 
