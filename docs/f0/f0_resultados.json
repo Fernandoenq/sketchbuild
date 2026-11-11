@@ -1,0 +1,1061 @@
+{
+  "sketchup": "26.2.243",
+  "ruby": "3.2.2",
+  "unidade_interna": "polegadas",
+  "receitas": {
+    "r01_linha_solta": {
+      "ok": true,
+      "etapas": {
+        "depois": {
+          "vertices": 2,
+          "edges": 1,
+          "faces": 0,
+          "face_areas_in2": [
+
+          ],
+          "face_loops": [
+
+          ],
+          "face_vertex_counts": [
+
+          ],
+          "face_normals": [
+
+          ],
+          "edges_by_face_count": {
+            "0": 1
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              0.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    "r02_laco_fechado_de_linhas": {
+      "ok": true,
+      "etapas": {
+        "apos_4_linhas": {
+          "vertices": 4,
+          "edges": 4,
+          "faces": 0,
+          "face_areas_in2": [
+
+          ],
+          "face_loops": [
+
+          ],
+          "face_vertex_counts": [
+
+          ],
+          "face_normals": [
+
+          ],
+          "edges_by_face_count": {
+            "0": 4
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              100.0,
+              0.0
+            ]
+          }
+        },
+        "apos_find_faces": {
+          "vertices": 4,
+          "edges": 4,
+          "faces": 1,
+          "face_areas_in2": [
+            10000.0
+          ],
+          "face_loops": [
+            1
+          ],
+          "face_vertex_counts": [
+            4
+          ],
+          "face_normals": [
+            [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "1": 4
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              100.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    "r03_retangulo_add_face": {
+      "ok": true,
+      "etapas": {
+        "depois": {
+          "vertices": 4,
+          "edges": 4,
+          "faces": 1,
+          "face_areas_in2": [
+            10000.0
+          ],
+          "face_loops": [
+            1
+          ],
+          "face_vertex_counts": [
+            4
+          ],
+          "face_normals": [
+            [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "1": 4
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              100.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    "r04_pushpull_retangulo": {
+      "ok": true,
+      "etapas": {
+        "depois": {
+          "vertices": 8,
+          "edges": 12,
+          "faces": 6,
+          "face_areas_in2": [
+            5000.0,
+            5000.0,
+            5000.0,
+            5000.0,
+            10000.0,
+            10000.0
+          ],
+          "face_loops": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "face_vertex_counts": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "face_normals": [
+            [
+              -1.0,
+              -0.0,
+              -0.0
+            ],
+            [
+              0.0,
+              -1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              1.0,
+              -0.0,
+              0.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "2": 12
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              100.0,
+              50.0
+            ]
+          }
+        }
+      }
+    },
+    "r05_pushpull_volta_ao_plano": {
+      "ok": true,
+      "etapas": {
+        "cubo": {
+          "vertices": 8,
+          "edges": 12,
+          "faces": 6,
+          "face_areas_in2": [
+            5000.0,
+            5000.0,
+            5000.0,
+            5000.0,
+            10000.0,
+            10000.0
+          ],
+          "face_loops": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "face_vertex_counts": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4
+          ],
+          "face_normals": [
+            [
+              -1.0,
+              -0.0,
+              -0.0
+            ],
+            [
+              0.0,
+              -1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              1.0,
+              -0.0,
+              0.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "2": 12
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              100.0,
+              50.0
+            ]
+          }
+        },
+        "apos_pushpull_negativo_total": {
+          "vertices": 0,
+          "edges": 0,
+          "faces": 0,
+          "face_areas_in2": [
+
+          ],
+          "face_loops": [
+
+          ],
+          "face_vertex_counts": [
+
+          ],
+          "face_normals": [
+
+          ],
+          "edges_by_face_count": {
+          },
+          "soft_edges": 0,
+          "bounds_in": null
+        }
+      }
+    },
+    "r06_linha_divide_face": {
+      "ok": true,
+      "etapas": {
+        "depois": {
+          "vertices": 6,
+          "edges": 7,
+          "faces": 2,
+          "face_areas_in2": [
+            5000.0,
+            5000.0
+          ],
+          "face_loops": [
+            1,
+            1
+          ],
+          "face_vertex_counts": [
+            4,
+            4
+          ],
+          "face_normals": [
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "1": 6,
+            "2": 1
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              100.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    "r07_linha_em_T": {
+      "ok": true,
+      "etapas": {
+        "depois": {
+          "vertices": 4,
+          "edges": 3,
+          "faces": 0,
+          "face_areas_in2": [
+
+          ],
+          "face_loops": [
+
+          ],
+          "face_vertex_counts": [
+
+          ],
+          "face_normals": [
+
+          ],
+          "edges_by_face_count": {
+            "0": 3
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              50.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    "r08_linhas_em_X": {
+      "ok": true,
+      "etapas": {
+        "depois": {
+          "vertices": 4,
+          "edges": 2,
+          "faces": 0,
+          "face_areas_in2": [
+
+          ],
+          "face_loops": [
+
+          ],
+          "face_vertex_counts": [
+
+          ],
+          "face_normals": [
+
+          ],
+          "edges_by_face_count": {
+            "0": 2
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              100.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    "r09_circulo": {
+      "ok": true,
+      "etapas": {
+        "so_arestas": {
+          "vertices": 24,
+          "edges": 24,
+          "faces": 0,
+          "face_areas_in2": [
+
+          ],
+          "face_loops": [
+
+          ],
+          "face_vertex_counts": [
+
+          ],
+          "face_normals": [
+
+          ],
+          "edges_by_face_count": {
+            "0": 24
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              -50.0,
+              -50.0,
+              0.0
+            ],
+            "max": [
+              50.0,
+              50.0,
+              0.0
+            ]
+          }
+        },
+        "com_face": {
+          "vertices": 24,
+          "edges": 24,
+          "faces": 1,
+          "face_areas_in2": [
+            7764.5714
+          ],
+          "face_loops": [
+            1
+          ],
+          "face_vertex_counts": [
+            24
+          ],
+          "face_normals": [
+            [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "1": 24
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              -50.0,
+              -50.0,
+              0.0
+            ],
+            "max": [
+              50.0,
+              50.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    "r10_face_dentro_de_face": {
+      "ok": true,
+      "etapas": {
+        "depois": {
+          "vertices": 8,
+          "edges": 8,
+          "faces": 2,
+          "face_areas_in2": [
+            10000.0,
+            30000.0
+          ],
+          "face_loops": [
+            1,
+            2
+          ],
+          "face_vertex_counts": [
+            4,
+            8
+          ],
+          "face_normals": [
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "1": 4,
+            "2": 4
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              200.0,
+              200.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    "r11_furo_vazado_pushpull": {
+      "ok": true,
+      "etapas": {
+        "cubo_com_face_no_topo": {
+          "vertices": 12,
+          "edges": 16,
+          "faces": 7,
+          "face_areas_in2": [
+            1600.0,
+            5000.0,
+            5000.0,
+            5000.0,
+            5000.0,
+            8400.0,
+            10000.0
+          ],
+          "face_loops": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2
+          ],
+          "face_vertex_counts": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            8
+          ],
+          "face_normals": [
+            [
+              -1.0,
+              -0.0,
+              -0.0
+            ],
+            [
+              0.0,
+              -1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              -0.0,
+              -0.0,
+              1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              1.0,
+              -0.0,
+              0.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "2": 16
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              100.0,
+              50.0
+            ]
+          }
+        },
+        "apos_pushpull_vazado": {
+          "vertices": 16,
+          "edges": 24,
+          "faces": 10,
+          "face_areas_in2": [
+            2000.0,
+            2000.0,
+            2000.0,
+            2000.0,
+            5000.0,
+            5000.0,
+            5000.0,
+            5000.0,
+            8400.0,
+            8400.0
+          ],
+          "face_loops": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            2
+          ],
+          "face_vertex_counts": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            8,
+            8
+          ],
+          "face_normals": [
+            [
+              -1.0,
+              0.0,
+              -0.0
+            ],
+            [
+              -1.0,
+              -0.0,
+              -0.0
+            ],
+            [
+              0.0,
+              -1.0,
+              0.0
+            ],
+            [
+              -0.0,
+              -1.0,
+              -0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ],
+            [
+              -0.0,
+              1.0,
+              -0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              1.0,
+              -0.0,
+              0.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "2": 24
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              100.0,
+              50.0
+            ]
+          }
+        }
+      }
+    },
+    "r12_apagar_aresta_compartilhada": {
+      "ok": true,
+      "etapas": {
+        "dividido": {
+          "vertices": 6,
+          "edges": 7,
+          "faces": 2,
+          "face_areas_in2": [
+            5000.0,
+            5000.0
+          ],
+          "face_loops": [
+            1,
+            1
+          ],
+          "face_vertex_counts": [
+            4,
+            4
+          ],
+          "face_normals": [
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "1": 6,
+            "2": 1
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              100.0,
+              0.0
+            ]
+          }
+        },
+        "apos_apagar_aresta": {
+          "vertices": 4,
+          "edges": 4,
+          "faces": 1,
+          "face_areas_in2": [
+            10000.0
+          ],
+          "face_loops": [
+            1
+          ],
+          "face_vertex_counts": [
+            4
+          ],
+          "face_normals": [
+            [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "1": 4
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              100.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    "r13_arco_fatia": {
+      "ok": true,
+      "etapas": {
+        "arco_e_raios": {
+          "vertices": 14,
+          "edges": 14,
+          "faces": 0,
+          "face_areas_in2": [
+
+          ],
+          "face_loops": [
+
+          ],
+          "face_vertex_counts": [
+
+          ],
+          "face_normals": [
+
+          ],
+          "edges_by_face_count": {
+            "0": 14
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              50.0,
+              50.0,
+              0.0
+            ]
+          }
+        },
+        "apos_find_faces": {
+          "vertices": 14,
+          "edges": 14,
+          "faces": 1,
+          "face_areas_in2": [
+            1957.8929
+          ],
+          "face_loops": [
+            1
+          ],
+          "face_vertex_counts": [
+            14
+          ],
+          "face_normals": [
+            [
+              0.0,
+              0.0,
+              -1.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "1": 14
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              50.0,
+              50.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    "r14_follow_me": {
+      "ok": true,
+      "etapas": {
+        "depois": {
+          "vertices": 15,
+          "edges": 20,
+          "faces": 8,
+          "face_areas_in2": [
+            100.0,
+            100.0,
+            950.0,
+            950.0,
+            1050.0,
+            1050.0,
+            2000.0,
+            2000.0
+          ],
+          "face_loops": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "face_vertex_counts": [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            6,
+            6
+          ],
+          "face_normals": [
+            [
+              -1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ],
+            [
+              -0.0,
+              1.0,
+              -0.0
+            ],
+            [
+              1.0,
+              -0.0,
+              -0.0
+            ],
+            [
+              1.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "edges_by_face_count": {
+            "0": 2,
+            "2": 18
+          },
+          "soft_edges": 0,
+          "bounds_in": {
+            "min": [
+              -5.0,
+              -5.0,
+              0.0
+            ],
+            "max": [
+              100.0,
+              5.0,
+              105.0
+            ]
+          }
+        }
+      }
+    }
+  }
+}
