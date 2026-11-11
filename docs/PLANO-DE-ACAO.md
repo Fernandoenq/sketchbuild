@@ -358,3 +358,6 @@ servidor 3D (`3d.parkelo.com.br`): login e 2FA já planejados; histórico versio
 | Data | Bloco | Resultado | Commit |
 |---|---|---|---|
 | 11/11/2026 | Plano criado | este documento | (ver git log) |
+| 11/11/2026 | B1, B2, B3 (parte), B5 | REA do registro de vértice, aresta e face (docs/FORMATO-SKP.md); `core/skp_topology_writer.py` grava a topologia numa base vazia; 8 testes de roundtrip contra a SketchUpAPI.dll (10 de 10 amostras B4 conferem pela DLL); rota `POST /draw/save` e botão Salvar .skp (nunca sobrescreve sem confirmar) | a97d743 e seguinte (locais, sem push) |
+| 11/11/2026 | A1 (parcial) | `tools/skp_inspect.py` imprime a árvore TLV de qualquer .skp | a97d743 |
+| 11/11/2026 | B4 (preparação) | `tools/gerar_amostras_b4.py` gera 10 arquivos em ~/sketchup_gerados; `ruby_bridge/conferir_gerados.rb` confere no SketchUp real. FALTA o Fernando rodar | (ver git log) |

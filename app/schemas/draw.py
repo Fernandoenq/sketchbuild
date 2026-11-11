@@ -94,3 +94,16 @@ class SceneSummaryResponse(BaseModel):
     caminho: list[int]
     definicoes: dict[str, Any]
     instancias: dict[str, Any]
+
+
+class SaveDrawRequest(BaseModel):
+    path: str
+    sobrescrever: bool = False  # so com confirmacao explicita do usuario
+
+
+class SaveDrawResponse(BaseModel):
+    path: str
+    vertices: int
+    arestas: int
+    faces: int
+    bytes: int

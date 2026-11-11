@@ -5,7 +5,7 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PushPullRequest
+from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PushPullRequest
 
 
 def run(c):
@@ -85,6 +85,24 @@ class TestDrawController(unittest.TestCase):
         self.assertEqual(cm.exception.status_code, 409)
         self.assertEqual(run(self.c.historico())["log"][0]["operacao"], "desenhar:retangulo")
 
+    def test_salvar_desenho(self):
+        import os
+        import sys
+        import tempfile
+        run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
+        with tempfile.TemporaryDirectory() as tmp:
+            p = os.path.join(tmp, "d.skp")
+            if sys.version_info[:2] == (3, 12):
+                r = run(self.c.salvar(SaveDrawRequest(path=p)))
+                self.assertEqual((r.faces, r.arestas), (1, 4))
+                self.assertTrue(os.path.exists(p))
+                with self.assertRaises(HTTPException) as cm:  # nao sobrescreve sem confirmar
+                    run(self.c.salvar(SaveDrawRequest(path=p)))
+                self.assertEqual(cm.exception.status_code, 409)
+            with self.assertRaises(HTTPException) as cm:
+                run(self.c.salvar(SaveDrawRequest(path=os.path.join(tmp, "x.txt"))))
+            self.assertEqual(cm.exception.status_code, 422)
+
     def test_rotas_registradas(self):
         from app.main import app
         caminhos = {r.path for r in app.routes}
@@ -93,7 +111,7 @@ class TestDrawController(unittest.TestCase):
         self.assertIn("/api/v1/draw/pushpull", caminhos)
         self.assertIn("/api/v1/draw/edit", caminhos)
         self.assertIn("/api/v1/draw/offset", caminhos)
-        for r in ("undo", "redo", "history", "followme", "intersect", "scene", "group", "instance", "explode", "enter", "exit"):
+        for r in ("save", "undo", "redo", "history", "followme", "intersect", "scene", "group", "instance", "explode", "enter", "exit"):
             self.assertIn("/api/v1/draw/" + r, caminhos)
 
 

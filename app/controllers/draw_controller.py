@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from app.schemas.draw import DrawRequest, DrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PushPullRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PushPullRequest, SceneSummaryResponse
 from app.services.draw_service import DrawService
 
 
@@ -70,6 +70,17 @@ class DrawController:
 
     async def cena(self) -> SceneSummaryResponse:
         return SceneSummaryResponse(**await self._service.cena())
+
+    async def salvar(self, body: SaveDrawRequest) -> SaveDrawResponse:
+        try:
+            return SaveDrawResponse(**await self._service.salvar(body.path, body.sobrescrever))
+        except FileExistsError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "arquivo_existe", "message": "o arquivo ja existe; confirme para sobrescrever", "path": str(e)},
+            ) from e
+        except (ValueError, OSError) as e:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
 
     async def desfazer(self) -> DrawStateResponse:
         try:

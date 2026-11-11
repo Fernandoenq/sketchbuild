@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawUndo, drawRedo } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawUndo, drawRedo, drawSave } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -135,6 +135,12 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       b.addEventListener("click", fn);
       g.appendChild(b);
     }
+    const salvar = document.createElement("button");
+    salvar.className = "toolbar-btn";
+    salvar.textContent = "Salvar .skp";
+    salvar.title = "Grava o desenho num arquivo .skp novo (nunca sobrescreve sem perguntar)";
+    salvar.addEventListener("click", salvarDesenho);
+    g.appendChild(salvar);
     const l = document.createElement("button");
     l.className = "toolbar-btn";
     l.textContent = "Limpar";
@@ -225,6 +231,27 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       setStatus(r.counts.vertices + " vértices, " + r.counts.edges + " arestas, " + r.counts.faces + " faces.");
     } catch (err) {
       setStatus("Erro na edição: " + (err?.message ?? err), true);
+    }
+  }
+
+  async function salvarDesenho() {
+    const caminho = window.prompt("Caminho do .skp a gravar (ex.: C:/Users/voce/Desktop/desenho.skp):", "");
+    if (!caminho || !caminho.trim()) return;
+    try {
+      let r;
+      try {
+        r = await drawSave(caminho.trim(), false);
+      } catch (err) {
+        if (err?.status === 409 && err.detail?.code === "arquivo_existe") {
+          if (!window.confirm("O arquivo já existe. Sobrescrever?\n" + caminho.trim())) return setStatus("Gravação cancelada.");
+          r = await drawSave(caminho.trim(), true);
+        } else {
+          throw err;
+        }
+      }
+      setStatus("Gravado " + r.path + " (" + r.faces + " faces, " + r.arestas + " arestas, " + Math.round(r.bytes / 1024) + " KB).");
+    } catch (err) {
+      setStatus("Erro ao gravar: " + (err?.message ?? err), true);
     }
   }
 

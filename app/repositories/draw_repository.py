@@ -1,6 +1,9 @@
 """Sessão de desenho em memória (F2): um núcleo de topologia por execução do backend."""
 from __future__ import annotations
 
+import os
+
+from core.skp_topology_writer import gravar_topologia
 from core.topology import Topology
 from core.topology.cena import Cena
 from core.topology.historico import Historico
@@ -123,6 +126,20 @@ class DrawRepository:
             "definicoes": {str(k): v for k, v in r["definicoes"].items()},
             "instancias": {str(k): v for k, v in r["instancias"].items()},
         }
+
+    def salvar(self, caminho: str, sobrescrever: bool = False) -> dict:
+        """Grava a raiz do desenho num .skp novo. Nunca sobrescreve sem confirmacao."""
+        if not caminho.lower().endswith(".skp"):
+            raise ValueError("o caminho precisa terminar em .skp")
+        if _CENA.instancias:
+            raise ValueError("salvar grupos e componentes ainda nao e suportado (so a raiz com geometria solta)")
+        if os.path.exists(caminho) and not sobrescrever:
+            raise FileExistsError(caminho)
+        return {"path": caminho, **self._relatorio(gravar_topologia(_CENA.defs[0], caminho))}
+
+    @staticmethod
+    def _relatorio(r: dict) -> dict:
+        return {"vertices": r["vertices"], "arestas": r["arestas"], "faces": r["faces"], "bytes": r["bytes"]}
 
     def desfazer(self) -> dict:
         _HIST.desfazer()

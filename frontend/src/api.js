@@ -2552,3 +2552,8 @@ export function drawUndo() {
 export function drawRedo() {
   return postJson("/api/v1/draw/redo", "POST", {});
 }
+
+/** B5: grava o desenho do nucleo num .skp novo. 409 com code "arquivo_existe" pede confirmacao. */
+export function drawSave(path, sobrescrever = false) {
+  return postJson("/api/v1/draw/save", "POST", { path, sobrescrever });
+}

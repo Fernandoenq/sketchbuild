@@ -45,6 +45,9 @@ class DrawService:
     async def cena(self) -> dict:
         return await run_in_threadpool(self._repository.cena)
 
+    async def salvar(self, caminho: str, sobrescrever: bool) -> dict:
+        return await run_in_threadpool(self._repository.salvar, caminho, sobrescrever)
+
     async def desfazer(self) -> dict:
         return await run_in_threadpool(self._repository.desfazer)
 
