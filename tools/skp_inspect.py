@@ -78,7 +78,7 @@ def valor(m, p: int, n: int) -> Dict[str, Any]:
         d["f32"] = round(struct.unpack("<f", b)[0], 6)
     elif n == 8:
         d["f64"] = round(struct.unpack("<d", b)[0], 9)
-    elif n and n % 8 == 0 and n <= 96:
+    elif n and n % 8 == 0 and n <= 160:
         d["f64s"] = [round(x, 6) for x in struct.unpack("<%dd" % (n // 8), b)]
     return d
 

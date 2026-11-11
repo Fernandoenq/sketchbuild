@@ -5,11 +5,12 @@ sem dados de ninguém), monta os registros do `model.dat` como o SketchUp grava 
 atualiza o contador de ids, a tabela `0x138e` e a caixa limite, refaz o registro externo `0x01f4` e o
 inteiro de integridade do cabeçalho. O arquivo de entrada nunca é alterado.
 
-Limites desta versão (assunções no FORMATO-SKP.md): só a raiz do modelo, sem material, sem curvas
-(arestas de círculo e arco saem como arestas comuns) e sem instâncias novas.
+Limites desta versão (assunções no FORMATO-SKP.md): só a raiz do modelo, sem material, curvas só de círculo e arco
+(registro 0x1397, ver FORMATO-SKP.md) e sem instâncias novas.
 """
 from __future__ import annotations
 
+import math
 import os
 import shutil
 import struct
@@ -18,7 +19,7 @@ import zipfile
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from core.skp_hidden_pruner import HEADER, _parse, valor_integridade
-from core.topology.model import Topology, _dot, _newell, _norm, _sub, _unit
+from core.topology.model import Topology, _cross, _dot, _newell, _norm, _sub, _unit
 
 FLAGS_ARESTA = 0x06
 FLAGS_FACE = 0x46
@@ -57,6 +58,28 @@ def _lacos_orientados(t: Topology, fid: int) -> Tuple[List[List[int]], Tuple[flo
     return lacos, (n[0], n[1], n[2], -_dot(n, p0))
 
 
+def _curvas_validas(t: Topology) -> Dict[int, dict]:
+    """Curvas cujas arestas ainda existem e continuam encadeadas (divisão/exclusão invalida a curva)."""
+    out = {}
+    for cid, c in getattr(t, "curvas", {}).items():
+        arestas = c["arestas"]
+        if not arestas or any(e not in t.edges for e in arestas):
+            continue
+        out[cid] = c
+    return out
+
+
+def _carga_curva(c: dict) -> bytes:
+    """16 doubles de 0x4c2d: centro, plano (A,B,C,D), X·r, Y·r, raio, ângulo inicial, ângulo final (rad)."""
+    cx = c["centro"]
+    n = _unit(c["normal"])
+    r = float(c["raio"])
+    x = _unit(_sub(c["inicio"], cx))
+    y = _unit(_cross(n, x))
+    varredura = math.radians(c["ang_fim"] - c["ang_ini"])
+    return struct.pack("<16d", *cx, *n, -_dot(n, cx), *(r * k for k in x), *(r * k for k in y), r, 0.0, varredura)
+
+
 def montar_entidades(t: Topology, primeiro_id: int) -> Tuple[Dict[str, bytes], int, Tuple[Optional[tuple], Optional[tuple]]]:
     """Registros 0x1389 (vértices), 0x138a (arestas), 0x138b (faces), tabela 0x138e e próximo id livre."""
     prox = primeiro_id
@@ -73,6 +96,13 @@ def montar_entidades(t: Topology, primeiro_id: int) -> Tuple[Dict[str, bytes], i
         fid_[f] = prox
         prox += 1
 
+    curvas = _curvas_validas(t)
+    cid_: Dict[int, int] = {}
+    for c in sorted(curvas):
+        cid_[c] = prox
+        prox += 1
+    curva_da_aresta = {e: cid_[c] for c, d in curvas.items() for e in d["arestas"]}
+
     verts = b"".join(
         _rec(0x09C4, _so_id(vid[v]) + _rec(0x09C5, struct.pack("<3d", *t.verts[v]))) for v in sorted(t.verts)
     )
@@ -83,7 +113,8 @@ def montar_entidades(t: Topology, primeiro_id: int) -> Tuple[Dict[str, bytes], i
             0x0BB8,
             _cabecalho(eid[e], FLAGS_ARESTA)
             + _rec(0x0BB9, _id_bytes(vid[a]))
-            + _rec(0x0BBA, _id_bytes(vid[b])),
+            + _rec(0x0BBA, _id_bytes(vid[b]))
+            + (_rec(0x0BBB, _id_bytes(curva_da_aresta[e])) if e in curva_da_aresta else b""),
         )
     faces = b""
     for f in sorted(t.faces):
@@ -103,12 +134,18 @@ def montar_entidades(t: Topology, primeiro_id: int) -> Tuple[Dict[str, bytes], i
             0x0DAC,
             _cabecalho(fid_[f], FLAGS_FACE) + _rec(0x0DAD, struct.pack("<4d", *plano)) + _rec(0x0DAE, corpo),
         )
+    reg_curvas = b""
+    for c in sorted(curvas):
+        d = curvas[c]
+        meta = (_so_id(cid_[c]) + _rec(0x4A39, struct.pack("<I", len(d["arestas"]))) + _rec(0x4A3A, bytes([0]))
+                + _rec(0x4A3B, _id_bytes(eid[d["arestas"][0]])) + _rec(0x4A3C, _id_bytes(eid[d["arestas"][-1]])))
+        reg_curvas += _rec(0x4C2C, _rec(0x4A38, meta) + _rec(0x4C2D, _carga_curva(d)))
     tabela = b"".join(bytes([len(_id_bytes(i))]) + _id_bytes(i) for i in list(eid.values()) + list(fid_.values()))
     pts = list(t.verts.values())
     caixa = None
     if pts:
         caixa = (tuple(min(p[k] for p in pts) for k in range(3)), tuple(max(p[k] for p in pts) for k in range(3)))
-    return {"vertices": verts, "arestas": arestas, "faces": faces, "tabela": tabela}, prox, caixa
+    return {"vertices": verts, "arestas": arestas, "faces": faces, "tabela": tabela, "curvas": reg_curvas}, prox, caixa
 
 
 def _base_vazia(destino: str) -> None:
@@ -179,6 +216,8 @@ def gravar_topologia(t: Topology, destino: str, base: Optional[str] = None) -> D
         geometria = b""
         if t.verts:
             geometria += _rec(0x1389, reg["vertices"])
+        if reg["curvas"]:
+            geometria += _rec(0x1397, reg["curvas"])
         if t.edges:
             geometria += _rec(0x138A, reg["arestas"])
         if t.faces:

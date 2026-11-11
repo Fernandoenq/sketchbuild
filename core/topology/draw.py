@@ -83,6 +83,21 @@ def _polilinha(t: Topology, pts: Sequence[Point], fechar: bool) -> None:
         t.add_edge(pts[i], pts[(i + 1) % n])
 
 
+def _registrar_curva(t: Topology, pts: Sequence[Point], fechar: bool, centro: Point, raio: float,
+                     ang_ini: float, ang_fim: float, normal: Point) -> None:
+    """Guarda a curva (círculo/arco) com as arestas na ordem em que foram desenhadas."""
+    n = len(pts)
+    arestas = []
+    for i in range(n if fechar else n - 1):
+        a, b = t._vertex(pts[i]), t._vertex(pts[(i + 1) % n])
+        e = t.edge_between(a, b)
+        if e is None:
+            return
+        arestas.append(e)
+    t.curvas[next(t._cid)] = {"centro": tuple(centro), "normal": tuple(normal), "raio": raio,
+                              "ang_ini": ang_ini, "ang_fim": ang_fim, "inicio": tuple(pts[0]), "arestas": arestas}
+
+
 def _fechar_lacos(t: Topology, eids_antes: set) -> None:
     """Como o SketchUp: aresta nova que fecha um laço planar vira face sozinha."""
     for eid in [e for e in t.edges if e not in eids_antes]:
@@ -104,14 +119,17 @@ def desenhar(t: Topology, ferramenta: str, **p) -> Dict[str, dict]:
     elif ferramenta == "retangulo":
         t.add_face(pontos_retangulo(p["p0"], p["p1"], p.get("normal", (0, 0, 1))))
     elif ferramenta == "circulo":
-        t.add_face(pontos_circulo(p["centro"], p["raio"], p.get("normal", (0, 0, 1)),
-                                  p.get("lados", CIRCULO_LADOS)))
+        pts = pontos_circulo(p["centro"], p["raio"], p.get("normal", (0, 0, 1)), p.get("lados", CIRCULO_LADOS))
+        t.add_face(pts)
+        _registrar_curva(t, pts, True, p["centro"], p["raio"], 0.0, 360.0, p.get("normal", (0, 0, 1)))
     elif ferramenta == "poligono":
         t.add_face(pontos_poligono(p["centro"], p["raio"], p.get("normal", (0, 0, 1)),
                                    p.get("lados", POLIGONO_LADOS), p.get("circunscrito", False)))
     elif ferramenta == "arco":
-        _polilinha(t, pontos_arco(p["centro"], p["raio"], p["ang_ini"], p["ang_fim"],
-                                  p.get("normal", (0, 0, 1)), p.get("lados", ARCO_LADOS)), False)
+        pts = pontos_arco(p["centro"], p["raio"], p["ang_ini"], p["ang_fim"],
+                          p.get("normal", (0, 0, 1)), p.get("lados", ARCO_LADOS))
+        _polilinha(t, pts, False)
+        _registrar_curva(t, pts, False, p["centro"], p["raio"], p["ang_ini"], p["ang_fim"], p.get("normal", (0, 0, 1)))
         _fechar_lacos(t, eids)
     elif ferramenta == "mao_livre":
         pts = list(p["pontos"])

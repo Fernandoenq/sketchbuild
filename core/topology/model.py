@@ -97,6 +97,10 @@ class Topology:
         self.edges: Dict[int, Tuple[int, int]] = {}
         self.faces: Dict[int, Face] = {}
         self._vid, self._eid, self._fid = Contador(), Contador(), Contador()
+        # curvas de arco (círculo/arco): id -> {centro, normal, raio, ang_ini, ang_fim (graus), arestas (em ordem)}.
+        # Só metadado para gravar o registro 0x1397; se uma aresta membro sumir ou for dividida, a curva é ignorada.
+        self.curvas: Dict[int, dict] = {}
+        self._cid = Contador()
 
     # -- consulta ---------------------------------------------------------------
 

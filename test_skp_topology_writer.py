@@ -114,6 +114,42 @@ class TestGravadorDeTopologia(unittest.TestCase):
         with self.assertRaises(ValueError):  # a base já tem geometria
             gravar_topologia(t, os.path.join(self.tmp.name, "b.skp"), base=p)
 
+    def test_arco_vira_curva_de_arco(self):
+        """0x1397/0x4c2d decifrados: a DLL relê raio, centro, normal e ângulos do arco gravado."""
+        from tools.su_curvas import curvas
+        t = Topology()
+        desenhar(t, "arco", centro=(10, 20, 5), raio=30, ang_ini=0, ang_fim=90, normal=(0, 0, 1), lados=8)
+        p = os.path.join(self.tmp.name, "arco.skp")
+        gravar_topologia(t, p)
+        verificar_skp(p)
+        c = curvas(p)
+        self.assertEqual(len(c), 1)
+        self.assertAlmostEqual(c[0]["raio"], 30.0, 4)
+        self.assertAlmostEqual(c[0]["fim"], math.pi / 2, 4)
+        self.assertEqual(c[0]["center"], (10.0, 20.0, 5.0))
+        self.assertEqual(c[0]["normal"], (0.0, 0.0, 1.0))
+
+    def test_arco_com_normal_inclinada_e_inicio_fora_do_x(self):
+        from tools.su_curvas import curvas
+        t = Topology()
+        desenhar(t, "arco", centro=(1, 2, 3), raio=20, ang_ini=90, ang_fim=270, normal=(1, -1, 0), lados=12)
+        p = os.path.join(self.tmp.name, "arco2.skp")
+        gravar_topologia(t, p)
+        c = curvas(p)
+        self.assertEqual(len(c), 1)
+        self.assertAlmostEqual(c[0]["fim"], math.pi, 4)
+        self.assertAlmostEqual(c[0]["raio"], 20.0, 4)
+        self.assertAlmostEqual(c[0]["normal"][0], math.sqrt(0.5), 4)
+
+    def test_curva_com_aresta_apagada_nao_e_gravada(self):
+        from tools.su_curvas import curvas
+        t = Topology()
+        desenhar(t, "arco", centro=(0, 0, 0), raio=30, ang_ini=0, ang_fim=90, normal=(0, 0, 1), lados=8)
+        t.erase_edge(next(iter(t.edges)))
+        p = os.path.join(self.tmp.name, "arco3.skp")
+        gravar_topologia(t, p)
+        self.assertEqual(curvas(p), [])
+
     def test_modelo_vazio(self):
         p = os.path.join(self.tmp.name, "vazio.skp")
         gravar_topologia(Topology(), p)

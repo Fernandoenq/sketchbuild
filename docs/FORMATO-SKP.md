@@ -69,12 +69,47 @@ Lista de entradas `tamanho(1 byte) + id`, com os ids das **arestas, faces e inst
 Seis float64: `mín x, mín y, mín z, máx x, máx y, máx z` da definição **incluindo as instâncias** (no modelo de
 exemplo, o boneco do modelo padrão entra na conta).
 
+## 7b. Curva de arco `0x1397` (círculo e arco) — decifrada em 11/11/2026
+
+Lugar: filho de `0x1388`, entre `0x1389` (vértices) e `0x138a` (arestas). Um `0x1397` guarda um `0x4c2c` por curva:
+
+```
+0x1397
+  0x4c2c
+    0x4a38              metadados
+      0x05dc > 0x05de   id da curva (mesmo espaço de ids de vértices, arestas e faces)
+      0x4a39 [u32]      número de arestas da curva
+      0x4a3a [u8]       0 (tipo; só observado 0)
+      0x4a3b [id]       id da primeira aresta (na ordem do desenho)
+      0x4a3c [id]       id da última aresta
+    0x4c2d [128]        16 doubles little-endian (polegadas, radianos)
+```
+
+Os 16 doubles de `0x4c2d`, conferidos contra 6 arquivos gerados pela SketchUpAPI com centro, raio, normal e início variados:
+
+| Índices | Conteúdo |
+|---|---|
+| 0–2 | centro |
+| 3–6 | plano A, B, C, D (normal unitária, D = -n·centro) |
+| 7–9 | vetor X já multiplicado pelo raio (direção do ponto inicial) |
+| 10–12 | vetor Y já multiplicado pelo raio (n × X) |
+| 13 | raio |
+| 14 | ângulo inicial (0 em todos os casos gerados) |
+| 15 | ângulo final (varredura; círculo = 2π) |
+
+Cada aresta membro leva `0x0bbb` = id da curva, depois de `0x0bba`. A tabela `0x138e` não lista curvas.
+
+Validação: `tools/su_curvas.py` (SUEntitiesGetArcCurves) relê raio, centro, normal, eixos e ângulos do que o writer grava (3 testes novos). Observação: a DLL só enumera a curva quando as arestas NÃO têm face; nos arquivos feitos pelo SketchUp real (r09 círculo, r13 arco com raios) ela também devolve zero, então o comportamento bate. O círculo do SketchBuild (com face) grava o registro igual ao do SketchUp.
+
+Assunções: (1) ângulo inicial sempre 0 e X = direção do ponto inicial, o que o SketchUp faz nos arquivos gerados pela API; se o Ruby gravar outro X com ângulo inicial diferente, a geometria é a mesma; (2) a posição do id da curva no espaço de ids (aqui, depois das faces) não afeta a leitura pela DLL; (3) vários arcos dentro de um mesmo `0x1397` não foi confirmado em arquivo do SketchUp real.
+
 ## 8. O que ainda não está mapeado (próximos passos do REA)
 
 | Tópico | Estado |
 |---|---|
 | Material frontal e do verso na face | não observado (receitas sem material) |
-| Curva (`0x0bbb`): onde mora o registro da curva (id, tipo, contagem) | a descobrir (r09, r13) |
+| Curva de arco (`0x1397`, `0x0bbb`) | decifrado na seção 7b e gravado pelo writer |
+| Curva simples (`0x1396`, polígono/mão livre): só `0x4a38`, sem `0x4c2d` | observado, ainda não gravado |
 | Arestas suaves e lisas, na face e na aresta | flags conhecidas, efeito na malha não verificado |
 | Grupos e componentes novos (`0x1964`, `0x138d`, `0x1967`) | só leitura |
 | Guias, textos, cotas, planos de seção | gravador por patch já escreve alguns, sem receita golden |
