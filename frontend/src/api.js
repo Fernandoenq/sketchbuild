@@ -2536,3 +2536,11 @@ export function drawEdit(corpo) {
 export function drawOffset(faceId, distancia) {
   return postJson("/api/v1/draw/offset", "POST", { face_id: faceId, distancia });
 }
+
+export function drawFollowMe(faceId, arestas) {
+  return postJson("/api/v1/draw/followme", "POST", { face_id: faceId, arestas });
+}
+
+export function drawIntersect(faces = null) {
+  return postJson("/api/v1/draw/intersect", "POST", { faces });
+}

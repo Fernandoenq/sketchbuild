@@ -65,3 +65,31 @@ class EditRequest(BaseModel):
 class OffsetRequest(BaseModel):
     face_id: int
     distancia: float  # polegadas, negativo = para dentro
+
+
+class FollowMeRequest(BaseModel):
+    face_id: int
+    arestas: list[int]
+
+
+class IntersectRequest(BaseModel):
+    faces: list[int] | None = None  # None = todas as faces da definicao ativa
+
+
+class GroupRequest(BaseModel):
+    faces: list[int] = Field(default_factory=list)
+    arestas: list[int] = Field(default_factory=list)
+    tipo: Literal["grupo", "componente"] = "grupo"
+    nome: str | None = None
+
+
+class InstanceRequest(BaseModel):
+    instancia: int
+    transformacao: list[float] | None = Field(default=None, min_length=16, max_length=16)
+
+
+class SceneSummaryResponse(BaseModel):
+    ativa: int
+    caminho: list[int]
+    definicoes: dict[str, Any]
+    instancias: dict[str, Any]

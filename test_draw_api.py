@@ -5,7 +5,7 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, EditRequest, OffsetRequest, PushPullRequest
+from app.schemas.draw import DrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PushPullRequest
 
 
 def run(c):
@@ -54,6 +54,24 @@ class TestDrawController(unittest.TestCase):
             run(self.c.editar(EditRequest(operacao="mover", faces=[fid])))
         self.assertEqual(cm.exception.status_code, 422)
 
+    def test_grupo_entrar_sair_explodir(self):
+        j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
+        fid = int(next(iter(j.faces.added)))
+        g = run(self.c.agrupar(GroupRequest(faces=[fid])))
+        self.assertEqual(run(self.c.estado()).counts["faces"], 0)
+        run(self.c.entrar(InstanceRequest(instancia=g["instancia"])))
+        self.assertEqual(run(self.c.estado()).counts["faces"], 1)
+        run(self.c.sair())
+        run(self.c.explodir(InstanceRequest(instancia=g["instancia"])))
+        self.assertEqual(run(self.c.estado()).counts["faces"], 1)
+
+    def test_intersect_e_followme(self):
+        run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
+        r = run(self.c.intersectar(IntersectRequest()))
+        self.assertEqual(r.counts["faces"], 1)
+        with self.assertRaises(HTTPException):
+            run(self.c.siga_me(FollowMeRequest(face_id=1, arestas=[])))
+
     def test_rotas_registradas(self):
         from app.main import app
         caminhos = {r.path for r in app.routes}
@@ -62,6 +80,8 @@ class TestDrawController(unittest.TestCase):
         self.assertIn("/api/v1/draw/pushpull", caminhos)
         self.assertIn("/api/v1/draw/edit", caminhos)
         self.assertIn("/api/v1/draw/offset", caminhos)
+        for r in ("followme", "intersect", "scene", "group", "instance", "explode", "enter", "exit"):
+            self.assertIn("/api/v1/draw/" + r, caminhos)
 
 
 if __name__ == "__main__":

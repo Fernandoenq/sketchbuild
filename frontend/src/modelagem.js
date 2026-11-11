@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -119,7 +119,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     valor.style.cssText = "width:90px;margin-left:4px";
     campoValor = valor;
     g.appendChild(valor);
-    for (const [rotulo, op] of [["Mover", "mover"], ["Rotar", "rotacionar"], ["Esc.", "escalar"], ["Offset", "offset"]]) {
+    for (const [rotulo, op] of [["Mover", "mover"], ["Rotar", "rotacionar"], ["Esc.", "escalar"], ["Offset", "offset"], ["Intersec.", "intersect"], ["Siga-me", "followme"]]) {
       const b = document.createElement("button");
       b.className = "toolbar-btn";
       b.textContent = rotulo;
@@ -148,7 +148,26 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     barra.appendChild(g);
   }
 
+  async function aplicarFerramentaDeSelecao(op) {
+    try {
+      let r;
+      if (op === "intersect") {
+        r = await drawIntersect(sel.faces.size ? [...sel.faces].map(Number) : null);
+      } else {
+        if (sel.faces.size !== 1 || !sel.edges.size) return setStatus("Siga-me: selecione UMA face (perfil) e as arestas do caminho (Shift soma).", true);
+        r = await drawFollowMe(Number([...sel.faces][0]), [...sel.edges].map(Number));
+      }
+      sel.faces.clear();
+      sel.edges.clear();
+      aplicar(r);
+      setStatus(r.counts.vertices + " vértices, " + r.counts.edges + " arestas, " + r.counts.faces + " faces.");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
   async function aplicarEdicao(op) {
+    if (op === "intersect" || op === "followme") return aplicarFerramentaDeSelecao(op);
     const bruto = (campoValor?.value ?? "").trim();
     if (!sel.faces.size && !sel.edges.size) return setStatus("Selecione faces ou arestas antes (ferramenta Selecionar).", true);
     const nums = bruto.split(/[;,\s]+/).filter(Boolean).map((x) => Number.parseFloat(x));

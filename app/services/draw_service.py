@@ -21,6 +21,30 @@ class DrawService:
     async def offset(self, face_id: int, distancia: float) -> dict:
         return await run_in_threadpool(self._repository.offset, face_id, distancia)
 
+    async def siga_me(self, face_id: int, arestas: list[int]) -> dict:
+        return await run_in_threadpool(self._repository.siga_me, face_id, arestas)
+
+    async def intersectar(self, faces) -> dict:
+        return await run_in_threadpool(self._repository.intersectar, faces)
+
+    async def agrupar(self, tipo: str, faces, arestas, nome) -> dict:
+        return await run_in_threadpool(self._repository.agrupar, tipo, faces, arestas, nome)
+
+    async def instanciar(self, instancia: int, transformacao) -> dict:
+        return await run_in_threadpool(self._repository.instanciar, instancia, transformacao)
+
+    async def explodir(self, instancia: int) -> dict:
+        return await run_in_threadpool(self._repository.explodir, instancia)
+
+    async def entrar(self, instancia: int) -> dict:
+        return await run_in_threadpool(self._repository.entrar, instancia)
+
+    async def sair(self) -> dict:
+        return await run_in_threadpool(self._repository.sair)
+
+    async def cena(self) -> dict:
+        return await run_in_threadpool(self._repository.cena)
+
     async def estado(self) -> dict:
         return await run_in_threadpool(self._repository.estado)
 

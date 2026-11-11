@@ -2,11 +2,18 @@
 from __future__ import annotations
 
 from core.topology import Topology
+from core.topology.cena import Cena
+from core.topology.intersect import intersectar
+from core.topology.sweep import siga_me
 from core.topology.draw import desenhar
 from core.topology.edit import escalar, mover, offset, rotacionar, vertices_da_selecao
 from core.topology.pushpull import empurrar
 
-_TOPO = Topology()
+_CENA = Cena()
+
+
+def _topo() -> Topology:
+    return _CENA.topo
 
 _OBRIGATORIOS = {
     "linha": ("pontos",),
@@ -42,48 +49,88 @@ class DrawRepository:
         if faltam:
             raise ValueError(f"{ferramenta}: faltam {', '.join(faltam)}")
         params = {k: v for k, v in params.items() if v is not None}
-        res = _chave(desenhar(_TOPO, ferramenta, **params))
-        res["counts"] = _TOPO.counts()
+        res = _chave(desenhar(_topo(), ferramenta, **params))
+        res["counts"] = _topo().counts()
         return res
 
     def empurrar(self, face_id: int, distancia: float, criar_nova: bool = False) -> dict:
-        res = _chave(empurrar(_TOPO, face_id, distancia, criar_nova))
-        res["counts"] = _TOPO.counts()
+        res = _chave(empurrar(_topo(), face_id, distancia, criar_nova))
+        res["counts"] = _topo().counts()
         return res
 
     def editar(self, operacao: str, vertices, arestas, faces, vetor=None, angulo=None,
                eixo=(0.0, 0.0, 1.0), centro=None, fator=None, fatores=None) -> dict:
-        ids = vertices_da_selecao(_TOPO, vertices, arestas, faces)
+        ids = vertices_da_selecao(_topo(), vertices, arestas, faces)
         if operacao == "mover":
             if vetor is None:
                 raise ValueError("mover: falta o vetor")
-            delta = mover(_TOPO, ids, vetor)
+            delta = mover(_topo(), ids, vetor)
         elif operacao == "rotacionar":
             if angulo is None:
                 raise ValueError("rotacionar: falta o angulo")
-            delta = rotacionar(_TOPO, ids, angulo, eixo, centro)
+            delta = rotacionar(_topo(), ids, angulo, eixo, centro)
         else:
             if fator is None and fatores is None:
                 raise ValueError("escalar: falta o fator")
-            delta = escalar(_TOPO, ids, fatores if fatores is not None else fator, centro)
+            delta = escalar(_topo(), ids, fatores if fatores is not None else fator, centro)
         res = _chave(delta)
-        res["counts"] = _TOPO.counts()
+        res["counts"] = _topo().counts()
         return res
 
     def offset(self, face_id: int, distancia: float) -> dict:
-        res = _chave(offset(_TOPO, face_id, distancia))
-        res["counts"] = _TOPO.counts()
+        res = _chave(offset(_topo(), face_id, distancia))
+        res["counts"] = _topo().counts()
         return res
+
+    def siga_me(self, face_id: int, arestas: list[int]) -> dict:
+        res = _chave(siga_me(_topo(), face_id, arestas))
+        res["counts"] = _topo().counts()
+        return res
+
+    def intersectar(self, faces) -> dict:
+        res = _chave(intersectar(_topo(), faces))
+        res["counts"] = _topo().counts()
+        return res
+
+    def agrupar(self, tipo: str, faces, arestas, nome) -> dict:
+        criar = _CENA.criar_grupo if tipo == "grupo" else _CENA.criar_componente
+        iid = criar(faces, arestas, nome)
+        return {"instancia": iid, **self.cena()}
+
+    def instanciar(self, instancia: int, transformacao) -> dict:
+        iid = _CENA.instanciar(instancia, transformacao)
+        return {"instancia": iid, **self.cena()}
+
+    def explodir(self, instancia: int) -> dict:
+        _CENA.explodir(instancia)
+        return self.cena()
+
+    def entrar(self, instancia: int) -> dict:
+        _CENA.entrar(instancia)
+        return self.cena()
+
+    def sair(self) -> dict:
+        _CENA.sair()
+        return self.cena()
+
+    def cena(self) -> dict:
+        r = _CENA.resumo()
+        return {
+            "ativa": r["ativa"],
+            "caminho": r["caminho"],
+            "definicoes": {str(k): v for k, v in r["definicoes"].items()},
+            "instancias": {str(k): v for k, v in r["instancias"].items()},
+        }
 
     def estado(self) -> dict:
         return {
-            "vertices": {str(i): list(p) for i, p in _TOPO.verts.items()},
-            "edges": {str(i): list(e) for i, e in _TOPO.edges.items()},
+            "vertices": {str(i): list(p) for i, p in _topo().verts.items()},
+            "edges": {str(i): list(e) for i, e in _topo().edges.items()},
             "faces": {str(i): {"outer": f.outer, "holes": f.holes, "normal": list(f.normal)}
-                      for i, f in _TOPO.faces.items()},
-            "counts": _TOPO.counts(),
+                      for i, f in _topo().faces.items()},
+            "counts": _topo().counts(),
         }
 
     def limpar(self) -> None:
-        global _TOPO
-        _TOPO = Topology()
+        global _CENA
+        _CENA = Cena()
