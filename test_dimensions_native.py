@@ -3,7 +3,7 @@ import sys
 import tempfile
 import ctypes
 
-sys.path.insert(0, r"C:\Users\Fernando\sketchup_companion")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from core.su_api import SketchUpAPI
 from core.su_types import SUModelRef
 from core.skp_binary_reader import SkpBinaryReader

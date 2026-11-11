@@ -5,7 +5,7 @@ import zipfile
 import io
 import xml.etree.ElementTree as ET
 
-sys.path.insert(0, r"C:\Users\Fernando\sketchup_companion")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from core.su_api import SketchUpAPI
 from core.skp_binary_writer import SkpBinaryWriter
 
