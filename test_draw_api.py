@@ -5,7 +5,7 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, PushPullRequest
+from app.schemas.draw import DrawRequest, EditRequest, OffsetRequest, PushPullRequest
 
 
 def run(c):
@@ -43,12 +43,25 @@ class TestDrawController(unittest.TestCase):
             run(self.c.empurrar(PushPullRequest(face_id=99, distancia=5)))
         self.assertEqual(cm.exception.status_code, 422)
 
+    def test_editar_e_offset(self):
+        j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
+        fid = int(next(iter(j.faces.added)))
+        r = run(self.c.editar(EditRequest(operacao="mover", faces=[fid], vetor=(5, 0, 0))))
+        self.assertEqual(len(r.vertices.changed), 4)
+        r = run(self.c.offset(OffsetRequest(face_id=fid, distancia=-10)))
+        self.assertEqual(r.counts["faces"], 2)
+        with self.assertRaises(HTTPException) as cm:
+            run(self.c.editar(EditRequest(operacao="mover", faces=[fid])))
+        self.assertEqual(cm.exception.status_code, 422)
+
     def test_rotas_registradas(self):
         from app.main import app
         caminhos = {r.path for r in app.routes}
         self.assertIn("/api/v1/draw", caminhos)
         self.assertIn("/api/v1/draw/state", caminhos)
         self.assertIn("/api/v1/draw/pushpull", caminhos)
+        self.assertIn("/api/v1/draw/edit", caminhos)
+        self.assertIn("/api/v1/draw/offset", caminhos)
 
 
 if __name__ == "__main__":

@@ -47,3 +47,21 @@ class PushPullRequest(BaseModel):
     face_id: int
     distancia: float  # polegadas, positivo = na direcao da normal da face
     criar_nova: bool = False  # Ctrl: mantem a face original e cria uma nova
+
+
+class EditRequest(BaseModel):
+    operacao: Literal["mover", "rotacionar", "escalar"]
+    vertices: list[int] = Field(default_factory=list)
+    arestas: list[int] = Field(default_factory=list)
+    faces: list[int] = Field(default_factory=list)
+    vetor: Ponto | None = None  # mover (polegadas)
+    angulo: float | None = None  # rotacionar (graus)
+    eixo: Ponto = (0.0, 0.0, 1.0)
+    centro: Ponto | None = None  # rotacionar, escalar (padrao: centro da selecao)
+    fator: float | None = Field(default=None, gt=0)  # escalar uniforme
+    fatores: Ponto | None = None  # escalar por eixo
+
+
+class OffsetRequest(BaseModel):
+    face_id: int
+    distancia: float  # polegadas, negativo = para dentro

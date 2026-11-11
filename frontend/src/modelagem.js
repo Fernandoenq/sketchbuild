@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -20,6 +20,7 @@ const FERRAMENTAS = [
   ["poligono", "Polígono (modelagem)", '<path d="M12 4l7 5-3 9H8L5 9z"/>'],
   ["arco", "Arco (modelagem)", '<path d="M4 18c2-9 14-9 16 0"/>'],
   ["mao_livre", "Mão livre (modelagem)", '<path d="M4 16c3-8 5 4 8-3s5 3 8-4"/>'],
+  ["selecionar", "Selecionar face ou aresta (modelagem; Shift soma)", '<path d="M6 3l12 9-5 1.2L16 19l-2.4 1L11 14.5 7 17z"/>'],
   ["pushpull", "Empurrar/Puxar (modelagem)", '<rect x="4" y="10" width="16" height="10"/><path d="M12 2v8M9 5l3-3 3 3"/>'],
 ];
 
@@ -30,6 +31,7 @@ const DICA = {
   poligono: "Polígono: clique no centro e depois num vértice (lados no campo ao lado).",
   arco: "Arco: clique no centro, no início e no fim (anti-horário).",
   mao_livre: "Mão livre: segure o botão e arraste.",
+  selecionar: "Selecionar: clique numa face ou aresta (Shift soma). Depois use Mover, Rotar, Esc. ou Offset com o valor no campo ao lado.",
   pushpull: "Empurrar/Puxar: clique numa face, digite a distância (m) no campo e Enter (Ctrl+Enter mantém a face original). Negativo empurra.",
 };
 
@@ -53,6 +55,8 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   let lados = 6;
   let selecionada = null; // id da face escolhida no Empurrar/Puxar
   let campoDist = null;
+  const sel = { faces: new Set(), edges: new Set() };
+  let campoValor = null;
   const chao = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const ray = new THREE.Raycaster();
 
@@ -108,6 +112,21 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     });
     g.appendChild(dist);
     campoDist = dist;
+    const valor = document.createElement("input");
+    valor.type = "text";
+    valor.placeholder = "valor";
+    valor.title = "Mover: dx,dy,dz em metros | Rotar: graus | Esc.: fator (ou fx,fy,fz) | Offset: metros (negativo para dentro)";
+    valor.style.cssText = "width:90px;margin-left:4px";
+    campoValor = valor;
+    g.appendChild(valor);
+    for (const [rotulo, op] of [["Mover", "mover"], ["Rotar", "rotacionar"], ["Esc.", "escalar"], ["Offset", "offset"]]) {
+      const b = document.createElement("button");
+      b.className = "toolbar-btn";
+      b.textContent = rotulo;
+      b.title = rotulo + " a seleção com o valor do campo";
+      b.addEventListener("click", () => aplicarEdicao(op));
+      g.appendChild(b);
+    }
     const l = document.createElement("button");
     l.className = "toolbar-btn";
     l.textContent = "Limpar";
@@ -129,9 +148,44 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     barra.appendChild(g);
   }
 
+  async function aplicarEdicao(op) {
+    const bruto = (campoValor?.value ?? "").trim();
+    if (!sel.faces.size && !sel.edges.size) return setStatus("Selecione faces ou arestas antes (ferramenta Selecionar).", true);
+    const nums = bruto.split(/[;,\s]+/).filter(Boolean).map((x) => Number.parseFloat(x));
+    const corpo = { operacao: op, faces: [...sel.faces].map(Number), arestas: [...sel.edges].map(Number) };
+    try {
+      let r;
+      if (op === "mover") {
+        if (nums.length !== 3 || nums.some((n) => !Number.isFinite(n))) return setStatus("Mover: informe dx,dy,dz em metros.", true);
+        // viewport (x, y, z) -> SketchUp (x, -z, y), em polegadas
+        r = await drawEdit({ ...corpo, vetor: [nums[0] * POL, -nums[2] * POL, nums[1] * POL] });
+      } else if (op === "rotacionar") {
+        if (nums.length !== 1 || !Number.isFinite(nums[0])) return setStatus("Rotar: informe o ângulo em graus.", true);
+        r = await drawEdit({ ...corpo, angulo: nums[0] });
+      } else if (op === "escalar") {
+        if (![1, 3].includes(nums.length) || nums.some((n) => !Number.isFinite(n) || n <= 0)) return setStatus("Esc.: informe um fator positivo (ou três).", true);
+        r = await drawEdit(nums.length === 1 ? { ...corpo, fator: nums[0] } : { ...corpo, fatores: [nums[0], nums[2], nums[1]] });
+      } else {
+        if (sel.faces.size !== 1 || nums.length !== 1 || !Number.isFinite(nums[0])) return setStatus("Offset: escolha uma face e informe a distância em metros.", true);
+        r = await drawOffset(Number([...sel.faces][0]), nums[0] * POL);
+      }
+      sel.faces.clear();
+      sel.edges.clear();
+      aplicar(r);
+      setStatus(r.counts.vertices + " vértices, " + r.counts.edges + " arestas, " + r.counts.faces + " faces.");
+    } catch (err) {
+      setStatus("Erro na edição: " + (err?.message ?? err), true);
+    }
+  }
+
   function ativar(id) {
     ferramenta = id;
     selecionada = null;
+    if (id !== "selecionar") {
+      sel.faces.clear();
+      sel.edges.clear();
+      redesenhar();
+    }
     terminar();
     setToolMode("modelar");
     setStatus(DICA[id]);
@@ -186,7 +240,10 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   function aplicar(delta) {
     for (const [k, mapa] of [["vertices", estado.vertices], ["edges", estado.edges], ["faces", estado.faces]]) {
       const d = delta[k];
-      for (const id of d.removed) mapa.delete(String(id));
+      for (const id of d.removed) {
+        mapa.delete(String(id));
+        sel.faces.delete(String(id));
+      }
       for (const [id, v] of Object.entries({ ...d.added, ...d.changed })) mapa.set(id, v);
     }
     redesenhar();
@@ -237,13 +294,25 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       l.frustumCulled = false;
       grupo.add(l);
     }
+    const destaque = [];
+    for (const id of sel.edges) {
+      const e = estado.edges.get(id);
+      if (!e) continue;
+      destaque.push(fromSku(estado.vertices.get(String(e[0]))), fromSku(estado.vertices.get(String(e[1]))));
+    }
+    if (destaque.length) {
+      const h = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(destaque), new THREE.LineBasicMaterial({ color: 0xff7700 }));
+      h.renderOrder = 7;
+      h.frustumCulled = false;
+      grupo.add(h);
+    }
     for (const [id, f] of estado.faces) {
       const pos = triangular(f);
       if (!pos || !pos.length) continue;
       const g = new THREE.BufferGeometry();
       g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
       g.computeVertexNormals();
-      const escolhida = id === String(selecionada);
+      const escolhida = id === String(selecionada) || sel.faces.has(id);
       const m = new THREE.Mesh(
         g,
         new THREE.MeshStandardMaterial({
@@ -322,7 +391,55 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     }
   }
 
+  function arestaSob(event) {
+    const r = renderer.domElement.getBoundingClientRect();
+    const px = event.clientX - r.left;
+    const py = event.clientY - r.top;
+    const tela = (v) => {
+      const s = fromSku(v).project(camera);
+      return [((s.x + 1) / 2) * r.width, ((1 - s.y) / 2) * r.height];
+    };
+    let melhor = null;
+    let dist = 8;
+    for (const [id, [a, b]] of estado.edges) {
+      const [ax, ay] = tela(estado.vertices.get(String(a)));
+      const [bx, by] = tela(estado.vertices.get(String(b)));
+      const dx = bx - ax;
+      const dy = by - ay;
+      const q = dx * dx + dy * dy;
+      const u = q ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / q)) : 0;
+      const d = Math.hypot(px - (ax + u * dx), py - (ay + u * dy));
+      if (d < dist) {
+        dist = d;
+        melhor = id;
+      }
+    }
+    return melhor;
+  }
+
+  function selecionarClique(event) {
+    const r = renderer.domElement.getBoundingClientRect();
+    ray.setFromCamera({ x: ((event.clientX - r.left) / r.width) * 2 - 1, y: -((event.clientY - r.top) / r.height) * 2 + 1 }, camera);
+    const aresta = arestaSob(event);
+    const hit = ray.intersectObjects(grupo.children.filter((o) => o.isMesh), false)[0];
+    if (!event.shiftKey) {
+      sel.faces.clear();
+      sel.edges.clear();
+    }
+    if (aresta != null) {
+      if (sel.edges.has(aresta)) sel.edges.delete(aresta);
+      else sel.edges.add(aresta);
+    } else if (hit) {
+      const id = hit.object.userData.fid;
+      if (sel.faces.has(id)) sel.faces.delete(id);
+      else sel.faces.add(id);
+    }
+    redesenhar();
+    setStatus("Seleção: " + sel.faces.size + " face(s), " + sel.edges.size + " aresta(s).");
+  }
+
   async function clicar(event) {
+    if (ferramenta === "selecionar") return selecionarClique(event);
     if (ferramenta === "pushpull") return escolherFace(event);
     const p = pontoDe(event);
     if (!p) return;

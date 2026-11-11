@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from core.topology import Topology
 from core.topology.draw import desenhar
+from core.topology.edit import escalar, mover, offset, rotacionar, vertices_da_selecao
 from core.topology.pushpull import empurrar
 
 _TOPO = Topology()
@@ -47,6 +48,30 @@ class DrawRepository:
 
     def empurrar(self, face_id: int, distancia: float, criar_nova: bool = False) -> dict:
         res = _chave(empurrar(_TOPO, face_id, distancia, criar_nova))
+        res["counts"] = _TOPO.counts()
+        return res
+
+    def editar(self, operacao: str, vertices, arestas, faces, vetor=None, angulo=None,
+               eixo=(0.0, 0.0, 1.0), centro=None, fator=None, fatores=None) -> dict:
+        ids = vertices_da_selecao(_TOPO, vertices, arestas, faces)
+        if operacao == "mover":
+            if vetor is None:
+                raise ValueError("mover: falta o vetor")
+            delta = mover(_TOPO, ids, vetor)
+        elif operacao == "rotacionar":
+            if angulo is None:
+                raise ValueError("rotacionar: falta o angulo")
+            delta = rotacionar(_TOPO, ids, angulo, eixo, centro)
+        else:
+            if fator is None and fatores is None:
+                raise ValueError("escalar: falta o fator")
+            delta = escalar(_TOPO, ids, fatores if fatores is not None else fator, centro)
+        res = _chave(delta)
+        res["counts"] = _TOPO.counts()
+        return res
+
+    def offset(self, face_id: int, distancia: float) -> dict:
+        res = _chave(offset(_TOPO, face_id, distancia))
         res["counts"] = _TOPO.counts()
         return res
 

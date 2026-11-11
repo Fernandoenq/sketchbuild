@@ -2528,3 +2528,11 @@ export async function drawClear() {
 export function drawPushPull(faceId, distancia, criarNova = false) {
   return postJson("/api/v1/draw/pushpull", "POST", { face_id: faceId, distancia, criar_nova: criarNova });
 }
+
+export function drawEdit(corpo) {
+  return postJson("/api/v1/draw/edit", "POST", corpo);
+}
+
+export function drawOffset(faceId, distancia) {
+  return postJson("/api/v1/draw/offset", "POST", { face_id: faceId, distancia });
+}
