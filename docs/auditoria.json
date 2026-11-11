@@ -1,0 +1,3579 @@
+[
+ {
+  "modulo": "core/abnt_drawing_sheet_engine.py",
+  "linhas": 214,
+  "funcoes": 3,
+  "descricao": "SketchBuild - Motor de Pranchas Técnicas ABNT e Viewports com Escala (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_layout_e_marcenaria_avancada.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/add_detail_sandbox_engine.py",
+  "linhas": 124,
+  "funcoes": 3,
+  "descricao": "Engine de Engenharia Reversa da Ferramenta Adicionar Detalhe (Add Detail Tool) da Caixa de Areia.",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_6_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/advanced_selection_engine.py",
+  "linhas": 99,
+  "funcoes": 4,
+  "descricao": "Motor de Seleção Avançada do SketchUp (Advanced Selection - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_3_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/align_view_engine.py",
+  "linhas": 110,
+  "funcoes": 5,
+  "descricao": "SketchBuild - Motor de Alinhamento de Câmera à Face (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_81_a_85.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/aligned_dimension_engine.py",
+  "linhas": 153,
+  "funcoes": 7,
+  "descricao": "SketchBuild - Motor de Cotas Lineares Alinhadas e Rotacionadas (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_8_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/alpha_texture_engine.py",
+  "linhas": 123,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Motor de Materiais com Canal Alfa e Componentes Face-Me (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_71_a_75.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/angle_dimension_tool.py",
+  "linhas": 110,
+  "funcoes": 1,
+  "descricao": "Ferramenta de Cota Angular e Medição de Transferidor 3D (Angle Dimension - Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/arc_generator.py",
+  "linhas": 169,
+  "funcoes": 8,
+  "descricao": "Gerador de Arcos Circulares e Curvas 3D (Arc Tool - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_31_a_35.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/architectural_hatching_engine.py",
+  "linhas": 123,
+  "funcoes": 1,
+  "descricao": "SketchBuild - Motor de Hachuras Técnicas Arquitetônicas (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_layout_e_marcenaria_avancada.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/architectural_wall_engine.py",
+  "linhas": 222,
+  "funcoes": 4,
+  "descricao": "SketchBuild - Paredes Arquitetônicas com Aberturas Automáticas de Vãos (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_96_a_100.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/art_report_generator.py",
+  "linhas": 153,
+  "funcoes": 1,
+  "descricao": "Gerador de Minuta Técnica de ART / RRT em PDF Vetorial (Zero DLL / Pure Python).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/assembly_sequencer.py",
+  "linhas": 211,
+  "funcoes": 3,
+  "descricao": "SketchBuild - Sequenciador de Montagem Passo a Passo e Manual Técnico 3D",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/atmosphere_scattering_engine.py",
+  "linhas": 82,
+  "funcoes": 1,
+  "descricao": "SketchBuild - Céu Físico Rayleigh & Mie e Espalhamento Atmosférico (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_101_a_105.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/attribute_dictionary_engine.py",
+  "linhas": 141,
+  "funcoes": 6,
+  "descricao": "Motor de Dicionários de Atributos e Componentes Dinâmicos do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_7_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/axes_system_engine.py",
+  "linhas": 151,
+  "funcoes": 5,
+  "descricao": "Motor do Sistema de Eixos do Modelo do SketchUp (Axes Tool - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_2_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/axis_lock_inference_engine.py",
+  "linhas": 133,
+  "funcoes": 2,
+  "descricao": "Motor de Bloqueio de Eixos e Inferência do SketchUp (Axis Lock & Inference Engine - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_4_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/background_sky_style_engine.py",
+  "linhas": 67,
+  "funcoes": 1,
+  "descricao": "SketchBuild - Motor de Estilos de Céu, Solo e Horizonte Gradiente (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_81_a_85.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/bim_4d_gantt_schedule_engine.py",
+  "linhas": 99,
+  "funcoes": 1,
+  "descricao": "Motor de Planejamento BIM 4D e Cronograma Físico-Financeiro Gantt (BIM 4D Schedule - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/bim_5d_sinapi_cost_engine.py",
+  "linhas": 154,
+  "funcoes": 1,
+  "descricao": "Motor de Orçamento Paramétrico e Composição de Custos SINAPI (BIM 5D / SINAPI - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_106_a_115.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/bim_7d_asset_management_cobie_engine.py",
+  "linhas": 102,
+  "funcoes": 1,
+  "descricao": "Motor de Gestão de Ativos BIM 7D e Exportação COBie (BIM 7D Facility Management - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/bim_ifc_property_set_engine.py",
+  "linhas": 111,
+  "funcoes": 1,
+  "descricao": "Engine de Engenharia Reversa para Conjuntos de Propriedades BIM (IFC Property Sets - Psets).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_5_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/cabinet_hardware_drilling_engine.py",
+  "linhas": 268,
+  "funcoes": 3,
+  "descricao": "SketchBuild - Motor de Furação Industrial e Ferragens para Marcenaria (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_layout_e_marcenaria_avancada.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/cache_malhas.py",
+  "linhas": 93,
+  "funcoes": 3,
+  "descricao": "Cache em disco da malha (triangulos) de cada definicao grande (04/11/2026,",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [],
+  "usado_por_core": [
+   "mesh_extractor.py"
+  ],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/cam_cutlist_fabrication_engine.py",
+  "linhas": 114,
+  "funcoes": 1,
+  "descricao": "SketchBuild - Tabela de Cutlist Otimizada para Fabricação CNC (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_91_a_95.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/cam_dxf_exporter.py",
+  "linhas": 78,
+  "funcoes": 2,
+  "descricao": "Exportador de Arquivos DXF 2D para Fabricação Digital CNC e Corte a Laser (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_36_a_40.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/camera_path_interpolator.py",
+  "linhas": 94,
+  "funcoes": 2,
+  "descricao": "Interpolador de Caminho de Câmera e Voo Panorâmico (Flythrough - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_41_a_45.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/carbon_footprint_calculator.py",
+  "linhas": 74,
+  "funcoes": 1,
+  "descricao": "Calculador de Pegada de Carbono e Sustentabilidade de Madeira (Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/cargo_load_optimizer.py",
+  "linhas": 145,
+  "funcoes": 1,
+  "descricao": "Otimizador de Carregamento de Carga e Cubagem 3D (Cargo Load Optimizer - Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/clash_collision_engine.py",
+  "linhas": 127,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Detecção de Colisão e Interferência entre Componentes (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_86_a_90.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/color_by_tag_engine.py",
+  "linhas": 73,
+  "funcoes": 1,
+  "descricao": "Motor do Modo 'Colorir por Etiqueta' do SketchUp (Color by Tag - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_3_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/component_edit_modes_engine.py",
+  "linhas": 107,
+  "funcoes": 1,
+  "descricao": "Motor dos Modos de Exibição de Edição de Componentes do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_2_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/concrete_formwork_shoring_engine.py",
+  "linhas": 100,
+  "funcoes": 1,
+  "descricao": "Motor de Fôrmas e Escoramento de Estruturas de Concreto ABNT NBR 15696 / DIN 18218 (Formwork & Shoring - Zero ",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/construction_guide_engine.py",
+  "linhas": 198,
+  "funcoes": 8,
+  "descricao": "SketchBuild - Motor de Linhas Guia e Auxiliares de Construção (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_8_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/construction_site_logistics_engine.py",
+  "linhas": 92,
+  "funcoes": 1,
+  "descricao": "Motor de Logística de Canteiro e Interferência de Gruas NR-18 (Site Logistics - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/curve_engine.py",
+  "linhas": 255,
+  "funcoes": 8,
+  "descricao": "SketchBuild - Motor de Curvas e Polilinhas Soldadas (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_66_a_70.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/cutlist_exporter.py",
+  "linhas": 401,
+  "funcoes": 8,
+  "descricao": "SketchBuild - Compilador Nativo de Lista de Corte e Orçamento Industrial em Excel .xlsx",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_cutlist_exporter.py",
+   "test_frentes_23_24_14.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/daylight_factor_engine.py",
+  "linhas": 95,
+  "funcoes": 1,
+  "descricao": "Motor de Iluminação Natural e Fator de Luz Diurna FLD NBR 15215 (Daylight Factor - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_106_a_115.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/deep_foundations_piles_engine.py",
+  "linhas": 113,
+  "funcoes": 1,
+  "descricao": "Motor de Estacas e Fundações Profundas ABNT NBR 6122 (Deep Foundations - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/detention_basin_hydrology_engine.py",
+  "linhas": 109,
+  "funcoes": 1,
+  "descricao": "Motor de Bacias de Detenção e Amortecimento Hidrológico de Cheias (Detention Basin - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/dimension_linear_engine.py",
+  "linhas": 157,
+  "funcoes": 8,
+  "descricao": "SketchBuild - Motor de Cotas Lineares e Alinhadas (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_71_a_75.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/dimension_radial_engine.py",
+  "linhas": 163,
+  "funcoes": 4,
+  "descricao": "SketchBuild - Motor de Cotas Radiais e Diamétricas (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_76_a_80.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/dimension_tolerance_engine.py",
+  "linhas": 90,
+  "funcoes": 1,
+  "descricao": "SketchBuild - Motor de Cotas com Tolerâncias e Desvios Dimensionais (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_81_a_85.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/dolly_fov_lens_engine.py",
+  "linhas": 145,
+  "funcoes": 4,
+  "descricao": "Motor de Dolly de Câmera, Campo de Visão (FOV) e Lente Fotográfica do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_4_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/drape_contour_engine.py",
+  "linhas": 113,
+  "funcoes": 2,
+  "descricao": "Engine de Engenharia Reversa da Ferramenta Projetar (Drape Tool) da Caixa de Areia (Sandbox).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_5_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/dxf_to_skp_converter.py",
+  "linhas": 147,
+  "funcoes": 2,
+  "descricao": "",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_dxf_converter.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/dynamic_component_interaction_engine.py",
+  "linhas": 191,
+  "funcoes": 2,
+  "descricao": "Motor de Interação com Componentes Dinâmicos do SketchUp (Trimble DC Click Engine - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/earthwork_bruckner_engine.py",
+  "linhas": 93,
+  "funcoes": 1,
+  "descricao": "Motor de Movimentação de Terra e Diagrama de Massas de Brückner (Earthwork - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/edge_divide_engine.py",
+  "linhas": 79,
+  "funcoes": 2,
+  "descricao": "Engine de Engenharia Reversa da Ferramenta Dividir Aresta (Edge Divide Tool).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_5_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/edge_styles_engine.py",
+  "linhas": 109,
+  "funcoes": 6,
+  "descricao": "Motor de Estilos de Arestas Nativos do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_7_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/electrical_conduit_engine.py",
+  "linhas": 104,
+  "funcoes": 1,
+  "descricao": "Motor de Dimensionamento de Eletrodutos e Fiação Elétrica NBR 5410 (Electrical Conduits - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_106_a_115.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/entity_metrics_inspector_engine.py",
+  "linhas": 188,
+  "funcoes": 4,
+  "descricao": "Motor do Inspetor de Informações da Entidade do SketchUp (Entity Info Inspector - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_2_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/executive_pdf_exporter.py",
+  "linhas": 299,
+  "funcoes": 8,
+  "descricao": "Exportador de Proposta Executiva e Prancha Técnica em PDF Nativo (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_17_18_25_29_30.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/exploded_view_trail_tool.py",
+  "linhas": 93,
+  "funcoes": 1,
+  "descricao": "Ferramenta de Linhas de Trajetória para Vista Explodida (Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/face_styles_engine.py",
+  "linhas": 154,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Motor de Estilos de Faces e Transparência Estilo Vidro (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_66_a_70.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/fastener_torque_optimizer.py",
+  "linhas": 87,
+  "funcoes": 1,
+  "descricao": "Otimizador de Parafusos, Fixadores e Torque de Aperto (NBR 7190 / ISO 898 - Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/field_inspection_exporter.py",
+  "linhas": 383,
+  "funcoes": 1,
+  "descricao": "Exportador de Ficha de Inspeção e Checklist de Campo Offline (NBR 16071-7 - Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/fire_egress_route_engine.py",
+  "linhas": 93,
+  "funcoes": 1,
+  "descricao": "Motor de Rotas de Fuga e Saídas de Emergência em Edifícios ABNT NBR 9077 (Fire Egress - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/flip_along_axes_engine.py",
+  "linhas": 139,
+  "funcoes": 1,
+  "descricao": "Motor de Inversão ao Longo dos Eixos do SketchUp (Flip Along Tool - Zero DLL / Pure Python).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_7_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/flip_edge_sandbox_engine.py",
+  "linhas": 87,
+  "funcoes": 3,
+  "descricao": "Engine de Engenharia Reversa da Ferramenta Girar Aresta (Flip Edge Tool) da Caixa de Areia.",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_6_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/fog_depth_engine.py",
+  "linhas": 75,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Motor de Estilos de Névoa e Profundidade Atmosférica (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_76_a_80.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/fog_settings_engine.py",
+  "linhas": 56,
+  "funcoes": 1,
+  "descricao": "Engine de Engenharia Reversa da Caixa de Dialogo de Nevoa (Fog Settings Dialog).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_6_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/follow_me_engine.py",
+  "linhas": 169,
+  "funcoes": 11,
+  "descricao": "Motor Follow Me / Siga-me - Extrusão 3D ao Longo de Caminho (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_31_a_35.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/freehand_curve_engine.py",
+  "linhas": 171,
+  "funcoes": 4,
+  "descricao": "Motor da Ferramenta Mão Livre do SketchUp (Freehand Tool - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_4_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/from_contours_sandbox_engine.py",
+  "linhas": 169,
+  "funcoes": 4,
+  "descricao": "SketchBuild - Motor de Caixa de Areia a Partir de Contornos (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_8_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/fuel_gas_piping_engine.py",
+  "linhas": 108,
+  "funcoes": 1,
+  "descricao": "Motor de Instalações de Gás Canalizado GLP/GN ABNT NBR 15526 / NBR 15358 (Fuel Gas Piping - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/furniture_edge_banding_engine.py",
+  "linhas": 199,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Motor de Fita de Borda para Marcenaria Sob Medida (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_layout_e_marcenaria_avancada.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/gabion_retaining_wall_engine.py",
+  "linhas": 125,
+  "funcoes": 1,
+  "descricao": "Motor de Muros de Gabião e Contenções Gravíticas Drenantes ABNT NBR 10328 (Gabion Wall - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/generate_report_engine.py",
+  "linhas": 150,
+  "funcoes": 1,
+  "descricao": "Motor Oficial de Geração de Relatórios do SketchUp (Generate Report - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_2_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/geo_reference_engine.py",
+  "linhas": 128,
+  "funcoes": 3,
+  "descricao": "SketchBuild - Gerenciador de Georreferenciamento e Coordenadas Globais (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_76_a_80.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/glazing_fenestration_engine.py",
+  "linhas": 97,
+  "funcoes": 1,
+  "descricao": "Motor de Esquadrias Paramétricas e Fachadas Pele de Vidro (Glazing & Fenestration - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/glb_exporter.py",
+  "linhas": 317,
+  "funcoes": 1,
+  "descricao": "",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_multiformat_exporter.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/glulam_clt_timber_engine.py",
+  "linhas": 117,
+  "funcoes": 1,
+  "descricao": "Motor de Madeira Laminada Colada (Glulam) e CLT ABNT NBR 7190 / Eurocode 5 (Engineered Timber - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/graphic_export_2d_engine.py",
+  "linhas": 82,
+  "funcoes": 1,
+  "descricao": "Engine de Engenharia Reversa da Caixa de Dialogo Exportar Grafico 2D (2D Graphic Export Options).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_6_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/ground_sky_style_engine.py",
+  "linhas": 105,
+  "funcoes": 2,
+  "descricao": "Motor de Configurações de Fundo, Solo e Céu dos Estilos do SketchUp (Ground & Sky Style Engine - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_4_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/hic_simulator.py",
+  "linhas": 126,
+  "funcoes": 1,
+  "descricao": "Simulador de Impacto e Altura Crítica de Queda HIC (NBR 16071-3 / EN 1177 - Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/hidden_geometry_engine.py",
+  "linhas": 89,
+  "funcoes": 1,
+  "descricao": "Motor de Geometria Oculta e Objetos Ocultos do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_3_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/hip_roof_generator.py",
+  "linhas": 112,
+  "funcoes": 1,
+  "descricao": "Gerador de Telhados de Quatro Águas e Piramidais Paramétricos (Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/hvac_thermal_load_engine.py",
+  "linhas": 98,
+  "funcoes": 1,
+  "descricao": "Motor de Carga Térmica de Climatização HVAC ASHRAE / ABNT NBR 16401 (HVAC Thermal Load - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/hydraulic_piping_engine.py",
+  "linhas": 134,
+  "funcoes": 1,
+  "descricao": "Motor de Tubulações Hidráulicas, Conexões e Perda de Carga NBR 5626 (Hydraulic Piping - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_106_a_115.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/ifc4_bim_export_engine.py",
+  "linhas": 138,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Exportador Canônico de IFC4 BIM LOI/LOD 350 (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_101_a_105.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/ifc_classification_engine.py",
+  "linhas": 154,
+  "funcoes": 3,
+  "descricao": "Motor de Classificação BIM e Esquemas IFC Nativo do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_2_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/ifc_exporter.py",
+  "linhas": 253,
+  "funcoes": 3,
+  "descricao": "",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_multiformat_exporter.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/infinite_guide_engine.py",
+  "linhas": 165,
+  "funcoes": 5,
+  "descricao": "SketchBuild - Motor de Linhas e Pontos de Construção Infinitos (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_71_a_75.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/intersect_faces_engine.py",
+  "linhas": 210,
+  "funcoes": 11,
+  "descricao": "Motor de Interseção de Faces do SketchUp (Intersect Faces with Model / Selection - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_4_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/leader_text_callout_engine.py",
+  "linhas": 147,
+  "funcoes": 7,
+  "descricao": "SketchBuild - Motor de Chamadas de Texto 3D e Rótulo de Área de Face (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_8_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/life_cycle_assessment_engine.py",
+  "linhas": 98,
+  "funcoes": 1,
+  "descricao": "Motor de Avaliação do Ciclo de Vida (ACV / LCA) e Energia Embutida ISO 14040 (Life Cycle Assessment - Zero DLL",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/lightning_protection_spda_engine.py",
+  "linhas": 96,
+  "funcoes": 1,
+  "descricao": "Motor de Proteção contra Descargas Atmosféricas SPDA ABNT NBR 5419 (Lightning Protection - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/look_around_camera_engine.py",
+  "linhas": 69,
+  "funcoes": 1,
+  "descricao": "Engine de Engenharia Reversa da Ferramenta Olhar ao Redor (Look Around Tool).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_6_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/maintenance_planner.py",
+  "linhas": 94,
+  "funcoes": 1,
+  "descricao": "Planejador de Manutenção Preventiva e Vida Útil de Playgrounds (NBR 16071-7 - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_41_a_45.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/make_component_behavior_engine.py",
+  "linhas": 102,
+  "funcoes": 2,
+  "descricao": "Motor de Criação de Componentes e Comportamentos do SketchUp (Make Component - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_3_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/mass_properties_engine.py",
+  "linhas": 135,
+  "funcoes": 3,
+  "descricao": "SketchBuild - Propriedades Físicas, Centro de Gravidade e Inércia B-Rep (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_86_a_90.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/match_photo_engine.py",
+  "linhas": 148,
+  "funcoes": 2,
+  "descricao": "Motor de Adequar Fotografia do SketchUp (Match Photo Engine - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/mesh_extractor.py",
+  "linhas": 398,
+  "funcoes": 12,
+  "descricao": "Percorre a arvore Model -> Entities -> {Faces, ComponentInstances} de um",
+  "selo": "VALIDADO",
+  "oraculo": "SketchUpAPI.dll",
+  "testes": [
+   "test_skp_topology_writer.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [
+   "obj_exporter.py",
+   "su_api.py",
+   "su_types.py"
+  ],
+  "usa_dll": true,
+  "alertas": []
+ },
+ {
+  "modulo": "core/mini_wind_cfd_2d_engine.py",
+  "linhas": 114,
+  "funcoes": 1,
+  "descricao": "Motor de Túnel de Vento Numérico CFD 2D em Python Puro (Mini Wind CFD 2D - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima",
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/mirror_tool.py",
+  "linhas": 80,
+  "funcoes": 2,
+  "descricao": "Ferramenta de Espelhamento e Simetria 3D (Mirror / Flip Tool - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_41_a_45.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/model_statistics_engine.py",
+  "linhas": 86,
+  "funcoes": 1,
+  "descricao": "Motor de Estatísticas e Contagem de Entidades do SketchUp (Model Statistics - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_3_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/model_units_precision_engine.py",
+  "linhas": 153,
+  "funcoes": 5,
+  "descricao": "Motor de Unidades, Precisão Decimal e Snaps do Modelo do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_2_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/natural_ventilation_engine.py",
+  "linhas": 88,
+  "funcoes": 1,
+  "descricao": "Motor de Ventilação Natural e Efeito Chaminé ABNT NBR 15220 / ASHRAE (Natural Ventilation - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/nbr16071_auditor.py",
+  "linhas": 124,
+  "funcoes": 1,
+  "descricao": "Auditor Automático de Segurança e Conformidade ABNT NBR 16071 (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_31_a_35.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/nested_instance_hierarchy_engine.py",
+  "linhas": 161,
+  "funcoes": 7,
+  "descricao": "SketchBuild - Decodificador de Grupos Aninhados e Matrizes Globais de Instância (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_71_a_75.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/nesting_optimizer.py",
+  "linhas": 116,
+  "funcoes": 2,
+  "descricao": "Otimizador de Plano de Corte de Estoque (Nesting 1D e 2D - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_36_a_40.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/obj_exporter.py",
+  "linhas": 99,
+  "funcoes": 3,
+  "descricao": "Exportador OBJ standalone -- equivalente parcial do menu",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": true,
+  "alertas": []
+ },
+ {
+  "modulo": "core/obj_to_skp_importer.py",
+  "linhas": 97,
+  "funcoes": 2,
+  "descricao": "Importador de Modelos 3D Wavefront OBJ para .SKP Nativo (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_31_a_35.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/offset_calculator.py",
+  "linhas": 189,
+  "funcoes": 9,
+  "descricao": "Calculador de Offset / Equidistância Analítica 2D e 3D em Pure Python (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_17_18_25_29_30.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [
+   "skp_binary_writer.py"
+  ],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/orbit_flythrough_path_engine.py",
+  "linhas": 137,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Animação de Câmera em Percurso Orbit e Flythrough (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_91_a_95.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/overturn_stability_calculator.py",
+  "linhas": 110,
+  "funcoes": 1,
+  "descricao": "Calculador de Centro de Gravidade e Estabilidade ao Tombamento (NBR 16071 / NBR 6123 - Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/panorama_spherical_engine.py",
+  "linhas": 100,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Decodificador de Projeção Esférica e Panorama 360° (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_86_a_90.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/permeable_pavement_engine.py",
+  "linhas": 93,
+  "funcoes": 1,
+  "descricao": "Motor de Pavimentação Permeável e Drenagem Sustentável ABNT NBR 16416 (Permeable Pavement - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/photometric_lumen_design_engine.py",
+  "linhas": 103,
+  "funcoes": 1,
+  "descricao": "Motor de Iluminação Artificial de Interiores e Método dos Lúmens ABNT NBR ISO/CIE 8995-1 (Photometric Lumen - ",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/photometric_spot_light_engine.py",
+  "linhas": 120,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Lâmpadas Fotométricas e Holofotes Spot (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_91_a_95.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/piping_ductwork_engine.py",
+  "linhas": 166,
+  "funcoes": 6,
+  "descricao": "SketchBuild - Tubulações e Dutos Paramétricos 3D com Conexões (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_91_a_95.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/point_cloud_exporter.py",
+  "linhas": 70,
+  "funcoes": 2,
+  "descricao": "Exportador de Nuvem de Pontos 3D (LiDAR / XYZ / PTS - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_41_a_45.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/polymesh_loop_engine.py",
+  "linhas": 223,
+  "funcoes": 10,
+  "descricao": "SketchBuild - Decodificador de Malhas com Furos e Hierarquia de Loops (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_81_a_85.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/position_camera_engine.py",
+  "linhas": 76,
+  "funcoes": 1,
+  "descricao": "Engine de Engenharia Reversa da Ferramenta Posicionar Camera (Position Camera Tool).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_6_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/prestressed_concrete_engine.py",
+  "linhas": 114,
+  "funcoes": 1,
+  "descricao": "Motor de Concreto Protendido e Perdas de Protensão ABNT NBR 6118 (Prestressed Concrete - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/purge_unused_engine.py",
+  "linhas": 96,
+  "funcoes": 1,
+  "descricao": "Motor de Eliminação de Elementos Não Utilizados do SketchUp (Purge Unused - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_3_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/push_pull_create_face_engine.py",
+  "linhas": 107,
+  "funcoes": 2,
+  "descricao": "Engine de Engenharia Reversa do Push/Pull com Nova Face (Ctrl + Push/Pull Tool).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_5_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/qr_tag_generator.py",
+  "linhas": 113,
+  "funcoes": 4,
+  "descricao": "Gerador de Etiquetas Técnicas de Patrimônio com QR Code Analítico (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_41_a_45.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/quad_mesh_subd_engine.py",
+  "linhas": 200,
+  "funcoes": 5,
+  "descricao": "SketchBuild - Decodificador e Subdivisão de Superfície SubD / QuadMesh (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_86_a_90.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/radial_arc_dimension_engine.py",
+  "linhas": 163,
+  "funcoes": 5,
+  "descricao": "SketchBuild - Motor de Cotas Radiais, Diamétricas e de Arcos (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_8_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/regular_polygon_engine.py",
+  "linhas": 118,
+  "funcoes": 1,
+  "descricao": "Motor da Ferramenta Polígono Regular Paramétrico do SketchUp (Polygon Tool - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_4_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/reinforced_concrete_beam_engine.py",
+  "linhas": 133,
+  "funcoes": 1,
+  "descricao": "Motor de Vigas de Concreto Armado no Estado Limite Último ABNT NBR 6118 (RC Beam ELU - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/retaining_wall_engine.py",
+  "linhas": 151,
+  "funcoes": 1,
+  "descricao": "Motor de Muros de Arrimo e Estabilidade Geotécnica NBR 11682 (Retaining Walls - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_106_a_115.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/reverse_orient_faces_engine.py",
+  "linhas": 165,
+  "funcoes": 4,
+  "descricao": "Motor de Inversão e Orientação de Faces do SketchUp (Reverse Faces & Orient Faces - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_4_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/rigid_body_physics_engine.py",
+  "linhas": 125,
+  "funcoes": 1,
+  "descricao": "Motor de Simulação de Cinemática e Corpos Rígidos (Rigid Body Physics - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_106_a_115.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/room_acoustics_engine.py",
+  "linhas": 116,
+  "funcoes": 1,
+  "descricao": "Motor de Acústica Arquitetônica e Tempo de Reverberação NBR 10152 (Room Acoustics - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_106_a_115.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/sandbox_tools_engine.py",
+  "linhas": 228,
+  "funcoes": 8,
+  "descricao": "Motor Completo da Caixa de Areia Nativa do SketchUp (Sandbox Tools - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/scale_tool.py",
+  "linhas": 58,
+  "funcoes": 2,
+  "descricao": "Ferramenta de Escala e Redimensionamento Paramétrico (Scale Tool - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_36_a_40.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/scenes_animation_engine.py",
+  "linhas": 163,
+  "funcoes": 5,
+  "descricao": "SketchBuild - Gerenciador de Cenas e Interpolação de Animação de Câmera (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_66_a_70.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/section_cut_fill_engine.py",
+  "linhas": 110,
+  "funcoes": 3,
+  "descricao": "Engine de Engenharia Reversa para Inversao de Plano de Corte e Preenchimento de Secao (Section Cut Fill).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_5_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/section_dimension_engine.py",
+  "linhas": 136,
+  "funcoes": 1,
+  "descricao": "SketchBuild - Motor de Cortes com Cota Automática de Seção (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_86_a_90.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/section_hatch_engine.py",
+  "linhas": 157,
+  "funcoes": 4,
+  "descricao": "SketchBuild - Motor de Hachuras Gráficas para Cortes de Seção (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_76_a_80.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/section_plane_engine.py",
+  "linhas": 229,
+  "funcoes": 8,
+  "descricao": "SketchBuild - Motor de Planos de Corte Múltiplos, Aninhamento e Inversão (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_66_a_70.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/sewer_network_gravity_engine.py",
+  "linhas": 101,
+  "funcoes": 1,
+  "descricao": "Motor de Redes Coletoras de Esgoto Sanitário por Gravidade ABNT NBR 9649 (Sewer Network - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/shadow_casting_surface_engine.py",
+  "linhas": 87,
+  "funcoes": 1,
+  "descricao": "SketchBuild - Sombras Projetadas em Superfícies e Lotes Vizinhos (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_96_a_100.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/shadow_heliodon_engine.py",
+  "linhas": 163,
+  "funcoes": 1,
+  "descricao": "SketchBuild - Motor de Sombras e Heliodon Integrado (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_66_a_70.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/shallow_footings_engine.py",
+  "linhas": 111,
+  "funcoes": 1,
+  "descricao": "Motor de Sapatas Isoladas e Fundações Rasas ABNT NBR 6122 / NBR 6118 (Shallow Footings - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/sheet_metal_unfold_engine.py",
+  "linhas": 119,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Planificação e Desdobramento de Chapa Metálica (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_96_a_100.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/sheet_nesting_2d_engine.py",
+  "linhas": 242,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Motor de Plano de Corte e Nesting 2D Guilhotinado para Marcenaria (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_layout_e_marcenaria_avancada.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/shell_solid_offset_engine.py",
+  "linhas": 148,
+  "funcoes": 4,
+  "descricao": "SketchBuild - Motor de Espessura e Offset de Casca Sólida B-Rep (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_91_a_95.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/skp_binary_reader.py",
+  "linhas": 1587,
+  "funcoes": 22,
+  "descricao": "SketchBuild - Leitor Binário Nativo de Arquivos .SKP (Pure Python / Zero DLL)",
+  "selo": "VALIDADO",
+  "oraculo": "diferenças de faces batem com o Ruby nas receitas F0",
+  "testes": [
+   "test_add_geometry_native.py",
+   "test_attribute_injection.py",
+   "test_binary_mesh_extraction.py",
+   "test_box_native.py",
+   "test_delete_instance.py",
+   "test_dimensions_native.py",
+   "test_duplicate_instance.py",
+   "test_dxf_converter.py",
+   "test_nested_hierarchy.py",
+   "test_texture_injection.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py",
+   "app/routes/model_router.py",
+   "app/services/scene_service.py"
+  ],
+  "usado_por_core": [
+   "dxf_to_skp_converter.py",
+   "skp_binary_writer.py"
+  ],
+  "usa_dll": true,
+  "alertas": []
+ },
+ {
+  "modulo": "core/skp_binary_writer.py",
+  "linhas": 2395,
+  "funcoes": 36,
+  "descricao": "SketchBuild - Gravador Binário Nativo de Arquivos .SKP (Pure Python / Zero DLL)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_add_geometry_native.py",
+   "test_attribute_injection.py",
+   "test_binary_mesh_extraction.py",
+   "test_box_native.py",
+   "test_cylinder_and_extrusion.py",
+   "test_delete_instance.py",
+   "test_duplicate_instance.py",
+   "test_fase_opcoes_1_e_2.py",
+   "test_frentes_23_24_14.py",
+   "test_frentes_31_a_35.py",
+   "test_frentes_36_a_40.py",
+   "test_frentes_41_a_45.py",
+   "test_interactive_drawing.py",
+   "test_multiformat_exporter.py",
+   "test_rendering_styles.py",
+   "test_texture_injection.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py",
+   "app/services/scene_service.py"
+  ],
+  "usado_por_core": [
+   "dxf_to_skp_converter.py",
+   "obj_to_skp_importer.py"
+  ],
+  "usa_dll": true,
+  "alertas": []
+ },
+ {
+  "modulo": "core/skp_hidden_pruner.py",
+  "linhas": 441,
+  "funcoes": 24,
+  "descricao": "Poda de ocultos direto no `model.dat` (sem abrir o SketchUp).",
+  "selo": "VALIDADO",
+  "oraculo": "SketchUp real (KMP-0102) + 62 arquivos verificados",
+  "testes": [
+   "test_skp_topology_writer.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [
+   "skp_topology_writer.py"
+  ],
+  "usa_dll": false,
+  "alertas": [
+   "exemplo"
+  ]
+ },
+ {
+  "modulo": "core/skp_lod_optimizer_engine.py",
+  "linhas": 148,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Otimizador e Compactador de Geometria LOD para Baixa Latência Web (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_96_a_100.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/skp_topology_writer.py",
+  "linhas": 232,
+  "funcoes": 9,
+  "descricao": "B2: grava uma `Topology` (vértices, arestas, faces com furos) na raiz de um `.skp` VFF 2021+.",
+  "selo": "VALIDADO",
+  "oraculo": "SketchUpAPI.dll (roundtrip, 8 testes) ; B4 no SketchUp real pendente",
+  "testes": [
+   "test_skp_topology_writer.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/draw_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": true,
+  "alertas": []
+ },
+ {
+  "modulo": "core/slicing_3d_print_engine.py",
+  "linhas": 159,
+  "funcoes": 3,
+  "descricao": "Motor de Fatiamento e Exportação para Impressão 3D (3D Slicing & G-Code / STL & 3MF - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_106_a_115.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/slope_stability_bishop_engine.py",
+  "linhas": 145,
+  "funcoes": 1,
+  "descricao": "Motor de Estabilidade de Taludes e Encostas Método de Bishop Simplificado (Slope Stability - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/smooth_soft_edges_engine.py",
+  "linhas": 129,
+  "funcoes": 5,
+  "descricao": "SketchBuild - Decodificador de Malhas com Suavização de Arestas (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_76_a_80.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/soft_smooth_angle_engine.py",
+  "linhas": 154,
+  "funcoes": 5,
+  "descricao": "SketchBuild - Motor de Suavização Angular de Arestas e Normais de Phong (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_8_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/soft_smooth_edges_engine.py",
+  "linhas": 124,
+  "funcoes": 2,
+  "descricao": "Engine de Engenharia Reversa da Caixa de Dialogo Suavizar Arestas (Soften / Smooth Edges).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_5_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/solar_calculator.py",
+  "linhas": 141,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Motor Astronômico de Estudo Solar e Sombras Analíticas",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/solar_photovoltaic_array_engine.py",
+  "linhas": 103,
+  "funcoes": 1,
+  "descricao": "Motor de Usinas Solares Fotovoltaicas e Geração Distribuída (Solar PV Array - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/solid_inspector_engine.py",
+  "linhas": 120,
+  "funcoes": 3,
+  "descricao": "SketchBuild - Inspetor de Sólidos e Validação 2-Manifold (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_8_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/solid_tools.py",
+  "linhas": 254,
+  "funcoes": 10,
+  "descricao": "Solid Tools - Operações Booleanas de Sólidos (CSG) em Pure Python (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_17_18_25_29_30.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/space_truss_engine.py",
+  "linhas": 143,
+  "funcoes": 1,
+  "descricao": "Motor de Estruturas Espaciais e Treliças Tubulares 3D (Space Truss - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/spiral_tube_generator.py",
+  "linhas": 150,
+  "funcoes": 2,
+  "descricao": "Gerador de Tubos e Tobogãs Espirais Paramétricos 3D (Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/stair_generator_engine.py",
+  "linhas": 120,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Gerador Paramétrico de Escadas (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_101_a_105.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/stamp_terrain_engine.py",
+  "linhas": 121,
+  "funcoes": 3,
+  "descricao": "Engine de Engenharia Reversa da Ferramenta Carimbo (Stamp Tool) da Caixa de Areia (Sandbox).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_5_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/steel_profile_engine.py",
+  "linhas": 144,
+  "funcoes": 1,
+  "descricao": "Motor de Perfis Estruturais Metálicos Paramétricos NBR 8800 (Structural Steel Profiles - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_106_a_115.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/stormwater_drainage_engine.py",
+  "linhas": 103,
+  "funcoes": 1,
+  "descricao": "Motor de Drenagem Pluvial, Calhas e Condutores ABNT NBR 10844 (Stormwater Drainage - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/structural_analyzer.py",
+  "linhas": 80,
+  "funcoes": 1,
+  "descricao": "Analisador Estrutural e de Tensões em Vigas e Pilares (FEA / NBR 7190 - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_36_a_40.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/su_api.py",
+  "linhas": 2004,
+  "funcoes": 68,
+  "descricao": "Binding ctypes para a C API pública da Trimble (SketchUpAPI.dll).",
+  "selo": "VALIDADO",
+  "oraculo": "é a própria SketchUpAPI.dll",
+  "testes": [
+   "test_add_geometry_native.py",
+   "test_attribute_injection.py",
+   "test_box_native.py",
+   "test_cylinder_and_extrusion.py",
+   "test_delete_instance.py",
+   "test_dimensions_native.py",
+   "test_duplicate_instance.py",
+   "test_dxf_converter.py",
+   "test_frentes_23_24_14.py",
+   "test_interactive_drawing.py",
+   "test_nested_hierarchy.py",
+   "test_rendering_styles.py",
+   "test_skp_topology_writer.py",
+   "test_texture_injection.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py",
+   "app/schemas/scene.py"
+  ],
+  "usado_por_core": [
+   "mesh_extractor.py",
+   "obj_exporter.py",
+   "skp_topology_writer.py"
+  ],
+  "usa_dll": true,
+  "alertas": [
+   "aproxima",
+   "stub"
+  ]
+ },
+ {
+  "modulo": "core/su_types.py",
+  "linhas": 212,
+  "funcoes": 2,
+  "descricao": "Tipos base da C API pública da Trimble (SketchUpAPI.dll).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_attribute_injection.py",
+   "test_box_native.py",
+   "test_cylinder_and_extrusion.py",
+   "test_dimensions_native.py",
+   "test_dxf_converter.py",
+   "test_frentes_23_24_14.py",
+   "test_interactive_drawing.py",
+   "test_nested_hierarchy.py",
+   "test_texture_injection.py"
+  ],
+  "rotas_ou_app": [
+   "app/domain/exceptions.py"
+  ],
+  "usado_por_core": [
+   "su_api.py"
+  ],
+  "usa_dll": true,
+  "alertas": [
+   "stub"
+  ]
+ },
+ {
+  "modulo": "core/swing_kinematics_simulator.py",
+  "linhas": 95,
+  "funcoes": 1,
+  "descricao": "Simulador de Cinemática e Envelope de Segurança para Balanços (NBR 16071 - Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/tag_folder_engine.py",
+  "linhas": 148,
+  "funcoes": 8,
+  "descricao": "Motor de Pastas de Tags e Árvore de Camadas do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_7_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/technical_drawing_exporter.py",
+  "linhas": 215,
+  "funcoes": 6,
+  "descricao": "SketchBuild - Compilador de Desenhos Técnicos Vetoriais 2D (Plantas Baixas e Elevações)",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/technical_sketch_shader.py",
+  "linhas": 119,
+  "funcoes": 2,
+  "descricao": "Renderizador e Filtro Estilizado de Linha Oculta e Esboço Técnico (Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/terrain_generator.py",
+  "linhas": 83,
+  "funcoes": 1,
+  "descricao": "Gerador de Terrenos Paramétricos e Malha Topográfica Sandbox (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_36_a_40.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/text_engine.py",
+  "linhas": 95,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Motor de Textos 2D na Tela e Rótulos Anotativos de Líder (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_71_a_75.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/texture_pin_mapping_engine.py",
+  "linhas": 122,
+  "funcoes": 1,
+  "descricao": "Motor de Posicionamento e Mapeamento de Texturas por Pinos do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_3_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/texture_projection_engine.py",
+  "linhas": 103,
+  "funcoes": 2,
+  "descricao": "Motor de Projeção de Texturas e Coordenadas UV do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_7_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/thermal_comfort_engine.py",
+  "linhas": 111,
+  "funcoes": 1,
+  "descricao": "Motor de Conforto Térmico e Transmitância Térmica NBR 15220 (Thermal Transmittance - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_106_a_115.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/three_d_text_engine.py",
+  "linhas": 176,
+  "funcoes": 1,
+  "descricao": "Motor da Ferramenta Texto 3D Nativo do SketchUp (3D Text Tool - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_2_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/topology/cena.py",
+  "linhas": 164,
+  "funcoes": 12,
+  "descricao": "F5: grupos e componentes sobre o núcleo de topologia.",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_multiformat_exporter.py",
+   "test_opcao_a_parte_2_sketchup_native.py",
+   "test_topology_cena.py",
+   "test_topology_historico.py"
+  ],
+  "rotas_ou_app": [
+   "app/controllers/draw_controller.py",
+   "app/controllers/scene_controller.py",
+   "app/core/cena_binaria.py",
+   "app/repositories/draw_repository.py",
+   "app/repositories/skp_engine_repository.py",
+   "app/routes/draw_router.py",
+   "app/routes/scene_router.py",
+   "app/schemas/scene.py",
+   "app/services/draw_service.py",
+   "app/services/scene_service.py"
+  ],
+  "usado_por_core": [
+   "color_by_tag_engine.py",
+   "component_edit_modes_engine.py",
+   "edge_styles_engine.py",
+   "executive_pdf_exporter.py",
+   "fog_depth_engine.py",
+   "generate_report_engine.py",
+   "historico.py",
+   "ifc_classification_engine.py",
+   "ifc_exporter.py",
+   "nbr16071_auditor.py",
+   "panorama_spherical_engine.py",
+   "point_cloud_exporter.py",
+   "purge_unused_engine.py",
+   "scenes_animation_engine.py",
+   "skp_binary_reader.py",
+   "skp_binary_writer.py",
+   "su_api.py",
+   "tag_folder_engine.py",
+   "trimble_solid_tools_engine.py",
+   "two_point_perspective_engine.py"
+  ],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/topology/draw.py",
+  "linhas": 126,
+  "funcoes": 11,
+  "descricao": "F2: ferramentas de desenho (Linha, Retângulo, Círculo, Polígono, Arco, Mão livre)",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_draw_api.py",
+   "test_skp_topology_writer.py",
+   "test_topology_cena.py",
+   "test_topology_draw.py",
+   "test_topology_edit.py",
+   "test_topology_historico.py",
+   "test_topology_intersect.py",
+   "test_topology_pushpull.py"
+  ],
+  "rotas_ou_app": [
+   "app/controllers/draw_controller.py",
+   "app/repositories/draw_repository.py",
+   "app/routes/draw_router.py"
+  ],
+  "usado_por_core": [
+   "edit.py",
+   "field_inspection_exporter.py",
+   "intersect.py",
+   "pushpull.py",
+   "sweep.py"
+  ],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/topology/edit.py",
+  "linhas": 180,
+  "funcoes": 11,
+  "descricao": "F4: edição sobre o núcleo de topologia: Mover, Rotacionar, Escalar e Offset.",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_draw_api.py",
+   "test_topology_edit.py",
+   "test_topology_historico.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/draw_repository.py",
+   "app/routes/draw_router.py",
+   "app/routes/scene_router.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/topology/historico.py",
+  "linhas": 79,
+  "funcoes": 9,
+  "descricao": "F6: histórico (desfazer e refazer) da Cena, com log de operações.",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_draw_api.py",
+   "test_topology_historico.py"
+  ],
+  "rotas_ou_app": [
+   "app/controllers/draw_controller.py",
+   "app/repositories/autosave_repository.py",
+   "app/repositories/draw_repository.py",
+   "app/routes/draw_router.py",
+   "app/schemas/draw.py",
+   "app/services/draw_service.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/topology/intersect.py",
+  "linhas": 92,
+  "funcoes": 4,
+  "descricao": "F5: Intersect Faces. Cada par de faces em planos diferentes que se cruzam ganha a aresta da",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_draw_api.py",
+   "test_opcao_a_sketchup_native.py",
+   "test_topology_intersect.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/draw_repository.py",
+   "app/routes/draw_router.py",
+   "app/routes/scene_router.py",
+   "app/schemas/scene.py"
+  ],
+  "usado_por_core": [
+   "trimble_solid_tools_engine.py"
+  ],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/topology/model.py",
+  "linhas": 389,
+  "funcoes": 35,
+  "descricao": "Grafo de vértices, arestas e faces com as regras de modelagem do SketchUp.",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_add_geometry_native.py",
+   "test_attribute_injection.py",
+   "test_box_native.py",
+   "test_cylinder_and_extrusion.py",
+   "test_delete_instance.py",
+   "test_dimensions_native.py",
+   "test_duplicate_instance.py",
+   "test_dxf_converter.py",
+   "test_frentes_23_24_14.py",
+   "test_frentes_61_a_65.py",
+   "test_nested_hierarchy.py",
+   "test_rendering_styles.py",
+   "test_texture_injection.py"
+  ],
+  "rotas_ou_app": [
+   "app/controllers/model_controller.py",
+   "app/repositories/skp_engine_repository.py",
+   "app/routes/health_router.py",
+   "app/routes/model_router.py",
+   "app/routes/scene_router.py",
+   "app/schemas/scene.py",
+   "app/services/scene_service.py"
+  ],
+  "usado_por_core": [
+   "bim_7d_asset_management_cobie_engine.py",
+   "cena.py",
+   "draw.py",
+   "edit.py",
+   "intersect.py",
+   "mesh_extractor.py",
+   "obj_to_skp_importer.py",
+   "pushpull.py",
+   "skp_binary_reader.py",
+   "skp_binary_writer.py",
+   "skp_hidden_pruner.py",
+   "skp_topology_writer.py",
+   "su_api.py",
+   "su_types.py",
+   "sweep.py"
+  ],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/topology/pushpull.py",
+  "linhas": 190,
+  "funcoes": 8,
+  "descricao": "F3: Empurrar/Puxar (Push/Pull) sobre o núcleo de topologia.",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_draw_api.py",
+   "test_skp_topology_writer.py",
+   "test_topology_cena.py",
+   "test_topology_edit.py",
+   "test_topology_historico.py",
+   "test_topology_intersect.py",
+   "test_topology_pushpull.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/draw_repository.py",
+   "app/routes/draw_router.py",
+   "app/routes/scene_router.py"
+  ],
+  "usado_por_core": [
+   "sweep.py"
+  ],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/topology/sweep.py",
+  "linhas": 135,
+  "funcoes": 3,
+  "descricao": "F5: Siga-me (Follow Me): varre uma face (perfil) ao longo de um caminho de arestas.",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_topology_sweep.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/draw_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/transformation_engine.py",
+  "linhas": 98,
+  "funcoes": 3,
+  "descricao": "Motor de Transformações Geométricas 3D e Ferramenta Rotacionar (Rotate Tool - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_31_a_35.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/trimble_solid_tools_engine.py",
+  "linhas": 181,
+  "funcoes": 2,
+  "descricao": "Motor das Ferramentas de Sólidos Nativas do SketchUp (Trimble Solid Tools - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/two_point_perspective_engine.py",
+  "linhas": 97,
+  "funcoes": 1,
+  "descricao": "Motor de Câmera de Perspectiva de Dois Pontos do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_7_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/undo_redo_engine.py",
+  "linhas": 123,
+  "funcoes": 5,
+  "descricao": "SketchBuild - Histórico de Operações Atômicas e Undo/Redo (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_81_a_85.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/unhide_entities_engine.py",
+  "linhas": 114,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Motor de Reexibição de Entidades Ocultas (Zero DLL / Pure Python)",
+  "selo": "ORFAO",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/universal_accessibility_engine.py",
+  "linhas": 75,
+  "funcoes": 1,
+  "descricao": "Motor de Acessibilidade Universal a Edificações ABNT NBR 9050 (Universal Accessibility - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/ventilated_facade_engine.py",
+  "linhas": 96,
+  "funcoes": 1,
+  "descricao": "Motor de Fachadas Ventiladas e Câmara Convectiva de Ar (Ventilated Facade - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/voronoi_fracture_engine.py",
+  "linhas": 119,
+  "funcoes": 2,
+  "descricao": "SketchBuild - Padrões Voronoi e Painéis Vazados Paramétricos 3D (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_101_a_105.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "aproxima"
+  ]
+ },
+ {
+  "modulo": "core/waffle_slab_engine.py",
+  "linhas": 108,
+  "funcoes": 1,
+  "descricao": "Motor de Lajes Nervuradas Bidirecionais com Cubetas Plásticas (Waffle Slab - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_116_a_145.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/walk_camera_gravity_engine.py",
+  "linhas": 116,
+  "funcoes": 2,
+  "descricao": "Engine de Engenharia Reversa da Ferramenta Percorrer (Walk Tool) com Gravidade e Colisao.",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_6_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/walk_look_around_engine.py",
+  "linhas": 203,
+  "funcoes": 3,
+  "descricao": "Motor das Ferramentas Nativas Caminhar, Olhar em Volta e Posicionar Câmera do SketchUp (Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/wall_thickness_inspector.py",
+  "linhas": 125,
+  "funcoes": 3,
+  "descricao": "Inspetor de Espessura de Parede e Casca Fina (Wall Thickness Inspector - Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "mock"
+  ]
+ },
+ {
+  "modulo": "core/water_caustics_shader_engine.py",
+  "linhas": 79,
+  "funcoes": 1,
+  "descricao": "SketchBuild - Shader PBR de Água, Ondas Gerstner e Cáusticas (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_96_a_100.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/watermark_style_engine.py",
+  "linhas": 122,
+  "funcoes": 1,
+  "descricao": "Motor de Estilos de Marca d'Água do SketchUp (Watermark Style Engine - Zero DLL).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_sketchup_native.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/weld_edges_engine.py",
+  "linhas": 149,
+  "funcoes": 3,
+  "descricao": "Motor de Soldagem de Arestas do SketchUp (Weld Edges Tool - Zero DLL / Pure Python).",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_opcao_a_parte_7_sketchup_native.py"
+  ],
+  "rotas_ou_app": [],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/wind_pressure_engine.py",
+  "linhas": 96,
+  "funcoes": 1,
+  "descricao": "SketchBuild - Simulação de Vento e Pressão Dinâmica NBR 6123 (Zero DLL / Pure Python)",
+  "selo": "TESTADO",
+  "oraculo": "",
+  "testes": [
+   "test_frentes_101_a_105.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ },
+ {
+  "modulo": "core/zebra_label_exporter.py",
+  "linhas": 142,
+  "funcoes": 3,
+  "descricao": "Exportador de Etiquetas Térmicas Zebra ZPL II para Fábrica (Zero DLL).",
+  "selo": "SEM TESTE",
+  "oraculo": "",
+  "testes": [],
+  "rotas_ou_app": [
+   "app/repositories/skp_engine_repository.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": [
+   "simul"
+  ]
+ }
+]
