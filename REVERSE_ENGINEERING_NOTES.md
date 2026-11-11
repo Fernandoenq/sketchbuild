@@ -2821,3 +2821,25 @@ Tem 32 bytes: A, B, C, D do plano. O OpenSKP lê só os 24 primeiros bytes como 
 
 ### 186.5 Script de conferência
 `ruby_bridge/contar_ocultos.rb` abre uma **cópia** do .skp escolhido e conta visíveis e ocultos (por entidade e efetivo), somente leitura.
+
+## 187. Verificação de integridade do .skp e poda de ocultos sem o SketchUp
+
+### 187.1 O inteiro de integridade no cabeçalho VFF
+Ao abrir, o SketchUp lê 4 bytes do fim do cabeçalho (os 4 últimos antes do `PK\x03\x04`, uint32 little-endian) e compara com um valor que ele calcula do ZIP. Se diferem, abre o modelo mas avisa "Este modelo falhou nas verificações de integridade do arquivo" (a string está em `SketchUpAPI.dll`; a rotina de carga é a mesma que lê o cabeçalho com o marcador `VFF`).
+
+Valor esperado, conferido byte a byte em arquivos do SketchUp 25 e 26 (função `valor_integridade` em `core/skp_hidden_pruner.py`):
+```
+v = 0
+para cada entrada do ZIP na ordem do arquivo, índice i par:    v = crc32(~crc_i  (uint32 LE), v)
+para cada entrada do ZIP na ordem do arquivo, índice i ímpar:  x = crc_i - 0x2a se crc_i > 0x2a, senão crc_i;  v = crc32(x (uint32 LE), v)
+```
+(`crc_i` é o CRC-32 da entrada no diretório central do ZIP; `crc32` é o `zlib.crc32` encadeado.) Qualquer alteração em qualquer entrada (por exemplo `model.dat`) exige recalcular e regravar esse valor.
+
+### 187.2 Registro externo do model.dat
+O `model.dat` começa com um registro `0x01f4` cujo tamanho (uint32) mais 6 cobre o arquivo todo; ao mudar o conteúdo esse tamanho tem de ser atualizado, senão o SketchUp recusa o arquivo ("formato de arquivo inesperado").
+
+### 187.3 Mapa estrutural usado pela poda
+`0x01f9 > 0x1770 > 0x1771 > [0x0063, 0x157c ...]` (definições) e, no fim, `0x01f6 > 0x1388` (raiz). Em cada definição, `0x1388` guarda `0x07d0` (cabeçalho com o ID da definição), `0x1389/0x138a/0x138b` (vértices, arestas, faces), `0x138c > 0x1964` e `0x138d > 0x1d4c > 0x1964` (instâncias), `0x138e` (tabela dos IDs dos filhos, cada um com 1 byte de tamanho) e `0x13a0` (caixa limite). A instância guarda a referência à definição em `0x1967`, o flag em `0x07d3`, a tag em `0x07d2` (ausente = Layer0). Não há contadores globais no cabeçalho do `model.dat`.
+
+### 187.4 Poda
+`core/skp_hidden_pruner.py` remove instâncias ocultas ou em tag invisível e as definições que ficam sem uso, retira os IDs da `0x138e`, recalcula os tamanhos dos contêineres, regrava o ZIP e atualiza o inteiro de integridade. Validado abrindo no SketchUp 2026 real (sem aviso, sem nada em Exibir tudo, arquivo muito mais leve). Em 62 modelos (12,8 GB) o resultado foi 3,6 GB, em 21 minutos, sem abrir o SketchUp. Uso: `python -m core.skp_hidden_pruner ORIGEM DESTINO` (arquivo ou pasta). Limitação: arestas e faces ocultas dentro de definições que continuam em uso não são removidas.
