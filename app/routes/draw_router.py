@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Response, status
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, DrawResponse, DrawStateResponse
+from app.schemas.draw import DrawRequest, DrawResponse, DrawStateResponse, PushPullRequest
 
 router = APIRouter(prefix="/draw", tags=["draw"])
 
@@ -16,6 +16,11 @@ def get_controller() -> DrawController:
 @router.post("", response_model=DrawResponse, summary="Desenha (linha, retângulo, círculo, polígono, arco, mão livre) e devolve o delta da topologia")
 async def desenhar(body: DrawRequest, controller: DrawController = Depends(get_controller)) -> DrawResponse:
     return await controller.desenhar(body)
+
+
+@router.post("/pushpull", response_model=DrawResponse, summary="Empurrar/Puxar uma face e devolve o delta da topologia")
+async def empurrar(body: PushPullRequest, controller: DrawController = Depends(get_controller)) -> DrawResponse:
+    return await controller.empurrar(body)
 
 
 @router.get("/state", response_model=DrawStateResponse, summary="Estado completo da topologia de desenho")

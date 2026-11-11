@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from core.topology import Topology
 from core.topology.draw import desenhar
+from core.topology.pushpull import empurrar
 
 _TOPO = Topology()
 
@@ -41,6 +42,11 @@ class DrawRepository:
             raise ValueError(f"{ferramenta}: faltam {', '.join(faltam)}")
         params = {k: v for k, v in params.items() if v is not None}
         res = _chave(desenhar(_TOPO, ferramenta, **params))
+        res["counts"] = _TOPO.counts()
+        return res
+
+    def empurrar(self, face_id: int, distancia: float, criar_nova: bool = False) -> dict:
+        res = _chave(empurrar(_TOPO, face_id, distancia, criar_nova))
         res["counts"] = _TOPO.counts()
         return res
 

@@ -94,3 +94,9 @@ reaproveitado, manter o aviso de copyright.
 ## Status F2 (11/11/2026)
 Núcleo pronto: `core/topology/draw.py` (linha, retângulo, círculo 24 lados, polígono inscrito/circunscrito, arco, mão livre) devolve o delta de V/E/F. Rotas `POST /api/v1/draw`, `GET /api/v1/draw/state`, `DELETE /api/v1/draw` (estado em memória). Testes `test_topology_draw.py` batem com r01, r02, r03, r09, r10, r13 e r06; `test_draw_api.py` cobre as camadas.
 Pendente: ligar o front (ferramentas do canvas chamando `/draw`), gravar a topologia no `.skp` (gravador), e conferir a regra de linha que cruza uma face vinda de fora (a API do SketchUp não divide em X; o app gráfico divide).
+
+**Pendente (anotado 11/11/2026):** o front da F2 (`frontend/src/modelagem.js`) só teve a sintaxe verificada. Falta testar no navegador: reiniciar o backend, abrir o app, usar cada botão e conferir contagens, prévia, encaixe e recarga da página.
+
+## Status F3 (11/11/2026)
+`core/topology/pushpull.py`: `empurrar(topologia, face, distancia, criar_nova)`. Modo mover (face de sólido com vizinhas perpendiculares: paredes esticam, colapso total some, r05) e modo extrusar (face solta mantém a base, r04; face em furo pousa na face de baixo e vaza, r11). Rota `POST /api/v1/draw/pushpull`; botão Empurrar/Puxar no front (clicar na face, digitar a distância em metros, Enter; Ctrl+Enter mantém a original). Testes `test_topology_pushpull.py` batem com r04, r05 e r11 e conferem normais para fora.
+Limites: empurrar além do lado oposto do sólido dá erro (não suportado); colapso parcial dá erro; face com furo que pousa em outra face não é tratada; sem arrasto com o mouse (só campo de distância). Front da F3 não testado no navegador (mesmo pendente da F2).

@@ -12,6 +12,9 @@ class DrawService:
     async def desenhar(self, ferramenta: str, **params) -> dict:
         return await run_in_threadpool(self._repository.desenhar, ferramenta, **params)
 
+    async def empurrar(self, face_id: int, distancia: float, criar_nova: bool) -> dict:
+        return await run_in_threadpool(self._repository.empurrar, face_id, distancia, criar_nova)
+
     async def estado(self) -> dict:
         return await run_in_threadpool(self._repository.estado)
 

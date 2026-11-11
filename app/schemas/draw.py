@@ -41,3 +41,9 @@ class DrawStateResponse(BaseModel):
     edges: dict[str, Any]
     faces: dict[str, Any]
     counts: dict[str, int]
+
+
+class PushPullRequest(BaseModel):
+    face_id: int
+    distancia: float  # polegadas, positivo = na direcao da normal da face
+    criar_nova: bool = False  # Ctrl: mantem a face original e cria uma nova

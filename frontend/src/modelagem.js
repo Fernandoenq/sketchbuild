@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -20,6 +20,7 @@ const FERRAMENTAS = [
   ["poligono", "Polígono (modelagem)", '<path d="M12 4l7 5-3 9H8L5 9z"/>'],
   ["arco", "Arco (modelagem)", '<path d="M4 18c2-9 14-9 16 0"/>'],
   ["mao_livre", "Mão livre (modelagem)", '<path d="M4 16c3-8 5 4 8-3s5 3 8-4"/>'],
+  ["pushpull", "Empurrar/Puxar (modelagem)", '<rect x="4" y="10" width="16" height="10"/><path d="M12 2v8M9 5l3-3 3 3"/>'],
 ];
 
 const DICA = {
@@ -29,6 +30,7 @@ const DICA = {
   poligono: "Polígono: clique no centro e depois num vértice (lados no campo ao lado).",
   arco: "Arco: clique no centro, no início e no fim (anti-horário).",
   mao_livre: "Mão livre: segure o botão e arraste.",
+  pushpull: "Empurrar/Puxar: clique numa face, digite a distância (m) no campo e Enter (Ctrl+Enter mantém a face original). Negativo empurra.",
 };
 
 const toSku = (p) => [p.x * POL, -p.z * POL, p.y * POL];
@@ -49,6 +51,8 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   let pontos = []; // pontos já fixados da ação em andamento (coordenadas three)
   let livre = null; // trilha da mão livre
   let lados = 6;
+  let selecionada = null; // id da face escolhida no Empurrar/Puxar
+  let campoDist = null;
   const chao = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const ray = new THREE.Raycaster();
 
@@ -80,6 +84,30 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       lados = Math.max(3, Math.min(64, parseInt(n.value, 10) || 6));
     });
     g.appendChild(n);
+    const dist = document.createElement("input");
+    dist.type = "number";
+    dist.step = "0.01";
+    dist.placeholder = "dist. m";
+    dist.title = "Distância do Empurrar/Puxar em metros (negativo empurra)";
+    dist.style.cssText = "width:70px;margin-left:4px";
+    dist.addEventListener("keydown", async (e) => {
+      if (e.key !== "Enter") return;
+      e.stopPropagation();
+      const m = parseFloat(dist.value);
+      if (!Number.isFinite(m) || m === 0) return setStatus("Informe uma distância diferente de zero.", true);
+      if (selecionada == null) return setStatus("Clique antes numa face com a ferramenta Empurrar/Puxar.", true);
+      try {
+        const r = await drawPushPull(Number(selecionada), m * POL, e.ctrlKey);
+        aplicar(r);
+        selecionada = null;
+        dist.value = "";
+        setStatus(`${r.counts.vertices} vértices, ${r.counts.edges} arestas, ${r.counts.faces} faces.`);
+      } catch (err) {
+        setStatus(`Erro no Empurrar/Puxar: ${err?.message ?? err}`, true);
+      }
+    });
+    g.appendChild(dist);
+    campoDist = dist;
     const l = document.createElement("button");
     l.className = "toolbar-btn";
     l.textContent = "Limpar";
@@ -103,6 +131,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
 
   function ativar(id) {
     ferramenta = id;
+    selecionada = null;
     terminar();
     setToolMode("modelar");
     setStatus(DICA[id]);
@@ -208,17 +237,26 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       l.frustumCulled = false;
       grupo.add(l);
     }
-    const pos = [];
-    for (const f of estado.faces.values()) pos.push(...(triangular(f) ?? []));
-    if (pos.length) {
+    for (const [id, f] of estado.faces) {
+      const pos = triangular(f);
+      if (!pos || !pos.length) continue;
       const g = new THREE.BufferGeometry();
       g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
       g.computeVertexNormals();
+      const escolhida = id === String(selecionada);
       const m = new THREE.Mesh(
         g,
-        new THREE.MeshStandardMaterial({ color: 0xdfdfdb, roughness: 0.8, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 })
+        new THREE.MeshStandardMaterial({
+          color: escolhida ? 0x6fa8ff : 0xdfdfdb,
+          roughness: 0.8,
+          side: THREE.DoubleSide,
+          polygonOffset: true,
+          polygonOffsetFactor: 1,
+          polygonOffsetUnits: 1,
+        })
       );
       m.frustumCulled = false;
+      m.userData.fid = id;
       grupo.add(m);
     }
   }
@@ -270,7 +308,22 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     if (pts) mostrarPrevia(pts);
   }
 
+  function escolherFace(event) {
+    const r = renderer.domElement.getBoundingClientRect();
+    ray.setFromCamera({ x: ((event.clientX - r.left) / r.width) * 2 - 1, y: -((event.clientY - r.top) / r.height) * 2 + 1 }, camera);
+    const hit = ray.intersectObjects(grupo.children.filter((o) => o.isMesh), false)[0];
+    selecionada = hit ? hit.object.userData.fid : null;
+    redesenhar();
+    if (selecionada != null) {
+      setStatus(`Face ${selecionada} escolhida. Digite a distância (m) no campo e Enter.`);
+      campoDist?.focus();
+    } else {
+      setStatus("Nenhuma face sob o clique.");
+    }
+  }
+
   async function clicar(event) {
+    if (ferramenta === "pushpull") return escolherFace(event);
     const p = pontoDe(event);
     if (!p) return;
     if (ferramenta === "linha") {

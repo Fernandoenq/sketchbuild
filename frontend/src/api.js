@@ -2524,3 +2524,7 @@ export async function drawClear() {
   const res = await fetch("/api/v1/draw", { method: "DELETE" });
   if (!res.ok) throw new ApiError(res.statusText, res.status);
 }
+
+export function drawPushPull(faceId, distancia, criarNova = false) {
+  return postJson("/api/v1/draw/pushpull", "POST", { face_id: faceId, distancia, criar_nova: criarNova });
+}
