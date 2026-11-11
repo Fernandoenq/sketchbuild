@@ -41,6 +41,7 @@ class DrawStateResponse(BaseModel):
     edges: dict[str, Any]
     faces: dict[str, Any]
     counts: dict[str, int]
+    historico: dict[str, bool] = Field(default_factory=dict)
 
 
 class PushPullRequest(BaseModel):

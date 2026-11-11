@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawUndo, drawRedo } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -127,6 +127,14 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       b.addEventListener("click", () => aplicarEdicao(op));
       g.appendChild(b);
     }
+    for (const [rotulo, titulo, fn] of [["Desfazer", "Desfazer (Ctrl+Z)", () => historico(drawUndo)], ["Refazer", "Refazer (Ctrl+Y)", () => historico(drawRedo)]]) {
+      const b = document.createElement("button");
+      b.className = "toolbar-btn";
+      b.textContent = rotulo;
+      b.title = titulo;
+      b.addEventListener("click", fn);
+      g.appendChild(b);
+    }
     const l = document.createElement("button");
     l.className = "toolbar-btn";
     l.textContent = "Limpar";
@@ -146,6 +154,29 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     });
     g.appendChild(l);
     barra.appendChild(g);
+  }
+
+  // desfazer/refazer devolvem o estado completo: troca o espelho local inteiro
+  async function historico(chamada) {
+    try {
+      const s = await chamada();
+      terminar();
+      sel.faces.clear();
+      sel.edges.clear();
+      selecionada = null;
+      substituirEstado(s);
+      setStatus(s.counts.vertices + " vértices, " + s.counts.edges + " arestas, " + s.counts.faces + " faces.");
+    } catch (err) {
+      setStatus(err?.message ?? String(err), true);
+    }
+  }
+
+  function substituirEstado(s) {
+    for (const [k, mapa] of [["vertices", estado.vertices], ["edges", estado.edges], ["faces", estado.faces]]) {
+      mapa.clear();
+      for (const [id, v] of Object.entries(s[k])) mapa.set(id, v);
+    }
+    redesenhar();
   }
 
   async function aplicarFerramentaDeSelecao(op) {
@@ -547,16 +578,13 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   window.addEventListener("keydown", (e) => {
     if (getToolMode() !== "modelar") return;
     if (e.key === "Escape" || e.key === "Enter") terminar();
+    if (e.ctrlKey && e.key.toLowerCase() === "z" && !e.target.matches?.("input,textarea")) historico(drawUndo);
+    if (e.ctrlKey && e.key.toLowerCase() === "y" && !e.target.matches?.("input,textarea")) historico(drawRedo);
   });
 
   // reaproveita o desenho que o backend ainda guarda (F5 na página)
   drawState()
-    .then((s) => {
-      for (const [k, mapa] of [["vertices", estado.vertices], ["edges", estado.edges], ["faces", estado.faces]]) {
-        for (const [id, v] of Object.entries(s[k])) mapa.set(id, v);
-      }
-      redesenhar();
-    })
+    .then((s) => substituirEstado(s))
     .catch(() => {});
 
   return { ativar, estado };

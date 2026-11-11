@@ -71,6 +71,21 @@ class DrawController:
     async def cena(self) -> SceneSummaryResponse:
         return SceneSummaryResponse(**await self._service.cena())
 
+    async def desfazer(self) -> DrawStateResponse:
+        try:
+            return DrawStateResponse(**await self._service.desfazer())
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+    async def refazer(self) -> DrawStateResponse:
+        try:
+            return DrawStateResponse(**await self._service.refazer())
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+    async def historico(self) -> dict:
+        return await self._service.historico()
+
     async def estado(self) -> DrawStateResponse:
         return DrawStateResponse(**await self._service.estado())
 

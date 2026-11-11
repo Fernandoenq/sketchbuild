@@ -6,10 +6,9 @@ Uma Cena tem definições (cada uma com a sua Topology; a 0 é a raiz do modelo)
 definição ativa (`cena.topo`); `entrar` e `sair` mudam qual é.
 """
 from dataclasses import dataclass, field
-from itertools import count
 from typing import Dict, Iterable, List, Optional, Sequence, Set
 
-from core.topology.model import Face, Point, Topology
+from core.topology.model import Contador, Face, Point, Topology
 
 IDENTIDADE = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
 
@@ -39,7 +38,7 @@ class Cena:
         self.nomes: Dict[int, str] = {0: "Modelo"}
         self.instancias: Dict[int, Instancia] = {}
         self.caminho: List[int] = []  # instâncias por onde se entrou (vazio = raiz)
-        self._def, self._inst = count(1), count(1)
+        self._def, self._inst = Contador(), Contador()
 
     # -- definição ativa -------------------------------------------------------------
 

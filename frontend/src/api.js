@@ -2544,3 +2544,11 @@ export function drawFollowMe(faceId, arestas) {
 export function drawIntersect(faces = null) {
   return postJson("/api/v1/draw/intersect", "POST", { faces });
 }
+
+export function drawUndo() {
+  return postJson("/api/v1/draw/undo", "POST", {});
+}
+
+export function drawRedo() {
+  return postJson("/api/v1/draw/redo", "POST", {});
+}

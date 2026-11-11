@@ -10,10 +10,24 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from itertools import count
 from typing import Dict, List, Optional, Sequence, Tuple
 
 Point = Tuple[float, float, float]
+
+
+class Contador:
+    """Contador de ids que se copia com copy.deepcopy (itertools.count perde isso no Python 3.14)."""
+
+    def __init__(self, inicio: int = 1) -> None:
+        self.proximo = inicio
+
+    def __iter__(self):
+        return self
+
+    def __next__(self) -> int:
+        v = self.proximo
+        self.proximo += 1
+        return v
 TOL = 1e-3
 
 
@@ -82,7 +96,7 @@ class Topology:
         self.verts: Dict[int, Point] = {}
         self.edges: Dict[int, Tuple[int, int]] = {}
         self.faces: Dict[int, Face] = {}
-        self._vid, self._eid, self._fid = count(1), count(1), count(1)
+        self._vid, self._eid, self._fid = Contador(), Contador(), Contador()
 
     # -- consulta ---------------------------------------------------------------
 

@@ -72,6 +72,19 @@ class TestDrawController(unittest.TestCase):
         with self.assertRaises(HTTPException):
             run(self.c.siga_me(FollowMeRequest(face_id=1, arestas=[])))
 
+    def test_desfazer_e_refazer(self):
+        run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
+        self.assertTrue(run(self.c.estado()).historico["pode_desfazer"])
+        e = run(self.c.desfazer())
+        self.assertEqual(e.counts, {"vertices": 0, "edges": 0, "faces": 0})
+        self.assertTrue(e.historico["pode_refazer"])
+        e = run(self.c.refazer())
+        self.assertEqual(e.counts["faces"], 1)
+        with self.assertRaises(HTTPException) as cm:
+            run(self.c.refazer())
+        self.assertEqual(cm.exception.status_code, 409)
+        self.assertEqual(run(self.c.historico())["log"][0]["operacao"], "desenhar:retangulo")
+
     def test_rotas_registradas(self):
         from app.main import app
         caminhos = {r.path for r in app.routes}
@@ -80,7 +93,7 @@ class TestDrawController(unittest.TestCase):
         self.assertIn("/api/v1/draw/pushpull", caminhos)
         self.assertIn("/api/v1/draw/edit", caminhos)
         self.assertIn("/api/v1/draw/offset", caminhos)
-        for r in ("followme", "intersect", "scene", "group", "instance", "explode", "enter", "exit"):
+        for r in ("undo", "redo", "history", "followme", "intersect", "scene", "group", "instance", "explode", "enter", "exit"):
             self.assertIn("/api/v1/draw/" + r, caminhos)
 
 

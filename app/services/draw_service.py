@@ -45,6 +45,15 @@ class DrawService:
     async def cena(self) -> dict:
         return await run_in_threadpool(self._repository.cena)
 
+    async def desfazer(self) -> dict:
+        return await run_in_threadpool(self._repository.desfazer)
+
+    async def refazer(self) -> dict:
+        return await run_in_threadpool(self._repository.refazer)
+
+    async def historico(self) -> dict:
+        return await run_in_threadpool(self._repository.historico)
+
     async def estado(self) -> dict:
         return await run_in_threadpool(self._repository.estado)
 

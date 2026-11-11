@@ -108,3 +108,10 @@ Limites: mover só uma aresta ou vértice de sólido é recusado (precisaria tri
 ## Status F5 (11/11/2026)
 Núcleo pronto: sweep.py (Siga-me, bate com a receita r14: V15 E20 F8 e áreas, caminho fechado não suportado), intersect.py (Intersect Faces: plano atravessando um cubo gera 12 faces; cobre faces dadas ou todas), cena.py (grupos, componentes com instâncias que compartilham a definição, entrar/sair, explodir, resumo). Rotas em /api/v1/draw: followme, intersect, group, instance, explode, enter, exit, scene. O estado de desenho agora é uma Cena e as ferramentas rodam na definição ativa.
 Front: botões Intersec. e Siga-me (usam a seleção). Falta no front: criar/entrar/sair de grupo e renderizar instâncias; transformação de instância só como dado (a malha das instâncias ainda não é desenhada). Intersect e grupos não têm receita golden do SketchUp; as contagens vêm de conta manual. Persistência da hierarquia no .skp depende do gravador. Sem teste no navegador.
+
+## Status F6 (11/11/2026)
+core/topology/historico.py: Historico guarda uma cópia da Cena antes de cada operação (limite de 100 passos), desfaz sozinho se a operação falhar, e tem log de operações. Teste do critério do plano: 7 operações (retângulo, Push/Pull, mover, escalar, círculo, offset, grupo) desfeitas uma a uma voltam ao estado inicial e refeitas chegam ao final idêntico. Rotas POST /api/v1/draw/undo, /redo e GET /history; todas as operações do /draw passam pelo histórico. Front: botões Desfazer e Refazer e Ctrl+Z, Ctrl+Y (restauram o estado inteiro). Contador de ids próprio (Contador) porque itertools.count deixa de ser copiável no Python 3.14.
+Limites: o histórico é em memória (some ao reiniciar o backend) e cada passo é uma cópia completa da Cena, sem delta, o que pesa em modelos grandes; navegar entre grupos não entra no histórico; cada segmento de Linha é um passo. Front sem teste no navegador.
+
+## Resumo das fases (11/11/2026)
+F0 a F6 prontas no núcleo (testes verdes). Pendentes: gravar a topologia no .skp (gravador), front completo de grupos, teste do front no navegador (F2 a F6), confirmar r05 no SketchUp real.

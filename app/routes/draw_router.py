@@ -73,6 +73,21 @@ async def sair(controller: DrawController = Depends(get_controller)) -> SceneSum
     return await controller.sair()
 
 
+@router.post("/undo", response_model=DrawStateResponse, summary="Desfaz a ultima operacao (devolve o estado completo)")
+async def desfazer(controller: DrawController = Depends(get_controller)) -> DrawStateResponse:
+    return await controller.desfazer()
+
+
+@router.post("/redo", response_model=DrawStateResponse, summary="Refaz a operacao desfeita (devolve o estado completo)")
+async def refazer(controller: DrawController = Depends(get_controller)) -> DrawStateResponse:
+    return await controller.refazer()
+
+
+@router.get("/history", summary="Passos para desfazer e refazer e o log de operacoes")
+async def historico(controller: DrawController = Depends(get_controller)) -> dict:
+    return await controller.historico()
+
+
 @router.get("/state", response_model=DrawStateResponse, summary="Estado completo da topologia de desenho")
 async def estado(controller: DrawController = Depends(get_controller)) -> DrawStateResponse:
     return await controller.estado()
