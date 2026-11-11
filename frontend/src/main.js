@@ -236,6 +236,7 @@ import { buildOutlinerTree } from "./outliner.js";
 import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
 import { InferenceEngine } from "./inferenceEngine.js?v=20261102_07";
 import { iniciarFerramentas } from "./ferramentas.js";
+import { iniciarModelagem } from "./modelagem.js";
 
 function sendBrowserLog(type, msg, extra = {}) {
   try {
@@ -2998,6 +2999,22 @@ setTimeout(() => {
     console.warn("Falha ao inicializar ferramentas CAD:", err);
   }
 }, 100);
+
+// F2: ferramentas de desenho sobre o nucleo de topologia (POST /api/v1/draw)
+setTimeout(() => {
+  try {
+    iniciarModelagem({
+      scene,
+      camera,
+      renderer,
+      getToolMode: () => toolMode,
+      setToolMode,
+      setStatus,
+    });
+  } catch (err) {
+    console.warn("Falha ao inicializar a modelagem:", err);
+  }
+}, 150);
 
 /** Abre um caminho a partir da Pagina Inicial (card de recente ou campo de
  * "Abrir arquivo") -- reusa o mesmo handleOpen() do painel principal. */

@@ -2510,3 +2510,17 @@ export function optimizeSheetNesting2D(parts, sheetWidthMm = 2750.0, sheetHeight
 }
 
 
+
+/** F2: desenho sobre o nucleo de topologia (polegadas, plano z=0 do SketchUp). */
+export function drawTool(body) {
+  return postJson("/api/v1/draw", "POST", body);
+}
+
+export function drawState() {
+  return getJson("/api/v1/draw/state");
+}
+
+export async function drawClear() {
+  const res = await fetch("/api/v1/draw", { method: "DELETE" });
+  if (!res.ok) throw new ApiError(res.statusText, res.status);
+}

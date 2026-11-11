@@ -1,0 +1,374 @@
+// F2 do plano de modelagem (docs/PLANO-MODELAGEM.md): Linha, Retângulo, Círculo,
+// Polígono, Arco e Mão livre que desenham no núcleo de topologia do backend
+// (POST /api/v1/draw). O backend devolve o delta de vértices/arestas/faces e
+// este módulo redesenha a geometria. Plano de desenho: chão (z=0 do SketchUp).
+//
+// Unidades: o viewport usa metros e o núcleo usa polegadas. Eixos: three (x, y, z)
+// equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
+
+import * as THREE from "three";
+import { drawTool, drawState, drawClear } from "./api.js";
+
+const POL = 39.37007874015748; // polegadas por metro
+const PASSO = 0.01; // 1 cm
+const SNAP_PX = 12;
+
+const FERRAMENTAS = [
+  ["linha", "Linha (modelagem)", '<line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="1.4" fill="currentColor"/><circle cx="19" cy="5" r="1.4" fill="currentColor"/>'],
+  ["retangulo", "Retângulo (modelagem)", '<rect x="5" y="7" width="14" height="10"/>'],
+  ["circulo", "Círculo (modelagem)", '<circle cx="12" cy="12" r="8"/>'],
+  ["poligono", "Polígono (modelagem)", '<path d="M12 4l7 5-3 9H8L5 9z"/>'],
+  ["arco", "Arco (modelagem)", '<path d="M4 18c2-9 14-9 16 0"/>'],
+  ["mao_livre", "Mão livre (modelagem)", '<path d="M4 16c3-8 5 4 8-3s5 3 8-4"/>'],
+];
+
+const DICA = {
+  linha: "Linha: clique os pontos. Enter, duplo clique ou Esc termina.",
+  retangulo: "Retângulo: clique no primeiro canto e no canto oposto.",
+  circulo: "Círculo: clique no centro e depois no raio.",
+  poligono: "Polígono: clique no centro e depois num vértice (lados no campo ao lado).",
+  arco: "Arco: clique no centro, no início e no fim (anti-horário).",
+  mao_livre: "Mão livre: segure o botão e arraste.",
+};
+
+const toSku = (p) => [p.x * POL, -p.z * POL, p.y * POL];
+const fromSku = ([x, y, z]) => new THREE.Vector3(x / POL, z / POL, -y / POL);
+
+export function iniciarModelagem({ scene, camera, renderer, getToolMode, setToolMode, setStatus }) {
+  const grupo = new THREE.Group();
+  grupo.name = "modelagem";
+  scene.add(grupo);
+  const previa = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0x2255cc }));
+  previa.visible = false;
+  previa.renderOrder = 6;
+  previa.frustumCulled = false;
+  scene.add(previa);
+
+  const estado = { vertices: new Map(), edges: new Map(), faces: new Map() };
+  let ferramenta = null;
+  let pontos = []; // pontos já fixados da ação em andamento (coordenadas three)
+  let livre = null; // trilha da mão livre
+  let lados = 6;
+  const chao = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const ray = new THREE.Raycaster();
+
+  // -- barra de ferramentas --------------------------------------------------
+  const barra = document.getElementById("tools-toolbar");
+  const botoes = new Map();
+  if (barra) {
+    const g = document.createElement("div");
+    g.className = "toolbar-group";
+    g.title = "Modelagem sobre o núcleo de topologia (F2)";
+    for (const [id, titulo, svg] of FERRAMENTAS) {
+      const b = document.createElement("button");
+      b.className = "toolbar-btn tool-icon-btn";
+      b.title = titulo;
+      b.setAttribute("aria-label", titulo);
+      b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${svg}</svg>`;
+      b.addEventListener("click", () => ativar(id));
+      botoes.set(id, b);
+      g.appendChild(b);
+    }
+    const n = document.createElement("input");
+    n.type = "number";
+    n.min = "3";
+    n.max = "64";
+    n.value = String(lados);
+    n.title = "Lados do polígono";
+    n.style.cssText = "width:44px;margin-left:4px";
+    n.addEventListener("change", () => {
+      lados = Math.max(3, Math.min(64, parseInt(n.value, 10) || 6));
+    });
+    g.appendChild(n);
+    const l = document.createElement("button");
+    l.className = "toolbar-btn";
+    l.textContent = "Limpar";
+    l.title = "Zera o desenho do núcleo de topologia";
+    l.addEventListener("click", async () => {
+      try {
+        await drawClear();
+      } catch (err) {
+        setStatus(`Erro ao zerar: ${err?.message ?? err}`, true);
+        return;
+      }
+      estado.vertices.clear();
+      estado.edges.clear();
+      estado.faces.clear();
+      redesenhar();
+      setStatus("Desenho de modelagem zerado.");
+    });
+    g.appendChild(l);
+    barra.appendChild(g);
+  }
+
+  function ativar(id) {
+    ferramenta = id;
+    terminar();
+    setToolMode("modelar");
+    setStatus(DICA[id]);
+    sincronizar();
+  }
+
+  function sincronizar() {
+    const viva = getToolMode() === "modelar";
+    if (!viva && (pontos.length || livre)) terminar();
+    for (const [id, b] of botoes) b.classList.toggle("active", viva && id === ferramenta);
+  }
+  setInterval(sincronizar, 300);
+
+  // -- ponto sob o mouse (chão + encaixe em vértices existentes) -------------
+  function pontoDe(event) {
+    const r = renderer.domElement.getBoundingClientRect();
+    const nx = ((event.clientX - r.left) / r.width) * 2 - 1;
+    const ny = -((event.clientY - r.top) / r.height) * 2 + 1;
+    ray.setFromCamera({ x: nx, y: ny }, camera);
+    let melhor = null;
+    let dist = SNAP_PX;
+    for (const v of estado.vertices.values()) {
+      const w = fromSku(v);
+      const s = w.clone().project(camera);
+      const d = Math.hypot(((s.x - nx) * r.width) / 2, ((s.y - ny) * r.height) / 2);
+      if (d < dist) {
+        dist = d;
+        melhor = w;
+      }
+    }
+    if (melhor) return melhor;
+    const alvo = new THREE.Vector3();
+    if (!ray.ray.intersectPlane(chao, alvo)) return null;
+    alvo.x = Math.round(alvo.x / PASSO) * PASSO;
+    alvo.z = Math.round(alvo.z / PASSO) * PASSO;
+    alvo.y = 0;
+    return alvo;
+  }
+
+  // -- envio e redesenho ------------------------------------------------------
+  async function enviar(corpo) {
+    try {
+      const r = await drawTool(corpo);
+      aplicar(r);
+      const c = r.counts;
+      setStatus(`${c.vertices} vértices, ${c.edges} arestas, ${c.faces} faces.`);
+    } catch (err) {
+      setStatus(`Erro ao desenhar: ${err?.message ?? err}`, true);
+    }
+  }
+
+  function aplicar(delta) {
+    for (const [k, mapa] of [["vertices", estado.vertices], ["edges", estado.edges], ["faces", estado.faces]]) {
+      const d = delta[k];
+      for (const id of d.removed) mapa.delete(String(id));
+      for (const [id, v] of Object.entries({ ...d.added, ...d.changed })) mapa.set(id, v);
+    }
+    redesenhar();
+  }
+
+  // face no delta: [outer, holes] (tupla do Python); no estado completo: {outer, holes}
+  const lacos = (f) => (Array.isArray(f) ? [f[0], ...f[1]] : [f.outer, ...f.holes]);
+
+  function triangular(f) {
+    const faltando = lacos(f).some((lp) => lp.some((id) => !estado.vertices.has(String(id))));
+    if (faltando) return null;
+    const [externo, ...furos] = lacos(f).map((lp) => lp.map((id) => fromSku(estado.vertices.get(String(id)))));
+    if (externo.length < 3) return null;
+    const n = new THREE.Vector3();
+    for (let i = 0; i < externo.length; i++) {
+      const a = externo[i];
+      const b = externo[(i + 1) % externo.length];
+      n.x += (a.y - b.y) * (a.z + b.z);
+      n.y += (a.z - b.z) * (a.x + b.x);
+      n.z += (a.x - b.x) * (a.y + b.y);
+    }
+    n.normalize();
+    const u = Math.abs(n.y) < 0.9 ? new THREE.Vector3(0, 1, 0).cross(n).normalize() : new THREE.Vector3(1, 0, 0);
+    const v = n.clone().cross(u);
+    const p2 = (p) => new THREE.Vector2(p.dot(u), p.dot(v));
+    const tri = THREE.ShapeUtils.triangulateShape(externo.map(p2), furos.map((h) => h.map(p2)));
+    const todos = [...externo, ...furos.flat()];
+    const pos = [];
+    for (const t of tri) for (const i of t) pos.push(todos[i].x, todos[i].y, todos[i].z);
+    return pos;
+  }
+
+  function redesenhar() {
+    grupo.children.slice().forEach((o) => {
+      o.geometry?.dispose();
+      grupo.remove(o);
+    });
+    const seg = [];
+    for (const [a, b] of estado.edges.values()) {
+      const pa = estado.vertices.get(String(a));
+      const pb = estado.vertices.get(String(b));
+      if (!pa || !pb) continue;
+      seg.push(fromSku(pa), fromSku(pb));
+    }
+    if (seg.length) {
+      const l = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seg), new THREE.LineBasicMaterial({ color: 0x111111 }));
+      l.renderOrder = 5;
+      l.frustumCulled = false;
+      grupo.add(l);
+    }
+    const pos = [];
+    for (const f of estado.faces.values()) pos.push(...(triangular(f) ?? []));
+    if (pos.length) {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.computeVertexNormals();
+      const m = new THREE.Mesh(
+        g,
+        new THREE.MeshStandardMaterial({ color: 0xdfdfdb, roughness: 0.8, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 })
+      );
+      m.frustumCulled = false;
+      grupo.add(m);
+    }
+  }
+
+  // -- geometria da prévia (espelha as regras do backend) ---------------------
+  const arcoPontos = (c, r, a0, a1, n) =>
+    Array.from({ length: n + 1 }, (_, i) => {
+      const a = a0 + ((a1 - a0) * i) / n;
+      return new THREE.Vector3(c.x + r * Math.cos(a), 0, c.z - r * Math.sin(a));
+    });
+  const angulo = (c, p) => Math.atan2(-(p.z - c.z), p.x - c.x); // anti-horário visto de cima (eixo y do SketchUp)
+  const graus = (r) => (r * 180) / Math.PI;
+
+  function previaPontos(p) {
+    const [a, b] = pontos;
+    if (ferramenta === "linha") return [...pontos, p];
+    if (ferramenta === "retangulo") return [a, new THREE.Vector3(p.x, 0, a.z), p, new THREE.Vector3(a.x, 0, p.z), a];
+    if (ferramenta === "circulo") return arcoPontos(a, a.distanceTo(p), 0, Math.PI * 2, 24);
+    if (ferramenta === "poligono") return arcoPontos(a, a.distanceTo(p), 0, Math.PI * 2, lados);
+    if (ferramenta === "arco") {
+      if (pontos.length === 1) return [a, p];
+      const ini = angulo(a, b);
+      let fim = angulo(a, p);
+      if (fim <= ini) fim += Math.PI * 2;
+      return [a, ...arcoPontos(a, a.distanceTo(b), ini, fim, 12), a];
+    }
+    return null;
+  }
+
+  function mostrarPrevia(pts) {
+    previa.geometry.dispose();
+    previa.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+    previa.visible = true;
+  }
+
+  function mover(event) {
+    if (getToolMode() !== "modelar" || !ferramenta) return;
+    const p = pontoDe(event);
+    if (!p) return;
+    if (ferramenta === "mao_livre") {
+      if (livre) {
+        if (livre[livre.length - 1].distanceTo(p) >= 0.02) livre.push(p);
+        if (livre.length > 1) mostrarPrevia(livre);
+      }
+      return;
+    }
+    if (!pontos.length) return;
+    const pts = previaPontos(p);
+    if (pts) mostrarPrevia(pts);
+  }
+
+  async function clicar(event) {
+    const p = pontoDe(event);
+    if (!p) return;
+    if (ferramenta === "linha") {
+      if (pontos.length) await enviar({ ferramenta: "linha", pontos: [toSku(pontos[pontos.length - 1]), toSku(p)] });
+      pontos.push(p);
+      return;
+    }
+    pontos.push(p);
+    const [a, b, c] = pontos;
+    if (ferramenta === "retangulo" && pontos.length === 2) {
+      await enviar({ ferramenta: "retangulo", p0: toSku(a), p1: toSku(b) });
+      terminar();
+    } else if ((ferramenta === "circulo" || ferramenta === "poligono") && pontos.length === 2) {
+      const raio = a.distanceTo(b) * POL;
+      if (raio > 0) {
+        await enviar(
+          ferramenta === "circulo" ? { ferramenta, centro: toSku(a), raio } : { ferramenta, centro: toSku(a), raio, lados }
+        );
+      }
+      terminar();
+    } else if (ferramenta === "arco" && pontos.length === 3) {
+      const ini = graus(angulo(a, b));
+      let fim = graus(angulo(a, c));
+      if (fim <= ini) fim += 360;
+      await enviar({
+        ferramenta: "arco",
+        centro: toSku(a),
+        raio: a.distanceTo(b) * POL,
+        ang_ini: ini,
+        ang_fim: fim,
+        lados: Math.max(3, Math.ceil((fim - ini) / 7.5)),
+      });
+      terminar();
+    }
+  }
+
+  function terminar() {
+    pontos = [];
+    livre = null;
+    previa.visible = false;
+  }
+
+  const el = renderer.domElement;
+  // fase de captura: com a modelagem ativa, o clique não chega à seleção do app
+  el.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (getToolMode() !== "modelar" || e.button !== 0) return;
+      if (ferramenta === "mao_livre") {
+        const p = pontoDe(e);
+        if (p) livre = [p];
+      }
+    },
+    true
+  );
+  el.addEventListener(
+    "pointerup",
+    async (e) => {
+      if (getToolMode() !== "modelar" || e.button !== 0) return;
+      if (ferramenta === "mao_livre") {
+        const trilha = livre;
+        terminar();
+        if (trilha && trilha.length >= 2) await enviar({ ferramenta: "mao_livre", pontos: trilha.map(toSku) });
+        return;
+      }
+      await clicar(e);
+    },
+    true
+  );
+  el.addEventListener(
+    "click",
+    (e) => {
+      if (getToolMode() === "modelar") e.stopImmediatePropagation();
+    },
+    true
+  );
+  el.addEventListener(
+    "dblclick",
+    () => {
+      if (getToolMode() === "modelar" && ferramenta === "linha") terminar();
+    },
+    true
+  );
+  el.addEventListener("pointermove", mover);
+  window.addEventListener("keydown", (e) => {
+    if (getToolMode() !== "modelar") return;
+    if (e.key === "Escape" || e.key === "Enter") terminar();
+  });
+
+  // reaproveita o desenho que o backend ainda guarda (F5 na página)
+  drawState()
+    .then((s) => {
+      for (const [k, mapa] of [["vertices", estado.vertices], ["edges", estado.edges], ["faces", estado.faces]]) {
+        for (const [id, v] of Object.entries(s[k])) mapa.set(id, v);
+      }
+      redesenhar();
+    })
+    .catch(() => {});
+
+  return { ativar, estado };
+}
