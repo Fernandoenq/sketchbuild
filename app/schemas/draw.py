@@ -1,0 +1,43 @@
+"""Schemas das rotas de desenho (F2). Unidade: polegadas, como o núcleo de topologia."""
+from __future__ import annotations
+
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field
+
+Ponto = tuple[float, float, float]
+
+
+class DrawRequest(BaseModel):
+    ferramenta: Literal["linha", "retangulo", "circulo", "poligono", "arco", "mao_livre"]
+    pontos: list[Ponto] | None = None  # linha, mao_livre
+    p0: Ponto | None = None  # retangulo
+    p1: Ponto | None = None
+    centro: Ponto | None = None  # circulo, poligono, arco
+    raio: float | None = Field(default=None, gt=0)
+    normal: Ponto = (0.0, 0.0, 1.0)
+    lados: int | None = Field(default=None, ge=3, le=360)
+    circunscrito: bool | None = None
+    ang_ini: float | None = None
+    ang_fim: float | None = None
+    fechar: bool | None = None
+
+
+class DrawDelta(BaseModel):
+    added: dict[str, Any]
+    changed: dict[str, Any]
+    removed: list[int]
+
+
+class DrawResponse(BaseModel):
+    vertices: DrawDelta
+    edges: DrawDelta
+    faces: DrawDelta
+    counts: dict[str, int]
+
+
+class DrawStateResponse(BaseModel):
+    vertices: dict[str, Any]
+    edges: dict[str, Any]
+    faces: dict[str, Any]
+    counts: dict[str, int]

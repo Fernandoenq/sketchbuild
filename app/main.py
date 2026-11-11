@@ -29,7 +29,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.exception_handlers import register_exception_handlers
-from app.routes import health_router, model_router, recent_files_router, scene_router
+from app.routes import health_router, model_router, recent_files_router, scene_router, draw_router
 
 app = FastAPI(title=settings.api_title)
 
@@ -48,6 +48,7 @@ async def no_cache_dev_middleware(request: Request, call_next):
 app.include_router(health_router.router)
 app.include_router(model_router.router, prefix=settings.api_prefix)
 app.include_router(scene_router.router, prefix=settings.api_prefix)
+app.include_router(draw_router.router, prefix=settings.api_prefix)
 app.include_router(recent_files_router.router, prefix=settings.api_prefix)
 
 @app.post("/api/v1/debug-log")

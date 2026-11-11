@@ -90,3 +90,7 @@ tags do `model.dat` que nós (confirmação independente). Seu escritor produz s
 legado MFC, costurando entidades num arquivo em branco gerado pelo SDK. Útil como oráculo e
 como referência de guias, cotas, grupos e formato legado. Licença MIT: se algum trecho for
 reaproveitado, manter o aviso de copyright.
+
+## Status F2 (11/11/2026)
+Núcleo pronto: `core/topology/draw.py` (linha, retângulo, círculo 24 lados, polígono inscrito/circunscrito, arco, mão livre) devolve o delta de V/E/F. Rotas `POST /api/v1/draw`, `GET /api/v1/draw/state`, `DELETE /api/v1/draw` (estado em memória). Testes `test_topology_draw.py` batem com r01, r02, r03, r09, r10, r13 e r06; `test_draw_api.py` cobre as camadas.
+Pendente: ligar o front (ferramentas do canvas chamando `/draw`), gravar a topologia no `.skp` (gravador), e conferir a regra de linha que cruza uma face vinda de fora (a API do SketchUp não divide em X; o app gráfico divide).
