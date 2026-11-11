@@ -2790,3 +2790,34 @@ Consolidação da sétima rodada de implementação das ferramentas nativas ofic
 - **Módulo Core:** `core/sheet_nesting_2d_engine.py` (`SheetNesting2DEngine`).
 - **Endpoint FastAPI:** `POST /api/v1/scene/tools/sheet-nesting-2d`.
 
+## 186. Visibilidade no `model.dat`: o que é "oculto" de verdade
+
+Estudo em modelos reais de 340 MB e 1,4 GB descompactado, conferido contra o SketchUp 2026 (Ruby) com contagens idênticas.
+
+### 186.1 Byte de flags (tag `0x07d3`, 1 byte)
+Fica logo depois do EntityID (`0x05de`) em instâncias, arestas e faces (no OpenSKP é `D307`, mesmo registro).
+
+| Bit | Significado | Onde |
+|---|---|---|
+| `0x01` | oculto | instância, aresta, face |
+| `0x08` | aresta suave (soft) | aresta |
+| `0x10` | aresta lisa (smooth) | aresta |
+| `0x20` | travada (locked) | instância |
+
+Base `0x06`: visível = `06`; oculto = `07`; aresta suave e lisa = `1e` (oculta = `1f`); só suave = `0e`.
+O ID da entidade tem 1 a 4 bytes: ao varrer arestas, casar `0x0bb9` com tamanho 1 a 4 seguido de `0x0bba` (tamanho fixo 4 subconta).
+
+### 186.2 O flag só marca o que foi escondido diretamente
+Ocultar um grupo ou componente grava o flag **na instância**; as arestas e faces dentro dela não ganham flag. Contar por entidade subestima muito: num modelo de teste só 199 de 3,45 M arestas tinham o bit, mas a visibilidade efetiva dava 71% das arestas e 72% das faces escondidas. A conta certa percorre a árvore de instâncias, soma com multiplicidade (cada uso conta) e herda o oculto de qualquer ancestral oculto ou em tag invisível.
+
+### 186.3 Outras fontes de oculto
+- **Tag (camada) invisível:** `0x3c8e` = 1 em `0x3c8c`/`0x3c8d` esconde tudo o que a usa.
+- **Cenas:** no OpenSKP, cada página (`0x7148`) lista camadas ocultas em `0x7150` (comprimento + id em var-int).
+- **Guias** (`0x6842` > `D007`): linhas e pontos de construção usam o mesmo `D307`; modelos grandes trazem dezenas de milhares de pontos de guia ocultos.
+- **Componentes dinâmicos:** `_hidden_formula` nos atributos (ex.: `if(Parent!Modelo=2,0,1)`) pode esconder peças na exibição.
+
+### 186.4 Plano da face (`0x0dad`)
+Tem 32 bytes: A, B, C, D do plano. O OpenSKP lê só os 24 primeiros bytes como normal (`AD0D`), o que é compatível.
+
+### 186.5 Script de conferência
+`ruby_bridge/contar_ocultos.rb` abre uma **cópia** do .skp escolhido e conta visíveis e ocultos (por entidade e efetivo), somente leitura.
