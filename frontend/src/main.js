@@ -761,8 +761,6 @@ function updateEntityInfoDisplay(mesh) {
 
 function selectMesh(mesh) {
   if (selectedMesh === mesh) return;
-  // Edição colaborativa (src/aovivo.js): item em edição por outra pessoa não se seleciona
-  if (window.sketchbuild?.aoVivo?.barrar(mesh.name)) return;
   selectedMesh = mesh;
   // o mesh foi montado com matrixAutoUpdate=false e matriz composta
   // direto (ver sceneBuilder.js) -- o TransformControls le/escreve via
@@ -2941,7 +2939,7 @@ window.sketchbuild = {
   selectMesh,
   startWalk: handleStartWalk,
   getGroup: () => currentGroup,
-  // Edição colaborativa ao vivo (src/aovivo.js)
+  // Seleção e estado de arrasto expostos para as ferramentas
   selectInstanceById,
   arrastando: () => !!transformControls.dragging,
   selecionadoId: () => selectedMesh?.name ?? null,
@@ -3616,8 +3614,8 @@ function createVisualPolygonFace(points) {
 async function handleExportCutlist() {
   const currentPath = savePathInputEl ? savePathInputEl.value.trim() : "";
   const defaultTarget = currentPath
-    ? currentPath.replace(/\.skp$/i, "_lista_corte_empresa.xlsx")
-    : "C:\\Users\\Fernando\\Desktop\\lista_corte_empresa.xlsx";
+    ? currentPath.replace(/\.skp$/i, "_lista_corte.xlsx")
+    : "C:\\Users\\Fernando\\Desktop\\lista_corte.xlsx";
 
   const targetPath = prompt("Informe o caminho de destino para a planilha Excel (.xlsx):", defaultTarget);
   if (!targetPath || !targetPath.trim()) return;
@@ -3857,7 +3855,7 @@ async function handleExportDrawing2D() {
   const currentPath = savePathInputEl ? savePathInputEl.value.trim() : "";
   const defaultTarget = currentPath
     ? currentPath.replace(/\.skp$/i, "_planta_baixa.svg")
-    : "C:\\Users\\Fernando\\Desktop\\planta_baixa_empresa.svg";
+    : "C:\\Users\\Fernando\\Desktop\\planta_baixa.svg";
 
   const targetPath = prompt("Informe o caminho para salvar o Desenho Técnico Vetorial (.svg):", defaultTarget);
   if (!targetPath || !targetPath.trim()) return;
@@ -4005,7 +4003,7 @@ async function handleExportExecutivePdf() {
       "Playground Modelo NBR 16071",
       "Eng. Responsável",
       "Cliente / Prefeitura",
-      "proposta_executiva_empresa.pdf"
+      "proposta_executiva.pdf"
     );
     setStatus(`Proposta Executiva PDF exportada com sucesso: ${res.file_path} (${(res.size_bytes / 1024).toFixed(1)} KB)`);
   } catch (err) {
@@ -4147,7 +4145,7 @@ async function handleExportCamDxf() {
         ]
       }
     ];
-    const res = await exportCamDxf(parts, "pecas_cnc_empresa.dxf");
+    const res = await exportCamDxf(parts, "pecas_cnc.dxf");
     setStatus(`Arquivo DXF para CNC exportado com sucesso: ${res.file_path} (${res.size_bytes} bytes).`);
   } catch (err) {
     setStatus(`Erro ao exportar DXF CAM: ${err.message}`, true);
@@ -4302,7 +4300,7 @@ async function handleCargoLoad() {
 async function handleExportTechnicalSketch() {
   setStatus("Gerando prancha de esboço arquitetônico com overshoot em SVG...");
   try {
-    const res = await generateTechnicalSketch(25.0, 8.0, "esboco_arquitetura_empresa.svg");
+    const res = await generateTechnicalSketch(25.0, 8.0, "esboco_arquitetura.svg");
     setStatus(`Prancha de esboço arquitetônico gerada: ${res.file_path} (${res.size_bytes} bytes, ${res.sharp_edges_count} arestas).`);
   } catch (err) {
     setStatus(`Erro ao gerar esboço arquitetônico: ${err.message}`, true);
@@ -6127,7 +6125,7 @@ document.getElementById("btn-native-match-photo")?.addEventListener("click", asy
 document.getElementById("btn-native-watermark")?.addEventListener("click", async () => {
   setStatus("Configurando marca d'água no viewport...");
   try {
-    const res = await watermarkStyleConfigure("Selo Homologação Empresa", "/static/logo.png", "overlay", "screen_position", "bottom-right", 85.0);
+    const res = await watermarkStyleConfigure("Selo Homologação", "/static/logo.png", "overlay", "screen_position", "bottom-right", 85.0);
     if (res?.watermark_config) {
       const wm = res.watermark_config;
 

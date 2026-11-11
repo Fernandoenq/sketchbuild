@@ -194,7 +194,7 @@ def _collect_definition(
     if def_id in definitions:
         return
     # Cache de malha por definicao (so quando quem chamou passou um, ex.: a
-    # Biblioteca Empresa inserindo brinquedo): triangular de novo um brinquedo
+    # inserção de componente de arquivo): triangular de novo um componente
     # que nao mudou levava segundos a cada insercao. A chave inclui o numero
     # de faces, entao uma definicao editada (empurrar/puxar etc.) e refeita.
     cache = _MESH_CACHE

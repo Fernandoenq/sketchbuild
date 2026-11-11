@@ -1314,7 +1314,7 @@ class SkpEngineRepository:
         }
 
     def export_cutlist_xlsx(self, file_path: str) -> dict:
-        """Exporta Lista de Corte e Orçamento industrial Empresa em planilha Excel .xlsx (Frente 23 - Zero DLL)."""
+        """Exporta Lista de Corte e Orçamento industrial em planilha Excel .xlsx (Frente 23 - Zero DLL)."""
         from core.cutlist_exporter import CutlistExporter
         bim_report = self.calculate_bim_bom()
         res = CutlistExporter.export_xlsx(bim_report, file_path)
@@ -1330,7 +1330,7 @@ class SkpEngineRepository:
         raise SceneSessionError("nenhuma sessão binária ativa")
 
     def add_cylinder_geometry(self, radius_m: float, height_m: float, center_xyz_m: list, num_segments: int = 16) -> dict:
-        """Cria um Cilindro 3D Manifold paramétrico (Postes/Tubos Empresa) no modelo aberto (Frente 14 - Zero DLL)."""
+        """Cria um Cilindro 3D Manifold paramétrico (Postes/Tubos) no modelo aberto (Frente 14 - Zero DLL)."""
         bin_s = SkpBinaryWriter.get_session()
         if bin_s is not None:
             res = SkpBinaryWriter.add_cylinder(radius_m, height_m, tuple(center_xyz_m), num_segments=num_segments)
@@ -3997,20 +3997,3 @@ class SkpEngineRepository:
             trim_margin_mm=trim,
             saw_kerf_mm=saw_kerf,
         )
-
-
-# Motor D: no Linux/Mac ou com SKETCHBUILD_MOTOR=d, opera em Pure Python sem DLL
-from app.repositories import motor_d as _motor_d  # noqa: E402
-
-if _motor_d.ativo():
-    _SkpEngineRepositorySDK = SkpEngineRepository
-
-    class SkpEngineRepository(_motor_d.MotorD, _SkpEngineRepositorySDK):  # type: ignore[no-redef]
-        pass
-
-
-
-
-
-
-

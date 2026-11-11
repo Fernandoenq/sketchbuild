@@ -125,7 +125,7 @@ class ExecutivePdfExporter:
 
         draw_text(45.0, 490.0, "Escala Indicativa: 1:50 | Cotas em Centímetros (cm) | Projeção Ortográfica B-Rep", font="/F1", size=7.0)
 
-        # --- SEÇÃO 2: QUANTITATIVO E COMPOSIÇÃO DE CUSTOS (CATÁLOGO EMPRESA) ---
+        # --- SEÇÃO 2: QUANTITATIVO E COMPOSIÇÃO DE CUSTOS (CATÁLOGO) ---
         set_fill_color(0.12, 0.45, 0.70)
         draw_text(35.0, 460.0, "2. QUANTITATIVO DE MATERIAIS E COMPOSIÇÃO DE INVESTIMENTO", font="/F2", size=10.0)
 
@@ -147,7 +147,7 @@ class ExecutivePdfExporter:
         # Categorização simples das instâncias
         items_summary = {}
         for inst in instances:
-            name = inst.get('name') or inst.get('definition', 'Módulo Estrutural Empresa')
+            name = inst.get('name') or inst.get('definition', 'Módulo Estrutural')
             items_summary[name] = items_summary.get(name, 0) + 1
 
         if not items_summary:

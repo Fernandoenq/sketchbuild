@@ -633,7 +633,7 @@ export function applyBooleanOperation(operation, mainShape, toolShape) {
 }
 
 /** Exporta proposta executiva e prancha técnica em PDF (Frente 29). */
-export function exportExecutivePdf(projectName = "Parque Infantil", author = "Eng. Responsável", clientName = "Cliente Final", outputFilename = "proposta_executiva_empresa.pdf") {
+export function exportExecutivePdf(projectName = "Parque Infantil", author = "Eng. Responsável", clientName = "Cliente Final", outputFilename = "proposta_executiva.pdf") {
   return postJson("/api/v1/scene/export/executive-pdf", "POST", {
     project_name: projectName,
     author: author,
@@ -1910,7 +1910,7 @@ export function matchPhotoCalibrate(imageWidthPx = 1920, imageHeightPx = 1080, r
   });
 }
 
-export function watermarkStyleConfigure(name = "Selo Oficial", imageUrl = "/static/watermarks/empresa_stamp.png", layer = "overlay", placement = "screen_position", anchor = "bottom-right", opacityPct = 85.0) {
+export function watermarkStyleConfigure(name = "Selo Oficial", imageUrl = "/static/watermarks/selo.png", layer = "overlay", placement = "screen_position", anchor = "bottom-right", opacityPct = 85.0) {
   return postJson("/api/v1/scene/styles/watermark", "POST", {
     name: name,
     image_url: imageUrl,

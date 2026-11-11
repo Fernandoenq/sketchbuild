@@ -67,7 +67,7 @@ class ArtReportGenerator:
         text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 698 Td (Nome do Responsável Técnico: {prof_name}) Tj ET")
         text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 678 Td (Registro Profissional: {crea_cau}   |   RNP: {rnp}) Tj ET")
         text_stream.append("BT /F2 10 Tf 0.15 0.15 0.15 rg 50 658 Td (Atribuição Técnica: Projeto Mecânico, Estrutural e Fabricação de Equipamentos de Recreio) Tj ET")
-        text_stream.append("BT /F2 10 Tf 0.15 0.15 0.15 rg 50 638 Td (Empresa Contratada / Fabricante: Empresa Fabricante em Madeira Ltda.) Tj ET")
+        text_stream.append("BT /F2 10 Tf 0.15 0.15 0.15 rg 50 638 Td (Empresa Contratada / Fabricante: Fabricante Ltda.) Tj ET")
 
         # Quadro 2 - Dados da Obra e Contratante
         text_stream.append("BT /F1 11 Tf 0.1 0.2 0.3 rg 50 578 Td (2. DADOS DO CONTRATANTE E LOCAL DA OBRA) Tj ET")

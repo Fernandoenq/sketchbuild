@@ -162,7 +162,7 @@ function colorMaterial(rgb, cache) {
 }
 
 // Geometrias ja montadas, por definicao. So sao reaproveitadas quando quem
-// chama pede (reuseGeometries: inserir brinquedo da Biblioteca Empresa, em
+// chama pede (reuseGeometries: inserir componente de arquivo, em
 // que o backend devolve sem vertices o que o navegador ja tem). Qualquer
 // cena completa recomeca o cache (os ids sao ponteiros da sessao).
 let geometryCache = new Map();

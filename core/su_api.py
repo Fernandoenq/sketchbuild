@@ -543,7 +543,7 @@ class SketchUpAPI:
         dll.SUMaterialGetColor.argtypes = [SUMaterialRef, ctypes.POINTER(SUColor)]
         dll.SUMaterialGetColor.restype = ctypes.c_int
 
-        # Biblioteca Empresa (inserir um .skp como componente):
+        # Inserir um .skp como componente:
         # SU_RESULT SUModelLoadDefinitionWithStatus(SUModelRef model, const char* filename,
         #     SUComponentDefinitionRef* definition, enum SUModelLoadStatus* status);
         # SU_RESULT SUComponentDefinitionCreateInstance(SUComponentDefinitionRef comp_def,
@@ -1183,10 +1183,10 @@ class SketchUpAPI:
         """Carrega um .skp inteiro como componente e coloca uma instancia
         dele em `entities` -- equivalente do "Arquivo > Importar" /
         arrastar da biblioteca de Componentes do SketchUp. Usado pela
-        Biblioteca Empresa (brinquedo da fabricante entra no projeto).
+        Insere um .skp como componente no projeto.
         `transform` e a matriz 4x4 local (polegadas na translacao)."""
         dll = self._dll
-        # Empresa: o mesmo arquivo colocado de novo reaproveita a definicao ja
+        # o mesmo arquivo colocado de novo reaproveita a definicao ja
         # carregada (bem mais rapido) e a definicao ganha o NOME DO ARQUIVO --
         # sem isso ela vem com o nome de dentro do .skp ("Scandere#1", "Exp_75")
         # e o orcamento nao acha o item da biblioteca.
@@ -1850,7 +1850,7 @@ class SketchUpAPI:
     # -- modelo ------------------------------------------------------------
 
     def create_blank_model(self) -> "SketchUpModel":
-        """Modelo vazio (SUModelCreate) -- base do "Novo espaco" da Empresa,
+        """Modelo vazio (SUModelCreate) -- base de um "Novo espaco" em branco,
         sem depender dos templates do SketchUp Desktop instalado."""
         self._dll.SUModelCreate.argtypes = [ctypes.POINTER(SUModelRef)]
         self._dll.SUModelCreate.restype = ctypes.c_int

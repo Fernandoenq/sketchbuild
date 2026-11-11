@@ -199,7 +199,7 @@ class TechnicalDrawingExporter:
         svg.append(f'    <line x1="0" y1="36" x2="{stamp_w}" y2="36" stroke="#1B365D" stroke-width="1.5"/>')
         svg.append(f'    <line x1="0" y1="84" x2="{stamp_w}" y2="84" stroke="#1B365D" stroke-width="1"/>')
         svg.append(f'    <line x1="200" y1="36" x2="200" y2="{stamp_h}" stroke="#1B365D" stroke-width="1"/>')
-        svg.append('    <text x="12" y="24" font-family="Segoe UI, Arial" font-size="14" font-weight="bold" fill="#1B365D">EMPRESA &bull; ENGENHARIA DE PLAYGROUNDS</text>')
+        svg.append('    <text x="12" y="24" font-family="Segoe UI, Arial" font-size="14" font-weight="bold" fill="#1B365D">ENGENHARIA DE PLAYGROUNDS</text>')
         svg.append(f'    <text x="12" y="52" font-family="Segoe UI, Arial" font-size="10" fill="#718096">PROJETO / MODELO</text>')
         svg.append(f'    <text x="12" y="68" font-family="Segoe UI, Arial" font-size="12" font-weight="bold" fill="#1B365D">{title[:25]}</text>')
         svg.append(f'    <text x="12" y="100" font-family="Segoe UI, Arial" font-size="10" fill="#718096">RESPONSÁVEL TÉCNICO</text>')

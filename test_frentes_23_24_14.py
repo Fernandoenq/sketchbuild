@@ -37,7 +37,7 @@ class TestFrentes23_24_14(unittest.IsolatedAsyncioTestCase):
         self.controller = SceneController(service=self.service)
 
     def test_01_frente_23_cutlist_and_budget_xlsx(self):
-        """Frente 23: Valida a compilação OpenXML .xlsx da lista de corte e orçamento Empresa."""
+        """Frente 23: Valida a compilação OpenXML .xlsx da lista de corte e orçamento."""
         mock_bim = {
             "items": [
                 {

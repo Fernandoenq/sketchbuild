@@ -1001,7 +1001,7 @@ class ExecutivePdfExportRequest(BaseModel):
     project_name: str = Field(default="Parque Infantil", description="Nome do projeto")
     author: str = Field(default="SketchBuild Engine", description="Nome do engenheiro / autor")
     client_name: str = Field(default="Cliente Final", description="Nome do cliente / município")
-    output_filename: str = Field(default="proposta_executiva_empresa.pdf", description="Nome do arquivo PDF")
+    output_filename: str = Field(default="proposta_executiva.pdf", description="Nome do arquivo PDF")
 
 
 class ExecutivePdfExportResponse(BaseModel):
@@ -3813,7 +3813,7 @@ class MatchPhotoCalibrateResponse(BaseModel):
 # Watermark Style
 class WatermarkStyleConfigureRequest(BaseModel):
     name: str = Field(default="Selo Oficial")
-    image_url: str = Field(default="/static/watermarks/empresa_stamp.png")
+    image_url: str = Field(default="/static/watermarks/selo.png")
     layer: str = Field(default="overlay")  # 'overlay' ou 'background'
     placement: str = Field(default="screen_position")  # 'screen_position', 'tiled', 'stretched'
     anchor: str = Field(default="bottom-right")

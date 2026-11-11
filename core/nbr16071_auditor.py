@@ -119,5 +119,5 @@ class NBR16071Auditor:
             "total_checks": len(tests),
             "approved_checks": sum(1 for t in tests if t["status"] == "CONFORME"),
             "tests": tests,
-            "safety_seal": "SELO DE HOMOLOGAÇÃO EMPRESA NBR 16071" if overall_compliant else "PENDENTE DE ADEQUAÇÃO",
+            "safety_seal": "SELO DE HOMOLOGAÇÃO NBR 16071" if overall_compliant else "PENDENTE DE ADEQUAÇÃO",
         }

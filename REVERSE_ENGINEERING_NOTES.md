@@ -210,7 +210,7 @@ Com esse motor, extraímos diretamente:
 - **Python (`SkpBinaryReader.extract_attributes(file_path)`):** Extrai em < 10ms todos os dicionários (modelo, definições, instâncias e materiais) sem decodificar geometria pesada.
 - **FastAPI (`GET /api/v1/scene/attributes?path=...`):** Exposição REST unificada para consumo por aplicações externas.
 - **Three.js / WebGL (`frontend/`):** Exibição em tempo real na aba lateral "Informações da entidade" com tabela de variáveis e destaque para fórmulas paramétricas.
-- **Ruby (`EmpresaDev::SkpReader.extrair_atributos(file_path)`):** Leitor puro em Ruby sem chamadas nativas em C++ para plugins do SketchUp Desktop.
+- **Ruby (plugin leitor, `SkpReader.extrair_atributos(file_path)`):** Leitor puro em Ruby sem chamadas nativas em C++ para plugins do SketchUp Desktop.
 
 ---
 
@@ -288,7 +288,7 @@ As seguintes assinaturas TLV foram descobertas e mapeadas:
 ### C. Integração e Endpoints
 - **Leitor Nativo:** `SkpBinaryReader.extract_scenes(file_path)` decodifica a lista completa de cenas, flags e status ativo em milissegundos.
 - **API REST:** `GET /api/v1/scene/pages` e `POST /api/v1/scene/pages/{id}/activate` totalmente operacionais no modo `binary_native` (Zero DLL).
-- **Tríplice Sincronização:** Suporte idêntico implementado em Ruby puro no plugin `EmpresaDev::SkpReader.extrair_cenas(file_path)` e integrado ao Second Brain.
+- **Tríplice Sincronização:** Suporte idêntico implementado em Ruby puro no plugin leitor `SkpReader.extrair_cenas(file_path)`.
 
 ---
 
@@ -598,9 +598,8 @@ Com a conclusão e homologação das frentes de engenharia reversa no leitor/gra
    - Extração analítica de quantitativos, cubagem ($\text{m}^3$) e área de superfície ($\text{m}^2$) por definição e instância.
    - Painel resumo na Bandeja Lateral com cálculo de custo estimado em BRL ($R\$$) e detalhamento por item.
    - `GET /api/v1/scene/bim-report`.
-3. **Plugin Ruby Empresa 3D DEV:**
+3. **Plugin Ruby leitor (SketchUp Desktop):**
    - Atualização de `skp_reader.rb` com suporte à Tag 0x1965 e método `calcular_orcamento_bim`.
-   - Execução bem-sucedida do script `deploy.ps1` no SketchUp 2026 oficial.
 
 
 ---
@@ -687,18 +686,18 @@ A Frente 22 implementa a primeira ferramenta de desenho interativo do SketchBuil
 
 ## 47. Frente 23: Integração Industrial com Catálogo & Exportador de Lista de Corte e Orçamento (.xlsx - Zero DLL)
 
-A Frente 23 conecta o motor analítico de Orçamento BIM/BOM do SketchBuild à cadeia de suprimentos e fabricação da Empresa, gerando planilhas Microsoft Excel OpenXML (.xlsx - ECMA-376) nativas em Pure Python, sem dependências externas (`openpyxl` dispensado).
+A Frente 23 conecta o motor analítico de Orçamento BIM/BOM do SketchBuild à cadeia de suprimentos e fabricação, gerando planilhas Microsoft Excel OpenXML (.xlsx - ECMA-376) nativas em Pure Python, sem dependências externas (`openpyxl` dispensado).
 
 ### A. Estrutura do Pacote OpenXML Monolítico (.xlsx)
 1. **Container ZIP:** O arquivo `.xlsx` é construído com compressão Deflate contendo os XMLs obrigatórios:
    - `[Content_Types].xml`: Mapeamento de tipos MIME para planilhas, estilos e relacionamentos.
    - `xl/workbook.xml`: Definição de abas (`Lista de Corte`, `Ferragens e Fixadores`, `Orçamento e Compras`).
-   - `xl/styles.xml`: Paleta visual corporativa Empresa (cabeçalhos azul marinho `#1B365D`, texto branco em negrito, bordas finas `#D9D9D9`, formato numérico monetário `R$ #,##0.00`).
+   - `xl/styles.xml`: Paleta visual corporativa (cabeçalhos azul marinho `#1B365D`, texto branco em negrito, bordas finas `#D9D9D9`, formato numérico monetário `R$ #,##0.00`).
    - `xl/worksheets/sheet1.xml`, `sheet2.xml`, `sheet3.xml`: Dados de corte, hardware e orçamento.
 2. **Abas Geradas:**
    - **Aba 1 (Lista de Corte de Madeira e Chapas):** Item, Código KR, Descrição, Comprimento (mm), Largura (mm), Espessura (mm), Quantidade, Área Total ($m^2$), Volume Total ($m^3$), Material e Status de Corte.
    - **Aba 2 (Ferragens e Fixadores):** Parafusos sextavados de inox com porca travante, barras roscadas, flanges e cantoneiras quantificadas por junta estrutural.
-   - **Aba 3 (Orçamento Comercial):** Cruzamento automático com o banco de dados oficial de fábrica (o banco de dados de catálogo com 155 itens catalogados), preços de tabela para fixação parafusada/chumbada e linha de Total Geral em BRL.
+   - **Aba 3 (Orçamento Comercial):** Cruzamento automático com um catálogo opcional informado pelo usuário (`SKETCHBUILD_CATALOG_JSON`; sem ele, preço por área), preços de tabela para fixação parafusada/chumbada e linha de Total Geral em BRL.
 3. **Módulo:** `core/cutlist_exporter.py` com classe `CutlistExporter`.
 4. **Endpoint FastAPI:** `POST /api/v1/scene/export/cutlist-xlsx`.
 
@@ -706,7 +705,7 @@ A Frente 23 conecta o motor analítico de Orçamento BIM/BOM do SketchBuild à c
 
 ## 48. Frente 14: Curvas, Círculos e Cilindros 3D Manifold (Zero DLL)
 
-A Frente 14 implementa entidades circulares e sólidos cilíndricos paramétricos B-Rep (postes, tubos de escorregador e colunas Empresa) no formato nativo `.skp`.
+A Frente 14 implementa entidades circulares e sólidos cilíndricos paramétricos B-Rep (postes, tubos de escorregador e colunas) no formato nativo `.skp`.
 
 ### A. Topologia B-Rep do Círculo e Cilindro
 1. **Círculo Plano Paramétrico (`add_circle`):**
@@ -752,7 +751,7 @@ A Frente 24 entrega a ferramenta clássica de modelagem do SketchUp: **Empurrar/
 
 ## 50. Frente 26: Sequenciador de Montagem Passo a Passo e Manual Técnico 3D (Desmontador)
 
-A Frente 26 transforma a hierarquia espacial e de componentes do modelo em um roteiro cronológico de montagem técnica para instaladores de campo e equipes de produção da Empresa.
+A Frente 26 transforma a hierarquia espacial e de componentes do modelo em um roteiro cronológico de montagem técnica para instaladores de campo e equipes de produção.
 
 ### A. Algoritmo de Sequenciamento Cronológico (`core/assembly_sequencer.py`)
 1. **Classificação Topológica e Altura Vertical ($Z$):**
@@ -843,7 +842,7 @@ A Frente 18 mapeia as entidades nativas de auxílio à modelagem e precisão par
 
 ## 55. Frente 25: Operações Booleanas de Sólidos ("Solid Tools" / CSG - Zero DLL)
 
-A Frente 25 implementa o motor analítico de geometria sólida construtiva (CSG) em Pure Python para modelagem industrial de encaixes e furações em estruturas de madeira e parques infantis Empresa.
+A Frente 25 implementa o motor analítico de geometria sólida construtiva (CSG) em Pure Python para modelagem industrial de encaixes e furações em estruturas de madeira e parques infantis.
 
 ### A. Algoritmos Analíticos de CSG
 1. **Subtração Celular de Caixas ($A - B$):** Decomposição do sólido restante em sub-células B-Rep com descarte do volume recortado e fusão de arestas coplanares compartilhadas (ex: encaixe de sapata para pilar de madeira).
@@ -859,7 +858,7 @@ A Frente 29 implementa um compilador direto de documentos PDF-1.4 (ISO 32000-1) 
 
 ### A. Estrutura do Pacote PDF-1.4
 - Cabeçalho `%PDF-1.4`, catálogo de páginas e fontes Standard 14 (Helvetica / Helvetica-Bold).
-- Tabela de quantitativo e custos unitários integrada aos 155 itens do catálogo Empresa.
+- Tabela de quantitativo e custos unitários integrada ao catálogo de itens informado pelo usuário (`SKETCHBUILD_CATALOG_JSON`).
 - Projeção gráfica vetorial das vistas 2D desenhadas via operadores PDF nativos (`m`, `l`, `S`, `re`, `f`).
 - Laudo técnico de conformidade com a NBR 16071 e estudo de insolação solar.
 - Carimbo de engenharia com autenticação de integridade e tabela de referências cruzadas `xref`.
@@ -955,7 +954,7 @@ A Frente 35 cria o canal de ingestão direta de geometrias tridimensionais exter
 
 ## 63. Frente 36: Otimizador de Plano de Corte de Estoque (Nesting 1D e 2D - Zero DLL)
 
-A Frente 36 implementa o algoritmo de empacotamento linear e de chapas (*Cutting Stock Problem*) para a manufatura industrial de estruturas de madeira e polietileno da Empresa.
+A Frente 36 implementa o algoritmo de empacotamento linear e de chapas (*Cutting Stock Problem*) para a manufatura industrial de estruturas de madeira e polietileno.
 
 ### A. Algoritmo Heurístico FFD (First Fit Decreasing) com Kerf
 - Agrupa todas as peças de madeira da lista de corte e ordena pelo comprimento decrescente.
@@ -1083,7 +1082,7 @@ A Frente 45 implementa a geração industrial de placas de patrimônio e etiquet
 ### A. Síntese Analítica do QR Code e Vetorial SVG
 - Matriz 21x21 (QR Code Versão 1) analítica com *Finder Patterns* 7x7 nos três cantos, linhas de sincronização alternadas e codificação pura de bytes/texto.
 - Emissão de placas técnicas em formato SVG escalável para estamparia laser ou impressão vinílica, contendo:
-  - Logomarca e identificação Empresa NBR 16071
+  - Logomarca e identificação NBR 16071
   - Número de série / lote
   - Data de fabricação e material base
   - QR Code para acesso direto ao manual de montagem e checklist de manutenção
@@ -1261,7 +1260,7 @@ A Frente 57 implementa o ensaio biomecânico e normativo de segurança contra le
 
 ## 85. Frente 58: Exportador de Etiquetas Térmicas Zebra ZPL II Industriais (Zero DLL)
 
-A Frente 58 automatiza a expedição e o controle de produção na fábrica da Empresa com geração direta de comandos térmicos.
+A Frente 58 automatiza a expedição e o controle de produção na fábrica com geração direta de comandos térmicos.
 
 ### A. Comandos ZPL II e Rastreabilidade Fabril
 - Código nativo `^XA ... ^XZ` formatado para impressoras térmicas industriais de 203 DPI (8 dots/mm) no formato $100 	imes 50	ext{ mm}$.

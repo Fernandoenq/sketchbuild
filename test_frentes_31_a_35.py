@@ -127,7 +127,7 @@ class TestFrentes31a35(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(audit_res.safety_score, 80)
         self.assertEqual(audit_res.total_checks, 5)
         self.assertEqual(audit_res.approved_checks, 5)
-        self.assertTrue("EMPRESA" in audit_res.safety_seal)
+        self.assertTrue("HOMOLOGAÇÃO" in audit_res.safety_seal)
         print(f"[Frente 34] Auditoria NBR 16071: {audit_res.safety_seal} (Score: {audit_res.safety_score}%, {audit_res.approved_checks}/{audit_res.total_checks} conformes)")
 
     async def test_05_frente_35_obj_to_skp_importer(self):

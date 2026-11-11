@@ -9,7 +9,7 @@ from core.cutlist_exporter import CutlistExporter
 class TestCutlistExporter(unittest.TestCase):
     def test_cutlist_generation(self):
         tmp_dir = tempfile.gettempdir()
-        out_xlsx = os.path.join(tmp_dir, "test_cutlist_empresa.xlsx")
+        out_xlsx = os.path.join(tmp_dir, "test_cutlist.xlsx")
         if os.path.exists(out_xlsx):
             os.remove(out_xlsx)
 

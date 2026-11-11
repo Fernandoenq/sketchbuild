@@ -25,12 +25,14 @@ class CutlistExporter:
     _CATALOG_CACHE: Optional[Dict[str, Any]] = None
 
     @classmethod
-    def _load_empresa_catalog(cls) -> Dict[str, Any]:
+    def _load_catalog(cls) -> Dict[str, Any]:
         if cls._CATALOG_CACHE is not None:
             return cls._CATALOG_CACHE
 
-        cat_path = os.path.join(os.path.dirname(__file__), "empresa_catalog_data.json")
-        if os.path.exists(cat_path):
+        # Catálogo opcional (JSON {código: {codigo, nome, preco_parafusado, ...}}): informe o
+        # caminho em SKETCHBUILD_CATALOG_JSON. Sem ele, o orçamento usa preço por área.
+        cat_path = os.environ.get("SKETCHBUILD_CATALOG_JSON", "")
+        if cat_path and os.path.exists(cat_path):
             try:
                 with open(cat_path, "r", encoding="utf-8") as f:
                     cls._CATALOG_CACHE = json.load(f)
@@ -42,8 +44,8 @@ class CutlistExporter:
 
     @classmethod
     def match_catalog_item(cls, name: str) -> Optional[Dict[str, Any]]:
-        """Busca uma correspondência de código ou nome no catálogo oficial do Empresa."""
-        catalog = cls._load_empresa_catalog()
+        """Busca uma correspondência de código ou nome no catálogo informado pelo usuário."""
+        catalog = cls._load_catalog()
         clean_name = name.strip().upper()
 
         # 1. Busca por código numérico de 6 dígitos no nome (ex: 200416)
@@ -99,7 +101,7 @@ class CutlistExporter:
                 width_mm = 500
                 thick_mm = 25
 
-            # Match catálogo Empresa
+            # Match no catálogo (se informado)
             cat_match = cls.match_catalog_item(def_name)
             item_code = cat_match.get("codigo", "ITEM-DEV") if cat_match else f"ITM-{item_idx:04d}"
             item_name = cat_match.get("nome", def_name) if cat_match else def_name

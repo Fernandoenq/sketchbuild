@@ -144,7 +144,7 @@ class TestFrentes41a45(unittest.IsolatedAsyncioTestCase):
             content = f.read()
             self.assertIn("<svg", content)
             self.assertIn("SER-2026-X84", content)
-            self.assertIn("Empresa", content)
+            self.assertIn("Playground NBR 16071", content)
 
         print(f"[Frente 45] QR Tag SVG gerado com sucesso: {res.size_bytes} bytes")
         if os.path.exists(output_file):

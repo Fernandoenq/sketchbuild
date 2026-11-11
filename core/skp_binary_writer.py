@@ -2009,7 +2009,7 @@ class SkpBinaryWriter:
         center_xyz_m: Tuple[float, float, float] = (0.0, 0.0, 0.0),
         num_segments: int = 16,
     ) -> Dict[str, Any]:
-        """Cria um Cilindro 3D Manifold paramétrico (Postes/Tubos Empresa - Frente 14 - Zero DLL)."""
+        """Cria um Cilindro 3D Manifold paramétrico (Postes/Tubos - Frente 14 - Zero DLL)."""
         if radius_m <= 0 or height_m <= 0:
             raise SceneSessionError("Raio e altura do cilindro devem ser positivos.")
 
