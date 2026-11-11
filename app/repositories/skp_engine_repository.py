@@ -310,6 +310,57 @@ class SkpEngineRepository:
         session.model_path = target_path
         return target_path
 
+    def _exportar_para_temporario(self, pasta: str) -> str:
+        """Grava o estado atual da sessao (SDK ou binaria) em `pasta` e devolve o caminho."""
+        caminho = os.path.join(pasta, "atual.skp")
+        with open(caminho, "wb") as fh:
+            fh.write(self.get_skp_bytes())
+        return caminho
+
+    def resumo_ocultos(self) -> dict:
+        """Pre-visualizacao do "Remover ocultos": quantas instancias estao ocultas
+        (flag proprio, etiqueta invisivel ou dentro de uma instancia oculta) e quantas
+        definicoes sobrariam. So le: nada na sessao muda."""
+        from core.skp_hidden_pruner import podar_skp, verificar_skp
+
+        with tempfile.TemporaryDirectory(prefix="sb_ocultos_") as tmp:
+            origem = self._exportar_para_temporario(tmp)
+            try:
+                lido = verificar_skp(origem)
+                destino = os.path.join(tmp, "podado.skp")
+                rel = podar_skp(origem, destino)
+            except ValueError as e:
+                raise SceneSessionError(f"nao foi possivel analisar os ocultos: {e}") from e
+        return {
+            "instancias": lido["instancias"],
+            "instancias_ocultas": rel["instancias_removidas"],
+            "definicoes": lido["definicoes"],
+            "definicoes_removidas": rel["definicoes_removidas"],
+            "mb_antes": round(rel["bytes_antes"] / 2**20, 1),
+            "mb_depois": round(rel["bytes_depois"] / 2**20, 1),
+        }
+
+    def remover_ocultos(self) -> tuple[dict, dict]:
+        """Poda os objetos ocultos do modelo aberto (core/skp_hidden_pruner.py, direto no
+        model.dat) e reabre o resultado na sessao. A sessao volta SEM caminho: o original
+        nunca e sobrescrito, o proximo "Salvar" pede onde gravar (Salvar Como)."""
+        from core.skp_hidden_pruner import podar_skp, verificar_skp
+
+        with tempfile.TemporaryDirectory(prefix="sb_ocultos_") as tmp:
+            origem = self._exportar_para_temporario(tmp)
+            destino = os.path.join(tmp, "podado.skp")
+            try:
+                rel = podar_skp(origem, destino)
+                rel["verificacao"] = verificar_skp(destino)
+            except ValueError as e:
+                raise SceneSessionError(f"falha ao remover os ocultos: {e}") from e
+            if rel["verificacao"]["ocultas"] or rel["verificacao"]["refs_quebradas"]:
+                raise SceneSessionError(f"a poda nao passou na verificacao: {rel['verificacao']}")
+            with open(destino, "rb") as fh:
+                dados = fh.read()
+        SkpBinaryWriter.close_session()
+        return rel, self.open_from_upload(dados)
+
     def get_skp_bytes(self) -> bytes:
         """Exporta os bytes do modelo .skp ativo para download/gravação via File System Access API."""
         bin_session = SkpBinaryWriter.get_session()

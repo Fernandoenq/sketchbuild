@@ -2843,3 +2843,5 @@ O `model.dat` começa com um registro `0x01f4` cujo tamanho (uint32) mais 6 cobr
 
 ### 187.4 Poda
 `core/skp_hidden_pruner.py` remove instâncias ocultas ou em tag invisível e as definições que ficam sem uso, retira os IDs da `0x138e`, recalcula os tamanhos dos contêineres, regrava o ZIP e atualiza o inteiro de integridade. Validado abrindo no SketchUp 2026 real (sem aviso, sem nada em Exibir tudo, arquivo muito mais leve). Em 62 modelos (12,8 GB) o resultado foi 3,6 GB, em 21 minutos, sem abrir o SketchUp. Uso: `python -m core.skp_hidden_pruner ORIGEM DESTINO` (arquivo ou pasta). Limitação: arestas e faces ocultas dentro de definições que continuam em uso não são removidas.
+
+**Uso no app (11/11/2026):** Editar > Remover ocultos (`POST /scene/cleanup/remove-hidden`, prévia em `GET /scene/cleanup/hidden-summary`) exporta a sessão, roda `podar_skp`, verifica e reabre sem caminho (Salvar Como). Testado com o "Trem - 1 vagão" (571→478 instâncias, 160→131 definições, 0 ocultas). Os bytes salvos pelo SDK passam na checagem de integridade.

@@ -117,6 +117,29 @@ async function getJson(url) {
   return res.json();
 }
 
+/** Pre-visualizacao do "Remover ocultos" (so le o modelo aberto). */
+export function hiddenSummary() {
+  return getJson("/api/v1/scene/cleanup/hidden-summary");
+}
+
+/** Poda os ocultos do modelo aberto; a sessao volta sem caminho (Salvar Como). */
+export async function removeHidden() {
+  const res = await fetch("/api/v1/scene/cleanup/remove-hidden", {
+    method: "POST",
+    headers: { "X-Cena": "bin" },
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      detail = (await res.json()).detail ?? detail;
+    } catch {
+      // resposta nao era JSON
+    }
+    throw new ApiError(typeof detail === "string" ? detail : detail?.message || res.statusText, res.status, detail);
+  }
+  return lerCena(res);
+}
+
 export function openScene(path) {
   return postCena("/api/v1/scene/open", { path });
 }

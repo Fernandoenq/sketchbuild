@@ -8,6 +8,8 @@ import {
   openScene,
   openBinaryScene,
   openUploadedScene,
+  hiddenSummary,
+  removeHidden,
   newSceneFromTemplate,
   updateInstanceTransform,
   saveScene,
@@ -2594,6 +2596,7 @@ const MENU_ACTIONS = {
   "unhide-all": () => handleUnhideAll(),
   "unhide-last": () => handleUnhideLast(),
   "unhide-selection": () => handleUnhideLast(),
+  "remove-hidden": () => handleRemoveHidden(),
 
   // Transformações e Ferramentas Nativas Oficiais
   "intersect-model": () => document.getElementById("btn-native-intersect-faces")?.click(),
@@ -2652,6 +2655,44 @@ function handleUnhideAll() {
     });
   }
   setStatus("Todas as entidades ocultas foram reexibidas.");
+}
+
+/** Editar > Remover ocultos: mostra o que sera podado, pede confirmacao e reabre o
+ * modelo limpo. A sessao fica sem caminho, entao o original nao e sobrescrito. */
+async function handleRemoveHidden() {
+  setStatus("Analisando os objetos ocultos do modelo...");
+  try {
+    const r = await hiddenSummary();
+    if (!r.instancias_ocultas) {
+      setStatus("Nao ha objetos ocultos neste modelo.");
+      return;
+    }
+    const ok = window.confirm(
+      `Remover ${r.instancias_ocultas} instancias ocultas (de ${r.instancias}) e ` +
+        `${r.definicoes_removidas} definicoes sem uso?
+` +
+        `Tamanho estimado: ${r.mb_antes} MB -> ${r.mb_depois} MB.
+
+` +
+        `O modelo e reaberto limpo e o arquivo original NAO e alterado ` +
+        `("Salvar" vai pedir onde gravar).`
+    );
+    if (!ok) {
+      setStatus("Remocao de ocultos cancelada.");
+      return;
+    }
+    deselectMesh();
+    setStatus("Removendo ocultos (pode demorar em modelos grandes)...");
+    const sceneDTO = await removeHidden();
+    const counts = applySceneDTO(sceneDTO);
+    savePathInputEl.value = "";
+    setStatus(
+      `Ocultos removidos -- ${counts.totalInstances} instancias, ${counts.totalTriangles} triangulos. ` +
+        `Use "Salvar Como" para gravar a versao limpa.`
+    );
+  } catch (err) {
+    setStatus(`Erro: ${err instanceof ApiError ? err.message : String(err)}`, true);
+  }
 }
 
 // -- Gerenciamento de Diálogos Flutuantes Estilo SketchUp HtmlDialog --------

@@ -640,6 +640,32 @@ async def save_scene(
 
 
 @router.get(
+    "/cleanup/hidden-summary",
+    summary="Pre-visualiza o 'Remover ocultos': instancias ocultas, definicoes e tamanho estimado (so le)",
+)
+async def hidden_summary(controller: SceneController = Depends(get_controller)) -> dict:
+    return await controller.resumo_ocultos()
+
+
+@router.post(
+    "/cleanup/remove-hidden",
+    response_model=SceneResponse,
+    summary="Remove do modelo aberto os objetos ocultos (poda no model.dat) e reabre o resultado sem caminho (Salvar Como)",
+)
+async def remove_hidden(
+    request: Request, controller: SceneController = Depends(get_controller)
+) -> SceneResponse:
+    relatorio, dto = await controller.remover_ocultos()
+    extra = {
+        "ocultos_removidos": {
+            k: relatorio[k]
+            for k in ("instancias_removidas", "definicoes_removidas", "bytes_antes", "bytes_depois")
+        }
+    }
+    return responder_cena(request, dto, extra)
+
+
+@router.get(
     "/download-skp",
     summary="Exporta e baixa os bytes binários do modelo .skp ativo para gravação in-place via File System Access API",
 )

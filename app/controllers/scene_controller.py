@@ -649,6 +649,18 @@ class SceneController:
             ) from e
         return SaveSceneResponse(saved=True, path=saved_path)
 
+    async def resumo_ocultos(self) -> dict:
+        try:
+            return await self._service.resumo_ocultos()
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
+    async def remover_ocultos(self) -> tuple[dict, dict]:
+        try:
+            return await self._service.remover_ocultos()
+        except SceneSessionError as e:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
+
     async def get_skp_bytes(self) -> bytes:
         try:
             return await self._service.get_skp_bytes()
