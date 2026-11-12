@@ -352,6 +352,8 @@ class DrawRepository:
             "tag_faces": {str(i): f.tag for i, f in _topo().faces.items() if f.tag},
             "tag_arestas": {str(e): n for e, n in _topo().etags.items()},
             "suaves": {str(e): b for e, b in _topo().eflags.items()},
+            "normais_suaves": {str(f): {str(v): list(n) for v, n in d.items()}
+                               for f, d in soften.normais_suaves(_topo()).items()},
             "guias": {str(i): {k: (list(v) if isinstance(v, tuple) else v) for k, v in g.items()} for i, g in _topo().guias.items()},
             "secoes": {str(i): list(pl) for i, pl in _topo().secoes.items()},
             "textos": {str(i): {k: (list(v) if isinstance(v, tuple) else v) for k, v in x.items()} for i, x in _topo().textos.items()},

@@ -2,7 +2,7 @@
 import math
 from typing import Dict, Iterable, List, Sequence
 
-from .model import Topology, _dot, _norm, _unit, _has_edge
+from .model import Topology, _dot, _norm, _unit, _has_edge, _newell
 
 SUAVE = 0x08
 LISA = 0x10
@@ -59,3 +59,51 @@ def por_angulo(t: Topology, angulo_max: float, arestas: Iterable[int] | None = N
             t.eflags[e] = t.eflags.get(e, 0) | SUAVE | LISA
             mudadas.append(e)
     return sorted(mudadas)
+
+
+def normais_suaves(t: Topology) -> Dict[int, Dict[int, tuple]]:
+    """Normais por vértice para o sombreamento liso: {face: {vértice: normal}}.
+
+    Em cada vértice, as faces ligadas por uma aresta lisa (bit 0x10, compartilhada por exatamente 2 faces) formam um
+    grupo; a normal do grupo é a média das normais das faces ponderada pela área. Só entram vértices cujo grupo tem mais
+    de uma face (os demais usam a normal da própria face)."""
+    por_aresta: Dict[tuple, List[int]] = {}
+    for fid, f in t.faces.items():
+        for lp in f.loops():
+            for i, a in enumerate(lp):
+                b = lp[(i + 1) % len(lp)]
+                por_aresta.setdefault((min(a, b), max(a, b)), []).append(fid)
+    lisa_ids = {(min(a, b), max(a, b)) for e, (a, b) in t.edges.items() if t.eflags.get(e, 0) & LISA}
+    lisas = {k for k, fs in por_aresta.items() if len(fs) == 2 and k in lisa_ids}
+    peso = {fid: tuple(c for c in _newell([t.verts[v] for v in f.outer])) for fid, f in t.faces.items()}
+    em_vertice: Dict[int, List[int]] = {}
+    for fid, f in t.faces.items():
+        for v in {v for lp in f.loops() for v in lp}:
+            em_vertice.setdefault(v, []).append(fid)
+    saida: Dict[int, Dict[int, tuple]] = {}
+    for v, fs in em_vertice.items():
+        pai = {f: f for f in fs}
+
+        def raiz(x):
+            while pai[x] != x:
+                pai[x] = pai[pai[x]]
+                x = pai[x]
+            return x
+        for k in lisas:
+            if v in k:
+                a, b = por_aresta[k]
+                if a in pai and b in pai:
+                    pai[raiz(a)] = raiz(b)
+        grupos: Dict[int, List[int]] = {}
+        for f in fs:
+            grupos.setdefault(raiz(f), []).append(f)
+        for g in grupos.values():
+            if len(g) < 2:
+                continue
+            soma = tuple(sum(peso[f][i] for f in g) for i in range(3))
+            if _norm(soma) <= 1e-12:
+                continue
+            n = _unit(soma)
+            for f in g:
+                saida.setdefault(f, {})[v] = n
+    return saida

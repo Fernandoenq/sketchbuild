@@ -50,6 +50,7 @@ class DrawStateResponse(BaseModel):
     tag_faces: dict[str, str] = Field(default_factory=dict)  # face -> tag
     tag_arestas: dict[str, str] = Field(default_factory=dict)  # aresta -> tag
     suaves: dict[str, int] = Field(default_factory=dict)  # aresta -> bits (0x08 suave, 0x10 lisa)
+    normais_suaves: dict[str, dict[str, list[float]]] = Field(default_factory=dict)  # face -> vértice -> normal lisa
     guias: dict[str, dict[str, Any]] = Field(default_factory=dict)
     secoes: dict[str, list[float]] = Field(default_factory=dict)
     textos: dict[str, dict[str, Any]] = Field(default_factory=dict)
