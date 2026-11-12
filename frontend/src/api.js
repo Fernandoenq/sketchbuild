@@ -2576,6 +2576,20 @@ export function drawNote(corpo) {
   return postJson("/api/v1/draw/note", "POST", corpo);
 }
 
+// grupo/componente: { faces, arestas, tipo: "grupo"|"componente", nome } -> { instancia, ativa, caminho, definicoes, instancias }
+export function drawGroup(corpo) {
+  return postJson("/api/v1/draw/group", "POST", corpo);
+}
+
+// entra na definição de uma instância (edição); drawExit sai; ambos devolvem a cena
+export function drawEnter(instancia) {
+  return postJson("/api/v1/draw/enter", "POST", { instancia });
+}
+
+export function drawExit() {
+  return postJson("/api/v1/draw/exit", "POST", {});
+}
+
 // comportamento do componente: { definicao (omitido = ativa), face_me, corta_abertura, sombra_sol, snap 0-4 }; devolve a cena
 export function drawBehavior(corpo) {
   return postJson("/api/v1/draw/behavior", "POST", corpo);

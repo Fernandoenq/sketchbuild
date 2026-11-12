@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawNote, drawUv, drawBehavior, drawUndo, drawRedo, drawSave } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawNote, drawUv, drawBehavior, drawGroup, drawEnter, drawExit, drawUndo, drawRedo, drawSave } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -183,6 +183,10 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       ["Nova cena", "Acrescenta uma cena com o nome do campo ao lado (sem câmera)", () => novaCena(tagNome.value)],
       ["Cotar", "Cota linear na aresta selecionada (o texto do campo ao lado vira o rótulo; vazio = a medida)", () => cotarSelecao(nota.value)],
       ["Texto", "Põe o texto do campo ao lado no meio da aresta ou no primeiro vértice da face selecionada", () => textoNaSelecao(nota.value)],
+      ["Agrupar", "Cria um grupo com a seleção (nome no campo de tag)", () => agruparSelecao("grupo", tagNome.value)],
+      ["Componente", "Cria um componente com a seleção (nome no campo de tag)", () => agruparSelecao("componente", tagNome.value)],
+      ["Entrar", "Entra no último grupo/componente criado, ou no número da instância digitado no campo ao lado", () => entrarOuSair(true, nota.value)],
+      ["Sair", "Sai da edição do grupo/componente", () => entrarOuSair(false)],
       ["Comportamento", "Define o comportamento do componente em que se entrou: face-me, corta, sombra, snap=0..4 (campo ao lado; vazio desliga)", () => comportamentoAtivo(nota.value)],
       ["Posicionar textura", "Ajusta a textura das faces selecionadas para repetir a cada N polegadas (campo ao lado)", () => posicionarTextura(nota.value)],
     ]) {
@@ -378,6 +382,40 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     try {
       const c = await drawBehavior({ face_me: p.includes("face-me"), corta_abertura: p.includes("corta"), sombra_sol: p.includes("sombra"), snap });
       setStatus("Comportamento do componente ativo: " + JSON.stringify(c.definicoes?.[c.ativa]?.comportamento));
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  let ultimaInstancia = null;
+
+  async function agruparSelecao(tipo, nome) {
+    if (!sel.faces.size && !sel.edges.size) return setStatus("Agrupar: selecione faces ou arestas antes.", true);
+    try {
+      const r = await drawGroup({ faces: [...sel.faces].map(Number), arestas: [...sel.edges].map(Number), tipo, nome: nome?.trim() || null });
+      ultimaInstancia = r.instancia;
+      sel.faces.clear();
+      sel.edges.clear();
+      substituirEstado(await drawState());
+      setStatus((tipo === "grupo" ? "Grupo" : "Componente") + " " + r.instancia + " criado (Entrar usa o último, ou o número do campo).");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  async function entrarOuSair(entrar, campo) {
+    try {
+      if (entrar) {
+        const n = campo?.trim() ? Number(campo) : ultimaInstancia;
+        if (!Number.isInteger(n)) return setStatus("Entrar: crie um grupo/componente ou digite o número da instância no campo.", true);
+        await drawEnter(n);
+      } else {
+        await drawExit();
+      }
+      sel.faces.clear();
+      sel.edges.clear();
+      substituirEstado(await drawState());
+      setStatus(entrar ? "Dentro da definição (Comportamento vale para este componente)." : "De volta à raiz.");
     } catch (err) {
       setStatus("Erro: " + (err?.message ?? err), true);
     }
