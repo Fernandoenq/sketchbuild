@@ -46,6 +46,15 @@ CASOS = {
     "seta2": dict(seta=2),
     "valign1": dict(alinhamento_v=0),  # SetVerticalAlignment(1) grava 0; o padrão grava 1
     "texto": dict(texto="Meu texto"),
+    # a posição vira (x, y) crus, sem relação com o ponto inicial nem com o plano (FORMATO-SKP 7k)
+    "pos_ini_x": dict(desloc=(50.0, 25.0)),
+    "pos_ini_y": dict(desloc=(50.0, 25.0)),
+    "pos_ini_z": dict(desloc=(50.0, 25.0)),
+    "pos_dir_y": dict(desloc=(50.0, 25.0)),
+    "pos_obliqua": dict(desloc=(60.0, 45.0)),
+    "pos_normal_y": dict(normal=(0, 1, 0), desloc=(50.0, 25.0)),
+    "pos_normal_y_ini": dict(normal=(0, 1, 0), desloc=(50.0, 25.0)),
+    "pos_eixo_y": dict(eixo_x=(0, 1, 0), desloc=(50.0, 25.0)),
     "halign0": dict(alinhamento_h=0),
     "halign1": dict(alinhamento_h=1),
     "halign2": dict(alinhamento_h=2),

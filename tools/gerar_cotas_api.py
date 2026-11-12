@@ -71,6 +71,23 @@ VARIACOES["pos_halign1"] = ((0, 0, 0), (100, 0, 0), lambda d, r: (_ponto(d, "SUD
                                                                   _inteiro(d, "SUDimensionLinearSetHorizontalAlignment", r, 1)))
 
 
+def _pos(p):
+    return lambda d, r: _ponto(d, "SUDimensionLinearSetPosition", r, p)
+
+
+# deslocamento do texto com início fora da origem (FORMATO-SKP 7k): posição em coordenadas do mundo
+VARIACOES["pos_ini_x"] = ((10, 0, 0), (110, 0, 0), _pos((50, 25, 5)))
+VARIACOES["pos_ini_y"] = ((0, 20, 0), (100, 20, 0), _pos((50, 25, 5)))
+VARIACOES["pos_ini_z"] = ((0, 0, 30), (100, 0, 30), _pos((50, 25, 5)))
+VARIACOES["pos_dir_y"] = ((0, 0, 0), (0, 100, 0), _pos((50, 25, 5)))
+VARIACOES["pos_obliqua"] = ((10, 20, 30), (110, 50, 30), _pos((60, 45, 30)))
+
+
+VARIACOES["pos_normal_y"] = ((0, 0, 0), (100, 0, 0), lambda d, r: (_vetor(d, "SUDimensionLinearSetNormal", (r, (0, 1, 0))), _pos((50, 25, 5))(d, r)))
+VARIACOES["pos_normal_y_ini"] = ((10, 20, 30), (110, 20, 30), lambda d, r: (_vetor(d, "SUDimensionLinearSetNormal", (r, (0, 1, 0))), _pos((50, 25, 5))(d, r)))
+VARIACOES["pos_eixo_y"] = ((0, 0, 0), (100, 0, 0), lambda d, r: (_vetor(d, "SUDimensionLinearSetXAxis", (r, (0, 1, 0))), _pos((50, 25, 5))(d, r)))
+
+
 def _texto(d, r):
     d.SUDimensionSetText.argtypes = [_Ref, ctypes.c_char_p]
     assert d.SUDimensionSetText(r, "Meu texto".encode("utf-8")) == 0
