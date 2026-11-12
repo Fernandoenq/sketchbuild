@@ -195,6 +195,7 @@ class Cena:
         del self.instancias[instancia]
         if not any(x.definicao == i.definicao for x in self.instancias.values()):
             del self.defs[i.definicao]
+            self.comportamento.pop(i.definicao, None)
             del self.nomes[i.definicao]
 
     # -- consulta --------------------------------------------------------------------
@@ -203,7 +204,8 @@ class Cena:
         return {
             "ativa": self.ativa,
             "caminho": list(self.caminho),
-            "definicoes": {d: {"nome": self.nomes[d], **self.defs[d].counts()} for d in self.defs},
+            "definicoes": {d: {"nome": self.nomes[d], **self.defs[d].counts(), "comportamento": self.comportamento.get(d)}
+                           for d in self.defs},
             "instancias": {
                 i: {"definicao": x.definicao, "pai": x.pai, "nome": x.nome, "tipo": x.tipo, "transformacao": x.transformacao}
                 for i, x in self.instancias.items()

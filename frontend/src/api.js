@@ -2576,6 +2576,11 @@ export function drawNote(corpo) {
   return postJson("/api/v1/draw/note", "POST", corpo);
 }
 
+// comportamento do componente: { definicao (omitido = ativa), face_me, corta_abertura, sombra_sol, snap 0-4 }; devolve a cena
+export function drawBehavior(corpo) {
+  return postJson("/api/v1/draw/behavior", "POST", corpo);
+}
+
 // posiciona a textura da frente: { faces, tamanho (pol por repetição), u0, v0, graus, limpar }; devolve o estado completo
 export function drawUv(corpo) {
   return postJson("/api/v1/draw/uv", "POST", corpo);

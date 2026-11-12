@@ -5,7 +5,7 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, GuiaRequest, NotaRequest, PosicionarRequest
+from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest
 
 
 def _tem_pillow():
@@ -72,6 +72,25 @@ class TestDrawController(unittest.TestCase):
         run(self.c.sair())
         run(self.c.explodir(InstanceRequest(instancia=g["instancia"])))
         self.assertEqual(run(self.c.estado()).counts["faces"], 1)
+
+    def _agrupar_quadrado(self, tipo, x0):
+        j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(x0, 0, 0), p1=(x0 + 100, 100, 0))))
+        fid = int(next(iter(j.faces.added)))
+        return run(self.c.agrupar(GroupRequest(faces=[fid], tipo=tipo)))["instancia"]
+
+    def test_comportamento_do_componente(self):
+        comp = self._agrupar_quadrado("componente", 0)
+        run(self.c.entrar(InstanceRequest(instancia=comp)))
+        r = run(self.c.comportamento(ComportamentoRequest(face_me=True, snap=2)))
+        self.assertEqual(r.definicoes[str(r.ativa)]["comportamento"],
+                         {"face_me": True, "corta_abertura": False, "sombra_sol": False, "snap": 2})
+        with self.assertRaises(HTTPException):
+            run(self.c.comportamento(ComportamentoRequest(definicao=0, face_me=True)))  # raiz
+        run(self.c.sair())
+        grupo = self._agrupar_quadrado("grupo", 500)
+        run(self.c.entrar(InstanceRequest(instancia=grupo)))
+        with self.assertRaises(HTTPException):
+            run(self.c.comportamento(ComportamentoRequest(face_me=True)))  # grupo não tem comportamento
 
     def test_salvar_cena_com_grupo(self):
         import os

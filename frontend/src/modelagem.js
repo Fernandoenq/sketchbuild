@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawNote, drawUv, drawUndo, drawRedo, drawSave } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawNote, drawUv, drawBehavior, drawUndo, drawRedo, drawSave } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -183,6 +183,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       ["Nova cena", "Acrescenta uma cena com o nome do campo ao lado (sem câmera)", () => novaCena(tagNome.value)],
       ["Cotar", "Cota linear na aresta selecionada (o texto do campo ao lado vira o rótulo; vazio = a medida)", () => cotarSelecao(nota.value)],
       ["Texto", "Põe o texto do campo ao lado no meio da aresta ou no primeiro vértice da face selecionada", () => textoNaSelecao(nota.value)],
+      ["Comportamento", "Define o comportamento do componente em que se entrou: face-me, corta, sombra, snap=0..4 (campo ao lado; vazio desliga)", () => comportamentoAtivo(nota.value)],
       ["Posicionar textura", "Ajusta a textura das faces selecionadas para repetir a cada N polegadas (campo ao lado)", () => posicionarTextura(nota.value)],
     ]) {
       const b = document.createElement("button");
@@ -364,6 +365,19 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     try {
       const s = await drawSoften({ angulo: graus });
       setStatus("Suavizar até " + graus + "°: " + Object.keys(s.suaves ?? {}).length + " aresta(s) suavizada(s) no desenho.");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  // texto do campo: palavras separadas por vírgula ou espaço (face-me, corta, sombra, snap=0..4); vazio desliga tudo
+  async function comportamentoAtivo(texto) {
+    const p = (texto ?? "").toLowerCase().split(/[\s,]+/).filter(Boolean);
+    const snap = Number((p.find((x) => x.startsWith("snap=")) ?? "snap=0").slice(5));
+    if (!Number.isInteger(snap) || snap < 0 || snap > 4) return setStatus("Comportamento: snap vai de 0 a 4.", true);
+    try {
+      const c = await drawBehavior({ face_me: p.includes("face-me"), corta_abertura: p.includes("corta"), sombra_sol: p.includes("sombra"), snap });
+      setStatus("Comportamento do componente ativo: " + JSON.stringify(c.definicoes?.[c.ativa]?.comportamento));
     } catch (err) {
       setStatus("Erro: " + (err?.message ?? err), true);
     }

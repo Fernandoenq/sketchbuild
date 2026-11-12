@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Response, status
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, GuiaRequest, NotaRequest, PosicionarRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest, SceneSummaryResponse
 
 router = APIRouter(prefix="/draw", tags=["draw"])
 
@@ -91,6 +91,11 @@ async def marcar(body: TagRequest, controller: DrawController = Depends(get_cont
 @router.post("/note", response_model=DrawStateResponse, summary="Cria texto livre ou cota linear; ou apaga pelo id")
 async def nota(body: NotaRequest, controller: DrawController = Depends(get_controller)) -> DrawStateResponse:
     return await controller.nota(body)
+
+
+@router.post("/behavior", response_model=SceneSummaryResponse, summary="Comportamento do componente (face-me, corta abertura, sombra do sol, snap)")
+async def comportamento(body: ComportamentoRequest, controller: DrawController = Depends(get_controller)) -> SceneSummaryResponse:
+    return await controller.comportamento(body)
 
 
 @router.post("/uv", response_model=DrawStateResponse, summary="Posiciona (ou limpa) a textura da frente das faces")

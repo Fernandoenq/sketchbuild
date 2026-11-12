@@ -279,6 +279,11 @@ class DrawRepository:
         _HIST.executar("nota", {"tipo": tipo}, acao)
         return self.estado()
 
+    def comportamento(self, definicao=None, **flags) -> dict:
+        alvo = _CENA.ativa if definicao is None else definicao
+        _HIST.executar("comportamento", {"definicao": alvo}, lambda: _CENA.definir_comportamento(alvo, **flags))
+        return self.cena()
+
     def posicionar(self, faces, tamanho=None, u0=0.0, v0=0.0, graus=0.0, limpar=False) -> dict:
         if not limpar and tamanho is None:
             raise ValueError("posicionar: informe o tamanho (ou limpar)")

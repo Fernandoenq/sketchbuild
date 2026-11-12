@@ -171,6 +171,14 @@ class NotaRequest(BaseModel):
     id: int | None = None  # tipo=apagar (texto ou cota)
 
 
+class ComportamentoRequest(BaseModel):
+    definicao: int | None = None  # None = a definicao ativa (componente em que se entrou)
+    face_me: bool = False
+    corta_abertura: bool = False
+    sombra_sol: bool = False
+    snap: int = Field(default=0, ge=0, le=4)  # 0 nenhum, 1 qualquer, 2 horizontal, 3 vertical, 4 inclinado
+
+
 class PosicionarRequest(BaseModel):
     faces: list[int] = Field(min_length=1)
     tamanho: float | None = Field(default=None, gt=0)  # polegadas por repeticao da textura; None com `limpar`
