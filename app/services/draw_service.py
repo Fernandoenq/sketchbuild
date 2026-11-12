@@ -33,6 +33,9 @@ class DrawService:
     async def instanciar(self, instancia: int, transformacao) -> dict:
         return await run_in_threadpool(self._repository.instanciar, instancia, transformacao)
 
+    async def combinar_grupos(self, operacao: str, a: int, b: int, nome=None) -> dict:
+        return await run_in_threadpool(self._repository.combinar_grupos, operacao, a, b, nome)
+
     async def explodir(self, instancia: int) -> dict:
         return await run_in_threadpool(self._repository.explodir, instancia)
 

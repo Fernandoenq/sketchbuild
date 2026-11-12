@@ -2566,6 +2566,12 @@ export function drawSolid(corpo) {
   return postJson("/api/v1/draw/solid", "POST", corpo);
 }
 
+// booleana entre dois grupos da definição ativa: { operacao: uniao|subtracao|intersecao, a: instância, b: instância, nome };
+// o resultado é um grupo novo e as duas instâncias de origem saem; devolve o resumo da cena
+export function drawGroupSolid(corpo) {
+  return postJson("/api/v1/draw/group-solid", "POST", corpo);
+}
+
 // seleção sem alterar o modelo: { acao, faces, arestas, nome, matriz, retangulo }; devolve { faces, edges, vertices }
 export function drawSelect(corpo) {
   return postJson("/api/v1/draw/select", "POST", corpo);

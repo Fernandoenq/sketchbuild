@@ -5,10 +5,11 @@ Uma Cena tem definições (cada uma com a sua Topology; a 0 é a raiz do modelo)
 = definição que várias instâncias podem usar. As operações de desenho e edição rodam sempre na
 definição ativa (`cena.topo`); `entrar` e `sair` mudam qual é.
 """
+import copy
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Optional, Sequence, Set
 
-from core.topology.model import Contador, Face, Point, Topology
+from core.topology.model import Contador, Face, Point, Topology, _newell, _unit
 
 IDENTIDADE = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
 
@@ -197,6 +198,53 @@ class Cena:
             del self.defs[i.definicao]
             self.comportamento.pop(i.definicao, None)
             del self.nomes[i.definicao]
+
+    def combinar_grupos(self, a: int, b: int, operacao: str, nome: Optional[str] = None) -> int:
+        """Booleana entre duas instâncias da definição ativa (união, subtração A-B, interseção).
+
+        Cada definição é levada para o sistema de coordenadas da definição ativa pela matriz da instância; o resultado vira
+        um grupo novo (matriz identidade) e as duas instâncias de origem saem. Não aceita instância com instâncias dentro
+        nem matriz que espelhe (determinante negativo)."""
+        from core.topology.solido import combinar  # import local: solido importa o núcleo, não a cena
+
+        if a == b:
+            raise ValueError("escolha duas instâncias diferentes")
+        ia, ib = self.instancias.get(a), self.instancias.get(b)
+        if ia is None or ib is None:
+            raise ValueError("instância não existe")
+        if ia.pai != self.ativa or ib.pai != self.ativa:
+            raise ValueError("as duas instâncias precisam estar na definição ativa")
+        for i in (ia, ib):
+            if any(x.pai == i.definicao for x in self.instancias.values()):
+                raise ValueError("instância com instâncias dentro ainda não é suportada na booleana")
+        ta, tb = self._no_pai(ia), self._no_pai(ib)
+        w = combinar(ta, list(ta.faces), tb, list(tb.faces), operacao)
+        if not w.faces:
+            raise ValueError("o resultado da operação é vazio")
+        did = next(self._def)
+        self.defs[did] = w
+        self.nomes[did] = nome or f"Grupo#{did}"
+        iid = next(self._inst)
+        self.instancias[iid] = Instancia(iid, did, self.ativa, self.nomes[did], "grupo")
+        for i in (ia, ib):
+            del self.instancias[i.id]
+            if not any(x.definicao == i.definicao for x in self.instancias.values()):
+                self.defs.pop(i.definicao, None)
+                self.comportamento.pop(i.definicao, None)
+                self.nomes.pop(i.definicao, None)
+        return iid
+
+    def _no_pai(self, i: Instancia) -> Topology:
+        """Cópia da definição da instância com os pontos já na definição que a contém."""
+        m = i.transformacao
+        det = (m[0] * (m[5] * m[10] - m[9] * m[6]) - m[4] * (m[1] * m[10] - m[9] * m[2]) + m[8] * (m[1] * m[6] - m[5] * m[2]))
+        if det <= 0:
+            raise ValueError("matriz que espelha ou colapsa não é suportada na booleana")
+        t = copy.deepcopy(self.defs[i.definicao])
+        t.verts = {v: _aplica(m, p) for v, p in t.verts.items()}
+        for f in t.faces.values():
+            f.normal = _unit(_newell([t.verts[v] for v in f.outer]))
+        return t
 
     # -- consulta --------------------------------------------------------------------
 

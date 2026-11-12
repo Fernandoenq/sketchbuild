@@ -5,7 +5,7 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SolidoRequest, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest
+from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, GroupSolidRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SolidoRequest, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest
 
 
 def _tem_pillow():
@@ -72,6 +72,14 @@ class TestDrawController(unittest.TestCase):
         run(self.c.sair())
         run(self.c.explodir(InstanceRequest(instancia=g["instancia"])))
         self.assertEqual(run(self.c.estado()).counts["faces"], 1)
+
+    def test_combinar_grupos_recusa_o_que_nao_e_solido(self):
+        a, b = self._agrupar_quadrado("grupo", 0), self._agrupar_quadrado("grupo", 500)
+        with self.assertRaises(HTTPException) as cm:  # dois quadrados soltos não são sólidos
+            run(self.c.combinar_grupos(GroupSolidRequest(operacao="uniao", a=a, b=b)))
+        self.assertEqual(cm.exception.status_code, 422)
+        with self.assertRaises(HTTPException):
+            run(self.c.combinar_grupos(GroupSolidRequest(operacao="uniao", a=a, b=999)))
 
     def _agrupar_quadrado(self, tipo, x0):
         j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(x0, 0, 0), p1=(x0 + 100, 100, 0))))
@@ -181,7 +189,7 @@ class TestDrawController(unittest.TestCase):
         self.assertIn("/api/v1/draw/pushpull", caminhos)
         self.assertIn("/api/v1/draw/edit", caminhos)
         self.assertIn("/api/v1/draw/offset", caminhos)
-        for r in ("save", "paint", "undo", "redo", "history", "followme", "intersect", "scene", "group", "instance", "explode", "enter", "exit"):
+        for r in ("save", "paint", "undo", "redo", "history", "followme", "intersect", "scene", "group", "instance", "explode", "group-solid", "enter", "exit"):
             self.assertIn("/api/v1/draw/" + r, caminhos)
 
     def _png(self):

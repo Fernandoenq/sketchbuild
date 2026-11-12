@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Response, status
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SelecaoResponse, SolidoRequest, SolidoResponse, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, GroupSolidRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SelecaoResponse, SolidoRequest, SolidoResponse, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest, SceneSummaryResponse
 
 router = APIRouter(prefix="/draw", tags=["draw"])
 
@@ -56,6 +56,11 @@ async def agrupar(body: GroupRequest, controller: DrawController = Depends(get_c
 @router.post("/instance", summary="Nova instancia de um componente")
 async def instanciar(body: InstanceRequest, controller: DrawController = Depends(get_controller)) -> dict:
     return await controller.instanciar(body)
+
+
+@router.post("/group-solid", response_model=SceneSummaryResponse, summary="Uniao, subtracao ou intersecao entre dois grupos da definicao ativa")
+async def combinar_grupos(body: GroupSolidRequest, controller: DrawController = Depends(get_controller)) -> SceneSummaryResponse:
+    return await controller.combinar_grupos(body)
 
 
 @router.post("/explode", response_model=SceneSummaryResponse, summary="Explode uma instancia na definicao ativa")

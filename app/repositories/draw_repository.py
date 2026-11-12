@@ -159,6 +159,12 @@ class DrawRepository:
         iid = _HIST.executar(tipo, {"nome": nome}, lambda: criar(faces, arestas, nome))
         return {"instancia": iid, **self.cena()}
 
+    def combinar_grupos(self, operacao: str, a: int, b: int, nome=None) -> dict:
+        """Booleana entre duas instâncias da definição ativa; o resultado é um grupo novo e as duas de origem saem."""
+        iid = _HIST.executar("solido_grupos:" + operacao, {"a": a, "b": b},
+                             lambda: _CENA.combinar_grupos(a, b, operacao, nome))
+        return {"instancia": iid, **self.cena()}
+
     def instanciar(self, instancia: int, transformacao) -> dict:
         iid = _HIST.executar("instanciar", {"instancia": instancia}, lambda: _CENA.instanciar(instancia, transformacao))
         return {"instancia": iid, **self.cena()}

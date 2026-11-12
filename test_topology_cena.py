@@ -80,5 +80,51 @@ class TestCena(unittest.TestCase):
         self.assertEqual(r["definicoes"][1]["faces"], 6)
 
 
+class TestCombinarGrupos(unittest.TestCase):
+    def _dois_grupos(self, deslocamento=(50, 50, 0)):
+        c = Cena()
+        ids = []
+        for _ in range(2):
+            desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+            empurrar(c.topo, max(c.topo.faces), -50)
+            ids.append(c.criar_grupo(faces=list(c.topo.faces)))
+        m = list(c.instancias[ids[1]].transformacao)
+        m[12], m[13], m[14] = deslocamento
+        c.instancias[ids[1]].transformacao = m
+        return c, ids
+
+    def _volume(self, c, iid):
+        from core.topology.solido import volume
+        t = c.defs[c.instancias[iid].definicao]
+        return volume(t, list(t.faces))
+
+    def test_uniao_subtracao_e_intersecao_usam_a_matriz_da_instancia(self):
+        esperado = {"uniao": 875000.0, "subtracao": 375000.0, "intersecao": 125000.0}
+        for op, vol in esperado.items():
+            with self.subTest(op):
+                c, (a, b) = self._dois_grupos()
+                r = c.combinar_grupos(a, b, op, nome="Resultado")
+                self.assertEqual(list(c.instancias), [r])  # as duas de origem saíram
+                self.assertEqual(c.instancias[r].tipo, "grupo")
+                self.assertEqual(c.nomes[c.instancias[r].definicao], "Resultado")
+                self.assertEqual(len(c.defs), 2)  # raiz + resultado; as definições de origem foram embora
+                self.assertAlmostEqual(self._volume(c, r), vol, places=4)
+
+    def test_sem_encontro_a_interseccao_e_vazia(self):
+        c, (a, b) = self._dois_grupos((500, 0, 0))
+        with self.assertRaises(ValueError):
+            c.combinar_grupos(a, b, "intersecao")
+
+    def test_recusas(self):
+        c, (a, b) = self._dois_grupos()
+        with self.assertRaises(ValueError):
+            c.combinar_grupos(a, a, "uniao")
+        with self.assertRaises(ValueError):
+            c.combinar_grupos(a, 99, "uniao")
+        c.instancias[b].transformacao[0] = -1.0  # espelha em x
+        with self.assertRaises(ValueError):
+            c.combinar_grupos(a, b, "uniao")
+
+
 if __name__ == "__main__":
     unittest.main()

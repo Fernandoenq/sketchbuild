@@ -106,6 +106,13 @@ class InstanceRequest(BaseModel):
     transformacao: list[float] | None = Field(default=None, min_length=16, max_length=16)
 
 
+class GroupSolidRequest(BaseModel):
+    operacao: Literal["uniao", "subtracao", "intersecao"]
+    a: int  # instância A (na subtração, a que perde volume)
+    b: int
+    nome: str | None = None
+
+
 class SceneSummaryResponse(BaseModel):
     ativa: int
     caminho: list[int]

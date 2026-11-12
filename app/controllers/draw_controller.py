@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SelecaoResponse, SolidoRequest, SolidoResponse, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest, PushPullRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, GroupSolidRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SelecaoResponse, SolidoRequest, SolidoResponse, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest, PushPullRequest, SceneSummaryResponse
 from app.services.draw_service import DrawService
 
 
@@ -58,6 +58,9 @@ class DrawController:
 
     async def instanciar(self, body: InstanceRequest) -> dict:
         return await self._cena(self._service.instanciar(body.instancia, body.transformacao))
+
+    async def combinar_grupos(self, body: GroupSolidRequest) -> SceneSummaryResponse:
+        return SceneSummaryResponse(**await self._cena(self._service.combinar_grupos(**body.model_dump())))
 
     async def explodir(self, body: InstanceRequest) -> SceneSummaryResponse:
         return SceneSummaryResponse(**await self._cena(self._service.explodir(body.instancia)))
