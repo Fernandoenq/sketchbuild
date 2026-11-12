@@ -218,8 +218,8 @@ Núcleo: `Topology.guias`, `Topology.secoes` e `core/topology/guias.py` (`guia_p
 Tentativas com falha, para ninguém repetir sem outra fonte:
 - **Textura posicionada (UV):** RESOLVIDO em 12/11/2026, ver a seção 7j. O crash era a ordem dos campos de `SUMaterialInput` (o material vai por último, offset 0x68), descoberta lendo a DLL no REA.
 - **Texto (causa do crash achada em 12/11/2026 pelo REA da DLL):** `SUTextSetPoint(texto, ponto, caminho_de_instância)` tem TRÊS parâmetros; o terceiro é opcional (NULL = ponto no espaço do modelo) e eu passava só dois, deixando lixo no registrador. Com o terceiro NULL a chamada funciona, mas o `.skp` ainda não salva (`SU_ERROR_SERIALIZATION`) com nenhum tipo de linha de chamada nem vetor; falta algum campo obrigatório do texto. Histórico da tentativa anterior: `SUTextSetPoint` dá violação de acesso (0x6), repetido em 12/11/2026 com `argtypes` explícitos, com os três tipos de linha de chamada (0, 1, 2) e com o texto já adicionado ao modelo antes (mesmo endereço 0x6: ponteiro interno nulo) e um texto sem ponto falha ao salvar (`SU_ERROR_SERIALIZATION`).
-- **Cota linear:** `SUDimensionLinearCreate` dá violação de acesso (0x5).
-- O arquivo real do Fernando que tem `0x1399` (registro desconhecido com materiais referenciados, `0x5bcc`/`0x59d8`/`0x5208`) pode ser texto/cota/imagem; sem rótulo não dá para afirmar.
+- **Cota linear:** RESOLVIDO em 12/11/2026 (seção 7k). O crash era a assinatura: `SUDimensionLinearCreate(dim*, ponto_ini*, caminho, ponto_fim*, caminho)`, com os caminhos de instância opcionais.
+- `0x1399` = contêiner de cotas (ver 7k); a dúvida abaixo é histórica. O arquivo real do Fernando que tem `0x1399` (registro desconhecido com materiais referenciados, `0x5bcc`/`0x59d8`/`0x5208`) pode ser texto/cota/imagem; sem rótulo não dá para afirmar.
 Tentativa de gerar esses arquivos no SketchUp 2026 real, sem ninguém na frente (12/11/2026): `SketchUp.exe -RubyStartup script.rb` abre o programa mas o script não roda (nenhum log, nenhum arquivo em 5 minutos); a instância foi fechada. Para usar o SketchUp real é preciso abri-lo à mão e carregar o script pelo Console Ruby, como em `ruby_bridge/f0_receitas.rb`. O script pronto está em `ruby_bridge/gerar_anotacoes_reais.rb` (texto, cota, textura posicionada, instâncias a 0/90/33° e grupo).
 Próxima fonte possível: arquivos reais do SketchUp com texto, cota e textura posicionada, comparados com a mesma cena sem o elemento.
 
@@ -315,3 +315,32 @@ Lugar: dentro do cabeçalho da face, `0x07d0 > 0x05dc > 0x05dd > 0x36b1 > 0x36b2
 **Pendente:** eixos x/y do plano em face inclinada (aqui sempre x e y do mundo); UV com perspectiva (4 pontos que não formam transformação afim; a SketchUpAPI só aceita o par de cantos); `0x2716`; textura posicionada no verso; textura posicionada no verso.
 
 **Gravador (12/11/2026):** `core/skp_topology_writer.py` (`_bloco_uv`) grava o bloco; núcleo: `Face.uv`, `core/topology/material.py` (`matriz_uv`, `posicionar_textura`). `uv` só vai ao arquivo se a frente tem material; limpar a frente tira o `uv`; Push/Pull e divisão de face levam o `uv`; explodir grupo descarta (o plano mudaria de lugar). Testes em `test_skp_uv.py` conferem os números dos quatro casos da SDK.
+
+## 7k. Cota linear `0x1399 > 0x5bcc` — decifrada em 12/11/2026
+
+Oráculo: `tools/gerar_cotas_api.py` (uma cota por modelo e uma mudança por variação, comparadas com `tools/tlv_diff.py`). O gravador reproduz o registro **byte a byte** nos 9 casos (`test_skp_cotas.py`). Lugar: filho de `0x1388`, depois das guias e antes de `0x139e`; um `0x5bcc` por cota; o id da cota entra na tabela `0x138e`.
+
+```
+0x1399
+  0x5bcc
+    0x59d8
+      0x07d0 (cabeçalho: id da cota, flags 0x06)
+      0x59d9 [texto UTF-8]  vazio = o SketchUp mostra a medida
+      0x59db [u8]           0 (sempre 0)
+      0x59dc [u32]          tipo de seta (SUDimensionSetArrowType: 0, 1, 2 gravados como 0, 1, 2)
+    0x5bcd                  ponto inicial
+      0x5208
+        0x5209 [u32]        1
+        0x520a [3 x f64]    posição
+        0x520b > 0x53fc > 0x53fe   vazio (caminho de instância)
+        0x520c > 0x53fc > 0x53fe   vazio
+    0x5bce                  ponto final (mesma forma)
+    0x5bcf [3 x f64]        normal do plano da cota (padrão 0,0,1)
+    0x5bd0 [3 x f64]        eixo X (padrão 1,0,0)
+    0x5bd1 [u32]            0
+    0x5bd3 [f64]            deslocamento x do texto no plano da cota (0 = padrão)
+    0x5bd2 [f64]            deslocamento y do texto (distância da linha de cota)
+    0x5bd4 [u32]            alinhamento vertical (padrão 1; `SetVerticalAlignment(1)` gravou 0)
+```
+
+`SUDimensionLinearSetPosition(50, 25, 5)` com início em (0,0,0) gravou `0x5bd3 = 50` e `0x5bd2 = 25` (o z some: é a posição projetada no plano da cota). `SetHorizontalAlignment(1)` gravou `0x5bd3 = -1.0` (alinhamento horizontal mora no mesmo campo, como sentinela quando não há posição). **Pendente:** relação do deslocamento com o ponto inicial (testado só com início na origem), alinhamento horizontal como sentinela, cota angular/raio/diâmetro, estilo e fonte da cota, caixa limite com cota (a raiz sem geometria não gravou `0x13a0`), exposição no app.

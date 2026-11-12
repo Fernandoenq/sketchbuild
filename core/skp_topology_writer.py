@@ -156,6 +156,20 @@ def _cabecalho_attr(id_: int, attr: bytes, tag: Optional[int] = None) -> bytes:
                 + (_rec(0x07D2, _id_bytes(tag)) if tag is not None else b"") + _rec(0x07D3, bytes([FLAGS_ARESTA])))
 
 
+def _registro_cota(ident: int, c: dict) -> bytes:
+    """Registro 0x5bcc de uma cota linear (FORMATO-SKP 7k)."""
+    def ponto(tag: int, p: Tuple[float, float, float]) -> bytes:
+        vazio = _rec(0x53FC, _rec(0x53FE, b""))
+        return _rec(tag, _rec(0x5208, _rec(0x5209, struct.pack("<I", 1)) + _rec(0x520A, struct.pack("<3d", *p))
+                              + _rec(0x520B, vazio) + _rec(0x520C, vazio)))
+    cab = (_rec(0x59D8, _cabecalho(ident, FLAGS_ARESTA) + _rec(0x59D9, c["texto"].encode("utf-8")) + _rec(0x59DB, bytes([0]))
+                + _rec(0x59DC, struct.pack("<I", c["seta"]))))
+    return _rec(0x5BCC, cab + ponto(0x5BCD, c["inicio"]) + ponto(0x5BCE, c["fim"])
+                + _rec(0x5BCF, struct.pack("<3d", *c["normal"])) + _rec(0x5BD0, struct.pack("<3d", *c["eixo_x"]))
+                + _rec(0x5BD1, struct.pack("<I", 0)) + _rec(0x5BD3, struct.pack("<d", c["desloc"][0]))
+                + _rec(0x5BD2, struct.pack("<d", c["desloc"][1])) + _rec(0x5BD4, struct.pack("<I", c["alinhamento_v"])))
+
+
 def _so_id(id_: int) -> bytes:
     return _rec(0x05DC, _rec(0x05DE, _id_bytes(id_)))
 
@@ -240,6 +254,10 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
     for g in sorted(t.secoes):
         sid_[g] = prox
         prox += 1
+    did_cota: Dict[int, int] = {}
+    for g in sorted(getattr(t, "cotas", {})):
+        did_cota[g] = prox
+        prox += 1
     curva_da_aresta = {e: cid_[c] for c, d in curvas.items() for e in d["arestas"]}
 
     verts = b"".join(
@@ -302,14 +320,16 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
                        + _rec(0x445E, b"") + _rec(0x445F, b""))
     reg_guias = ((_rec(0x1391, linhas_guia) if linhas_guia else b"") + (_rec(0x1392, pontos_guia) if pontos_guia else b"")
                   + (_rec(0x1393, planos) if planos else b""))
+    reg_cotas = _rec(0x1399, b"".join(_registro_cota(did_cota[g], c) for g, c in sorted(getattr(t, "cotas", {}).items()))) if did_cota else b""
     tabela = b"".join(bytes([len(_id_bytes(i))]) + _id_bytes(i)
-                      for i in list(eid.values()) + list(fid_.values()) + list(gid_.values()) + list(sid_.values()))
+                      for i in list(eid.values()) + list(fid_.values()) + list(gid_.values()) + list(sid_.values())
+                      + list(did_cota.values()))
     pts = list(t.verts.values())
     caixa = None
     if pts:
         caixa = (tuple(min(p[k] for p in pts) for k in range(3)), tuple(max(p[k] for p in pts) for k in range(3)))
     return {"vertices": verts, "arestas": arestas, "faces": faces, "tabela": tabela, "curvas": reg_curvas,
-            "simples": reg_simples, "materiais": reg_materiais, "guias": reg_guias}, prox, caixa
+            "simples": reg_simples, "materiais": reg_materiais, "guias": reg_guias + reg_cotas}, prox, caixa
 
 
 def _tabela(ids: Sequence[int]) -> bytes:
@@ -648,7 +668,7 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
             geometria += _rec(0x138D, inst_grup)
         geometria += reg["guias"]
         for a, bruto in novas:
-            if a == 0x139B and (t.edges or t.faces or inst_ids or t.guias or t.secoes):
+            if a == 0x139B and (t.edges or t.faces or inst_ids or t.guias or t.secoes or t.cotas):
                 corpo += _rec(0x138E, reg["tabela"] + _tabela(inst_ids))
             if a == 0x139F:
                 bruto = _rec(0x139F, bytes([1])) if (t.edges or t.faces) else bruto

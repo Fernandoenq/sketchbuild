@@ -110,6 +110,8 @@ class Topology:
         # planos de seção: id -> (A, B, C, D) do plano A x + B y + C z + D = 0
         self.guias: Dict[int, dict] = {}
         self.secoes: Dict[int, Tuple[float, float, float, float]] = {}
+        # cotas lineares (FORMATO-SKP.md 7k): id -> dict de core/topology/cotas.py
+        self.cotas: Dict[int, dict] = {}
         self._gid = Contador()
         # materiais: nome -> {"rgb": (r, g, b), "alpha": 0-255}. Faces apontam por nome (Face.frente / Face.verso).
         self.materiais: Dict[str, dict] = {}
