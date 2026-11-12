@@ -2561,6 +2561,11 @@ export function drawTag(corpo) {
   return postJson("/api/v1/draw/tag", "POST", corpo);
 }
 
+// seleção sem alterar o modelo: { acao, faces, arestas, nome, matriz, retangulo }; devolve { faces, edges, vertices }
+export function drawSelect(corpo) {
+  return postJson("/api/v1/draw/select", "POST", corpo);
+}
+
 // suavizar arestas: { arestas, angulo, suave, lisa, limpar }; devolve o estado completo
 export function drawSoften(corpo) {
   return postJson("/api/v1/draw/soften", "POST", corpo);

@@ -17,7 +17,7 @@ from core.topology.draw import desenhar
 from core.topology.edit import escalar, mover, offset, rotacionar, vertices_da_selecao
 from core.topology.material import definir_material, matriz_uv, pintar, posicionar_textura
 from core.topology.pushpull import empurrar
-from core.topology import cotas, guias, soften
+from core.topology import cotas, guias, selecao, soften
 from core.topology import texto as _texto
 from core.topology.tag import atribuir, atribuir_arestas, definir_tag
 
@@ -317,6 +317,27 @@ class DrawRepository:
 
         _HIST.executar("suavizar", {"arestas": list(arestas), "angulo": angulo}, acao)
         return self.estado()
+
+    def selecionar(self, acao, faces=(), arestas=(), nome=None, matriz=None, retangulo=None) -> dict:
+        """Seleção não altera o modelo: fica fora do histórico."""
+        t = _topo()
+        if acao == "tudo":
+            return selecao.tudo(t)
+        if acao == "inverter":
+            return selecao.inverter(t, faces, arestas)
+        if acao == "arestas_das_faces":
+            return selecao.arestas_das_faces(t, faces)
+        if acao == "faces_das_arestas":
+            return selecao.faces_das_arestas(t, arestas)
+        if acao == "conectados":
+            return selecao.conectados(t, faces, arestas)
+        if acao in ("tag", "material"):
+            if not nome:
+                raise ValueError(f"selecionar {acao}: informe o nome")
+            return (selecao.por_tag if acao == "tag" else selecao.por_material)(t, nome)
+        if matriz is None or retangulo is None:
+            raise ValueError(f"selecionar {acao}: informe matriz e retangulo")
+        return selecao.por_retangulo(t, matriz, retangulo, cruzamento=acao == "cruzamento")
 
     def adicionar_cena(self, nome, descricao="", animar=True, olho=None, alvo=None, cima=(0.0, 0.0, 1.0)) -> dict:
         if (olho is None) != (alvo is None):

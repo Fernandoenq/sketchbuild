@@ -5,7 +5,7 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest
+from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest
 
 
 def _tem_pillow():
@@ -244,6 +244,26 @@ class TestDrawController(unittest.TestCase):
             run(self.c.adicionar_cena(CenaRequest(nome="Sem alvo", olho=(1, 2, 3))))
         e = run(self.c.desfazer())
         self.assertEqual(e.cenas, [])  # desfez a cena; as duas tentativas recusadas nao entraram no historico
+
+    def test_selecionar_e_ferramentas_de_arco(self):
+        run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(10, 10, 0))))
+        run(self.c.desenhar(DrawRequest(ferramenta="arco_3pontos", p0=(20, 0, 0), p1=(25, 5, 0), p2=(30, 0, 0))))
+        run(self.c.desenhar(DrawRequest(ferramenta="bezier", pontos=[(40, 0, 0), (45, 10, 0), (50, 0, 0)], lados=4)))
+        run(self.c.desenhar(DrawRequest(ferramenta="setor", centro=(70, 0, 0), raio=5, ang_ini=0, ang_fim=90)))
+        r = run(self.c.selecionar(SelecaoRequest(acao="tudo")))
+        self.assertGreaterEqual(len(r.faces), 2)
+        inv = run(self.c.selecionar(SelecaoRequest(acao="inverter", faces=r.faces[:1], arestas=r.edges)))
+        self.assertEqual(inv.faces, r.faces[1:])
+        self.assertEqual(inv.edges, [])
+        j = run(self.c.selecionar(SelecaoRequest(acao="janela", matriz=[1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                                                 retangulo=[-1, -1, 11, 11])))
+        self.assertEqual(len(j.faces), 1)
+        for corpo in (SelecaoRequest(acao="tag"), SelecaoRequest(acao="janela"),
+                      SelecaoRequest(acao="material", nome="nada")):
+            with self.assertRaises(HTTPException):
+                run(self.c.selecionar(corpo))
+        with self.assertRaises(HTTPException):
+            run(self.c.desenhar(DrawRequest(ferramenta="arco_3pontos", p0=(0, 0, 0), p1=(1, 0, 0), p2=(2, 0, 0))))
 
     def test_suavizar_por_angulo_e_por_selecao(self):
         j = run(self.c.desenhar(DrawRequest(ferramenta="circulo", centro=(0, 0, 0), raio=50)))

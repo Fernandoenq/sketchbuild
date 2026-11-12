@@ -86,3 +86,6 @@ class DrawService:
 
     async def limpar(self) -> None:
         await run_in_threadpool(self._repository.limpar)
+
+    async def selecionar(self, **params) -> dict:
+        return await run_in_threadpool(lambda: self._repository.selecionar(**params))

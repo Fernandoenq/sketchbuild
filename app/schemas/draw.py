@@ -154,6 +154,22 @@ class SoftenRequest(BaseModel):
     limpar: bool = False  # tira suave e lisa das arestas dadas
 
 
+class SelecaoRequest(BaseModel):
+    acao: Literal["tudo", "inverter", "arestas_das_faces", "faces_das_arestas", "conectados", "tag", "material",
+                  "janela", "cruzamento"]
+    faces: list[int] = Field(default_factory=list)  # seleção atual (inverter, conectados, ...)
+    arestas: list[int] = Field(default_factory=list)
+    nome: str | None = None  # tag ou material
+    matriz: list[float] | None = Field(default=None, min_length=16, max_length=16)  # projeção 4x4, linha a linha
+    retangulo: list[float] | None = Field(default=None, min_length=4, max_length=4)  # x0, y0, x1, y1 na tela
+
+
+class SelecaoResponse(BaseModel):
+    faces: list[int]
+    edges: list[int]
+    vertices: list[int]
+
+
 class GuiaRequest(BaseModel):
     tipo: str = Field(pattern="^(ponto|linha|secao|apagar)$")
     p: tuple[float, float, float] | None = None  # ponto da guia, inicio da linha ou ponto do plano de secao

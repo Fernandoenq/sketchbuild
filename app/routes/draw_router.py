@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Response, status
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SelecaoResponse, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest, SceneSummaryResponse
 
 router = APIRouter(prefix="/draw", tags=["draw"])
 
@@ -106,6 +106,11 @@ async def posicionar(body: PosicionarRequest, controller: DrawController = Depen
 @router.post("/guide", response_model=DrawStateResponse, summary="Cria guia (ponto ou linha) ou plano de secao; ou apaga pelo id")
 async def guia(body: GuiaRequest, controller: DrawController = Depends(get_controller)) -> DrawStateResponse:
     return await controller.guia(body)
+
+
+@router.post("/select", response_model=SelecaoResponse, summary="Seleciona (tudo, inverter, conectados, tag, material, janela, cruzamento) sem alterar o modelo")
+async def selecionar(body: SelecaoRequest, controller: DrawController = Depends(get_controller)) -> SelecaoResponse:
+    return await controller.selecionar(body)
 
 
 @router.post("/soften", response_model=DrawStateResponse, summary="Suaviza arestas (por selecao ou por angulo) ou tira a suavizacao")
