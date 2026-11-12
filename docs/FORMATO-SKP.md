@@ -332,7 +332,7 @@ Oráculo: `tools/gerar_cotas_api.py` (uma cota por modelo e uma mudança por var
     0x59d8
       0x07d0 (cabeçalho: id da cota, flags 0x06)
       0x59d9 [texto UTF-8]  vazio = o SketchUp mostra a medida
-      0x59db [u8]           0 (sempre 0)
+      0x59db [u8]           texto 3D (`SUDimensionSetText3D`): 0 ou 1
       0x59dc [u32]          tipo de seta (SUDimensionSetArrowType: 0, 1, 2 gravados como 0, 1, 2)
     0x5bcd                  ponto inicial
       0x5208
@@ -349,7 +349,9 @@ Oráculo: `tools/gerar_cotas_api.py` (uma cota por modelo e uma mudança por var
     0x5bd4 [u32]            alinhamento vertical (padrão 1; `SetVerticalAlignment(1)` gravou 0)
 ```
 
-`SUDimensionLinearSetPosition(50, 25, 5)` com início em (0,0,0) gravou `0x5bd3 = 50` e `0x5bd2 = 25` (o z some: é a posição projetada no plano da cota). `SetHorizontalAlignment(1)` gravou `0x5bd3 = -1.0` (alinhamento horizontal mora no mesmo campo, como sentinela quando não há posição). **Alinhamento horizontal (12/11/2026, `SUDimensionLinearSetHorizontalAlignment`):** valores 0, 1 e 2 gravam em `0x5bd3` 0.0, -1.0 e +1.0 (3 e 4 são recusados pela SDK); é o mesmo campo do x do deslocamento, então vale o que for posto por último (posição depois do alinhamento: x = posição; alinhamento depois da posição: x = sentinela e o y fica). `cota_linear(alinhamento_h=)` e `POST /note` reproduzem os 6 casos byte a byte. **Deslocamento × ponto inicial (12/11/2026):** não há relação: `SUDimensionLinearSetPosition(x, y, z)` grava `x` em `0x5bd3` e `y` em `0x5bd2` crus (o `z` some), seja qual for o início (fora da origem em x, y e z), a direção da cota, o início oblíquo, a normal em y ou o eixo X em y; 8 casos byte a byte em `test_skp_cotas.py`. O que o SketchUp real faz ao arrastar o texto (projetar no plano da cota) é da interface, não do formato. **Pendente:** cota angular/raio/diâmetro, estilo e fonte da cota, caixa limite com cota (a raiz sem geometria não gravou `0x13a0`), exposição no app.
+`SUDimensionLinearSetPosition(50, 25, 5)` com início em (0,0,0) gravou `0x5bd3 = 50` e `0x5bd2 = 25` (o z some: é a posição projetada no plano da cota). `SetHorizontalAlignment(1)` gravou `0x5bd3 = -1.0` (alinhamento horizontal mora no mesmo campo, como sentinela quando não há posição). **Texto 3D e fonte da cota (12/11/2026):** `SUDimensionSetText3D(true)` grava 1 em `0x59db`; `SUDimensionSetFont(fonte)` acrescenta `0x59da` (u8 = id da fonte: 2 ou 3 no modelo em branco) entre `0x59d9` e `0x59db` (sem a chamada o registro não existe). `cota_linear(texto_3d=, fonte=)` e `POST /note` reproduzem os 4 casos byte a byte. Sobraram sem função na SDK: `0x5bd1`, `0x59dc` já é a seta; `SUDimensionSetStyle` precisa de um `SUDimensionStyleRef` que a DLL não cria.
+
+**Alinhamento horizontal (12/11/2026, `SUDimensionLinearSetHorizontalAlignment`):** valores 0, 1 e 2 gravam em `0x5bd3` 0.0, -1.0 e +1.0 (3 e 4 são recusados pela SDK); é o mesmo campo do x do deslocamento, então vale o que for posto por último (posição depois do alinhamento: x = posição; alinhamento depois da posição: x = sentinela e o y fica). `cota_linear(alinhamento_h=)` e `POST /note` reproduzem os 6 casos byte a byte. **Deslocamento × ponto inicial (12/11/2026):** não há relação: `SUDimensionLinearSetPosition(x, y, z)` grava `x` em `0x5bd3` e `y` em `0x5bd2` crus (o `z` some), seja qual for o início (fora da origem em x, y e z), a direção da cota, o início oblíquo, a normal em y ou o eixo X em y; 8 casos byte a byte em `test_skp_cotas.py`. O que o SketchUp real faz ao arrastar o texto (projetar no plano da cota) é da interface, não do formato. **Pendente:** cota angular/raio/diâmetro, estilo e fonte da cota, caixa limite com cota (a raiz sem geometria não gravou `0x13a0`), exposição no app.
 
 ## 7l. Texto livre `0x1398 > 0x55f0` — decifrado em 12/11/2026
 

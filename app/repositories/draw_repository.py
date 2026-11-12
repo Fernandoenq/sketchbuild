@@ -255,7 +255,7 @@ class DrawRepository:
         return self.estado()
 
     def nota(self, tipo, texto=None, p=None, fim=None, normal=None, eixo_x=None, desloc=(0.0, 0.0), seta=0,
-             tipo_chamada=0, vetor=None, id=None, cor=None, fonte_nova=None, alinhamento_h=None, tela=(0.5, 0.5)) -> dict:
+             tipo_chamada=0, vetor=None, id=None, cor=None, fonte_nova=None, alinhamento_h=None, tela=(0.5, 0.5), texto_3d=False, fonte=None) -> dict:
         def acao():
             if tipo == "apagar":
                 if id is None:
@@ -267,13 +267,13 @@ class DrawRepository:
             elif tipo == "texto":
                 if p is None or not texto:
                     raise ValueError("texto: informe o texto e o ponto p")
-                _texto.texto_livre(_topo(), texto, p, tipo_chamada, vetor, seta, cor=cor, fonte_nova=fonte_nova, tela=tela)
+                _texto.texto_livre(_topo(), texto, p, tipo_chamada, vetor, seta, 2 if fonte is None else fonte, cor=cor, fonte_nova=fonte_nova, tela=tela)
             else:
                 if p is None or fim is None:
                     raise ValueError("cota: informe o ponto inicial p e o ponto final fim")
                 direcao = tuple(fim[i] - p[i] for i in range(3))
                 n = normal or _normal_da_cota(direcao)
-                cotas.cota_linear(_topo(), p, fim, n, eixo_x or direcao, texto or "", seta, desloc, alinhamento_h=alinhamento_h)
+                cotas.cota_linear(_topo(), p, fim, n, eixo_x or direcao, texto or "", seta, desloc, alinhamento_h=alinhamento_h, texto_3d=texto_3d, fonte=fonte)
             return {}
 
         _HIST.executar("nota", {"tipo": tipo}, acao)

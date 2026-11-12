@@ -88,6 +88,35 @@ VARIACOES["pos_normal_y_ini"] = ((10, 20, 30), (110, 20, 30), lambda d, r: (_vet
 VARIACOES["pos_eixo_y"] = ((0, 0, 0), (100, 0, 0), lambda d, r: (_vetor(d, "SUDimensionLinearSetXAxis", (r, (0, 1, 0))), _pos((50, 25, 5))(d, r)))
 
 
+def _bool(d, nome, ref, v):
+    f = getattr(d, nome)
+    f.argtypes = [_Ref, ctypes.c_bool]
+    assert f(ref, v) == 0, nome
+
+
+VARIACOES["texto3d"] = ((0, 0, 0), (100, 0, 0), lambda d, r: _bool(d, "SUDimensionSetText3D", r, True))
+VARIACOES["texto3d_off"] = ((0, 0, 0), (100, 0, 0), lambda d, r: _bool(d, "SUDimensionSetText3D", r, False))
+
+
+def _fonte(indice):
+    def aplicar(d, r):
+        from core.su_types import SUModelRef
+        n = ctypes.c_size_t()
+        d.SUModelGetNumFonts.argtypes = [SUModelRef, P(ctypes.c_size_t)]
+        assert d.SUModelGetNumFonts(_MODELO[0], ctypes.byref(n)) == 0
+        fontes, got = (_Ref * n.value)(), ctypes.c_size_t()
+        d.SUModelGetFonts.argtypes = [SUModelRef, ctypes.c_size_t, P(_Ref), P(ctypes.c_size_t)]
+        assert d.SUModelGetFonts(_MODELO[0], n.value, fontes, ctypes.byref(got)) == 0
+        d.SUDimensionSetFont.argtypes = [_Ref, _Ref]
+        assert d.SUDimensionSetFont(r, fontes[indice]) == 0
+    return aplicar
+
+
+_MODELO = [None]  # modelo em uso pela variação (preenchido em gerar)
+VARIACOES["fonte0"] = ((0, 0, 0), (100, 0, 0), _fonte(0))
+VARIACOES["fonte1"] = ((0, 0, 0), (100, 0, 0), _fonte(1))
+
+
 def _texto(d, r):
     d.SUDimensionSetText.argtypes = [_Ref, ctypes.c_char_p]
     assert d.SUDimensionSetText(r, "Meu texto".encode("utf-8")) == 0
@@ -106,6 +135,7 @@ def gerar(pasta: str, nome: str) -> str:
     try:
         m = api.create_blank_model()
         e = m.get_entities()
+        _MODELO[0] = m._model
         r = _Ref()
         d.SUDimensionLinearCreate.argtypes = [P(_Ref), P(SUPoint3D), _Ref, P(SUPoint3D), _Ref]
         assert d.SUDimensionLinearCreate(ctypes.byref(r), ctypes.byref(_pt(*ini)), _Ref(), ctypes.byref(_pt(*fim)), _Ref()) == 0

@@ -165,6 +165,8 @@ class NotaRequest(BaseModel):
     normal: tuple[float, float, float] | None = None  # cota: normal do plano (padrao: escolhida pela direcao)
     eixo_x: tuple[float, float, float] | None = None  # cota: eixo X do plano (padrao: direcao da cota)
     desloc: tuple[float, float] = (0.0, 0.0)  # cota: deslocamento do texto no plano
+    fonte: int | None = Field(default=None, ge=0, le=255)  # cota: id de fonte do modelo (2 ou 3)
+    texto_3d: bool = False  # cota: texto 3D (SUDimensionSetText3D)
     alinhamento_h: int | None = Field(default=None, ge=0, le=2)  # cota: alinhamento horizontal do texto (0, 1, 2); sobrescreve desloc[0]
     seta: int = Field(default=0, ge=0)
     tipo_chamada: int = Field(default=0, ge=0, le=2)  # texto: tipo da linha de chamada

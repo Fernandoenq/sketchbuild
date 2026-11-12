@@ -17,11 +17,14 @@ def _unit(v: Sequence[float], nome: str) -> Tuple[float, float, float]:
 def cota_linear(t: Topology, inicio: Point, fim: Point, normal: Sequence[float] = (0, 0, 1),
                 eixo_x: Sequence[float] = (1, 0, 0), texto: str = "", seta: int = 0,
                 desloc: Tuple[float, float] = (0.0, 0.0), alinhamento_v: int = 1,
-                alinhamento_h: Optional[int] = None) -> int:
+                alinhamento_h: Optional[int] = None, texto_3d: bool = False,
+                fonte: Optional[int] = None) -> int:
     """Cota entre dois pontos no plano de `normal`. `texto` vazio = o SketchUp mostra a medida.
 
     `seta` 0 = padrão (valor de `SUDimensionSetArrowType`); `desloc` = (x, y) do texto no plano da cota, como o SketchUp
     grava (relação exata com o ponto inicial ainda não conferida); `alinhamento_v` = valor do arquivo (padrão 1).
+    `texto_3d` (`SUDimensionSetText3D`) grava 1 em 0x59db; `fonte` = id de uma fonte do modelo (2 ou 3 no modelo em branco,
+    `SUDimensionSetFont`), grava 0x59da; sem ela o registro não existe.
     `alinhamento_h` (0, 1 ou 2, de `SUDimensionLinearSetHorizontalAlignment`) mora no mesmo campo do x do deslocamento
     como sentinela (0 → 0.0, 1 → -1.0, 2 → +1.0) e vale o que for posto por último, então sobrescreve `desloc[0]`.
     """
@@ -38,7 +41,8 @@ def cota_linear(t: Topology, inicio: Point, fim: Point, normal: Sequence[float] 
         "inicio": tuple(float(c) for c in inicio), "fim": tuple(float(c) for c in fim),
         "normal": _unit(normal, "normal"), "eixo_x": _unit(eixo_x, "eixo x"),
         "texto": str(texto), "seta": int(seta), "desloc": (float(desloc[0]), float(desloc[1])),
-        "alinhamento_v": int(alinhamento_v),
+        "alinhamento_v": int(alinhamento_v), "texto_3d": bool(texto_3d),
+        "fonte": None if fonte is None else int(fonte),
     }
     return cid
 
