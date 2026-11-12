@@ -107,8 +107,8 @@ class InstanceRequest(BaseModel):
 
 
 class GroupSolidRequest(BaseModel):
-    operacao: Literal["uniao", "subtracao", "intersecao"]
-    a: int  # instância A (na subtração, a que perde volume)
+    operacao: Literal["uniao", "subtracao", "intersecao", "aparar", "dividir"]
+    a: int  # instância A (na subtração e no aparar, a que perde volume)
     b: int
     nome: str | None = None
 

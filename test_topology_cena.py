@@ -115,6 +115,33 @@ class TestCombinarGrupos(unittest.TestCase):
         with self.assertRaises(ValueError):
             c.combinar_grupos(a, b, "intersecao")
 
+    def test_aparar_mantem_o_segundo_inalterado(self):
+        c, (a, b) = self._dois_grupos()
+        r = c.aparar_grupos(a, b)
+        self.assertEqual(sorted(c.instancias), sorted([r, b]))
+        self.assertAlmostEqual(self._volume(c, r), 375000.0, places=4)
+        self.assertEqual(c.instancias[b].transformacao[12:14], [50, 50])  # B segue onde estava
+        self.assertAlmostEqual(self._volume(c, b), 500000.0, places=4)
+
+    def test_aparar_recusa_quando_b_cobre_a(self):
+        c, (a, b) = self._dois_grupos((0, 0, 0))
+        with self.assertRaises(ValueError):
+            c.aparar_grupos(a, b)
+
+    def test_dividir_gera_tres_pedacos_que_somam_a_uniao(self):
+        c, (a, b) = self._dois_grupos()
+        novas = c.dividir_grupos(a, b)
+        self.assertEqual(sorted(c.instancias), sorted(novas))
+        vols = sorted(self._volume(c, i) for i in novas)
+        for v, e in zip(vols, [125000.0, 375000.0, 375000.0]):
+            self.assertAlmostEqual(v, e, places=4)
+
+    def test_dividir_sem_volume_comum_recusa(self):
+        c, (a, b) = self._dois_grupos((500, 0, 0))
+        with self.assertRaises(ValueError):
+            c.dividir_grupos(a, b)
+        self.assertEqual(sorted(c.instancias), sorted([a, b]))  # nada mudou
+
     def test_recusas(self):
         c, (a, b) = self._dois_grupos()
         with self.assertRaises(ValueError):

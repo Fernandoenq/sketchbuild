@@ -80,6 +80,10 @@ class TestDrawController(unittest.TestCase):
         self.assertEqual(cm.exception.status_code, 422)
         with self.assertRaises(HTTPException):
             run(self.c.combinar_grupos(GroupSolidRequest(operacao="uniao", a=a, b=999)))
+        for op in ("aparar", "dividir"):
+            with self.assertRaises(HTTPException) as cm:
+                run(self.c.combinar_grupos(GroupSolidRequest(operacao=op, a=a, b=b)))
+            self.assertEqual(cm.exception.status_code, 422)
 
     def _agrupar_quadrado(self, tipo, x0):
         j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(x0, 0, 0), p1=(x0 + 100, 100, 0))))

@@ -199,14 +199,7 @@ class Cena:
             self.comportamento.pop(i.definicao, None)
             del self.nomes[i.definicao]
 
-    def combinar_grupos(self, a: int, b: int, operacao: str, nome: Optional[str] = None) -> int:
-        """Booleana entre duas instâncias da definição ativa (união, subtração A-B, interseção).
-
-        Cada definição é levada para o sistema de coordenadas da definição ativa pela matriz da instância; o resultado vira
-        um grupo novo (matriz identidade) e as duas instâncias de origem saem. Não aceita instância com instâncias dentro
-        nem matriz que espelhe (determinante negativo)."""
-        from core.topology.solido import combinar  # import local: solido importa o núcleo, não a cena
-
+    def _validar_par(self, a: int, b: int) -> tuple:
         if a == b:
             raise ValueError("escolha duas instâncias diferentes")
         ia, ib = self.instancias.get(a), self.instancias.get(b)
@@ -217,22 +210,65 @@ class Cena:
         for i in (ia, ib):
             if any(x.pai == i.definicao for x in self.instancias.values()):
                 raise ValueError("instância com instâncias dentro ainda não é suportada na booleana")
+        return ia, ib
+
+    def _operar(self, ia: Instancia, ib: Instancia, operacao: str) -> Topology:
+        from core.topology.solido import combinar  # import local: solido importa o núcleo, não a cena
+
         ta, tb = self._no_pai(ia), self._no_pai(ib)
-        w = combinar(ta, list(ta.faces), tb, list(tb.faces), operacao)
-        if not w.faces:
-            raise ValueError("o resultado da operação é vazio")
+        return combinar(ta, list(ta.faces), tb, list(tb.faces), operacao)
+
+    def _novo_grupo(self, w: Topology, nome: Optional[str]) -> int:
         did = next(self._def)
         self.defs[did] = w
         self.nomes[did] = nome or f"Grupo#{did}"
         iid = next(self._inst)
         self.instancias[iid] = Instancia(iid, did, self.ativa, self.nomes[did], "grupo")
-        for i in (ia, ib):
+        return iid
+
+    def _remover(self, *instancias: Instancia) -> None:
+        for i in instancias:
             del self.instancias[i.id]
             if not any(x.definicao == i.definicao for x in self.instancias.values()):
                 self.defs.pop(i.definicao, None)
                 self.comportamento.pop(i.definicao, None)
                 self.nomes.pop(i.definicao, None)
+
+    def combinar_grupos(self, a: int, b: int, operacao: str, nome: Optional[str] = None) -> int:
+        """Booleana entre duas instâncias da definição ativa (união, subtração A-B, interseção).
+
+        Cada definição é levada para o sistema de coordenadas da definição ativa pela matriz da instância; o resultado vira
+        um grupo novo (matriz identidade) e as duas instâncias de origem saem. Não aceita instância com instâncias dentro
+        nem matriz que espelhe (determinante negativo)."""
+        ia, ib = self._validar_par(a, b)
+        w = self._operar(ia, ib, operacao)
+        if not w.faces:
+            raise ValueError("o resultado da operação é vazio")
+        iid = self._novo_grupo(w, nome)
+        self._remover(ia, ib)
         return iid
+
+    def aparar_grupos(self, a: int, b: int, nome: Optional[str] = None) -> int:
+        """Aparar (Trim): A perde o volume que divide com B e B continua como está. Devolve a instância nova no lugar de A."""
+        ia, ib = self._validar_par(a, b)
+        w = self._operar(ia, ib, "subtracao")
+        if not w.faces:
+            raise ValueError("B cobre A inteiro: nada sobraria")
+        iid = self._novo_grupo(w, nome or ia.nome)
+        self._remover(ia)
+        return iid
+
+    def dividir_grupos(self, a: int, b: int) -> List[int]:
+        """Dividir (Split): vira três grupos, A-B, A∩B e B-A (os que não ficarem vazios). Sem volume em comum dá erro."""
+        ia, ib = self._validar_par(a, b)
+        partes = [(self._operar(ia, ib, "subtracao"), f"{ia.nome} - {ib.nome}"),
+                  (self._operar(ia, ib, "intersecao"), f"{ia.nome} ∩ {ib.nome}"),
+                  (self._operar(ib, ia, "subtracao"), f"{ib.nome} - {ia.nome}")]
+        if not partes[1][0].faces:
+            raise ValueError("os dois sólidos não têm volume em comum: nada a dividir")
+        novas = [self._novo_grupo(w, nome) for w, nome in partes if w.faces]
+        self._remover(ia, ib)
+        return novas
 
     def _no_pai(self, i: Instancia) -> Topology:
         """Cópia da definição da instância com os pontos já na definição que a contém."""

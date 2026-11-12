@@ -161,8 +161,14 @@ class DrawRepository:
 
     def combinar_grupos(self, operacao: str, a: int, b: int, nome=None) -> dict:
         """Booleana entre duas instâncias da definição ativa; o resultado é um grupo novo e as duas de origem saem."""
-        iid = _HIST.executar("solido_grupos:" + operacao, {"a": a, "b": b},
-                             lambda: _CENA.combinar_grupos(a, b, operacao, nome))
+        if operacao == "dividir":
+            novas = _HIST.executar("solido_grupos:dividir", {"a": a, "b": b}, lambda: _CENA.dividir_grupos(a, b))
+            return {"instancia": novas[0], "instancias": novas, **self.cena()}
+        if operacao == "aparar":
+            iid = _HIST.executar("solido_grupos:aparar", {"a": a, "b": b}, lambda: _CENA.aparar_grupos(a, b, nome))
+        else:
+            iid = _HIST.executar("solido_grupos:" + operacao, {"a": a, "b": b},
+                                 lambda: _CENA.combinar_grupos(a, b, operacao, nome))
         return {"instancia": iid, **self.cena()}
 
     def instanciar(self, instancia: int, transformacao) -> dict:
