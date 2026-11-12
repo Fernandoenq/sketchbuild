@@ -217,7 +217,7 @@ Núcleo: `Topology.guias`, `Topology.secoes` e `core/topology/guias.py` (`guia_p
 
 Tentativas com falha, para ninguém repetir sem outra fonte:
 - **Textura posicionada (UV):** `SUGeometryInputFaceSetFrontMaterial` dá violação de acesso (0x93), com ou sem UV (`tools/gerar_uv_api.py`). Sem oráculo; a textura é gravada com a projeção padrão.
-- **Texto:** `SUTextSetPoint` dá violação de acesso (0x6) e um texto sem ponto falha ao salvar (`SU_ERROR_SERIALIZATION`).
+- **Texto:** `SUTextSetPoint` dá violação de acesso (0x6), repetido em 12/11/2026 com `argtypes` explícitos, com os três tipos de linha de chamada (0, 1, 2) e com o texto já adicionado ao modelo antes (mesmo endereço 0x6: ponteiro interno nulo) e um texto sem ponto falha ao salvar (`SU_ERROR_SERIALIZATION`).
 - **Cota linear:** `SUDimensionLinearCreate` dá violação de acesso (0x5).
 - O arquivo real do Fernando que tem `0x1399` (registro desconhecido com materiais referenciados, `0x5bcc`/`0x59d8`/`0x5208`) pode ser texto/cota/imagem; sem rótulo não dá para afirmar.
 Próxima fonte possível: arquivos reais do SketchUp com texto, cota e textura posicionada, comparados com a mesma cena sem o elemento.
