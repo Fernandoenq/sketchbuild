@@ -127,6 +127,30 @@ class TestGravadorSemDll(unittest.TestCase):
         self.assertEqual(len(achar(d, 0x0DAF)), 1)  # verso
         self.assertEqual(verificar_skp(self.p("m.skp"))["refs_quebradas"], 0)
 
+    def test_material_com_textura_grava_imagem_xml_e_registro_32cd(self):
+        from core.topology.material import definir_material
+        png = bytes.fromhex("89504e470d0a1a0a")  # o conteúdo da imagem não é interpretado pelo gravador
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))
+        definir_material(t, "Tijolo", (127, 0, 127), textura={"nome": "xadrez.png", "bytes": png, "escala": (1, 1)})
+        next(iter(t.faces.values())).frente = "Tijolo"
+        gravar_topologia(t, self.p("tex.skp"))
+        with open(self.p("tex.skp"), "rb") as fh:
+            b = fh.read()
+        z = zipfile.ZipFile(io.BytesIO(b[b.find(b"PK"):]))
+        self.assertEqual(z.read("materials/Tijolo/xadrez.png"), png)
+        xml = z.read("materials/Tijolo/material.xml").decode()
+        self.assertIn('type="1"', xml)
+        self.assertIn('hasTexture="1"', xml)
+        self.assertIn('avgColor="%d"' % 0xFF7F007F, xml)  # ARGB da cor média
+        self.assertIn('path="./xadrez.png"', xml)
+        self.assertNotIn(":", xml.split("textureFilename=")[1].split(" ")[0])  # sem caminho absoluto
+        d = z.read("model.dat")
+        regs = achar(d, 0x32CD)
+        self.assertEqual(len(regs), 1)
+        self.assertEqual(int.from_bytes(d[regs[0][2] + 6:regs[0][2] + 6 + regs[0][1]], "little"), 90)
+        self.assertEqual(verificar_skp(self.p("tex.skp"))["refs_quebradas"], 0)
+
     def test_hierarquia_definicoes_filhos_antes_dos_pais(self):
         c = Cena()
         desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))

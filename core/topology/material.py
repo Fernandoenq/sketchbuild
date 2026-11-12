@@ -6,12 +6,18 @@ from typing import Dict, Optional, Sequence, Tuple
 from core.topology.model import Topology
 
 
-def definir_material(t: Topology, nome: str, rgb: Sequence[int], alpha: int = 255) -> None:
+def definir_material(t: Topology, nome: str, rgb: Sequence[int], alpha: int = 255, textura: Optional[dict] = None) -> None:
+    """`textura` = {"nome": "tijolo.png", "bytes": <arquivo>, "escala": (s, t)}; `rgb` vira a cor média da imagem."""
     if not nome.strip():
         raise ValueError("o material precisa de nome")
     if len(rgb) != 3 or any(not 0 <= int(c) <= 255 for c in rgb) or not 0 <= alpha <= 255:
         raise ValueError("cor fora de 0-255")
-    t.materiais[nome] = {"rgb": tuple(int(c) for c in rgb), "alpha": int(alpha)}
+    m = {"rgb": tuple(int(c) for c in rgb), "alpha": int(alpha)}
+    if textura:
+        if not textura.get("nome") or not textura.get("bytes"):
+            raise ValueError("a textura precisa de nome e bytes da imagem")
+        m["textura"] = {"nome": str(textura["nome"]), "bytes": bytes(textura["bytes"]), "escala": tuple(textura.get("escala", (1.0, 1.0)))}
+    t.materiais[nome] = m
 
 
 def pintar(t: Topology, faces: Sequence[int], frente: Optional[str] = None, verso: Optional[str] = None,

@@ -75,13 +75,37 @@ _XML_MATERIAL = (
 )
 
 
-def xml_material(nome: str, rgb: Tuple[int, int, int], alpha: int = 255) -> bytes:
+_XML_TEXTURA = (
+    '    <mat:texture textureFilename=%s xScale="%s" yScale="%s" avgColor="%d">\n'
+    '      <mat:images>\n'
+    '        <mat:image id="1" path="./%s" file_name=%s/>\n'
+    '      </mat:images>\n'
+    '    </mat:texture>\n'
+)
+
+
+def xml_material(nome: str, rgb: Tuple[int, int, int], alpha: int = 255, textura: Optional[dict] = None) -> bytes:
     """materials/<nome>/material.xml no formato observado em arquivos da SketchUpAPI (docs/FORMATO-SKP.md, seção 7c)."""
     from xml.sax.saxutils import quoteattr
     usa = alpha < 255
     trans = repr(1 - alpha / 255) if usa else "0.5"
     corpo = _XML_MATERIAL % (quoteattr(nome), rgb[0], rgb[1], rgb[2], trans, 1 if usa else 0, 2 if usa else 0)
+    if textura:
+        # o SketchUp grava aqui o caminho absoluto de onde a imagem veio; gravamos só o nome (não vaza pasta de ninguém)
+        arq = nome_seguro(textura["nome"])
+        media = (255 << 24) | (rgb[0] << 16) | (rgb[1] << 8) | rgb[2]
+        esc = textura.get("escala", (1.0, 1.0))
+        bloco = _XML_TEXTURA % (quoteattr(arq), repr(float(esc[0])).rstrip("0").rstrip("."), repr(float(esc[1])).rstrip("0").rstrip("."),
+                                media, arq, quoteattr(arq))
+        corpo = corpo.replace('type="0"', 'type="1"', 1).replace('hasTexture="0"', 'hasTexture="1"', 1)
+        corpo = corpo.replace('    <mat:pbrMR', bloco + '    <mat:pbrMR', 1)
     return corpo.encode("utf-8")
+
+
+def registro_material(ident: int, nome: str, material: dict) -> bytes:
+    """Registro 0x32c8 da tabela de materiais; material com imagem leva também 0x32cd = 90 (valor observado)."""
+    extra = _rec(0x32CD, struct.pack("<I", 90)) if material.get("textura") else b""
+    return _rec(0x32C8, _so_id(ident) + _rec(0x32CC, nome.encode("utf-8")) + _rec(0x32CA, bytes([0])) + _rec(0x32CB, b"") + extra)
 
 
 # Blocos constantes observados em arquivos da SketchUpAPI (docs/FORMATO-SKP.md, seção 7d).
@@ -221,10 +245,7 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
             + (_rec(0x0DAF, _id_bytes(mid[fc.verso])) if fc.verso else b"")
             + _rec(0x0DAD, struct.pack("<4d", *plano)) + _rec(0x0DAE, corpo),
         )
-    reg_materiais = b"".join(
-        _rec(0x32C8, _so_id(mid[n]) + _rec(0x32CC, n.encode("utf-8")) + _rec(0x32CA, bytes([0])) + _rec(0x32CB, b""))
-        for n in usados
-    )
+    reg_materiais = b"".join(registro_material(mid[n], n, getattr(t, "materiais", {}).get(n, {})) for n in usados)
     reg_curvas = b""
     reg_simples = b""
     for c in sorted(curvas):
@@ -478,9 +499,7 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
                 mid_global[n] = primeiro_geo
                 primeiro_geo += 1
             reg, prox, caixa = montar_entidades(t, primeiro_geo, mid_global)
-            reg["materiais"] = b"".join(
-                _rec(0x32C8, _so_id(mid_global[n]) + _rec(0x32CC, n.encode("utf-8")) + _rec(0x32CA, bytes([0])) + _rec(0x32CB, b""))
-                for n in nomes)
+            reg["materiais"] = b"".join(registro_material(mid_global[n], n, definidos[n]) for n in nomes)
             defs_bytes, (inst_comp, inst_grup, inst_ids), prox = _montar_cena(cena, prox, mid_global)
             todos_materiais = definidos
         else:
@@ -552,8 +571,11 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
                         for nome, m in sorted(todos_materiais.items()):
                             if nome in usados:
                                 zout.writestr(f"materials/{nome_seguro(nome)}/material.xml",
-                                              xml_material(nome, tuple(m["rgb"]), m.get("alpha", 255)),
+                                              xml_material(nome, tuple(m["rgb"]), m.get("alpha", 255), m.get("textura")),
                                               compress_type=zipfile.ZIP_DEFLATED)
+                                if m.get("textura"):
+                                    zout.writestr(f"materials/{nome_seguro(nome)}/{nome_seguro(m['textura']['nome'])}",
+                                                  m["textura"]["bytes"], compress_type=zipfile.ZIP_DEFLATED)
                         inseridos = True
                     zout.writestr(info, conteudo, compress_type=zipfile.ZIP_DEFLATED)
         with zipfile.ZipFile(zip_tmp) as zchk:

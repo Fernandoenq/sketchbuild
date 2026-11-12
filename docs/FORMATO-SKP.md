@@ -134,6 +134,16 @@ Validação: a SketchUpAPI relê cor da frente, cor e alpha do verso (`test_mate
 
 Assunções: (1) nomes não ASCII entram no ZIP em UTF-8 com o flag de nome UTF-8 do Python; o SketchUp grava os bytes crus sem o flag, não testado no SketchUp real; (2) material com textura (`hasTexture=1`, imagem no ZIP) não decifrado; (3) o flag de face 0x46 (Ruby) contra 0x06 (API) segue sem efeito conhecido.
 
+## 7e. Material com textura (imagem) — decifrado em 12/11/2026
+
+Oráculo: `tools/gerar_textura_api.py` gera pela SketchUpAPI `cor.skp` (face azul lisa) e `textura.skp` (mesma face com um PNG 8x8), comparados com `tools/tlv_diff.py`. A diferença é mínima:
+
+- `model.dat`: o `0x32c8` do material ganha só um filho `0x32cd` (u32 = 90; igual ao `cd_tag` do código antigo `create_textured_material`). Nada muda na face: a projeção padrão da imagem não grava UV.
+- ZIP: `materials/<nome>/<imagem>` com o arquivo original e `material.xml` com `type="1"`, `hasTexture="1"`, `colorRed/Green/Blue` = cor média da imagem e um bloco `<mat:texture textureFilename xScale yScale avgColor>` com `<mat:images><mat:image id="1" path="./<imagem>" file_name="<imagem>"/>`. `avgColor` = ARGB da cor média (0xFF7F007F para o xadrez azul/vermelho).
+- O SketchUp grava em `textureFilename` o caminho absoluto de onde a imagem veio; o gravador escreve só o nome do arquivo.
+- Conferido pela DLL: `SUMaterialGetType` = 1 (texturizado) no arquivo do gravador.
+- **Assunções pendentes:** significado do valor 90 em `0x32cd`; unidade de `xScale`/`yScale` (gravamos o que o usuário passa, o oráculo usou 1,0); textura posicionada (UV por face) não gravada; falta abrir `~/sketchup_gerados/textura/meu.skp` no SketchUp real.
+
 ## 7d. Definições, grupos e componentes — decifrado em 11/11/2026
 
 Amostras geradas pela SketchUpAPI (grupo, componente, 2 instâncias, rotação, escala, espelho, aninhado) e comparadas com `tools/tlv_diff.py`.

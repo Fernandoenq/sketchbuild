@@ -175,6 +175,33 @@ class TestGravadorDeTopologia(unittest.TestCase):
         finally:
             m.close()
 
+    def test_material_com_textura_e_lido_pela_dll_como_texturizado(self):
+        """Seção 7e do FORMATO-SKP.md: imagem no ZIP + type=1 + 0x32cd; a DLL enxerga textura no material."""
+        import ctypes
+        from core.su_types import SUMaterialRef
+        from core.topology.material import definir_material
+        from tools.gerar_textura_api import png_xadrez
+        png = os.path.join(self.tmp.name, "xadrez.png")
+        png_xadrez(png)
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        with open(png, "rb") as fh:
+            definir_material(t, "Xadrez", (127, 0, 127), textura={"nome": "xadrez.png", "bytes": fh.read()})
+        next(iter(t.faces.values())).frente = "Xadrez"
+        p = os.path.join(self.tmp.name, "tex.skp")
+        gravar_topologia(t, p)
+        verificar_skp(p)
+        m = _api.open_model(p)
+        try:
+            face = _api.get_faces(m.get_entities())[0]
+            mt = SUMaterialRef()
+            self.assertEqual(_api._dll.SUFaceGetFrontMaterial(face, ctypes.byref(mt)), 0)
+            tipo = ctypes.c_int(-1)
+            self.assertEqual(_api._dll.SUMaterialGetType(mt, ctypes.byref(tipo)), 0)
+            self.assertEqual(tipo.value, 1)  # SUMaterialType_Textured
+        finally:
+            m.close()
+
     def test_material_nao_definido_e_recusado(self):
         t = Topology()
         desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))
