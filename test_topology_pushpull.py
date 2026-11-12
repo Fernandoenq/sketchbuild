@@ -59,6 +59,23 @@ class TestPushPull(GoldenCase):
         empurrar(t, interna, -50)
         self.confere(t, etapa("r11", "apos_pushpull_vazado"))
 
+    def test_paredes_herdam_a_cor_da_face_puxada(self):
+        # assunção (sem oráculo na SDK): as paredes novas levam o material da frente da face de origem
+        from core.topology.material import definir_material, pintar
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        fid = next(iter(t.faces))
+        definir_material(t, "Vermelho", (255, 0, 0))
+        pintar(t, [fid], frente="Vermelho")
+        empurrar(t, fid, -50)
+        paredes = [f for f in t.faces.values() if abs(f.normal[2]) < 1e-9]
+        self.assertEqual(len(paredes), 4)
+        self.assertTrue(all(f.frente == "Vermelho" and f.verso == "Vermelho" for f in paredes))
+
+    def test_sem_cor_as_paredes_ficam_sem_material(self):
+        t = cubo()
+        self.assertTrue(all(f.frente is None and f.verso is None for f in t.faces.values()))
+
     def test_face_inexistente(self):
         with self.assertRaises(ValueError):
             empurrar(Topology(), 1, 10)

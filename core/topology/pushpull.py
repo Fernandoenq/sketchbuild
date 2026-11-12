@@ -10,7 +10,7 @@ Dois modos, escolhidos como o SketchUp faz:
   furo e a face movida some.
 `criar_nova=True` (Ctrl) força a extrusão e mantém a face original no lugar.
 """
-from typing import Dict, List, Sequence
+from typing import Dict, List, Optional, Sequence
 
 from core.topology.draw import _delta, _estado
 from core.topology.model import Face, Point, Topology, _cross, _dot, _norm, _sub, _unit
@@ -41,13 +41,14 @@ def _aresta(t: Topology, a: int, b: int) -> int:
     return eid
 
 
-def _parede(t: Topology, a: int, b: int, a2: int, b2: int, dirv: Point, ref: Point, fora: bool) -> Face:
+def _parede(t: Topology, a: int, b: int, a2: int, b2: int, dirv: Point, ref: Point, fora: bool,
+            material: Optional[str] = None) -> Face:
     """Parede [a, b, b2, a2] com a normal para fora do laço externo (ou para dentro do furo)."""
     m = tuple((t.verts[a][i] + t.verts[b][i]) / 2 for i in range(3))
     c = _unit(_cross(_sub(t.verts[b], t.verts[a]), dirv))
     if (_dot(c, _sub(m, ref)) < 0) == fora:
         c = tuple(-x for x in c)
-    return Face([a, b, b2, a2], [], c)
+    return Face([a, b, b2, a2], [], c, material, material)  # assunção: a parede herda a cor da face puxada
 
 
 def _mover(t: Topology, fid: int, v: Point, d: float) -> None:
@@ -145,7 +146,7 @@ def _extrusar(t: Topology, fid: int, v: Point, manter_base: bool) -> None:
             _aresta(t, a, b)
             _aresta(t, novos[a], novos[b])
             _aresta(t, a, novos[a])
-            paredes.append(_parede(t, a, b, novos[a], novos[b], dirv, ref, fora=(k == 0)))
+            paredes.append(_parede(t, a, b, novos[a], novos[b], dirv, ref, fora=(k == 0), material=f.frente))
     for w in paredes:
         t.faces[next(t._fid)] = w
     topo = [novos[x] for x in f.outer]

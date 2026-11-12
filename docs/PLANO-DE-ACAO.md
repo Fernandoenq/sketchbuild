@@ -371,3 +371,5 @@ servidor 3D (`3d.parkelo.com.br`): login e 2FA já planejados; histórico versio
 | 11/11/2026 | D (auditoria) | Testes exatos para 16 módulos antes sem teste; falsos aprovados corrigidos (carga, espessura de parede, classificação de montagem); suíte 380 passando; 4 módulos de exportação ainda sem teste | commit local |
 
 - **Front (12/11/2026):** tag desligada some da vista 3D (`tagOculta` em `modelagem.js`). Assunção pendente: paredes e arestas novas do Push/Pull não herdam tag nem material da face de origem (sem oráculo na SketchUpAPI).
+
+- **Push/Pull (12/11/2026):** paredes novas herdam o material da frente da face puxada (assunção, sem oráculo; verso igual à frente); tag não é herdada (não há tag ativa no núcleo).
