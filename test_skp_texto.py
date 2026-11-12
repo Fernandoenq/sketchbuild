@@ -47,6 +47,8 @@ CASOS = {
     "seta1": dict(seta=1),
     "fonte1": dict(fonte=3),
     "cor": dict(cor=(10, 20, 30, 255)),
+    "tela": dict(tela=(0.2, 0.7)),
+    "tela2": dict(tela=(1.0, 0.0)),
     "fn_base": dict(fonte_nova=("Arial", False, False, 12)),
     "fn_b0": dict(fonte_nova=("Arial", True, False, 12)),
     "fn_b1": dict(fonte_nova=("Arial", False, True, 12)),
@@ -161,6 +163,13 @@ class TestTextoNoNucleo(unittest.TestCase):
             self.assertEqual(lista_de_fontes(p).count(struct.pack("<H", 0x5014)), 3)  # 2 do modelo + 1 nova
             if DISPONIVEL:
                 _api.open_model(p).close()
+
+    def test_tela_validacao(self):
+        t = Topology()
+        for args in (dict(tela=(1.5, 0.5)), dict(tela=(0.5, -0.1)), dict(tela=(0.2, 0.7), tipo=1)):
+            with self.assertRaises(ValueError):
+                texto_livre(t, "x", (0, 0, 0), **args)
+        texto_livre(t, "x", (0, 0, 0), tipo=1)  # tela padrão com outro tipo é permitida
 
     def test_cor_validacao_e_uma_cor_so(self):
         t = Topology()

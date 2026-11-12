@@ -56,6 +56,8 @@ VARIACOES = {
     "cor": dict(cor=(10, 20, 30, 255)),
     "fonte1": dict(fonte=1),
     # fonte nova do modelo (face, byte0, byte1, pontos); o modelo só serializa a fonte se algum texto a usa
+    "tela": dict(tela=(0.2, 0.7)),
+    "tela2": dict(tela=(1.0, 0.0)),
     "fn_base": dict(fonte_nova=(b"Arial", 0, 0, 12)),
     "fn_b0": dict(fonte_nova=(b"Arial", 1, 0, 12)),
     "fn_b1": dict(fonte_nova=(b"Arial", 0, 1, 12)),
@@ -103,6 +105,9 @@ def gerar(pasta: str, nome: str) -> str:
             fonte = _Ref()
             assert d.SUModelAddFont(mr, ctypes.byref(_FontInput(1, fn[0], fn[1], fn[2], fn[3], 0, 0.0)), ctypes.byref(fonte)) == 0
         assert d.SUTextSetFont(r, fonte) == 0
+        if v.get("tela"):
+            d.SUTextSetScreenPosition.argtypes = [_Ref, ctypes.c_double, ctypes.c_double]
+            assert d.SUTextSetScreenPosition(r, v["tela"][0], v["tela"][1]) == 0  # só com linha de chamada tipo 0
         if v["vetor"]:
             d.SUTextSetLeaderVector.argtypes = [_Ref, P(_Vec)]
             assert d.SUTextSetLeaderVector(r, ctypes.byref(_Vec(*v["vetor"]))) == 0

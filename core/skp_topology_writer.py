@@ -195,7 +195,7 @@ def _registro_texto(ident: int, c: dict, material: Optional[int] = None, fonte: 
     ponto = _rec(0x55F4, _rec(0x5208, _rec(0x5209, struct.pack("<I", 1)) + _rec(0x520A, struct.pack("<3d", *c["ponto"]))
                               + _rec(0x520B, vazio) + _rec(0x520C, vazio)))
     return _rec(0x55F0, _cabecalho(ident, FLAGS_ARESTA, material) + _rec(0x55F1, c["texto"].encode("utf-8")) + _rec(0x55FF, b"")
-                + _rec(0x55F2, struct.pack("<d", 0.5)) + _rec(0x55F3, struct.pack("<d", 0.5)) + ponto
+                + _rec(0x55F2, struct.pack("<d", c.get("tela", (0.5, 0.5))[0])) + _rec(0x55F3, struct.pack("<d", c.get("tela", (0.5, 0.5))[1])) + ponto
                 + _rec(0x55F5, struct.pack("<3d", *c["vetor"])) + _rec(0x55F6, bytes([1]))
                 + _rec(0x55F7, struct.pack("<3d", 0.0, 0.0, 1.0)) + _rec(0x55F8, bytes([0])) + _rec(0x55F9, bytes([c["fonte"] if fonte is None else fonte]))
                 + _rec(0x55FA, struct.pack("<I", c["seta"])) + _rec(0x55FB, struct.pack("<I", 1)) + _rec(0x55FC, bytes([1]))
