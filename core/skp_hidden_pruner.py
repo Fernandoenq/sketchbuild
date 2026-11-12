@@ -228,6 +228,27 @@ class _Plano:
                 tag = _varint(m[p + 6: p + 6 + l])
         return bool(flags & HIDDEN_BIT) or (tag is not None and tag in self.tags_invisiveis)
 
+    def _id_e_oculto(self, rec: Rec) -> Tuple[Optional[int], bool]:
+        """Id e visibilidade de uma entidade numa só leitura do cabeçalho 0x07d0 (a poda chama isto milhões de vezes)."""
+        m = self.m
+        for a, l, p in _parse(m, rec[2] + 6, rec[2] + 6 + rec[1]):
+            if a != 0x07D0:
+                continue
+            ident, flags, tag = None, 0, None
+            for t, ll, q in _parse(m, p + 6, p + 6 + l):
+                if t == 0x05DC and ident is None:
+                    inner = bytes(m[q + 6: q + 6 + ll])
+                    if inner[:2] == bytes([0xDE, 0x05]):
+                        ident = _varint(inner[6:6 + struct.unpack_from("<I", inner, 2)[0]])
+                elif t == 0x05DE:
+                    ident = _varint(m[q + 6: q + 6 + ll])
+                elif t == 0x07D3 and ll:
+                    flags = m[q + 6]
+                elif t == 0x07D2:
+                    tag = _varint(m[q + 6: q + 6 + ll])
+            return ident, bool(flags & HIDDEN_BIT) or (tag is not None and tag in self.tags_invisiveis)
+        return None, False
+
     def _cabecalho(self, rec: Rec) -> Optional[Rec]:
         return next((x for x in _parse(self.m, rec[2] + 6, rec[2] + 6 + rec[1]) if x[0] == 0x07D0), None)
 
@@ -243,7 +264,7 @@ class _Plano:
         for a, l, p in filhos:
             if a == 0x138A:
                 for r in _parse(m, p + 6, p + 6 + l):
-                    h = self._cabecalho(r)
+                    ident, oculta = self._id_e_oculto(r)
                     v1 = v2 = curva = None
                     for t, ll, q in _parse(m, r[2] + 6, r[2] + 6 + r[1]):
                         if t == 0x0BB9:
@@ -252,21 +273,21 @@ class _Plano:
                             v2 = _varint(m[q + 6: q + 6 + ll])
                         elif t == 0x0BBB:
                             curva = _varint(m[q + 6: q + 6 + ll])
-                    arestas[_eid(m, h)] = (self._oculto(h), v1, v2, curva)
+                    arestas[ident] = (oculta, v1, v2, curva)
             elif a == 0x138B:
                 for r in _parse(m, p + 6, p + 6 + l):
-                    h = self._cabecalho(r)
-                    usadas = set()
-                    for _, _, q in _find_all(m, r[2] + 6, r[2] + 6 + r[1], 0x0FA1, limit=6):
-                        usadas.add(_varint(m[q + 6: q + 6 + HEADER.unpack_from(m, q)[1]]))
-                    faces[_eid(m, h)] = (self._oculto(h), usadas)
-        if not any(v[0] for v in arestas.values()) and not any(v[0] for v in faces.values()):
+                    ident, oculta = self._id_e_oculto(r)
+                    faces[ident] = (oculta, r)
+        arestas_ocultas = any(v[0] for v in arestas.values())
+        if not arestas_ocultas and not any(v[0] for v in faces.values()):
             return None
         faces_mortas = {i for i, (oc, _) in faces.items() if oc}
         em_face_viva = set()
-        for i, (oc, us) in faces.items():
-            if not oc:
-                em_face_viva |= us
+        if arestas_ocultas:  # só aqui importa quais arestas as faces vivas usam; achar isso é a parte cara
+            for i, (oc, r) in faces.items():
+                if not oc:
+                    for _, _, q in _find_all(m, r[2] + 6, r[2] + 6 + r[1], 0x0FA1, limit=6):
+                        em_face_viva.add(_varint(m[q + 6: q + 6 + HEADER.unpack_from(m, q)[1]]))
         arestas_mortas = {i for i, (oc, _, _, _) in arestas.items() if oc and i not in em_face_viva}
         vivas_v = set()
         for i, (_, a, b, _) in arestas.items():
