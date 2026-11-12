@@ -394,5 +394,5 @@ Oráculo: `tools/gerar_comportamento_api.py` (`SUComponentDefinitionSetBehavior`
 
 - Núcleo: `Cena.definir_comportamento(definicao, face_me, corta_abertura, sombra_sol)`; só componentes (grupo e raiz dão erro).
 - Gravador: `_comportamento(...)` reproduz byte a byte o registro da SDK nos quatro casos; com `face_me` a caixa `0x13a0` da raiz usa a fórmula face-me (seção 7).
-- **Pendências:** `0x1b5a` nunca variou; comportamento não aparece no front; caixa face-me conferida com giros em x/y/z e escala uniforme (não uniforme/espelhada sem teste).
+- **Pendências:** `0x1b5a` nunca variou; comportamento não aparece no front; caixa face-me conferida com giros em x/y/z e escala uniforme (escala não uniforme e espelhamento em x ou z também conferidos, 72 casos).
 

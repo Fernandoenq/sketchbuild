@@ -144,6 +144,27 @@ class TestCaixaContraASdk(unittest.TestCase):
                     for got, want in zip(lo + hi, sdk[0] + sdk[1]):
                         self.assertAlmostEqual(got, want, places=4)
 
+    def test_escala_nao_uniforme_e_espelhamento(self):
+        rnd = random.Random(5)
+
+        def mat(sx, sy, sz, az, t):
+            c, s = math.cos(az), math.sin(az)
+            return [c * sx, s * sx, 0, 0, -s * sy, c * sy, 0, 0, 0, 0, sz, 0, *t, 1]
+
+        familias = (lambda: mat(rnd.uniform(.5, 3), rnd.uniform(.5, 3), rnd.uniform(.5, 3), rnd.uniform(-3, 3), (5, 7, 2)),
+                    lambda: mat(-1, 1, 1, rnd.uniform(-3, 3), (5, 7, 2)),
+                    lambda: mat(1, 1, -1.5, rnd.uniform(-3, 3), (5, 7, 2)))
+        for gera in familias:
+            for _ in range(8):
+                pontos = [(rnd.uniform(-20, 20), rnd.uniform(-20, 20), rnd.uniform(0, 60)) for _ in range(3)]
+                matriz = gera()
+                for face_me in (False, True):
+                    with self.subTest(face_me=face_me, matriz=matriz):
+                        sdk = caixa_da_sdk(pontos, matriz, face_me)
+                        lo, hi = caixa_instancia(pontos, matriz, face_me)
+                        for got, want in zip(lo + hi, sdk[0] + sdk[1]):
+                            self.assertAlmostEqual(got, want, places=4)
+
 
 def caixa_da_raiz(caminho):
     """Seis f64 do 0x13a0 que fecha o 0x1388 da raiz do modelo (ou None)."""
