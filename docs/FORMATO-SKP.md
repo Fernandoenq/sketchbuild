@@ -165,7 +165,12 @@ Oráculo: `tools/gerar_tags_api.py` (base, tag visível, tag desligada, cena), c
 - Aresta (`0x0bb8`), grupo e componente (`0x1964`) usam o mesmo `0x07d2` no `0x07d0`; conferido pela DLL (`SUDrawingElementGetLayer`) em face, aresta solta e grupo. No núcleo: `Face.tag`, `Topology.etags` (propagada ao dividir/limpar arestas) e `Instancia.tag`.
 - **Assunções pendentes:** a tag de aresta de borda de face não é herdada quando a face muda de forma (Push/Pull cria arestas novas sem tag); visibilidade por cena não gravada.
 
-**Cena** (só lida, ainda não gravada): `0x0207 > 0x6d60 > 0x6d61` (vazio sem cenas) passa a ter um `0x7148` por cena com `0x6f54{0x05dc>0x05de id, 0x6f55 nome, 0x6f56 vazio}`, `0x7149 = 0` (u32), `0x7152 = 1`, `0x7153` vazio, `0x7154` e `0x7155` = -1.0 (double), `0x715c` vazio, `0x7157 = 1`. Uma cena criada só com nome não leva câmera nem estilo; o que cada campo controla (câmera, visibilidade por tag) falta decifrar com cenas reais.
+**Cena** — gravada pelo `gravar_cena` (`Cena.adicionar_cena`), conferida pela DLL (nome, descrição, "incluir na animação", olho e alvo da câmera). Oráculo: `tools/gerar_cenas_api.py` (7 variações). Achados:
+- Uma cena criada pela SDK só tem nome/descrição e o flag `0x7152`; `SUSceneSetCamera` não grava `0x714a` e `SUSceneAddLayer` não deixa rastro. Por isso a câmera da cena é gravada como nas cenas reais (arquivo do Fernando com 4 cenas): `0x7149` (u32; 1 com câmera) + `0x714a > 0x34bc` (mesma estrutura da câmera do modelo, `0x01fa > 0x34bc`: `0x34bd` olho, `0x34be` alvo, `0x34bf` cima ortogonalizado, demais campos copiados do modelo base).
+- Cena real tem muito mais: `0x714d` (estilo/opções de renderização, `0x733c` com ~70 campos), `0x714e` (sombras: data, hora, latitude, longitude, cidade), `0x715b`, `0x714f` (plano de seção), `0x7158` (miniatura em `scene_thumbnails/`). Nada disso é gravado.
+- **Assunções pendentes:** `0x7149` = 1 com câmera (bits dos "usar ..." não decifrados; o valor real observado foi 0x3ff com tudo ligado); `0x34c3` (muda com a câmera, função desconhecida) fica o do modelo base; visibilidade de tags por cena e estilo por cena não gravados; miniatura ausente (o SketchUp a recria ao salvar).
+
+**Cena, formato do registro mínimo (SDK):** `0x0207 > 0x6d60 > 0x6d61` (vazio sem cenas) passa a ter um `0x7148` por cena com `0x6f54{0x05dc>0x05de id, 0x6f55 nome, 0x6f56 vazio}`, `0x7149 = 0` (u32), `0x7152 = 1`, `0x7153` vazio, `0x7154` e `0x7155` = -1.0 (double), `0x715c` vazio, `0x7157 = 1`. Uma cena criada só com nome não leva câmera nem estilo; o que cada campo controla (câmera, visibilidade por tag) falta decifrar com cenas reais.
 
 ## 7d. Definições, grupos e componentes — decifrado em 11/11/2026
 

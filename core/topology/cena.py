@@ -39,7 +39,22 @@ class Cena:
         self.nomes: Dict[int, str] = {0: "Modelo"}
         self.instancias: Dict[int, Instancia] = {}
         self.caminho: List[int] = []  # instâncias por onde se entrou (vazio = raiz)
+        # cenas (abas): {"nome", "descricao", "animar", "camera": {"olho", "alvo", "cima"} | None}
+        self.cenas: List[dict] = []
         self._def, self._inst = Contador(), Contador()
+
+    def adicionar_cena(self, nome: str, descricao: str = "", animar: bool = True, camera: Optional[dict] = None) -> int:
+        """Acrescenta uma cena (aba). `camera` = {"olho": (x,y,z), "alvo": (x,y,z), "cima": (x,y,z)} ou None."""
+        if not nome.strip():
+            raise ValueError("a cena precisa de nome")
+        if any(c["nome"] == nome for c in self.cenas):
+            raise ValueError(f"já existe a cena {nome!r}")
+        if camera is not None:
+            olho, alvo = camera["olho"], camera["alvo"]
+            if sum((a - b) ** 2 for a, b in zip(olho, alvo)) < 1e-12:
+                raise ValueError("câmera com olho igual ao alvo")
+        self.cenas.append({"nome": nome, "descricao": descricao, "animar": bool(animar), "camera": camera})
+        return len(self.cenas) - 1
 
     # -- definição ativa -------------------------------------------------------------
 

@@ -185,6 +185,26 @@ class TestGravadorSemDll(unittest.TestCase):
         with self.assertRaises(ValueError):
             gravar_topologia(t, self.p("x.skp"))
 
+    def test_cenas_registro_e_camera(self):
+        c = Cena()
+        desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        c.adicionar_cena("A", "d")
+        c.adicionar_cena("B", camera={"olho": (0, -100, 0), "alvo": (0, 0, 0), "cima": (0, 0, 1)}, animar=False)
+        with self.assertRaises(ValueError):
+            c.adicionar_cena("A")
+        with self.assertRaises(ValueError):
+            c.adicionar_cena("C", camera={"olho": (1, 1, 1), "alvo": (1, 1, 1)})
+        gravar_cena(c, self.p("c.skp"))
+        d = dat_de(self.p("c.skp"))
+        self.assertEqual(len(achar(d, 0x7148)), 2)
+        self.assertEqual([bytes(d[a[2] + 6:a[2] + 6 + a[1]]) for a in achar(d, 0x6F55)], [b"A", b"B"])
+        self.assertEqual([d[a[2] + 6] for a in achar(d, 0x7152)], [1, 0])
+        cam = achar(d, 0x714A)
+        self.assertEqual(len(cam), 1)  # só a cena B leva câmera
+        olho = achar(d, 0x34BD, cam[0][2] + 6, cam[0][2] + 6 + cam[0][1])[0]
+        self.assertEqual(struct.unpack("<3d", d[olho[2] + 6:olho[2] + 30]), (0.0, -100.0, 0.0))
+        self.assertEqual(verificar_skp(self.p("c.skp"))["refs_quebradas"], 0)
+
     def test_hierarquia_definicoes_filhos_antes_dos_pais(self):
         c = Cena()
         desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))

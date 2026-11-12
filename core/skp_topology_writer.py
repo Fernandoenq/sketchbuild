@@ -441,6 +441,11 @@ def _com_materiais(dat: bytes, rec: Tuple[int, int, int], novos: bytes) -> bytes
 
 def _com_tags(dat: bytes, rec: Tuple[int, int, int], novos: bytes) -> bytes:
     """Acrescenta registros 0x3c8c em 0x01f8 > 0x3a98 > 0x3a99 (lista de tags do modelo), mantendo os irmãos."""
+    return _acrescentar(dat, rec, [0x3A98, 0x3A99], novos)
+
+
+def _acrescentar(dat: bytes, rec: Tuple[int, int, int], caminho_: List[int], novos: bytes) -> bytes:
+    """Acrescenta `novos` ao fim do registro em `caminho_` (a partir dos filhos de `rec`), mantendo os irmãos."""
     def refazer(r: Tuple[int, int, int], caminho: List[int]) -> bytes:
         a, l, p = r
         filhos = b""
@@ -457,7 +462,40 @@ def _com_tags(dat: bytes, rec: Tuple[int, int, int], novos: bytes) -> bytes:
         if not achou:
             raise ValueError(f"estrutura inesperada em {a:#06x} (esperado {caminho[0]:#06x})")
         return _rec(a, filhos)
-    return refazer(rec, [0x3A98, 0x3A99])
+    return refazer(rec, caminho_)
+
+
+def _camera_da_cena(dat: bytes, rec_1fa: Tuple[int, int, int], cam: dict) -> bytes:
+    """0x34bc da câmera do modelo base com olho, alvo e cima trocados (os demais campos ficam os do modelo base)."""
+    olho, alvo = [float(x) for x in cam["olho"]], [float(x) for x in cam["alvo"]]
+    cima = [float(x) for x in cam.get("cima", (0, 0, 1))]
+    d = [alvo[i] - olho[i] for i in range(3)]
+    n = math.sqrt(sum(x * x for x in d))
+    d = [x / n for x in d]
+    # componente de `cima` perpendicular à direção de visão (o SketchUp guarda o vetor já ortogonalizado)
+    k = sum(cima[i] * d[i] for i in range(3))
+    cima = [cima[i] - k * d[i] for i in range(3)]
+    nc = math.sqrt(sum(x * x for x in cima))
+    if nc < 1e-9:
+        raise ValueError("vetor 'cima' paralelo à direção de visão")
+    cima = [x / nc for x in cima]
+    cam_rec = next(r for r in _parse(dat, rec_1fa[2] + 6, rec_1fa[2] + 6 + rec_1fa[1]) if r[0] == 0x34BC)
+    novos = {0x34BD: struct.pack("<3d", *olho), 0x34BE: struct.pack("<3d", *alvo), 0x34BF: struct.pack("<3d", *cima)}
+    corpo = b""
+    for a, l, p in _parse(dat, cam_rec[2] + 6, cam_rec[2] + 6 + cam_rec[1]):
+        corpo += _rec(a, novos[a]) if a in novos else dat[p:p + 6 + l]
+    return _rec(0x34BC, corpo)
+
+
+def registro_cena(ident: int, c: dict, camera: Optional[bytes]) -> bytes:
+    """Registro 0x7148 de uma cena (0x0207 > 0x6d60 > 0x6d61). Sem câmera ele é igual ao da SketchUpAPI (docs, seção 7f)."""
+    corpo = _rec(0x6F54, _so_id(ident) + _rec(0x6F55, c["nome"].encode("utf-8")) + _rec(0x6F56, c.get("descricao", "").encode("utf-8")))
+    corpo += _rec(0x7149, struct.pack("<I", 1 if camera else 0))
+    if camera:
+        corpo += _rec(0x714A, camera)
+    corpo += _rec(0x7152, bytes([1 if c.get("animar", True) else 0])) + _rec(0x7153, b"")
+    corpo += _rec(0x7154, struct.pack("<d", -1.0)) + _rec(0x7155, struct.pack("<d", -1.0)) + _rec(0x715C, b"") + _rec(0x7157, bytes([1]))
+    return _rec(0x7148, corpo)
 
 
 def _ler_contador(m: bytes, rec_5f1: Tuple[int, int, int]) -> int:
@@ -586,6 +624,13 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
             raiz_corpo += n1388 if a == 0x1388 else dat[p:p + 6 + l]
         n_raiz = _rec(0x01F6, raiz_corpo)
 
+        reg_cenas = b""
+        if cena is not None and cena.cenas:
+            rec_1fa = next(((a, l, p) for a, l, p in filhos if a == 0x01FA), None)
+            for c in cena.cenas:
+                cam = _camera_da_cena(dat, rec_1fa, c["camera"]) if c.get("camera") else None
+                reg_cenas += registro_cena(prox, c, cam)
+                prox += 1
         contador = _rec(0x01F5, _rec(0x03E8, _rec(0x03E9, _id_bytes(prox))))
         externo = b""
         for a, l, p in filhos:
@@ -595,6 +640,8 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
                 externo += contador
             elif a == 0x01F9 and defs_bytes:
                 externo += _com_definicoes(dat, (a, l, p), defs_bytes)
+            elif a == 0x0207 and reg_cenas:
+                externo += _acrescentar(dat, (a, l, p), [0x6D60, 0x6D61], reg_cenas)
             elif a == 0x01F8 and tags_usadas:
                 externo += _com_tags(dat, (a, l, p), b"".join(registro_tag(tid_global[n], n, tags_def[n].get("visivel", True)) for n in tags_usadas))
             elif a == 0x01F7 and reg["materiais"]:

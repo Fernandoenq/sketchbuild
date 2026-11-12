@@ -298,6 +298,65 @@ class TestGravadorDeTopologia(unittest.TestCase):
         finally:
             m.close()
 
+    def test_cenas_com_e_sem_camera_lidas_pela_dll(self):
+        """Seção 7f: 0x7148 por cena; com câmera leva 0x714a (0x34bc). A DLL devolve nome, descrição e olho/alvo."""
+        import ctypes
+        from core.skp_topology_writer import gravar_cena
+        from core.su_types import SUPoint3D
+        from core.topology.cena import Cena
+        c = Cena()
+        desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        c.adicionar_cena("Vista geral", "tudo", animar=True)
+        c.adicionar_cena("Frente", camera={"olho": (300, -400, 200), "alvo": (50, 50, 0), "cima": (0, 0, 1)}, animar=False)
+        p = os.path.join(self.tmp.name, "cenas.skp")
+        gravar_cena(c, p)
+        verificar_skp(p)
+        d = _api._dll
+
+        class _R(ctypes.Structure):
+            _fields_ = [("ptr", ctypes.c_void_p)]
+        m = _api.open_model(p)
+        try:
+            n = ctypes.c_size_t()
+            d.SUModelGetNumScenes.argtypes = [type(m._model), ctypes.POINTER(ctypes.c_size_t)]
+            self.assertEqual(d.SUModelGetNumScenes(m._model, ctypes.byref(n)), 0)
+            self.assertEqual(n.value, 2)
+            arr = (_R * 2)()
+            d.SUModelGetScenes.argtypes = [type(m._model), ctypes.c_size_t, ctypes.POINTER(_R), ctypes.POINTER(ctypes.c_size_t)]
+            self.assertEqual(d.SUModelGetScenes(m._model, 2, arr, ctypes.byref(ctypes.c_size_t())), 0)
+            from core.su_types import SUStringRef
+
+            def texto(fn, obj):
+                s_ = SUStringRef()
+                d.SUStringCreate(ctypes.byref(s_))
+                fn.argtypes = [_R, ctypes.POINTER(SUStringRef)]
+                fn(obj, ctypes.byref(s_))
+                k = ctypes.c_size_t()
+                d.SUStringGetUTF8Length(s_, ctypes.byref(k))
+                buf = ctypes.create_string_buffer(k.value + 1)
+                d.SUStringGetUTF8(s_, k.value + 1, buf, ctypes.byref(ctypes.c_size_t()))
+                return buf.value.decode("utf-8")
+            self.assertEqual([texto(d.SUSceneGetName, x) for x in arr], ["Vista geral", "Frente"])
+            self.assertEqual(texto(d.SUSceneGetDescription, arr[0]), "tudo")
+            anim = ctypes.c_bool()
+            d.SUSceneGetIncludeInAnimation.argtypes = [_R, ctypes.POINTER(ctypes.c_bool)]
+            d.SUSceneGetIncludeInAnimation(arr[1], ctypes.byref(anim))
+            self.assertFalse(anim.value)
+            cam = _R()
+            d.SUSceneGetCamera.argtypes = [_R, ctypes.POINTER(_R)]
+            self.assertEqual(d.SUSceneGetCamera(arr[1], ctypes.byref(cam)), 0)
+            pos, alvo, cima = SUPoint3D(), SUPoint3D(), SUPoint3D()
+            original = d.SUCameraGetOrientation.argtypes  # a DLL é compartilhada: devolve o argtypes que o extrator usa
+            d.SUCameraGetOrientation.argtypes = [_R, ctypes.POINTER(SUPoint3D), ctypes.POINTER(SUPoint3D), ctypes.POINTER(SUPoint3D)]
+            try:
+                self.assertEqual(d.SUCameraGetOrientation(cam, ctypes.byref(pos), ctypes.byref(alvo), ctypes.byref(cima)), 0)
+            finally:
+                d.SUCameraGetOrientation.argtypes = original
+            self.assertEqual((pos.x, pos.y, pos.z), (300.0, -400.0, 200.0))
+            self.assertEqual((alvo.x, alvo.y, alvo.z), (50.0, 50.0, 0.0))
+        finally:
+            m.close()
+
     def test_material_nao_definido_e_recusado(self):
         t = Topology()
         desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))
