@@ -5,7 +5,7 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PushPullRequest
+from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest
 
 
 def run(c):
@@ -103,6 +103,37 @@ class TestDrawController(unittest.TestCase):
                 run(self.c.salvar(SaveDrawRequest(path=os.path.join(tmp, "x.txt"))))
             self.assertEqual(cm.exception.status_code, 422)
 
+    def test_pintar_frente_verso_desfazer_e_salvar(self):
+        import os
+        import sys
+        import tempfile
+        j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
+        fid = int(next(iter(j.faces.added)))
+        r = run(self.c.pintar(PaintRequest(faces=[fid], material="Vermelho", rgb=(255, 0, 0))))
+        self.assertEqual(r.pintadas[str(fid)], ["Vermelho", None])
+        r = run(self.c.pintar(PaintRequest(faces=[fid], material="Azul", rgb=(0, 0, 255), alpha=128, verso=True)))
+        self.assertEqual(r.pintadas[str(fid)], ["Vermelho", "Azul"])
+        self.assertEqual(r.materiais["Azul"], {"rgb": [0, 0, 255], "alpha": 128})
+        r = run(self.c.pintar(PaintRequest(faces=[fid], limpar=True, verso=True)))
+        self.assertEqual(r.pintadas[str(fid)], ["Vermelho", None])
+        run(self.c.desfazer())  # volta ao verso azul
+        r = run(self.c.pintar(PaintRequest(faces=[fid], material="Azul", verso=True)))
+        self.assertEqual(r.pintadas[str(fid)], ["Vermelho", "Azul"])
+        if sys.version_info[:2] == (3, 12):
+            with tempfile.TemporaryDirectory() as tmp:
+                run(self.c.salvar(SaveDrawRequest(path=os.path.join(tmp, "c.skp"))))
+
+    def test_pintar_erros(self):
+        j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(10, 10, 0))))
+        fid = int(next(iter(j.faces.added)))
+        for body in (PaintRequest(faces=[fid]),  # sem material
+                     PaintRequest(faces=[fid], material="Fantasma"),  # nao definido
+                     PaintRequest(faces=[999], material="X", rgb=(1, 2, 3)),  # face inexistente
+                     PaintRequest(faces=[fid], material="X", rgb=(1, 2, 300))):  # cor invalida
+            with self.assertRaises(HTTPException) as cm:
+                run(self.c.pintar(body))
+            self.assertEqual(cm.exception.status_code, 422)
+
     def test_rotas_registradas(self):
         from app.main import app
         caminhos = {r.path for r in app.routes}
@@ -111,7 +142,7 @@ class TestDrawController(unittest.TestCase):
         self.assertIn("/api/v1/draw/pushpull", caminhos)
         self.assertIn("/api/v1/draw/edit", caminhos)
         self.assertIn("/api/v1/draw/offset", caminhos)
-        for r in ("save", "undo", "redo", "history", "followme", "intersect", "scene", "group", "instance", "explode", "enter", "exit"):
+        for r in ("save", "paint", "undo", "redo", "history", "followme", "intersect", "scene", "group", "instance", "explode", "enter", "exit"):
             self.assertIn("/api/v1/draw/" + r, caminhos)
 
 

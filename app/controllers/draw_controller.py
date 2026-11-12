@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PushPullRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, SceneSummaryResponse
 from app.services.draw_service import DrawService
 
 
@@ -80,6 +80,12 @@ class DrawController:
                 detail={"code": "arquivo_existe", "message": "o arquivo ja existe; confirme para sobrescrever", "path": str(e)},
             ) from e
         except (ValueError, OSError) as e:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+
+    async def pintar(self, body: PaintRequest) -> PaintResponse:
+        try:
+            return PaintResponse(**await self._service.pintar(**body.model_dump()))
+        except ValueError as e:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
 
     async def desfazer(self) -> DrawStateResponse:

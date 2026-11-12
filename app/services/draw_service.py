@@ -48,6 +48,9 @@ class DrawService:
     async def salvar(self, caminho: str, sobrescrever: bool) -> dict:
         return await run_in_threadpool(self._repository.salvar, caminho, sobrescrever)
 
+    async def pintar(self, **params) -> dict:
+        return await run_in_threadpool(lambda: self._repository.pintar(**params))
+
     async def desfazer(self) -> dict:
         return await run_in_threadpool(self._repository.desfazer)
 

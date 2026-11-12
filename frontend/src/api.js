@@ -2545,6 +2545,10 @@ export function drawIntersect(faces = null) {
   return postJson("/api/v1/draw/intersect", "POST", { faces });
 }
 
+export function drawPaint(faces, material, rgb = null, alpha = 255, verso = false, limpar = false) {
+  return postJson("/api/v1/draw/paint", "POST", { faces, material, rgb, alpha, verso, limpar });
+}
+
 export function drawUndo() {
   return postJson("/api/v1/draw/undo", "POST", {});
 }

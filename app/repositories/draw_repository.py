@@ -11,6 +11,7 @@ from core.topology.intersect import intersectar
 from core.topology.sweep import siga_me
 from core.topology.draw import desenhar
 from core.topology.edit import escalar, mover, offset, rotacionar, vertices_da_selecao
+from core.topology.material import definir_material, pintar
 from core.topology.pushpull import empurrar
 
 _CENA = Cena()
@@ -141,6 +142,23 @@ class DrawRepository:
     def _relatorio(r: dict) -> dict:
         return {"vertices": r["vertices"], "arestas": r["arestas"], "faces": r["faces"], "bytes": r["bytes"]}
 
+    def pintar(self, faces, material=None, rgb=None, alpha=255, verso=False, limpar=False) -> dict:
+        if not material and not limpar:
+            raise ValueError("pintar: informe o material (ou limpar)")
+
+        def acao():
+            if rgb is not None:
+                if not material:
+                    raise ValueError("pintar: rgb sem nome de material")
+                definir_material(_topo(), material, rgb, alpha)
+            return pintar(_topo(), faces,
+                          frente=None if verso else material, verso=material if verso else None,
+                          limpar_frente=limpar and not verso, limpar_verso=limpar and verso)
+
+        res = _HIST.executar("pintar", {"faces": list(faces), "material": material}, acao)
+        return {"pintadas": {str(k): list(v) for k, v in res.items()},
+                "materiais": {n: {"rgb": list(m["rgb"]), "alpha": m["alpha"]} for n, m in _topo().materiais.items()}}
+
     def desfazer(self) -> dict:
         _HIST.desfazer()
         return self.estado()
@@ -158,6 +176,8 @@ class DrawRepository:
             "edges": {str(i): list(e) for i, e in _topo().edges.items()},
             "faces": {str(i): {"outer": f.outer, "holes": f.holes, "normal": list(f.normal)}
                       for i, f in _topo().faces.items()},
+            "pintura": {str(i): [f.frente, f.verso] for i, f in _topo().faces.items() if f.frente or f.verso},
+            "materiais": {n: {"rgb": list(m["rgb"]), "alpha": m["alpha"]} for n, m in _topo().materiais.items()},
             "counts": _topo().counts(),
             "historico": {k: v for k, v in _HIST.resumo().items() if k.startswith("pode")},
         }

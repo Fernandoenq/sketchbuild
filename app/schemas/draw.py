@@ -40,6 +40,8 @@ class DrawStateResponse(BaseModel):
     vertices: dict[str, Any]
     edges: dict[str, Any]
     faces: dict[str, Any]
+    pintura: dict[str, list[str | None]] = Field(default_factory=dict)  # face -> [frente, verso]
+    materiais: dict[str, dict[str, Any]] = Field(default_factory=dict)
     counts: dict[str, int]
     historico: dict[str, bool] = Field(default_factory=dict)
 
@@ -107,3 +109,17 @@ class SaveDrawResponse(BaseModel):
     arestas: int
     faces: int
     bytes: int
+
+
+class PaintRequest(BaseModel):
+    faces: list[int] = Field(min_length=1)
+    material: str | None = None  # nome; aplica na frente (ou no verso, se verso=True)
+    rgb: tuple[int, int, int] | None = None  # cria/atualiza o material `material`
+    alpha: int = Field(default=255, ge=0, le=255)
+    verso: bool = False
+    limpar: bool = False  # volta ao padrao (frente, ou verso se verso=True)
+
+
+class PaintResponse(BaseModel):
+    pintadas: dict[str, list[str | None]]  # face -> [frente, verso]
+    materiais: dict[str, dict[str, Any]]

@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawUndo, drawRedo, drawSave } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawUndo, drawRedo, drawSave } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -135,6 +135,20 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       b.addEventListener("click", fn);
       g.appendChild(b);
     }
+    const cor = document.createElement("input");
+    cor.type = "color";
+    cor.value = "#cc2222";
+    cor.title = "Cor do material";
+    cor.style.cssText = "width:32px;margin-left:6px";
+    g.appendChild(cor);
+    for (const [rotulo, verso] of [["Pintar", false], ["Verso", true]]) {
+      const b = document.createElement("button");
+      b.className = "toolbar-btn";
+      b.textContent = rotulo;
+      b.title = verso ? "Pinta o verso das faces selecionadas com a cor ao lado" : "Pinta a frente das faces selecionadas com a cor ao lado";
+      b.addEventListener("click", () => pintarSelecao(cor.value, verso));
+      g.appendChild(b);
+    }
     const salvar = document.createElement("button");
     salvar.className = "toolbar-btn";
     salvar.textContent = "Salvar .skp";
@@ -177,7 +191,33 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     }
   }
 
+  async function pintarSelecao(hex, verso) {
+    if (!sel.faces.size) return setStatus("Pintar: selecione faces antes (ferramenta Selecionar).", true);
+    const rgb = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
+    try {
+      const r = await drawPaint([...sel.faces].map(Number), "Cor " + hex.toUpperCase(), rgb, 255, verso);
+      aplicarPintura(r.pintadas, r.materiais);
+      setStatus("Pintado (" + (verso ? "verso" : "frente") + "): " + Object.keys(r.pintadas).length + " face(s).");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  function aplicarPintura(pintadas, materiais) {
+    for (const [fid, [frente]] of Object.entries(pintadas)) {
+      const rgb = frente && materiais[frente]?.rgb;
+      if (rgb) corDaFace.set(fid, (rgb[0] << 16) | (rgb[1] << 8) | rgb[2]);
+      else corDaFace.delete(fid);
+    }
+    redesenhar();
+  }
+
   function substituirEstado(s) {
+    corDaFace.clear();
+    for (const [fid, [frente]] of Object.entries(s.pintura ?? {})) {
+      const rgb = frente && s.materiais?.[frente]?.rgb;
+      if (rgb) corDaFace.set(fid, (rgb[0] << 16) | (rgb[1] << 8) | rgb[2]);
+    }
     for (const [k, mapa] of [["vertices", estado.vertices], ["edges", estado.edges], ["faces", estado.faces]]) {
       mapa.clear();
       for (const [id, v] of Object.entries(s[k])) mapa.set(id, v);
@@ -353,6 +393,8 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     return pos;
   }
 
+  const corDaFace = new Map(); // id da face -> cor RGB da frente (vem de /draw/state e /draw/paint)
+
   function redesenhar() {
     grupo.children.slice().forEach((o) => {
       o.geometry?.dispose();
@@ -393,7 +435,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       const m = new THREE.Mesh(
         g,
         new THREE.MeshStandardMaterial({
-          color: escolhida ? 0x6fa8ff : 0xdfdfdb,
+          color: escolhida ? 0x6fa8ff : (corDaFace.get(id) ?? 0xdfdfdb),
           roughness: 0.8,
           side: THREE.DoubleSide,
           polygonOffset: true,

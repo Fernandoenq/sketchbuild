@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Response, status
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PushPullRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, SceneSummaryResponse
 
 router = APIRouter(prefix="/draw", tags=["draw"])
 
@@ -76,6 +76,11 @@ async def sair(controller: DrawController = Depends(get_controller)) -> SceneSum
 @router.post("/save", response_model=SaveDrawResponse, summary="Grava o desenho (raiz) num .skp novo; nunca sobrescreve sem confirmar")
 async def salvar(body: SaveDrawRequest, controller: DrawController = Depends(get_controller)) -> SaveDrawResponse:
     return await controller.salvar(body)
+
+
+@router.post("/paint", response_model=PaintResponse, summary="Pinta faces (frente ou verso) com material de cor solida")
+async def pintar(body: PaintRequest, controller: DrawController = Depends(get_controller)) -> PaintResponse:
+    return await controller.pintar(body)
 
 
 @router.post("/undo", response_model=DrawStateResponse, summary="Desfaz a ultima operacao (devolve o estado completo)")
