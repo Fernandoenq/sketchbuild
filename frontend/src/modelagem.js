@@ -265,6 +265,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     if (!limpar && !nome?.trim()) return setStatus("Tag: digite o nome da tag no campo.", true);
     try {
       const s = await drawTag({ nome: limpar ? null : nome.trim(), limpar: !!limpar, faces: [...sel.faces].map(Number), arestas: [...sel.edges].map(Number) });
+      substituirEstado(s);
       setStatus(resumoTags(s));
     } catch (err) {
       setStatus("Erro: " + (err?.message ?? err), true);
@@ -276,7 +277,9 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     try {
       const atual = (await drawState()).tags?.[nome.trim()];
       if (!atual) return setStatus("Tag: " + nome.trim() + " não existe (use Pôr na tag para criar).", true);
-      setStatus(resumoTags(await drawTag({ nome: nome.trim(), visivel: !atual.visivel })));
+      const s = await drawTag({ nome: nome.trim(), visivel: !atual.visivel });
+      substituirEstado(s);
+      setStatus(resumoTags(s));
     } catch (err) {
       setStatus("Erro: " + (err?.message ?? err), true);
     }
@@ -321,6 +324,9 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
 
   function substituirEstado(s) {
     corDaFace.clear();
+    tagInfo.tags = s.tags ?? {};
+    tagInfo.faces = s.tag_faces ?? {};
+    tagInfo.arestas = s.tag_arestas ?? {};
     for (const [fid, [frente]] of Object.entries(s.pintura ?? {})) {
       const rgb = frente && s.materiais?.[frente]?.rgb;
       if (rgb) corDaFace.set(fid, (rgb[0] << 16) | (rgb[1] << 8) | rgb[2]);
@@ -500,6 +506,9 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     return pos;
   }
 
+  // tags do desenho: uma tag desligada some da vista (faces e arestas dela); vem de /draw/state e /draw/tag
+  const tagInfo = { tags: {}, faces: {}, arestas: {} };
+  const tagOculta = (nome) => !!nome && tagInfo.tags[nome]?.visivel === false;
   const corDaFace = new Map(); // id da face -> cor RGB da frente (vem de /draw/state e /draw/paint)
 
   function redesenhar() {
@@ -508,7 +517,8 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       grupo.remove(o);
     });
     const seg = [];
-    for (const [a, b] of estado.edges.values()) {
+    for (const [eid, [a, b]] of estado.edges) {
+      if (tagOculta(tagInfo.arestas[eid])) continue;
       const pa = estado.vertices.get(String(a));
       const pb = estado.vertices.get(String(b));
       if (!pa || !pb) continue;
@@ -533,6 +543,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       grupo.add(h);
     }
     for (const [id, f] of estado.faces) {
+      if (tagOculta(tagInfo.faces[id])) continue;
       const pos = triangular(f);
       if (!pos || !pos.length) continue;
       const g = new THREE.BufferGeometry();
