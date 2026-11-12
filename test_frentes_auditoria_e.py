@@ -6,6 +6,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from core.art_report_generator import ArtReportGenerator  # noqa: E402
 from core.technical_drawing_exporter import TechnicalDrawingExporter  # noqa: E402
 from core.technical_sketch_shader import TechnicalSketchShader  # noqa: E402
 from core.unhide_entities_engine import UnhideEntitiesEngine  # noqa: E402
@@ -120,6 +121,39 @@ class TestDesenhoTecnico(unittest.TestCase):
             self.assertEqual((r["scale"], r["file_size_bytes"] == os.path.getsize(p)), ("1:100", True))
             with open(p, encoding="utf-8") as fh:
                 self.assertIn("4.00 m</text>", fh.read())  # sem geometria: limites padrão de -2 a 2 m
+
+
+class TestMinutaArt(unittest.TestCase):
+    def _gerar(self, prof, proj):
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "art.pdf")
+            r = ArtReportGenerator.generate_art_pdf(prof, proj, p)
+            with open(p, "rb") as fh:
+                return r, fh.read()
+
+    def test_pdf_tem_estrutura_e_xref_aponta_para_os_objetos(self):
+        r, b = self._gerar({"name": "Ana"}, {})
+        self.assertTrue(b.startswith(b"%PDF-1.4") and b.rstrip().endswith(b"%%EOF"))
+        self.assertEqual(r["size_bytes"], len(b))
+        xref = int(b.split(b"startxref\n")[1].split(b"\n")[0])
+        self.assertEqual(b[xref:xref + 4], b"xref")
+        linhas = b[xref:].split(b"\n")
+        for n in range(1, 7):
+            off = int(linhas[2 + n].split()[0])
+            self.assertEqual(b[off:off + len(f"{n} 0 obj")], f"{n} 0 obj".encode())
+
+    def test_nome_com_parenteses_e_barra_nao_quebra_a_string_do_pdf(self):
+        bs = chr(92)
+        _, b = self._gerar({"name": "Ana (Eng) " + bs + " Filho"}, {"project_name": "Gira)Gira"})
+        self.assertIn(("Ana " + bs + "(Eng" + bs + ") " + bs * 2 + " Filho").encode(), b)
+        self.assertIn(("Gira" + bs + ")Gira").encode(), b)
+
+    def test_caractere_fora_do_latin1_vira_interrogacao_e_o_length_bate(self):
+        _, b = self._gerar({"name": "Ana " + chr(0x2603)}, {})
+        corpo = b.split(b"\nendstream")[0].split(b">>\nstream\n")[1]
+        declarado = int(b.split(b"/Length ")[1].split(b" ")[0])
+        self.assertEqual(declarado, len(corpo))
+        self.assertIn(b"Ana ?", corpo)
 
 
 if __name__ == "__main__":

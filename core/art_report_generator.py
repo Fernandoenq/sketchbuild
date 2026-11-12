@@ -12,6 +12,13 @@ import os
 from typing import Dict, Any, List
 
 
+def _pdf_txt(valor: Any) -> str:
+    """Texto seguro para dentro de uma string literal do PDF: só latin-1, com barra invertida e parênteses escapados."""
+    t = str(valor).encode("latin-1", errors="replace").decode("latin-1")
+    t = t.replace(chr(92), chr(92) * 2).replace("(", chr(92) + "(").replace(")", chr(92) + ")")
+    return " ".join(t.split())
+
+
 class ArtReportGenerator:
     """Compilador de Minuta de ART / RRT em PDF nativo."""
 
@@ -28,6 +35,7 @@ class ArtReportGenerator:
         prof_name = professional_data.get("name", "Eng. Responsável")
         crea_cau = professional_data.get("crea_cau", "CREA-XX 0000000/D")
         rnp = professional_data.get("rnp", "0000000000")
+        nome_pdf, crea_pdf, rnp_pdf = _pdf_txt(prof_name), _pdf_txt(crea_cau), _pdf_txt(rnp)
 
         contractor = project_data.get("contractor", "Condomínio Residencial Parque das Árvores")
         location = project_data.get("location", "Av. das Nações Unidas, 14261 - São Paulo/SP")
@@ -35,6 +43,8 @@ class ArtReportGenerator:
         capacity = project_data.get("capacity_users", 18)
         max_fall_height = project_data.get("max_fall_height_m", 1.80)
         safety_area = project_data.get("safety_area_m2", 48.5)
+        contratante_pdf, local_pdf, projeto_pdf = _pdf_txt(contractor), _pdf_txt(location), _pdf_txt(project_name)
+        capacidade_pdf = _pdf_txt(capacity)
 
         # Montagem dos fluxos de texto e vetores no PDF
         # PDF-1.4 nativo com medição precisa em pontos (1 pt = 1/72 polegada, A4 = 595.28 x 841.89)
@@ -64,22 +74,22 @@ class ArtReportGenerator:
 
         # Quadro 1 - Dados do Profissional
         text_stream.append("BT /F1 11 Tf 0.1 0.2 0.3 rg 50 720 Td (1. DADOS DO PROFISSIONAL RESPONSÁVEL) Tj ET")
-        text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 698 Td (Nome do Responsável Técnico: {prof_name}) Tj ET")
-        text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 678 Td (Registro Profissional: {crea_cau}   |   RNP: {rnp}) Tj ET")
+        text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 698 Td (Nome do Responsável Técnico: {nome_pdf}) Tj ET")
+        text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 678 Td (Registro Profissional: {crea_pdf}   |   RNP: {rnp_pdf}) Tj ET")
         text_stream.append("BT /F2 10 Tf 0.15 0.15 0.15 rg 50 658 Td (Atribuição Técnica: Projeto Mecânico, Estrutural e Fabricação de Equipamentos de Recreio) Tj ET")
         text_stream.append("BT /F2 10 Tf 0.15 0.15 0.15 rg 50 638 Td (Empresa Contratada / Fabricante: Fabricante Ltda.) Tj ET")
 
         # Quadro 2 - Dados da Obra e Contratante
         text_stream.append("BT /F1 11 Tf 0.1 0.2 0.3 rg 50 578 Td (2. DADOS DO CONTRATANTE E LOCAL DA OBRA) Tj ET")
-        text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 556 Td (Contratante: {contractor}) Tj ET")
-        text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 536 Td (Endereço da Instalação: {location}) Tj ET")
-        text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 516 Td (Denominação do Equipamento: {project_name}) Tj ET")
+        text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 556 Td (Contratante: {contratante_pdf}) Tj ET")
+        text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 536 Td (Endereço da Instalação: {local_pdf}) Tj ET")
+        text_stream.append(f"BT /F2 10 Tf 0.15 0.15 0.15 rg 50 516 Td (Denominação do Equipamento: {projeto_pdf}) Tj ET")
         text_stream.append("BT /F2 10 Tf 0.15 0.15 0.15 rg 50 496 Td (Tipo de Atividade: PROJETO E LAUDO DE CONFORMIDADE ESTRUTURAL E DE SEGURANÇA) Tj ET")
         text_stream.append("BT /F2 9 Tf 0.4 0.4 0.4 rg 50 476 Td (Finalidade: Uso coletivo recreativo infantil em área externa) Tj ET")
 
         # Quadro 3 - Parâmetros Técnicos e Normativos
         text_stream.append("BT /F1 11 Tf 0.1 0.2 0.3 rg 50 428 Td (3. DECLARAÇÃO E PARÂMETROS NORMATIVOS DE SEGURANÇA) Tj ET")
-        text_stream.append(f"BT /F2 9.5 Tf 0.15 0.15 0.15 rg 50 406 Td (Capacidade Simultânea de Projeto: {capacity} crianças   |   Faixa Etária: 03 a 12 anos) Tj ET")
+        text_stream.append(f"BT /F2 9.5 Tf 0.15 0.15 0.15 rg 50 406 Td (Capacidade Simultânea de Projeto: {capacidade_pdf} crianças   |   Faixa Etária: 03 a 12 anos) Tj ET")
         text_stream.append(f"BT /F2 9.5 Tf 0.15 0.15 0.15 rg 50 388 Td (Altura Máxima de Queda Livre: {max_fall_height:.2f} m (Limite Normativo NBR 16071: <= 3.00 m)) Tj ET")
         text_stream.append(f"BT /F2 9.5 Tf 0.15 0.15 0.15 rg 50 370 Td (Área Mínima de Superfície de Absorção de Impacto: {safety_area:.1f} m²) Tj ET")
         text_stream.append("BT /F2 9.5 Tf 0.15 0.15 0.15 rg 50 352 Td (Material Estrutural: Eucalipto Citriodora Tratado em Autoclave (CCA/CCB - NBR 7190)) Tj ET")
@@ -94,8 +104,8 @@ class ArtReportGenerator:
 
         # Linhas de Assinatura
         text_stream.append(f"BT /F2 9 Tf 0.1 0.1 0.1 rg 70 140 Td (____________________________________________________) Tj ET")
-        text_stream.append(f"BT /F1 9 Tf 0.1 0.1 0.1 rg 110 126 Td ({prof_name}) Tj ET")
-        text_stream.append(f"BT /F2 8.5 Tf 0.3 0.3 0.3 rg 135 114 Td ({crea_cau}) Tj ET")
+        text_stream.append(f"BT /F1 9 Tf 0.1 0.1 0.1 rg 110 126 Td ({nome_pdf}) Tj ET")
+        text_stream.append(f"BT /F2 8.5 Tf 0.3 0.3 0.3 rg 135 114 Td ({crea_pdf}) Tj ET")
 
         text_stream.append(f"BT /F2 9 Tf 0.1 0.1 0.1 rg 340 140 Td (_______________________________________) Tj ET")
         text_stream.append(f"BT /F1 9 Tf 0.1 0.1 0.1 rg 370 126 Td (Empresa Fabricante) Tj ET")
