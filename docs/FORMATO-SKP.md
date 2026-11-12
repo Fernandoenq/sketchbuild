@@ -73,7 +73,7 @@ exemplo, o boneco do modelo padrão entra na conta).
 
 **RESOLVIDO em 12/11/2026 (`core/caixa_instancia.py`, `test_caixa_instancia.py`):** o boneco do arquivo real é um componente que **sempre olha para a câmera** (`SUComponentDefinitionGetBehavior`, `always_face_camera = 1`), e a caixa que a SDK calcula para a instância (`SUDrawingElementGetBoundingBox`) é exatamente o `0x13a0` gravado pelo SketchUp. Regras, conferidas em 25 casos aleatórios contra a SDK e contra os números do arquivo real:
 - **instância comum:** caixa dos oito cantos da caixa da definição, transformados (a frase "não é a dos oito cantos" abaixo vale só para componente face-me);
-- **face-me:** centrada na origem da instância; meia largura em x e y = `R * (|cos t| + |sen t|)`, onde `R` é o maior `hypot(x, y)` entre os **cantos da caixa da definição** (não dos vértices) e `t` é o giro da instância em torno de z; z = o da definição transformado. No arquivo real: R = 17,60676, t = 33°, meia largura 24,3516.
+- **face-me:** a caixa local vira `[-R, R]² x [zmin, zmax]` (`R` = maior `hypot(x, y)` entre os **cantos da caixa da definição**, não dos vértices) e entram os oito cantos transformados pela matriz da instância. **Generalizado em 12/11/2026** e conferido contra a SDK com giros em x, y e z e escala uniforme (30 casos aleatórios): com só giro em z dá a antiga fórmula de meia largura `R * (|cos t| + |sen t|)`. No arquivo real: R = 17,60676, t = 33°, meia largura 24,3516.
 
 **Gravador (12/11/2026):** `gravar_cena` agora grava `0x13a0` na raiz = união da geometria solta com as instâncias da raiz (`_caixa_com_instancias`; definições aninhadas entram pela caixa das instâncias filhas); a caixa do grupo no arquivo gravado bate com a da SDK. O gravador não grava `always_face_camera`, então as instâncias gravadas são comuns. **Falta:** a poda de ocultos ainda mantém a caixa antiga quando há instância viva, e a `Instancia` não guarda `always_face_camera`. Texto antigo: a raiz só com instâncias ficava sem `0x13a0` (arquivos feitos pela SDK). Leitura original, mantida para histórico:
 
@@ -394,5 +394,5 @@ Oráculo: `tools/gerar_comportamento_api.py` (`SUComponentDefinitionSetBehavior`
 
 - Núcleo: `Cena.definir_comportamento(definicao, face_me, corta_abertura, sombra_sol)`; só componentes (grupo e raiz dão erro).
 - Gravador: `_comportamento(...)` reproduz byte a byte o registro da SDK nos quatro casos; com `face_me` a caixa `0x13a0` da raiz usa a fórmula face-me (seção 7).
-- **Pendências:** `0x1b5a` nunca variou; comportamento não aparece no front; só conferido com giro em z e escala 1.
+- **Pendências:** `0x1b5a` nunca variou; comportamento não aparece no front; caixa face-me conferida com giros em x/y/z e escala uniforme (não uniforme/espelhada sem teste).
 

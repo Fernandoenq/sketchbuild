@@ -105,8 +105,8 @@ class TestCaixaDoArquivoReal(unittest.TestCase):
     def test_definicao_vazia_e_escala_nula(self):
         with self.assertRaises(ValueError):
             caixa_instancia([], _giro_z(0, (0, 0, 0)))
-        with self.assertRaises(ValueError):
-            caixa_instancia([(1, 1, 1)], [0] * 16, face_me=True)
+        lo, hi = caixa_instancia([(1, 1, 1)], [0] * 16, face_me=True)  # escala nula: caixa degenera num ponto
+        self.assertEqual((lo, hi), ((0, 0, 0), (0, 0, 0)))
 
 
 @unittest.skipUnless(DISPONIVEL, "SketchUpAPI.dll / Python 3.12 indisponível")
@@ -117,6 +117,26 @@ class TestCaixaContraASdk(unittest.TestCase):
             pontos = [(rnd.uniform(-20, 20), rnd.uniform(-20, 20), rnd.uniform(0, 60)) for _ in range(3)]
             # a face precisa ser plana e não degenerada: três pontos sempre formam um triângulo
             matriz = _giro_z(rnd.uniform(-180, 180), (rnd.uniform(-300, 300), rnd.uniform(-300, 300), rnd.uniform(0, 50)))
+            for face_me in (False, True):
+                with self.subTest(face_me=face_me, pontos=pontos):
+                    sdk = caixa_da_sdk(pontos, matriz, face_me)
+                    lo, hi = caixa_instancia(pontos, matriz, face_me)
+                    for got, want in zip(lo + hi, sdk[0] + sdk[1]):
+                        self.assertAlmostEqual(got, want, places=4)
+
+    def test_giros_em_x_y_z_e_escala_uniforme(self):
+        rnd = random.Random(11)
+        for _ in range(25):
+            pontos = [(rnd.uniform(-20, 20), rnd.uniform(-20, 20), rnd.uniform(0, 60)) for _ in range(3)]
+            ax, ay, az, s = rnd.uniform(-3, 3), rnd.uniform(-1.5, 1.5), rnd.uniform(-3, 3), rnd.uniform(0.3, 3)
+            cx, sx, cy, sy, cz, sz = math.cos(ax), math.sin(ax), math.cos(ay), math.sin(ay), math.cos(az), math.sin(az)
+            r = [[cz * cy, cz * sy * sx - sz * cx, cz * sy * cx + sz * sx],
+                 [sz * cy, sz * sy * sx + cz * cx, sz * sy * cx - cz * sx], [-sy, cy * sx, cy * cx]]
+            matriz = [0.0] * 16
+            for j in range(3):
+                for i in range(3):
+                    matriz[4 * j + i] = r[i][j] * s
+            matriz[12:16] = [rnd.uniform(-300, 300), rnd.uniform(-300, 300), rnd.uniform(0, 50), 1.0]
             for face_me in (False, True):
                 with self.subTest(face_me=face_me, pontos=pontos):
                     sdk = caixa_da_sdk(pontos, matriz, face_me)

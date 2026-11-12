@@ -3,9 +3,9 @@
 Regras conferidas contra `SUDrawingElementGetBoundingBox` da SketchUpAPI e contra o `0x13a0` de um arquivo salvo pelo
 SketchUp:
 - instância comum: caixa dos oito cantos da caixa da definição, transformados;
-- instância de componente que sempre olha para a câmera (face-me): centrada na origem da instância, com meia largura
-  `R * (|cos t| + |sen t|)` em x e y, onde `R` é o maior raio horizontal (`hypot(x, y)`) dos cantos da caixa da definição e
-  `t` o giro da instância em torno de z (a caixa do quadrado de lado `2R` girado); o z é o da definição transformado.
+- instância de componente que sempre olha para a câmera (face-me): a caixa local vira `[-R, R]² x [zmin, zmax]`, onde
+  `R` é o maior raio horizontal (`hypot(x, y)`) dos cantos da caixa da definição, e entra a mesma regra dos oito cantos
+  transformados. Vale para qualquer giro e escala (conferido contra a SDK também com giros em x e y).
 """
 import itertools
 import math
@@ -27,14 +27,9 @@ def caixa_instancia(pontos: Sequence[Ponto], matriz: Sequence[float], face_me: b
         raise ValueError("definição sem vértices")
     lo = tuple(min(p[k] for p in pontos) for k in range(3))
     hi = tuple(max(p[k] for p in pontos) for k in range(3))
+    if face_me:
+        # a definição gira em torno do próprio z para olhar a câmera: varre o disco de raio R no plano local xy
+        raio = max(math.hypot(x, y) for x in (lo[0], hi[0]) for y in (lo[1], hi[1]))
+        lo, hi = (-raio, -raio, lo[2]), (raio, raio, hi[2])
     cantos = [_aplica(matriz, (x, y, z)) for x, y, z in itertools.product(*zip(lo, hi))]
-    zmin, zmax = min(c[2] for c in cantos), max(c[2] for c in cantos)
-    if not face_me:
-        return (tuple(min(c[k] for c in cantos) for k in range(3)), tuple(max(c[k] for c in cantos) for k in range(3)))
-    escala = math.hypot(matriz[0], matriz[1], matriz[2])
-    if escala < 1e-12:
-        raise ValueError("matriz sem escala")
-    raio = max(math.hypot(x, y) for x in (lo[0], hi[0]) for y in (lo[1], hi[1])) * escala
-    meia = raio * (abs(matriz[0]) + abs(matriz[1])) / escala
-    cx, cy = matriz[12], matriz[13]
-    return ((cx - meia, cy - meia, zmin), (cx + meia, cy + meia, zmax))
+    return (tuple(min(c[k] for c in cantos) for k in range(3)), tuple(max(c[k] for c in cantos) for k in range(3)))
