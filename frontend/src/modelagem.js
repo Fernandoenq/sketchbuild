@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawNote, drawUv, drawBehavior, drawGroup, drawEnter, drawExit, drawUndo, drawRedo, drawSave } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawSolid, drawSelect, drawGroupSolid, drawNote, drawUv, drawBehavior, drawGroup, drawEnter, drawExit, drawUndo, drawRedo, drawSave } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -19,6 +19,11 @@ const FERRAMENTAS = [
   ["circulo", "Círculo (modelagem)", '<circle cx="12" cy="12" r="8"/>'],
   ["poligono", "Polígono (modelagem)", '<path d="M12 4l7 5-3 9H8L5 9z"/>'],
   ["arco", "Arco (modelagem)", '<path d="M4 18c2-9 14-9 16 0"/>'],
+  ["arco_3pontos", "Arco por 3 pontos (modelagem)", '<path d="M4 17c3-12 13-12 16 0"/><circle cx="4" cy="17" r="1.3" fill="currentColor"/><circle cx="12" cy="8" r="1.3" fill="currentColor"/><circle cx="20" cy="17" r="1.3" fill="currentColor"/>'],
+  ["arco_corda", "Arco por corda e flecha (modelagem)", '<path d="M4 17c3-9 13-9 16 0M4 17h16"/>'],
+  ["setor", "Setor / pizza (modelagem)", '<path d="M12 19L5 9c4-5 10-5 14 0z"/>'],
+  ["fatia", "Fatia / segmento circular (modelagem)", '<path d="M5 15c3-8 11-8 14 0z"/>'],
+  ["bezier", "Curva de Bézier (modelagem; Enter termina)", '<path d="M4 18C8 4 16 4 20 18"/><circle cx="8" cy="9" r="1.2" fill="currentColor"/><circle cx="16" cy="9" r="1.2" fill="currentColor"/>'],
   ["mao_livre", "Mão livre (modelagem)", '<path d="M4 16c3-8 5 4 8-3s5 3 8-4"/>'],
   ["selecionar", "Selecionar face ou aresta (modelagem; Shift soma)", '<path d="M6 3l12 9-5 1.2L16 19l-2.4 1L11 14.5 7 17z"/>'],
   ["pushpull", "Empurrar/Puxar (modelagem)", '<rect x="4" y="10" width="16" height="10"/><path d="M12 2v8M9 5l3-3 3 3"/>'],
@@ -30,7 +35,12 @@ const DICA = {
   circulo: "Círculo: clique no centro e depois no raio.",
   poligono: "Polígono: clique no centro e depois num vértice (lados no campo ao lado).",
   arco: "Arco: clique no centro, no início e no fim (anti-horário).",
-  mao_livre: "Mão livre: segure o botão e arraste.",
+  arco_3pontos: "Arco por 3 pontos: clique no início, no ponto do meio do arco e no fim.",
+  arco_corda: "Arco por corda: clique nas duas pontas e depois para o lado do abaulamento (a distância à corda é a flecha).",
+  setor: "Setor: clique no centro, no início do raio e no fim (anti-horário); fecha com os dois raios.",
+  fatia: "Fatia: clique no centro, no início do raio e no fim (anti-horário); fecha só com a corda.",
+  bezier: "Bézier: clique os pontos de controle (3 ou mais; a curva passa pelo primeiro e pelo último). Enter termina e desenha.",
+  mao_livre: "Mão livre: segure o botão e arraste (o campo ao lado simplifica a trilha: tolerância em metros).",
   selecionar: "Selecionar: clique numa face ou aresta (Shift soma). Depois use Mover, Rotar, Esc. ou Offset com o valor no campo ao lado.",
   pushpull: "Empurrar/Puxar: clique numa face, digite a distância (m) no campo e Enter (Ctrl+Enter mantém a face original). Negativo empurra.",
 };
@@ -55,7 +65,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   let lados = 6;
   let selecionada = null; // id da face escolhida no Empurrar/Puxar
   let campoDist = null;
-  const sel = { faces: new Set(), edges: new Set() };
+  let sel = { faces: new Set(), edges: new Set() };
   let campoValor = null;
   const chao = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const ray = new THREE.Raycaster();
@@ -188,6 +198,19 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       ["Entrar", "Entra no último grupo/componente criado, ou no número da instância digitado no campo ao lado", () => entrarOuSair(true, nota.value)],
       ["Sair", "Sai da edição do grupo/componente", () => entrarOuSair(false)],
       ["Comportamento", "Define o comportamento do componente em que se entrou: face-me, corta, sombra, snap=0..4 (campo ao lado; vazio desliga)", () => comportamentoAtivo(nota.value)],
+      ["União", "União entre dois grupos (campo ao lado: a,b = instâncias; vazio = os dois últimos criados). Nome do resultado no campo de tag", () => booleanaGrupos("uniao", nota.value, tagNome.value)],
+      ["Subtrair", "A − B entre dois grupos (campo ao lado: a,b; vazio = os dois últimos criados; A é o primeiro)", () => booleanaGrupos("subtracao", nota.value, tagNome.value)],
+      ["Interseção", "Só o volume comum a dois grupos (campo ao lado: a,b; vazio = os dois últimos)", () => booleanaGrupos("intersecao", nota.value, tagNome.value)],
+      ["Aparar", "A perde o volume que divide com B; B continua (campo ao lado: a,b; vazio = os dois últimos)", () => booleanaGrupos("aparar", nota.value, tagNome.value)],
+      ["Dividir", "Gera A−B, A∩B e B−A (campo ao lado: a,b; vazio = os dois últimos)", () => booleanaGrupos("dividir", nota.value, tagNome.value)],
+      ["Volume", "Verifica se as faces selecionadas formam um sólido fechado e mostra o volume", () => volumeDaSelecao()],
+      ["Sel. tudo", "Seleciona todas as faces e arestas", () => selecionarPor("tudo")],
+      ["Sel. inverter", "Inverte a seleção", () => selecionarPor("inverter")],
+      ["Sel. conectados", "Amplia a seleção a tudo que está ligado a ela", () => selecionarPor("conectados")],
+      ["Arestas das faces", "Seleciona as arestas das faces selecionadas", () => selecionarPor("arestas_das_faces")],
+      ["Faces das arestas", "Seleciona as faces que usam as arestas selecionadas", () => selecionarPor("faces_das_arestas")],
+      ["Sel. por tag", "Seleciona o que está na tag do campo de tag", () => selecionarPor("tag", tagNome.value)],
+      ["Sel. por material", "Seleciona as faces pintadas com o material do campo de tag", () => selecionarPor("material", tagNome.value)],
       ["Posicionar textura", "Ajusta a textura das faces selecionadas para repetir a cada N polegadas (campo ao lado)", () => posicionarTextura(nota.value)],
     ]) {
       const b = document.createElement("button");
@@ -359,6 +382,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     if (!sel.edges.size) return setStatus("Suavizar: selecione arestas antes.", true);
     try {
       const s = await drawSoften({ arestas: [...sel.edges].map(Number), limpar });
+      substituirEstado(s);
       setStatus((limpar ? "Endurecidas" : "Suavizadas") + ". Arestas suavizadas no desenho: " + Object.keys(s.suaves ?? {}).length + ".");
     } catch (err) {
       setStatus("Erro: " + (err?.message ?? err), true);
@@ -368,6 +392,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   async function suavizarAngulo(graus) {
     try {
       const s = await drawSoften({ angulo: graus });
+      substituirEstado(s);
       setStatus("Suavizar até " + graus + "°: " + Object.keys(s.suaves ?? {}).length + " aresta(s) suavizada(s) no desenho.");
     } catch (err) {
       setStatus("Erro: " + (err?.message ?? err), true);
@@ -388,12 +413,58 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   }
 
   let ultimaInstancia = null;
+  const instanciasCriadas = []; // ids dos grupos/componentes criados nesta página (a booleana usa os dois últimos)
+
+  // booleana entre dois grupos da definição ativa; campo "a,b" = números das instâncias (vazio = os dois últimos criados)
+  async function booleanaGrupos(operacao, campo, nome) {
+    let par = (campo ?? "").split(/[\s,;]+/).filter(Boolean).map(Number);
+    if (!par.length) par = instanciasCriadas.slice(-2);
+    if (par.length !== 2 || par.some((n) => !Number.isInteger(n))) {
+      return setStatus("Booleana: digite no campo os números das duas instâncias (a,b) ou crie dois grupos em seguida.", true);
+    }
+    try {
+      const r = await drawGroupSolid({ operacao, a: par[0], b: par[1], nome: nome?.trim() || null });
+      const novas = r.instancias ?? [r.instancia];
+      instanciasCriadas.push(...novas);
+      ultimaInstancia = novas[novas.length - 1];
+      substituirEstado(await drawState());
+      const rotulo = { uniao: "União", subtracao: "Subtração (A−B)", intersecao: "Interseção", aparar: "Aparar (A perde o volume de B)", dividir: "Dividir" }[operacao];
+      setStatus(rotulo + ": instância(s) " + novas.join(", ") + " (Entrar abre a última).");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  async function volumeDaSelecao() {
+    if (!sel.faces.size) return setStatus("Volume: selecione as faces do sólido antes.", true);
+    try {
+      const r = await drawSolid({ acao: "verificar", a: [...sel.faces].map(Number) });
+      setStatus(r.solido ? "Sólido fechado: volume " + (r.volume / POL ** 3).toFixed(6) + " m³ (" + r.volume.toFixed(2) + " pol³)." : "As faces selecionadas NÃO formam um sólido fechado.", !r.solido);
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  // seleção calculada no backend (nada muda no modelo): tudo, inverter, conectados, arestas/faces vizinhas, por tag ou material
+  async function selecionarPor(acao, nome) {
+    if ((acao === "tag" || acao === "material") && !nome?.trim()) return setStatus("Selecionar por " + acao + ": digite o nome no campo de tag.", true);
+    try {
+      const r = await drawSelect({ acao, faces: [...sel.faces].map(Number), arestas: [...sel.edges].map(Number), nome: nome?.trim() || null });
+      sel.faces = new Set(r.faces.map(String));
+      sel.edges = new Set(r.edges.map(String));
+      redesenhar();
+      setStatus("Seleção: " + sel.faces.size + " face(s), " + sel.edges.size + " aresta(s).");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
 
   async function agruparSelecao(tipo, nome) {
     if (!sel.faces.size && !sel.edges.size) return setStatus("Agrupar: selecione faces ou arestas antes.", true);
     try {
       const r = await drawGroup({ faces: [...sel.faces].map(Number), arestas: [...sel.edges].map(Number), tipo, nome: nome?.trim() || null });
       ultimaInstancia = r.instancia;
+      instanciasCriadas.push(r.instancia);
       sel.faces.clear();
       sel.edges.clear();
       substituirEstado(await drawState());
@@ -441,6 +512,8 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
 
   function substituirEstado(s) {
     corDaFace.clear();
+    for (const k of Object.keys(normaisLisas)) delete normaisLisas[k];
+    Object.assign(normaisLisas, s.normais_suaves ?? {});
     tagInfo.tags = s.tags ?? {};
     tagInfo.faces = s.tag_faces ?? {};
     tagInfo.arestas = s.tag_arestas ?? {};
@@ -455,6 +528,12 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       for (const [id, v] of Object.entries(s[k])) mapa.set(id, v);
     }
     redesenhar();
+  }
+
+  // mão livre: o campo "valor" (metros) vira a tolerância do Ramer-Douglas-Peucker; vazio = sem simplificar
+  function toleranciaRDP() {
+    const m = Number.parseFloat((campoValor?.value ?? "").replace(",", "."));
+    return Number.isFinite(m) && m > 0 ? { tolerancia: m * POL } : {};
   }
 
   async function aplicarFerramentaDeSelecao(op) {
@@ -586,6 +665,19 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     }
   }
 
+  // o delta não traz as normais lisas: se o desenho tem arestas suavizadas, busca-as de novo (best effort)
+  async function renovarNormaisLisas() {
+    if (!Object.keys(normaisLisas).length) return;
+    try {
+      const s = await drawState();
+      for (const k of Object.keys(normaisLisas)) delete normaisLisas[k];
+      Object.assign(normaisLisas, s.normais_suaves ?? {});
+      redesenhar();
+    } catch {
+      /* mantém o sombreamento atual */
+    }
+  }
+
   function aplicar(delta) {
     for (const [k, mapa] of [["vertices", estado.vertices], ["edges", estado.edges], ["faces", estado.faces]]) {
       const d = delta[k];
@@ -596,6 +688,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       for (const [id, v] of Object.entries({ ...d.added, ...d.changed })) mapa.set(id, v);
     }
     redesenhar();
+    renovarNormaisLisas();
   }
 
   // face no delta: [outer, holes] (tupla do Python); no estado completo: {outer, holes}
@@ -620,15 +713,34 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     const p2 = (p) => new THREE.Vector2(p.dot(u), p.dot(v));
     const tri = THREE.ShapeUtils.triangulateShape(externo.map(p2), furos.map((h) => h.map(p2)));
     const todos = [...externo, ...furos.flat()];
+    const ids = lacos(f).flat();
     const pos = [];
-    for (const t of tri) for (const i of t) pos.push(todos[i].x, todos[i].y, todos[i].z);
-    return pos;
+    const vid = [];
+    for (const t of tri) for (const i of t) {
+      pos.push(todos[i].x, todos[i].y, todos[i].z);
+      vid.push(ids[i]);
+    }
+    return { pos, vid };
   }
 
   // tags do desenho: uma tag desligada some da vista (faces e arestas dela); vem de /draw/state e /draw/tag
   const tagInfo = { tags: {}, faces: {}, arestas: {}, cotas: {}, textos: {} };
   const tagOculta = (nome) => !!nome && tagInfo.tags[nome]?.visivel === false;
   const corDaFace = new Map(); // id da face -> cor RGB da frente (vem de /draw/state e /draw/paint)
+
+  // sombreamento liso: normais por vértice calculadas no backend (grupos de faces ligadas por aresta lisa, regra da SketchUpAPI);
+  // vértice sem entrada fica com a normal plana da face. SketchUp (x, y, z) -> viewport (x, z, -y)
+  const normaisLisas = {};
+  function aplicarNormaisLisas(g, fid, vids) {
+    const mapa = normaisLisas[fid];
+    if (!mapa) return;
+    const n = g.getAttribute("normal");
+    vids.forEach((v, i) => {
+      const t = mapa[String(v)];
+      if (t) n.setXYZ(i, t[0], t[2], -t[1]);
+    });
+    n.needsUpdate = true;
+  }
 
   function redesenhar() {
     grupo.children.slice().forEach((o) => {
@@ -675,11 +787,12 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     }
     for (const [id, f] of estado.faces) {
       if (tagOculta(tagInfo.faces[id])) continue;
-      const pos = triangular(f);
-      if (!pos || !pos.length) continue;
+      const tr = triangular(f);
+      if (!tr || !tr.pos.length) continue;
       const g = new THREE.BufferGeometry();
-      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("position", new THREE.Float32BufferAttribute(tr.pos, 3));
       g.computeVertexNormals();
+      aplicarNormaisLisas(g, id, tr.vid);
       const escolhida = id === String(selecionada) || sel.faces.has(id);
       const m = new THREE.Mesh(
         g,
@@ -713,12 +826,22 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     if (ferramenta === "retangulo") return [a, new THREE.Vector3(p.x, 0, a.z), p, new THREE.Vector3(a.x, 0, p.z), a];
     if (ferramenta === "circulo") return arcoPontos(a, a.distanceTo(p), 0, Math.PI * 2, 24);
     if (ferramenta === "poligono") return arcoPontos(a, a.distanceTo(p), 0, Math.PI * 2, lados);
-    if (ferramenta === "arco") {
+    if (ferramenta === "arco_3pontos") return [a, ...(pontos.length === 2 ? [b] : []), p];
+    if (ferramenta === "arco_corda") {
+      if (pontos.length === 1) return [a, p];
+      const meio = a.clone().lerp(b, 0.5);
+      const corda = b.clone().sub(a).normalize();
+      const topo = meio.clone().add(p.clone().sub(meio).sub(corda.multiplyScalar(p.clone().sub(meio).dot(corda))));
+      return [a, topo, b];
+    }
+    if (ferramenta === "bezier") return [...pontos, p];
+    if (ferramenta === "arco" || ferramenta === "setor" || ferramenta === "fatia") {
       if (pontos.length === 1) return [a, p];
       const ini = angulo(a, b);
       let fim = angulo(a, p);
       if (fim <= ini) fim += Math.PI * 2;
-      return [a, ...arcoPontos(a, a.distanceTo(b), ini, fim, 12), a];
+      const arco = arcoPontos(a, a.distanceTo(b), ini, fim, 12);
+      return ferramenta === "arco" || ferramenta === "setor" ? [a, ...arco, a] : [...arco, arco[0]];
     }
     return null;
   }
@@ -811,6 +934,10 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     if (ferramenta === "pushpull") return escolherFace(event);
     const p = pontoDe(event);
     if (!p) return;
+    if (ferramenta === "bezier") {
+      pontos.push(p);
+      return;
+    }
     if (ferramenta === "linha") {
       if (pontos.length) await enviar({ ferramenta: "linha", pontos: [toSku(pontos[pontos.length - 1]), toSku(p)] });
       pontos.push(p);
@@ -829,12 +956,25 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
         );
       }
       terminar();
-    } else if (ferramenta === "arco" && pontos.length === 3) {
+    } else if (ferramenta === "arco_3pontos" && pontos.length === 3) {
+      await enviar({ ferramenta, p0: toSku(a), p1: toSku(b), p2: toSku(c) });
+      terminar();
+    } else if (ferramenta === "arco_corda" && pontos.length === 3) {
+      const [p0, p1, q] = [a, b, c].map(toSku);
+      const corda = [p1[0] - p0[0], p1[1] - p0[1]];
+      const n = Math.hypot(...corda);
+      if (n > 0) {
+        const lado = [-corda[1] / n, corda[0] / n]; // esquerda de p0->p1 visto de cima (normal z do SketchUp)
+        const flecha = (q[0] - (p0[0] + p1[0]) / 2) * lado[0] + (q[1] - (p0[1] + p1[1]) / 2) * lado[1];
+        if (Math.abs(flecha) > 1e-6) await enviar({ ferramenta, p0, p1, flecha });
+      }
+      terminar();
+    } else if ((ferramenta === "arco" || ferramenta === "setor" || ferramenta === "fatia") && pontos.length === 3) {
       const ini = graus(angulo(a, b));
       let fim = graus(angulo(a, c));
       if (fim <= ini) fim += 360;
       await enviar({
-        ferramenta: "arco",
+        ferramenta,
         centro: toSku(a),
         raio: a.distanceTo(b) * POL,
         ang_ini: ini,
@@ -871,7 +1011,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       if (ferramenta === "mao_livre") {
         const trilha = livre;
         terminar();
-        if (trilha && trilha.length >= 2) await enviar({ ferramenta: "mao_livre", pontos: trilha.map(toSku) });
+        if (trilha && trilha.length >= 2) await enviar({ ferramenta: "mao_livre", pontos: trilha.map(toSku), ...toleranciaRDP() });
         return;
       }
       await clicar(e);
@@ -895,6 +1035,12 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   el.addEventListener("pointermove", mover);
   window.addEventListener("keydown", (e) => {
     if (getToolMode() !== "modelar") return;
+    if (e.key === "Enter" && ferramenta === "bezier" && pontos.length >= 3 && !e.target.matches?.("input,textarea")) {
+      const ctrl = pontos.map(toSku);
+      terminar();
+      enviar({ ferramenta: "bezier", pontos: ctrl, lados: 24 });
+      return;
+    }
     if (e.key === "Escape" || e.key === "Enter") terminar();
     if (e.ctrlKey && e.key.toLowerCase() === "z" && !e.target.matches?.("input,textarea")) historico(drawUndo);
     if (e.ctrlKey && e.key.toLowerCase() === "y" && !e.target.matches?.("input,textarea")) historico(drawRedo);
