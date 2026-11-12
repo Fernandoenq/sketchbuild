@@ -312,4 +312,6 @@ Lugar: dentro do cabeçalho da face, `0x07d0 > 0x05dc > 0x05dd > 0x36b1 > 0x36b2
 | deslocado (0,25; 0,5) | `diag(50, 50, 1)` com `tx = -12,5` e `ty = -25` (`-u0 * 50`, `-v0 * 50`) |
 | (0,0) (0,2) (-2,2) (-2,0) | `[[0,-50,0],[50,0,0],[0,0,1]]` (`u = -y/50`, `v = x/50`) |
 
-**Pendente:** eixos x/y do plano em face inclinada (aqui sempre x e y do mundo); UV com perspectiva (4 pontos que não formam transformação afim; a SketchUpAPI só aceita o par de cantos); `0x2716`; textura posicionada no verso; escrita pelo gravador (próximo passo).
+**Pendente:** eixos x/y do plano em face inclinada (aqui sempre x e y do mundo); UV com perspectiva (4 pontos que não formam transformação afim; a SketchUpAPI só aceita o par de cantos); `0x2716`; textura posicionada no verso; textura posicionada no verso.
+
+**Gravador (12/11/2026):** `core/skp_topology_writer.py` (`_bloco_uv`) grava o bloco; núcleo: `Face.uv`, `core/topology/material.py` (`matriz_uv`, `posicionar_textura`). `uv` só vai ao arquivo se a frente tem material; limpar a frente tira o `uv`; Push/Pull e divisão de face levam o `uv`; explodir grupo descarta (o plano mudaria de lugar). Testes em `test_skp_uv.py` conferem os números dos quatro casos da SDK.

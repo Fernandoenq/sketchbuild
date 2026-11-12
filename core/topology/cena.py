@@ -115,7 +115,7 @@ class Cena:
         for f in sorted(mover_f):
             F = t.faces[f]
             d.faces[next(d._fid)] = Face([mapa[v] for v in F.outer], [[mapa[v] for v in h] for h in F.holes], F.normal,
-                                         F.frente, F.verso, F.tag)
+                                         F.frente, F.verso, F.tag, F.uv)
         d.materiais = dict(t.materiais)
         d.tags = dict(t.tags)
         # sai da definição de origem: faces; arestas que nenhuma face que ficou usa; vértices soltos

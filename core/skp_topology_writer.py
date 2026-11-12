@@ -39,10 +39,24 @@ def _id_bytes(n: int) -> bytes:
     return n.to_bytes(w, "little")
 
 
-def _cabecalho(id_: int, flags: int, material: Optional[int] = None, tag: Optional[int] = None) -> bytes:
+def _bloco_uv(m: Tuple[float, ...]) -> bytes:
+    """0x05dd com o posicionamento da textura da frente (FORMATO-SKP 7j); m = (a, b, c, d, tx, ty)."""
+    def lado(flag: int, mat: Tuple[float, ...]) -> bytes:
+        return _rec(0x2713, _rec(0x2714, struct.pack("<I", flag)) + _rec(0x2715, struct.pack("<9d", *mat))
+                    + _rec(0x2716, struct.pack("<3d", 0.0, 0.0, 0.0)) + _rec(0x2717, b""))
+    a, b, c, d, tx, ty = m
+    frente = (a, b, 0.0, c, d, 0.0, tx, ty, 1.0)
+    identidade = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
+    return _rec(0x05DD, _rec(0x36B1, _rec(0x36B2, _rec(0x2710, _rec(0x36B0, b"") + _rec(0x2711, lado(1, frente))
+                                                          + _rec(0x2712, lado(0, identidade))))))
+
+
+def _cabecalho(id_: int, flags: int, material: Optional[int] = None, tag: Optional[int] = None,
+               uv: Optional[Tuple[float, ...]] = None) -> bytes:
     mat = _rec(0x07D1, _id_bytes(material)) if material is not None else b""
     tg = _rec(0x07D2, _id_bytes(tag)) if tag is not None else b""
-    return _rec(0x07D0, _rec(0x05DC, _rec(0x05DE, _id_bytes(id_))) + mat + tg + _rec(0x07D3, bytes([flags])))
+    return _rec(0x07D0, _rec(0x05DC, _rec(0x05DE, _id_bytes(id_)) + (_bloco_uv(uv) if uv else b"")) + mat + tg
+                + _rec(0x07D3, bytes([flags])))
 
 
 def registro_tag(ident: int, nome: str, visivel: bool) -> bytes:
@@ -258,7 +272,8 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
         fc = t.faces[f]
         faces += _rec(
             0x0DAC,
-            _cabecalho(fid_[f], FLAGS_FACE, mid[fc.frente] if fc.frente else None, tid[fc.tag] if fc.tag else None)
+            _cabecalho(fid_[f], FLAGS_FACE, mid[fc.frente] if fc.frente else None, tid[fc.tag] if fc.tag else None,
+                       fc.uv if fc.frente else None)
             + (_rec(0x0DAF, _id_bytes(mid[fc.verso])) if fc.verso else b"")
             + _rec(0x0DAD, struct.pack("<4d", *plano)) + _rec(0x0DAE, corpo),
         )
