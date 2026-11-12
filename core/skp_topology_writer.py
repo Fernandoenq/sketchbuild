@@ -140,16 +140,6 @@ _ATTR_INSTANCIA = bytes.fromhex(
     "dd056b000000b13665000000b2365f000000b33659000000b03600000000b4360e00000053555f496e7374616e6365536574"
     "b5362f000000b636050000004f776e6572a43806000000ad3800000000b63606000000537461747573a43806000000ad380000"
     "0000b7360400000000000000")
-_T_1B58 = bytes.fromhex(
-    "581b30000000591b04000000000000005a1b04000000000000005b1b01000000005c1b01000000005d1b01000000005e1b0100000000")
-_T_1585 = bytes.fromhex(
-    "8515130100001c250d0100001d2507010000bc3401010000bd341800000000000000000000000000000000000000000000000000f03f"
-    "be3418000000000000000000000000000000000000000000000000000040bf34180000000000000000000000000000000000f03f00"
-    "00000000000000c034080000000000000000000000c134080000000000000000000000c2340100000001c434080000000000000000"
-    "003e40c33408000000000000000000f03fc534080000000000000000000000c6340100000001c7340100000000c8340000000"
-    "0c934080000000000000000000000ca340100000000cb3408000000000000000000f03fcc34080000000000000000000000cd3408"
-    "0000000000000000000000ce340100000000")
-
 
 def _cabecalho_attr(id_: int, attr: bytes, tag: Optional[int] = None) -> bytes:
     """Cabeçalho de entidade com dicionário de atributos (definição e instância de componente)."""
@@ -185,6 +175,13 @@ def _registro_texto(ident: int, c: dict) -> bytes:
                 + _rec(0x55FD, struct.pack("<I", c["tipo"])) + _rec(0x55FE, struct.pack("<I", 0)))
 
 
+def _comportamento(c: dict) -> bytes:
+    """Registro 0x1b58 do comportamento do componente (FORMATO-SKP 7m); sem `c` = tudo desligado."""
+    return _rec(0x1B58, _rec(0x1B59, struct.pack("<I", 0)) + _rec(0x1B5A, struct.pack("<I", 0)) + _rec(0x1B5B, bytes([0]))
+                + _rec(0x1B5C, bytes([1 if c.get("corta_abertura") else 0])) + _rec(0x1B5D, bytes([1 if c.get("face_me") else 0]))
+                + _rec(0x1B5E, bytes([1 if c.get("sombra_sol") else 0])))
+
+
 def _pontos_da_definicao(cena, did: int) -> List[Tuple[float, float, float]]:
     """Vértices da definição mais os cantos das caixas das instâncias que ela contém (recursivo)."""
     pts = list(cena.defs[did].verts.values())
@@ -192,7 +189,7 @@ def _pontos_da_definicao(cena, did: int) -> List[Tuple[float, float, float]]:
         if i.pai == did:
             interno = _pontos_da_definicao(cena, i.definicao)
             if interno:
-                lo, hi = caixa_instancia(interno, i.transformacao)
+                lo, hi = caixa_instancia(interno, i.transformacao, cena.comportamento.get(i.definicao, {}).get("face_me", False))
                 pts += [lo, hi]
     return pts
 
@@ -206,7 +203,7 @@ def _caixa_com_instancias(cena, caixa):
         if i.pai == 0:
             interno = _pontos_da_definicao(cena, i.definicao)
             if interno:
-                lo, hi = caixa_instancia(interno, i.transformacao)
+                lo, hi = caixa_instancia(interno, i.transformacao, cena.comportamento.get(i.definicao, {}).get("face_me", False))
                 pts += [lo, hi]
     if not pts:
         return None
@@ -480,7 +477,7 @@ def _montar_cena(cena, prox: int, mid: Dict[str, int], tid: Optional[Dict[str, i
         cauda = (_rec(0x157D, uuid.uuid4().bytes) + _rec(0x157E, nome_def[d].encode("utf-8"))
                  + _rec(0x157F, b"Group" if grupo else b"") + _rec(0x1580, b"") + _rec(0x1582, bytes([0]))
                  + _rec(0x1583, struct.pack("<I", 1 if grupo else 0)) + _rec(0x1581, struct.pack("<I", int(time.time())))
-                 + _T_1B58 + _T_1585)
+                 + _comportamento(cena.comportamento.get(d, {})) + _T_1585)
         defs += _rec(0x157C, _rec(0x1388, corpo) + cauda)
     return defs, instancias_de(0), prox
 

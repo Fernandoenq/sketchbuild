@@ -41,6 +41,8 @@ class Cena:
         self.caminho: List[int] = []  # instâncias por onde se entrou (vazio = raiz)
         # cenas (abas): {"nome", "descricao", "animar", "camera": {"olho", "alvo", "cima"} | None}
         self.cenas: List[dict] = []
+        # comportamento do componente por definição (FORMATO-SKP 7m): {def: {"face_me", "corta_abertura", "sombra_sol"}}
+        self.comportamento: Dict[int, dict] = {}
         self._def, self._inst = Contador(), Contador()
 
     def adicionar_cena(self, nome: str, descricao: str = "", animar: bool = True, camera: Optional[dict] = None) -> int:
@@ -55,6 +57,17 @@ class Cena:
                 raise ValueError("câmera com olho igual ao alvo")
         self.cenas.append({"nome": nome, "descricao": descricao, "animar": bool(animar), "camera": camera})
         return len(self.cenas) - 1
+
+    def definir_comportamento(self, definicao: int, face_me: bool = False, corta_abertura: bool = False,
+                              sombra_sol: bool = False) -> None:
+        """Comportamento do componente: sempre olha para a câmera, corta abertura, sombra segue o sol."""
+        if definicao not in self.defs or definicao == 0:
+            raise ValueError(f"definição {definicao} não existe ou é a raiz")
+        usos = [i for i in self.instancias.values() if i.definicao == definicao]
+        if not usos or any(i.tipo != "componente" for i in usos):
+            raise ValueError("só componentes têm comportamento (grupo não)")
+        self.comportamento[definicao] = {"face_me": bool(face_me), "corta_abertura": bool(corta_abertura),
+                                         "sombra_sol": bool(sombra_sol)}
 
     # -- definição ativa -------------------------------------------------------------
 

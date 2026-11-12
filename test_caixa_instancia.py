@@ -197,5 +197,66 @@ class TestCaixaNoGravador(unittest.TestCase):
                 self.assertAlmostEqual(got, want, places=4)
 
 
+def _registro_1b58(caminho, em_definicao=True):
+    """Bytes do primeiro 0x1b58 dentro de 0x157c (definição) do arquivo."""
+    import struct
+    import zipfile
+    dat = zipfile.ZipFile(caminho).read("model.dat")
+    i = dat.find(struct.pack("<H", 0x157C))
+    j = dat.find(struct.pack("<HI", 0x1B58, 48), i)
+    return dat[j:j + 54]
+
+
+class TestComportamentoDoComponente(unittest.TestCase):
+    def _cena_face_me(self, **comportamento):
+        from core.topology.cena import Cena
+        from core.topology.draw import desenhar
+        c = Cena()
+        desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(30, 20, 0))
+        comp = c.criar_componente(faces=[max(c.topo.faces)], nome="Boneco")
+        c.instancias[comp].transformacao = _giro_z(33, (100, 200, 0))
+        c.definir_comportamento(c.instancias[comp].definicao, **comportamento)
+        return c, comp
+
+    def test_validacoes(self):
+        from core.topology.cena import Cena
+        from core.topology.draw import desenhar
+        c = Cena()
+        desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(30, 20, 0))
+        grupo = c.criar_grupo(faces=[max(c.topo.faces)])
+        with self.assertRaises(ValueError):
+            c.definir_comportamento(c.instancias[grupo].definicao, face_me=True)  # grupo não tem comportamento
+        with self.assertRaises(ValueError):
+            c.definir_comportamento(0, face_me=True)  # raiz
+        with self.assertRaises(ValueError):
+            c.definir_comportamento(99, face_me=True)
+
+    @unittest.skipUnless(DISPONIVEL, "SketchUpAPI.dll / Python 3.12 indisponível")
+    def test_registro_igual_ao_da_sdk_e_caixa_face_me_igual(self):
+        import tempfile
+        from core.skp_topology_writer import gravar_cena
+        casos = {"base": {}, "facame": dict(face_me=True), "corta": dict(corta_abertura=True), "sombra": dict(sombra_sol=True)}
+        gerado = os.path.join(os.path.expanduser("~"), "sketchup_gerados", "comport")
+        with tempfile.TemporaryDirectory() as d:
+            for nome, args in casos.items():
+                with self.subTest(nome):
+                    c, _ = self._cena_face_me(**args)
+                    p = os.path.join(d, nome + ".skp")
+                    gravar_cena(c, p)
+                    sdk = os.path.join(gerado, nome + ".skp")
+                    if not os.path.exists(sdk):
+                        self.skipTest("rode tools/gerar_comportamento_api.py antes")
+                    self.assertEqual(_registro_1b58(p), _registro_1b58(sdk))
+            c, comp = self._cena_face_me(face_me=True)
+            p = os.path.join(d, "fm.skp")
+            gravar_cena(c, p)
+            m = _api.open_model(p)  # a DLL abre e a caixa gravada é a da fórmula face-me
+            m.close()
+            gravada = caixa_da_raiz(p)
+            lo, hi = caixa_instancia(list(c.defs[c.instancias[comp].definicao].verts.values()), c.instancias[comp].transformacao, True)
+            for got, want in zip(gravada, lo + hi):
+                self.assertAlmostEqual(got, want, places=6)
+
+
 if __name__ == "__main__":
     unittest.main()
