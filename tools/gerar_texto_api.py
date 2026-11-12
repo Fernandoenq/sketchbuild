@@ -61,6 +61,7 @@ VARIACOES = {
     "fn_b1": dict(fonte_nova=(b"Arial", 0, 1, 12)),
     "fn_tam": dict(fonte_nova=(b"Arial", 0, 0, 24)),
     "fn_nome": dict(fonte_nova=(b"Courier New", 0, 0, 12)),
+    "fn_cor_antes": dict(fonte_nova=(b"Arial", 1, 1, 18), cor=(10, 20, 30, 255), cor_antes=True),
     "fn_cor": dict(fonte_nova=(b"Arial", 1, 1, 18), cor=(10, 20, 30, 255)),
 }
 
@@ -92,6 +93,9 @@ def gerar(pasta: str, nome: str) -> str:
         d.SUTextSetPoint.argtypes = [_Ref, P(SUPoint3D), _Ref]
         assert d.SUTextSetPoint(r, ctypes.byref(_pt(*v["ponto"])), _Ref()) == 0
         d.SUTextSetFont.argtypes = [_Ref, _Ref]
+        if v.get("cor_antes"):  # cor antes da fonte nova: confere a ordem dos ids
+            d.SUTextSetColor.argtypes = [_Ref, P(_Cor)]
+            assert d.SUTextSetColor(r, ctypes.byref(_Cor(*v["cor"]))) == 0
         fonte = fontes[v["fonte"]]
         if v.get("fonte_nova"):
             fn = v["fonte_nova"]
@@ -105,7 +109,7 @@ def gerar(pasta: str, nome: str) -> str:
         if v["seta"] is not None:
             d.SUTextSetArrowType.argtypes = [_Ref, ctypes.c_int]
             assert d.SUTextSetArrowType(r, v["seta"]) == 0
-        if v["cor"]:
+        if v["cor"] and not v.get("cor_antes"):
             d.SUTextSetColor.argtypes = [_Ref, P(_Cor)]
             assert d.SUTextSetColor(r, ctypes.byref(_Cor(*v["cor"]))) == 0
         d.SUEntitiesAddTexts.argtypes = [type(e), ctypes.c_size_t, P(_Ref)]

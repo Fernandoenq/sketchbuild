@@ -53,6 +53,7 @@ CASOS = {
     "fn_tam": dict(fonte_nova=("Arial", False, False, 24)),
     "fn_nome": dict(fonte_nova=("Courier New", False, False, 12)),
     "fn_cor": dict(fonte_nova=("Arial", True, True, 18), cor=(10, 20, 30, 255)),
+    "fn_cor_antes": dict(fonte_nova=("Arial", True, True, 18), cor=(10, 20, 30, 255)),  # SDK: cor posta antes da fonte, ids iguais
 }
 
 def lista_de_fontes(caminho):
