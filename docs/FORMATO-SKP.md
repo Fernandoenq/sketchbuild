@@ -217,7 +217,7 @@ Núcleo: `Topology.guias`, `Topology.secoes` e `core/topology/guias.py` (`guia_p
 
 Tentativas com falha, para ninguém repetir sem outra fonte:
 - **Textura posicionada (UV):** RESOLVIDO em 12/11/2026, ver a seção 7j. O crash era a ordem dos campos de `SUMaterialInput` (o material vai por último, offset 0x68), descoberta lendo a DLL no REA.
-- **Texto (causa do crash achada em 12/11/2026 pelo REA da DLL):** `SUTextSetPoint(texto, ponto, caminho_de_instância)` tem TRÊS parâmetros; o terceiro é opcional (NULL = ponto no espaço do modelo) e eu passava só dois, deixando lixo no registrador. Com o terceiro NULL a chamada funciona, mas o `.skp` ainda não salva (`SU_ERROR_SERIALIZATION`) com nenhum tipo de linha de chamada (0, 1, 2), com ou sem vetor de linha, nem com posição de tela (`SUTextSetScreenPosition` só aceita o tipo 0; nos tipos 1 e 2 devolve erro 9); falta algum campo obrigatório do texto (fonte/estilo?) que a SDK não preenche sozinha. Próximo passo possível: ler `SUModelSaveToFile`/serialização do texto no REA, ou um `.skp` real com texto. Histórico da tentativa anterior: `SUTextSetPoint` dá violação de acesso (0x6), repetido em 12/11/2026 com `argtypes` explícitos, com os três tipos de linha de chamada (0, 1, 2) e com o texto já adicionado ao modelo antes (mesmo endereço 0x6: ponteiro interno nulo) e um texto sem ponto falha ao salvar (`SU_ERROR_SERIALIZATION`).
+- **Texto:** RESOLVIDO em 12/11/2026 (seção 7l). Dois erros meus: `SUTextSetPoint(texto, ponto, caminho_de_instância)` tem 3 parâmetros (o terceiro é opcional) e o texto novo nasce sem fonte, então o `.skp` não serializava; a fonte vem de `SUModelGetFonts` + `SUTextSetFont`. (Histórico do beco sem saída: a chamada crashava com endereço 0x6, depois salvava com `SU_ERROR_SERIALIZATION`.)
 - **Cota linear:** RESOLVIDO em 12/11/2026 (seção 7k). O crash era a assinatura: `SUDimensionLinearCreate(dim*, ponto_ini*, caminho, ponto_fim*, caminho)`, com os caminhos de instância opcionais.
 - `0x1399` = contêiner de cotas (ver 7k); a dúvida abaixo é histórica. O arquivo real do Fernando que tem `0x1399` (registro desconhecido com materiais referenciados, `0x5bcc`/`0x59d8`/`0x5208`) pode ser texto/cota/imagem; sem rótulo não dá para afirmar.
 Tentativa de gerar esses arquivos no SketchUp 2026 real, sem ninguém na frente (12/11/2026): `SketchUp.exe -RubyStartup script.rb` abre o programa mas o script não roda (nenhum log, nenhum arquivo em 5 minutos); a instância foi fechada. Para usar o SketchUp real é preciso abri-lo à mão e carregar o script pelo Console Ruby, como em `ruby_bridge/f0_receitas.rb`. O script pronto está em `ruby_bridge/gerar_anotacoes_reais.rb` (texto, cota, textura posicionada, instâncias a 0/90/33° e grupo).
@@ -344,3 +344,30 @@ Oráculo: `tools/gerar_cotas_api.py` (uma cota por modelo e uma mudança por var
 ```
 
 `SUDimensionLinearSetPosition(50, 25, 5)` com início em (0,0,0) gravou `0x5bd3 = 50` e `0x5bd2 = 25` (o z some: é a posição projetada no plano da cota). `SetHorizontalAlignment(1)` gravou `0x5bd3 = -1.0` (alinhamento horizontal mora no mesmo campo, como sentinela quando não há posição). **Pendente:** relação do deslocamento com o ponto inicial (testado só com início na origem), alinhamento horizontal como sentinela, cota angular/raio/diâmetro, estilo e fonte da cota, caixa limite com cota (a raiz sem geometria não gravou `0x13a0`), exposição no app.
+
+## 7l. Texto livre `0x1398 > 0x55f0` — decifrado em 12/11/2026
+
+Oráculo: `tools/gerar_texto_api.py` (um texto por modelo e uma mudança por variação). O gravador reproduz o registro **byte a byte** nos 8 casos (`test_skp_texto.py`). Lugar: filho de `0x1388`, depois das guias e antes das cotas (`0x1399`); o id entra na tabela `0x138e`.
+
+```
+0x1398
+  0x55f0
+    0x07d0 (cabeçalho: id do texto, flags 0x06; com cor, ganha 0x07d1 com o id de um material "_auto_")
+    0x55f1 [UTF-8]        o texto
+    0x55ff                vazio
+    0x55f2 [f64]          0,5   (posição de tela? padrão, sem teste)
+    0x55f3 [f64]          0,5
+    0x55f4 > 0x5208       ponto (0x5209 u32 = 1; 0x520a 3 x f64; 0x520b e 0x520c vazios, como na cota)
+    0x55f5 [3 x f64]      vetor da linha de chamada (SUTextSetLeaderVector)
+    0x55f6 [u8]           1    (padrão, sem teste)
+    0x55f7 [3 x f64]      0,0,1 (padrão, sem teste)
+    0x55f8 [u8]           0    (padrão, sem teste)
+    0x55f9 [u8]           id da fonte (2 = primeira fonte do modelo em branco, 3 = segunda)
+    0x55fa [u32]          tipo de seta (SUTextSetArrowType)
+    0x55fb [u32]          1    (padrão, sem teste)
+    0x55fc [u8]           1    (padrão, sem teste)
+    0x55fd [u32]          tipo da linha de chamada (SUTextSetLeaderType: 0, 1, 2)
+    0x55fe [u32]          0    (padrão, sem teste)
+```
+
+**Cor** (`SUTextSetColor`): cria uma entrada de material automático (`_auto_`) na lista de materiais e põe o id dele em `0x07d1` do cabeçalho; ainda não implementada no gravador. **Pendente:** campos "padrão, sem teste" acima (`SUTextSetScreenPosition` só aceita tipo 0, provavelmente mexe em `0x55f2`/`0x55f3`); cor; fonte customizada (`SUModelAddFont`); ordem de ids quando há texto e cota (a SDK numera na ordem de criação; o gravador numera as cotas antes dos textos); caixa limite com texto; exposição no app.

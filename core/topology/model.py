@@ -112,6 +112,8 @@ class Topology:
         self.secoes: Dict[int, Tuple[float, float, float, float]] = {}
         # cotas lineares (FORMATO-SKP.md 7k): id -> dict de core/topology/cotas.py
         self.cotas: Dict[int, dict] = {}
+        # textos livres (FORMATO-SKP.md 7l): id -> dict de core/topology/texto.py
+        self.textos: Dict[int, dict] = {}
         self._gid = Contador()
         # materiais: nome -> {"rgb": (r, g, b), "alpha": 0-255}. Faces apontam por nome (Face.frente / Face.verso).
         self.materiais: Dict[str, dict] = {}
