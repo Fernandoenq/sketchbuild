@@ -211,7 +211,16 @@ Oráculo: `tools/gerar_anotacoes_api.py` (base, ponto de guia, linha infinita, l
 Núcleo: `Topology.guias`, `Topology.secoes` e `core/topology/guias.py` (`guia_ponto`, `guia_linha`, `plano_secao`, `apagar`); rota `POST /draw/guide`. Conferido pela DLL (`SUEntitiesGetNumGuidePoints/GuideLines/SectionPlanes` = 1/2/1).
 **Pendente:** `0x426e` e `0x426b`; cor, texto e visibilidade da guia; plano de seção ativo/inativo e nome (`0x445e`/`0x445f` vazios); **texto e cotas**: `SUTextSetPoint` derruba a DLL (violação de acesso) e um texto sem ponto falha ao salvar (`SU_ERROR_SERIALIZATION`), então o REA de texto/cota precisa de arquivos reais do SketchUp; guias sem caixa limite (a DLL não grava `0x13a0` com guias).
 
-## 7d. Definições, grupos e componentes — decifrado em 11/11/2026
+## 7i. Lacunas que a SketchUpAPI desta instalação não deixa decifrar (12/11/2026)
+
+Tentativas com falha, para ninguém repetir sem outra fonte:
+- **Textura posicionada (UV):** `SUGeometryInputFaceSetFrontMaterial` dá violação de acesso (0x93), com ou sem UV (`tools/gerar_uv_api.py`). Sem oráculo; a textura é gravada com a projeção padrão.
+- **Texto:** `SUTextSetPoint` dá violação de acesso (0x6) e um texto sem ponto falha ao salvar (`SU_ERROR_SERIALIZATION`).
+- **Cota linear:** `SUDimensionLinearCreate` dá violação de acesso (0x5).
+- O arquivo real do Fernando que tem `0x1399` (registro desconhecido com materiais referenciados, `0x5bcc`/`0x59d8`/`0x5208`) pode ser texto/cota/imagem; sem rótulo não dá para afirmar.
+Próxima fonte possível: arquivos reais do SketchUp com texto, cota e textura posicionada, comparados com a mesma cena sem o elemento.
+
+ Definições, grupos e componentes — decifrado em 11/11/2026
 
 Amostras geradas pela SketchUpAPI (grupo, componente, 2 instâncias, rotação, escala, espelho, aninhado) e comparadas com `tools/tlv_diff.py`.
 
