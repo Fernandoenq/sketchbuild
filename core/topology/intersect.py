@@ -4,7 +4,7 @@ viram face (furo na face de fora, r10). Opera na topologia inteira ou só nas fa
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from core.topology.draw import _delta, _estado
-from core.topology.model import Face, Point, Topology, _cross, _dot, _norm, _sub, _unit
+from core.topology.model import Face, Point, Topology, _cross, _dot, _norm, _sub, _unit, _seg_param
 
 
 def _linha_dos_planos(p1: Point, n1: Point, p2: Point, n2: Point) -> Optional[Tuple[Point, Point]]:
@@ -85,7 +85,12 @@ def intersectar(t: Topology, faces: Iterable[int] = None) -> Dict[str, dict]:
     antes_arestas = set(t.edges)
     for a, b in segmentos:
         t.add_edge(a, b)
-    for eid in [e for e in t.edges if e not in antes_arestas]:
+    novas = {e for e in t.edges if e not in antes_arestas}
+    for a, b in segmentos:  # aresta que já existia sobre o corte também divide as faces que ela atravessa
+        for eid, (u, v) in t.edges.items():
+            if eid not in novas and all(_seg_param(t.verts[w], a, b, t.tol) is not None for w in (u, v)):
+                novas.add(eid)
+    for eid in sorted(novas):
         if eid in t.edges:
             t.find_faces(eid)
     return _delta(antes, _estado(t))

@@ -6,7 +6,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core.topology import Topology  # noqa: E402
-from core.topology.solido import booleana, eh_solido, volume  # noqa: E402
+from core.topology.solido import booleana, combinar, eh_solido, volume  # noqa: E402
 
 
 def cubo(t, x, y, z, s):
@@ -96,6 +96,65 @@ class TestSolido(unittest.TestCase):
         r = booleana(t, a, b, "uniao")
         self.assertTrue(all(x.tag in (None, "Caixa") for x in t.faces.values()))
         self.assertTrue(any(t.faces[f].tag == "Caixa" for f in r["faces"]))
+
+
+class TestCombinar(unittest.TestCase):
+    """Sólidos de modelos separados (grupos) que se encostam ou coincidem em faces inteiras."""
+
+    def _par(self, deslocamento):
+        ta, tb = Topology(), Topology()
+        return ta, cubo(ta, 0, 0, 0, 10), tb, cubo(tb, *deslocamento, 10)
+
+    def test_encostados_uniao_vira_caixa_maior(self):
+        ta, fa, tb, fb = self._par((10, 0, 0))
+        w = combinar(ta, fa, tb, fb, "uniao")
+        self.assertEqual(len(w.faces), 10)  # a face comum some dos dois lados
+        self.assertAlmostEqual(volume(w, list(w.faces)), 2000.0)
+
+    def test_encostados_subtracao_devolve_a_e_interseccao_e_vazia(self):
+        ta, fa, tb, fb = self._par((10, 0, 0))
+        w = combinar(ta, fa, tb, fb, "subtracao")
+        self.assertEqual(len(w.faces), 6)
+        self.assertAlmostEqual(volume(w, list(w.faces)), 1000.0)
+        self.assertEqual(combinar(ta, fa, tb, fb, "intersecao").faces, {})
+
+    def test_copia_identica(self):
+        ta, fa, tb, fb = self._par((0, 0, 0))
+        for op, faces in (("uniao", 6), ("intersecao", 6), ("subtracao", 0)):
+            w = combinar(ta, fa, tb, fb, op)
+            self.assertEqual(len(w.faces), faces, op)
+            if faces:
+                self.assertAlmostEqual(volume(w, list(w.faces)), 1000.0, msg=op)
+
+    def test_menor_encostado_numa_parte_da_face(self):
+        # as faces laterais do menor cortam a face de A e deixam pedaços idênticos dos dois lados
+        ta, fa = Topology(), None
+        fa = cubo(ta, 0, 0, 0, 10)
+        tc = Topology()
+        pequeno = cubo(tc, 10, 0, 0, 5)
+        w = combinar(ta, fa, tc, pequeno, "uniao")
+        self.assertAlmostEqual(volume(w, list(w.faces)), 1000 + 125)
+        w = combinar(ta, fa, tc, pequeno, "subtracao")
+        self.assertAlmostEqual(volume(w, list(w.faces)), 1000.0)
+        self.assertEqual(combinar(ta, fa, tc, pequeno, "intersecao").faces, {})
+
+    def test_que_passa_da_borda(self):
+        ta, fa, tb, fb = self._par((10, 5, 0))  # a face de B ultrapassa a de A em y
+        w = combinar(ta, fa, tb, fb, "uniao")
+        self.assertAlmostEqual(volume(w, list(w.faces)), 2000.0)
+
+    def test_dentro_de_um_vazio_tangente(self):
+        ta, fa, tb, fb = self._par((0, 0, 10))  # B sobre o topo de A, mesma pegada
+        w = combinar(ta, fa, tb, fb, "uniao")
+        self.assertEqual(len(w.faces), 10)
+        self.assertAlmostEqual(volume(w, list(w.faces)), 2000.0)
+
+    def test_combinar_valida_os_solidos(self):
+        ta, fa, tb, fb = self._par((10, 0, 0))
+        with self.assertRaises(ValueError):
+            combinar(ta, fa[:5], tb, fb, "uniao")
+        with self.assertRaises(ValueError):
+            combinar(ta, fa, tb, fb, "xor")
 
 
 class TestCortePorPercurso(unittest.TestCase):
