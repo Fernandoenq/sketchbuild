@@ -39,9 +39,17 @@ def _id_bytes(n: int) -> bytes:
     return n.to_bytes(w, "little")
 
 
-def _cabecalho(id_: int, flags: int, material: Optional[int] = None) -> bytes:
+def _cabecalho(id_: int, flags: int, material: Optional[int] = None, tag: Optional[int] = None) -> bytes:
     mat = _rec(0x07D1, _id_bytes(material)) if material is not None else b""
-    return _rec(0x07D0, _rec(0x05DC, _rec(0x05DE, _id_bytes(id_))) + mat + _rec(0x07D3, bytes([flags])))
+    tg = _rec(0x07D2, _id_bytes(tag)) if tag is not None else b""
+    return _rec(0x07D0, _rec(0x05DC, _rec(0x05DE, _id_bytes(id_))) + mat + tg + _rec(0x07D3, bytes([flags])))
+
+
+def registro_tag(ident: int, nome: str, visivel: bool) -> bytes:
+    """Registro 0x3c8c da lista de tags (0x01f8 > 0x3a98 > 0x3a99): id, nome, oculta, material "Layer_<nome>" (id seguinte)."""
+    mat = _rec(0x32C8, _so_id(ident + 1) + _rec(0x32CC, ("Layer_" + nome).encode("utf-8")) + _rec(0x32CA, bytes([1])) + _rec(0x32CB, b""))
+    return _rec(0x3C8C, _so_id(ident) + _rec(0x3C8D, nome.encode("utf-8")) + _rec(0x3C8E, bytes([0 if visivel else 1]))
+                + _rec(0x3C8F, mat) + _rec(0x3C90, struct.pack("<I", 0)))
 
 
 def nome_seguro(nome: str) -> str:
@@ -172,8 +180,8 @@ def _carga_curva(c: dict) -> bytes:
     return struct.pack("<16d", *cx, *n, -_dot(n, cx), *(r * k for k in x), *(r * k for k in y), r, 0.0, varredura)
 
 
-def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[str, int]] = None
-                     ) -> Tuple[Dict[str, bytes], int, Tuple[Optional[tuple], Optional[tuple]]]:
+def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[str, int]] = None,
+                     tid: Optional[Dict[str, int]] = None) -> Tuple[Dict[str, bytes], int, Tuple[Optional[tuple], Optional[tuple]]]:
     """Registros 0x1389 (vértices), 0x138a (arestas), 0x138b (faces), tabela 0x138e e próximo id livre.
 
     `mid_externo`: ids de material já alocados para o modelo todo (cena com várias definições); sem ele, os
@@ -241,7 +249,7 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
         fc = t.faces[f]
         faces += _rec(
             0x0DAC,
-            _cabecalho(fid_[f], FLAGS_FACE, mid[fc.frente] if fc.frente else None)
+            _cabecalho(fid_[f], FLAGS_FACE, mid[fc.frente] if fc.frente else None, tid[fc.tag] if fc.tag else None)
             + (_rec(0x0DAF, _id_bytes(mid[fc.verso])) if fc.verso else b"")
             + _rec(0x0DAD, struct.pack("<4d", *plano)) + _rec(0x0DAE, corpo),
         )
@@ -287,7 +295,7 @@ def _nome_de_grupo(usados: set, base: str = "Group") -> str:
     return nome
 
 
-def _montar_cena(cena, prox: int, mid: Dict[str, int]):
+def _montar_cena(cena, prox: int, mid: Dict[str, int], tid: Optional[Dict[str, int]] = None):
     """Definições (0x157c) e instâncias da cena. Devolve (bytes das definições, instâncias da raiz, prox).
 
     Instâncias da raiz: (componentes 0x138c, grupos 0x138d, ids) para entrar em 0x1388 da raiz."""
@@ -340,7 +348,7 @@ def _montar_cena(cena, prox: int, mid: Dict[str, int]):
     defs = b""
     for d in ordem:
         topo = cena.defs[d]
-        reg, prox, _ = montar_entidades(topo, prox, mid)
+        reg, prox, _ = montar_entidades(topo, prox, mid, tid)
         comp, grup, ids = instancias_de(d)
         grupo = any(x.definicao == d and x.tipo == "grupo" for x in cena.instancias.values())
         corpo = _cabecalho(did[d], FLAGS_ARESTA) if grupo else _cabecalho_attr(did[d], _ATTR_DEFINICAO)
@@ -429,6 +437,27 @@ def _com_materiais(dat: bytes, rec: Tuple[int, int, int], novos: bytes) -> bytes
     return _rec(0x01F7, _rec(0x30D4, _rec(0x30D5, dat[p3 + 6:p3 + 6 + l3] + novos)))
 
 
+def _com_tags(dat: bytes, rec: Tuple[int, int, int], novos: bytes) -> bytes:
+    """Acrescenta registros 0x3c8c em 0x01f8 > 0x3a98 > 0x3a99 (lista de tags do modelo), mantendo os irmãos."""
+    def refazer(r: Tuple[int, int, int], caminho: List[int]) -> bytes:
+        a, l, p = r
+        filhos = b""
+        achou = False
+        for fa, fl, fp in _parse(dat, p + 6, p + 6 + l):
+            if fa == caminho[0] and not achou:
+                achou = True
+                if len(caminho) == 1:
+                    filhos += _rec(fa, dat[fp + 6:fp + 6 + fl] + novos)
+                else:
+                    filhos += refazer((fa, fl, fp), caminho[1:])
+            else:
+                filhos += dat[fp:fp + 6 + fl]
+        if not achou:
+            raise ValueError(f"estrutura inesperada em {a:#06x} (esperado {caminho[0]:#06x})")
+        return _rec(a, filhos)
+    return refazer(rec, [0x3A98, 0x3A99])
+
+
 def _ler_contador(m: bytes, rec_5f1: Tuple[int, int, int]) -> int:
     t, l, p = rec_5f1
     for a, ll, pp in _parse(m, p + 6, p + 6 + l):
@@ -485,6 +514,17 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
         primeiro = _ler_contador(dat, cont)
         mid_global: Optional[Dict[str, int]] = None
         todas = [t] if cena is None else [cena.defs[k] for k in sorted(cena.defs)]
+        tags_def: Dict[str, dict] = {}
+        for tp in todas:
+            tags_def.update(getattr(tp, "tags", {}))
+        tags_usadas = sorted({f.tag for tp in todas for f in tp.faces.values() if f.tag})
+        for n in tags_usadas:
+            if n not in tags_def:
+                raise ValueError(f"tag {n!r} usada numa face mas não definida")
+        tid_global: Dict[str, int] = {}  # cada tag ocupa dois ids: o dela e o do material "Layer_<nome>"
+        for n in tags_usadas:
+            tid_global[n] = primeiro
+            primeiro += 2
         if cena is not None:
             definidos: Dict[str, dict] = {}
             for tp in todas:
@@ -498,12 +538,12 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
             for n in nomes:
                 mid_global[n] = primeiro_geo
                 primeiro_geo += 1
-            reg, prox, caixa = montar_entidades(t, primeiro_geo, mid_global)
+            reg, prox, caixa = montar_entidades(t, primeiro_geo, mid_global, tid_global)
             reg["materiais"] = b"".join(registro_material(mid_global[n], n, definidos[n]) for n in nomes)
-            defs_bytes, (inst_comp, inst_grup, inst_ids), prox = _montar_cena(cena, prox, mid_global)
+            defs_bytes, (inst_comp, inst_grup, inst_ids), prox = _montar_cena(cena, prox, mid_global, tid_global)
             todos_materiais = definidos
         else:
-            reg, prox, caixa = montar_entidades(t, primeiro)
+            reg, prox, caixa = montar_entidades(t, primeiro, tid=tid_global)
             defs_bytes, inst_comp, inst_grup, inst_ids = b"", b"", b"", []
             todos_materiais = getattr(t, "materiais", {})
 
@@ -551,6 +591,8 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
                 externo += contador
             elif a == 0x01F9 and defs_bytes:
                 externo += _com_definicoes(dat, (a, l, p), defs_bytes)
+            elif a == 0x01F8 and tags_usadas:
+                externo += _com_tags(dat, (a, l, p), b"".join(registro_tag(tid_global[n], n, tags_def[n].get("visivel", True)) for n in tags_usadas))
             elif a == 0x01F7 and reg["materiais"]:
                 externo += _com_materiais(dat, (a, l, p), reg["materiais"])
             else:
@@ -558,7 +600,15 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
         novo_dat = _rec(0x01F4, externo)
 
         usados = {n for tp in todas for f in tp.faces.values() for n in (f.frente, f.verso) if n}
-        inseridos = not usados
+        novos_zip = []
+        for nome, m in sorted(todos_materiais.items()):
+            if nome in usados:
+                novos_zip.append((f"materials/{nome_seguro(nome)}/material.xml", xml_material(nome, tuple(m["rgb"]), m.get("alpha", 255), m.get("textura"))))
+                if m.get("textura"):
+                    novos_zip.append((f"materials/{nome_seguro(nome)}/{nome_seguro(m['textura']['nome'])}", m["textura"]["bytes"]))
+        for n in tags_usadas:
+            novos_zip.append((f"materials/Layer_{nome_seguro(n)}/material.xml", xml_material("Layer_" + n, (0, 0, 0))))
+        inseridos = not novos_zip
         zip_tmp = os.path.join(tmp, "novo.zip")
         with zipfile.ZipFile(zip_tmp, "w", allowZip64=True) as zout:
             for info, conteudo in entradas:
@@ -568,14 +618,8 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
                     zout.writestr(zi, novo_dat)
                 else:
                     if not inseridos and info.filename.startswith("materials/"):
-                        for nome, m in sorted(todos_materiais.items()):
-                            if nome in usados:
-                                zout.writestr(f"materials/{nome_seguro(nome)}/material.xml",
-                                              xml_material(nome, tuple(m["rgb"]), m.get("alpha", 255), m.get("textura")),
-                                              compress_type=zipfile.ZIP_DEFLATED)
-                                if m.get("textura"):
-                                    zout.writestr(f"materials/{nome_seguro(nome)}/{nome_seguro(m['textura']['nome'])}",
-                                                  m["textura"]["bytes"], compress_type=zipfile.ZIP_DEFLATED)
+                        for caminho, corpo_zip in novos_zip:
+                            zout.writestr(caminho, corpo_zip, compress_type=zipfile.ZIP_DEFLATED)
                         inseridos = True
                     zout.writestr(info, conteudo, compress_type=zipfile.ZIP_DEFLATED)
         with zipfile.ZipFile(zip_tmp) as zchk:

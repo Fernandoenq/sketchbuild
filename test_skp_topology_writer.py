@@ -202,6 +202,29 @@ class TestGravadorDeTopologia(unittest.TestCase):
         finally:
             m.close()
 
+    def test_tags_lidas_pela_dll(self):
+        """Seção 7f do FORMATO-SKP.md: tag nova na lista 0x3c8c e 0x07d2 na face; a DLL vê a camada e a visibilidade."""
+        import ctypes
+        from core.su_types import SUStringRef
+        from core.topology.tag import atribuir, definir_tag
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        definir_tag(t, "Parede")
+        definir_tag(t, "Oculta", visivel=False)
+        atribuir(t, [next(iter(t.faces))], "Oculta")
+        p = os.path.join(self.tmp.name, "tg.skp")
+        gravar_topologia(t, p)
+        verificar_skp(p)
+        d = _api._dll
+        m = _api.open_model(p)
+        try:
+            n = ctypes.c_size_t()
+            d.SUModelGetNumLayers.argtypes = [type(m._model), ctypes.POINTER(ctypes.c_size_t)]
+            self.assertEqual(d.SUModelGetNumLayers(m._model, ctypes.byref(n)), 0)
+            self.assertEqual(n.value, 2)  # Layer0 + Oculta (Parede não foi usada, então não é gravada)
+        finally:
+            m.close()
+
     def test_material_nao_definido_e_recusado(self):
         t = Topology()
         desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))

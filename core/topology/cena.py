@@ -94,8 +94,9 @@ class Cena:
         for f in sorted(mover_f):
             F = t.faces[f]
             d.faces[next(d._fid)] = Face([mapa[v] for v in F.outer], [[mapa[v] for v in h] for h in F.holes], F.normal,
-                                         F.frente, F.verso)
+                                         F.frente, F.verso, F.tag)
         d.materiais = dict(t.materiais)
+        d.tags = dict(t.tags)
         # sai da definição de origem: faces; arestas que nenhuma face que ficou usa; vértices soltos
         for f in mover_f:
             del t.faces[f]
@@ -142,11 +143,12 @@ class Cena:
         t, d = self.topo, self.defs[i.definicao]
         mapa = {v: t._vertex(_aplica(i.transformacao, p)) for v, p in d.verts.items()}
         t.materiais.update({n: m for n, m in d.materiais.items() if n not in t.materiais})
+        t.tags.update({n: m for n, m in d.tags.items() if n not in t.tags})
         for a, b in d.edges.values():
             if t.edge_between(mapa[a], mapa[b]) is None and mapa[a] != mapa[b]:
                 t.edges[next(t._eid)] = (mapa[a], mapa[b])
         for F in d.faces.values():
-            t.faces[next(t._fid)] = Face([mapa[v] for v in F.outer], [[mapa[v] for v in h] for h in F.holes], F.normal, F.frente, F.verso)
+            t.faces[next(t._fid)] = Face([mapa[v] for v in F.outer], [[mapa[v] for v in h] for h in F.holes], F.normal, F.frente, F.verso, F.tag)
         del self.instancias[instancia]
         if not any(x.definicao == i.definicao for x in self.instancias.values()):
             del self.defs[i.definicao]

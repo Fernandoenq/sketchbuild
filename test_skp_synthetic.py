@@ -151,6 +151,40 @@ class TestGravadorSemDll(unittest.TestCase):
         self.assertEqual(int.from_bytes(d[regs[0][2] + 6:regs[0][2] + 6 + regs[0][1]], "little"), 90)
         self.assertEqual(verificar_skp(self.p("tex.skp"))["refs_quebradas"], 0)
 
+    def test_tags_registro_zip_e_face(self):
+        from core.topology.tag import atribuir, definir_tag
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))
+        desenhar(t, "retangulo", p0=(20, 0, 0), p1=(30, 10, 0))
+        definir_tag(t, "Parede")
+        definir_tag(t, "Oculta", visivel=False)
+        definir_tag(t, "Sobra")  # definida e não usada: não é gravada
+        f1, f2 = sorted(t.faces)
+        atribuir(t, [f1], "Parede")
+        atribuir(t, [f2], "Oculta")
+        gravar_topologia(t, self.p("tg.skp"))
+        with open(self.p("tg.skp"), "rb") as fh:
+            b = fh.read()
+        z = zipfile.ZipFile(io.BytesIO(b[b.find(b"PK"):]))
+        self.assertIn("materials/Layer_Parede/material.xml", z.namelist())
+        self.assertIn("materials/Layer_Oculta/material.xml", z.namelist())
+        self.assertNotIn("materials/Layer_Sobra/material.xml", z.namelist())
+        d = z.read("model.dat")
+        nomes = [bytes(d[a[2] + 6:a[2] + 6 + a[1]]) for a in achar(d, 0x3C8D)]
+        self.assertEqual(nomes, [b"Layer0", b"Oculta", b"Parede"])  # ordem alfabética dos usados
+        ocultas = [d[a[2] + 6] for a in achar(d, 0x3C8E)]
+        self.assertEqual(ocultas, [0, 1, 0])
+        self.assertEqual(len(achar(d, 0x07D2)), 2)  # uma por face em tag
+        v = verificar_skp(self.p("tg.skp"))
+        self.assertEqual((v["faces_ocultas"], v["refs_quebradas"]), (1, 0))  # a tag desligada esconde a face
+
+    def test_tag_nao_definida_e_recusada(self):
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))
+        next(iter(t.faces.values())).tag = "Fantasma"
+        with self.assertRaises(ValueError):
+            gravar_topologia(t, self.p("x.skp"))
+
     def test_hierarquia_definicoes_filhos_antes_dos_pais(self):
         c = Cena()
         desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))

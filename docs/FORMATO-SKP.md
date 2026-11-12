@@ -144,6 +144,28 @@ Oráculo: `tools/gerar_textura_api.py` gera pela SketchUpAPI `cor.skp` (face azu
 - Conferido pela DLL: `SUMaterialGetType` = 1 (texturizado) no arquivo do gravador.
 - **Assunções pendentes:** significado do valor 90 em `0x32cd`; unidade de `xScale`/`yScale` (gravamos o que o usuário passa, o oráculo usou 1,0); textura posicionada (UV por face) não gravada; falta abrir `~/sketchup_gerados/textura/meu.skp` no SketchUp real.
 
+## 7f. Tags (camadas) e cenas — decifrado em 12/11/2026
+
+Oráculo: `tools/gerar_tags_api.py` (base, tag visível, tag desligada, cena), comparado com `tools/tlv_diff.py`.
+
+**Tag** — tudo mais é igual ao modelo vazio; muda só:
+
+```
+0x01f8 > 0x3a98 > 0x3a99 > 0x3c8c (um por tag; a Layer0 já vem, id 4)
+  0x05dc > 0x05de   id da tag (mesmo contador dos demais ids)
+  0x3c8d            nome (utf-8)
+  0x3c8e            1 byte: 1 = tag DESLIGADA (oculta), 0 = visível
+  0x3c8f > 0x32c8   material da tag: id = id da tag + 1, 0x32cc = "Layer_<nome>", 0x32ca = 1, 0x32cb vazio
+  0x3c90            u32 = 0
+```
+
+- ZIP: `materials/Layer_<nome>/material.xml` com cor 0,0,0 e `pbrPromoState="0"` (a Layer0 do modelo vazio é 255,84,84 e promo 2).
+- Entidade em tag: `0x07d2` (id da tag) no cabeçalho `0x07d0`, entre `0x07d1` (material) e `0x07d3` (flags).
+- O gravador (`core/topology/tag.py`, `Face.tag`) grava só as tags usadas por alguma face, em ordem alfabética, cada uma com dois ids.
+- **Assunções pendentes:** só faces carregam tag (aresta e instância não); tag da instância não gravada; visibilidade por cena não gravada.
+
+**Cena** (só lida, ainda não gravada): `0x0207 > 0x6d60 > 0x6d61` (vazio sem cenas) passa a ter um `0x7148` por cena com `0x6f54{0x05dc>0x05de id, 0x6f55 nome, 0x6f56 vazio}`, `0x7149 = 0` (u32), `0x7152 = 1`, `0x7153` vazio, `0x7154` e `0x7155` = -1.0 (double), `0x715c` vazio, `0x7157 = 1`. Uma cena criada só com nome não leva câmera nem estilo; o que cada campo controla (câmera, visibilidade por tag) falta decifrar com cenas reais.
+
 ## 7d. Definições, grupos e componentes — decifrado em 11/11/2026
 
 Amostras geradas pela SketchUpAPI (grupo, componente, 2 instâncias, rotação, escala, espelho, aninhado) e comparadas com `tools/tlv_diff.py`.

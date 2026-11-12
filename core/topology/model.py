@@ -87,6 +87,7 @@ class Face:
     normal: Point = (0.0, 0.0, 1.0)
     frente: Optional[str] = None  # nome do material (chave de Topology.materiais)
     verso: Optional[str] = None
+    tag: Optional[str] = None  # nome da tag (chave de Topology.tags); None = Layer0 (sem tag)
 
     def loops(self) -> List[List[int]]:
         return [self.outer] + self.holes
@@ -105,6 +106,8 @@ class Topology:
         self._cid = Contador()
         # materiais: nome -> {"rgb": (r, g, b), "alpha": 0-255}. Faces apontam por nome (Face.frente / Face.verso).
         self.materiais: Dict[str, dict] = {}
+        # tags (camadas): nome -> {"visivel": bool}. Faces apontam por nome (Face.tag).
+        self.tags: Dict[str, dict] = {}
 
     # -- consulta ---------------------------------------------------------------
 
@@ -228,7 +231,7 @@ class Topology:
             i, j = sorted((lp.index(a), lp.index(b)))
             l1, l2 = lp[i:j + 1], lp[j:] + lp[:i + 1]
             del self.faces[fid]
-            n1, n2 = Face(l1, [], f.normal, f.frente, f.verso), Face(l2, [], f.normal, f.frente, f.verso)
+            n1, n2 = Face(l1, [], f.normal, f.frente, f.verso, f.tag), Face(l2, [], f.normal, f.frente, f.verso, f.tag)
             for h in f.holes:
                 (n1 if self._point_in_loop(self.verts[h[0]], l1, f.normal) else n2).holes.append(h)
             self.faces[next(self._fid)] = n1
@@ -265,7 +268,7 @@ class Topology:
             lb.reverse()
         _, j = direction(lb)
         lb = lb[j + 1:] + lb[:j + 1]  # começa em x, termina em y
-        self.faces[next(self._fid)] = Face(la + lb[1:-1], A.holes + B.holes, A.normal, A.frente, A.verso)
+        self.faces[next(self._fid)] = Face(la + lb[1:-1], A.holes + B.holes, A.normal, A.frente, A.verso, A.tag)
 
     def _heal_vertex(self, vid: int) -> None:
         """Remove vértice de grau 2 colinear, juntando as duas arestas e ajustando os laços."""
