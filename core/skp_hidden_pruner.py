@@ -23,7 +23,7 @@ Modo "total" (além do "completo"): poda também arestas e faces ocultas (bit 0x
     "aresta escondida" da superfície e fica);
   - vértice some se só era usado por aresta que sumiu;
   - curva (0x1396/0x1397) que perdeu qualquer aresta some inteira e as arestas que sobraram perdem o 0x0bbb;
-  - a tabela 0x138e perde os ids removidos; a caixa limite 0x13a0 é recalculada só em contêiner sem instâncias vivas (vértices que sobram); com instâncias vivas fica a antiga, que só pode ser maior.
+  - a tabela 0x138e perde os ids removidos; a caixa limite 0x13a0 é recalculada: vértices que sobram mais a caixa de cada instância viva (core/caixa_instancia.py, inclusive face-me), de baixo para cima nas definições; contêiner que a poda não afetou mantém o 0x13a0 original.
 """
 from __future__ import annotations
 
@@ -35,6 +35,8 @@ import tempfile
 import zipfile
 import zlib
 from typing import Dict, Iterable, List, Optional, Set, Tuple
+
+from core.caixa_instancia import caixa_instancia
 
 Rec = Tuple[int, int, int]  # (tag, tamanho do valor, posição do cabeçalho)
 
@@ -112,10 +114,10 @@ def valor_integridade(crcs: List[int]) -> int:
 
 
 class _Instancia:
-    __slots__ = ("id", "oculta", "tag", "def_ref")
+    __slots__ = ("id", "oculta", "tag", "def_ref", "matriz")
 
-    def __init__(self, id_, oculta, tag, def_ref):
-        self.id, self.oculta, self.tag, self.def_ref = id_, oculta, tag, def_ref
+    def __init__(self, id_, oculta, tag, def_ref, matriz=None):
+        self.id, self.oculta, self.tag, self.def_ref, self.matriz = id_, oculta, tag, def_ref, matriz
 
 
 def _instancia(m, rec: Rec) -> _Instancia:
@@ -124,9 +126,12 @@ def _instancia(m, rec: Rec) -> _Instancia:
     if t == 0x1D4C:
         inner = _parse(m, p + 6, p + 6 + l)[0]
         t, l, p = inner
-    hdr = flags = tag = ref = None
+    hdr = flags = tag = ref = matriz = None
     for a, ll, pp in _parse(m, p + 6, p + 6 + l):
-        if a == 0x07D0:
+        if a == 0x1966 and ll == 104:
+            c = struct.unpack_from("<13d", m, pp + 6)  # colunas gravadas como (m0,m4,m8, m1,m5,m9, m2,m6,m10, tx,ty,tz, 1)
+            matriz = (c[0], c[3], c[6], 0.0, c[1], c[4], c[7], 0.0, c[2], c[5], c[8], 0.0, c[9], c[10], c[11], 1.0)
+        elif a == 0x07D0:
             hdr = (a, ll, pp)
             for a2, l2, p2 in _parse(m, pp + 6, pp + 6 + ll):
                 if a2 == 0x07D3 and l2:
@@ -135,7 +140,7 @@ def _instancia(m, rec: Rec) -> _Instancia:
                     tag = _varint(m[p2 + 6: p2 + 6 + l2])
         elif a == 0x1967:
             ref = _varint(m[pp + 6: pp + 6 + ll])
-    return _Instancia(_eid(m, hdr), bool((flags or 0) & HIDDEN_BIT), tag, ref)
+    return _Instancia(_eid(m, hdr), bool((flags or 0) & HIDDEN_BIT), tag, ref, matriz)
 
 
 def _slice(m, a: int, b: int):
@@ -325,7 +330,7 @@ class _Plano:
         m, e = self.m, self.ents[did]
         mortas = {i.id for _, i in self.insts[did] if self.morta(i)}
         geo = self._geometria_morta(did)
-        if not mortas and geo is None:
+        if not mortas and geo is None and (self.modo != "total" or self._caixa_recalculada(did) is None):
             return _raw(m, e), 0
         self.relatorio_geo = getattr(self, "relatorio_geo", {"arestas": 0, "faces": 0, "vertices": 0, "curvas": 0})
         self.tocadas = getattr(self, "tocadas", set())
@@ -336,8 +341,9 @@ class _Plano:
         filhos: List = []
         sem_instancias = all(i.id in mortas for _, i in self.insts[did])
         for a, l, p in _parse(m, e[2] + 6, e[2] + 6 + e[1]):
-            if a == 0x13A0 and sem_instancias:
-                caixa = self._caixa_dos_vertices(e, geo["vertices"] if geo else set())
+            if a == 0x13A0:
+                caixa = (self._caixa_dos_vertices(e, geo["vertices"] if geo else set()) if sem_instancias
+                         else self._caixa_recalculada(did))
                 if caixa is not None:
                     filhos += _rec(a, [struct.pack("<6d", *caixa)])
                     continue
@@ -367,6 +373,62 @@ class _Plano:
             else:
                 filhos += _raw(m, (a, l, p))
         return _rec(0x1388, filhos), len(mortas)
+
+    def _face_me(self, did: Optional[int]) -> bool:
+        """Componente que sempre olha para a câmera: 0x157c > 0x1b58 > 0x1b5d (FORMATO-SKP 7m)."""
+        if did is None or did not in self.defs:
+            return False
+        m, r = self.m, self.defs[did]
+        for a, l, p in _parse(m, r[2] + 6, r[2] + 6 + r[1]):
+            if a == 0x1B58:
+                for t, ll, q in _parse(m, p + 6, p + 6 + l):
+                    if t == 0x1B5D and ll:
+                        return bool(m[q + 6])
+        return False
+
+    def _caixa_original(self, did: Optional[int]) -> Optional[Tuple[float, ...]]:
+        m, e = self.m, self.ents[did]
+        for a, l, p in _parse(m, e[2] + 6, e[2] + 6 + e[1]):
+            if a == 0x13A0 and l == 48:
+                return struct.unpack_from("<6d", m, p + 6)
+        return None
+
+    def _caixa_recalculada(self, did: Optional[int]) -> Optional[Tuple[float, ...]]:
+        """Caixa do contêiner com instâncias vivas: vértices que sobram + caixa de cada instância viva (FORMATO-SKP 7).
+
+        Só devolve algo quando a poda mudou o contêiner (ou alguma definição filha); senão None e fica o 0x13a0 original."""
+        memo = self.__dict__.setdefault("_memo_caixa", {})
+        if did not in memo:
+            memo[did] = (None, False)  # corta ciclos
+            memo[did] = self._calcula_caixa(did)
+        caixa, afetada = memo[did]
+        return caixa if afetada else None
+
+    def _calcula_caixa(self, did):
+        geo = self._geometria_morta(did)
+        mortos = geo["vertices"] if geo else set()
+        mortas = {i.id for _, i in self.insts[did] if self.morta(i)}
+        afetada = bool(mortas) or bool(mortos)
+        pts = []
+        caixa_v = self._caixa_dos_vertices(self.ents[did], mortos)
+        if caixa_v is not None:
+            pts += [caixa_v[:3], caixa_v[3:]]
+        for _, i in self.insts[did]:
+            if self.morta(i) or i.def_ref not in self.defs or i.matriz is None:
+                continue
+            filha, af = self.__dict__["_memo_caixa"].get(i.def_ref, (None, False))
+            if i.def_ref not in self.__dict__["_memo_caixa"]:
+                self._caixa_recalculada(i.def_ref)
+                filha, af = self.__dict__["_memo_caixa"][i.def_ref]
+            afetada = afetada or af
+            filha = filha if af else self._caixa_original(i.def_ref)
+            if filha is None:
+                return (None, False)
+            lo, hi = caixa_instancia([filha[:3], filha[3:]], i.matriz, self._face_me(i.def_ref))
+            pts += [lo, hi]
+        if not pts:
+            return (None, False)
+        return (tuple(min(p[k] for p in pts) for k in range(3)) + tuple(max(p[k] for p in pts) for k in range(3)), afetada)
 
     def _caixa_dos_vertices(self, e: Rec, mortos: Set[int]) -> Optional[Tuple[float, ...]]:
         """Caixa limite (mín x,y,z, máx x,y,z) dos vértices que sobram. Em contêiner sem instâncias o SketchUp guarda
