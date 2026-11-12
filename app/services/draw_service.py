@@ -57,6 +57,12 @@ class DrawService:
     async def guia(self, **params) -> dict:
         return await run_in_threadpool(lambda: self._repository.guia(**params))
 
+    async def nota(self, **params) -> dict:
+        return await run_in_threadpool(lambda: self._repository.nota(**params))
+
+    async def posicionar(self, **params) -> dict:
+        return await run_in_threadpool(lambda: self._repository.posicionar(**params))
+
     async def suavizar(self, **params) -> dict:
         return await run_in_threadpool(lambda: self._repository.suavizar(**params))
 

@@ -2571,6 +2571,16 @@ export function drawScene(corpo) {
   return postJson("/api/v1/draw/scene", "POST", corpo);
 }
 
+// texto livre ou cota linear: { tipo: "texto"|"cota"|"apagar", texto, p, fim, normal, eixo_x, desloc, seta, tipo_chamada, vetor, id }
+export function drawNote(corpo) {
+  return postJson("/api/v1/draw/note", "POST", corpo);
+}
+
+// posiciona a textura da frente: { faces, tamanho (pol por repetição), u0, v0, graus, limpar }; devolve o estado completo
+export function drawUv(corpo) {
+  return postJson("/api/v1/draw/uv", "POST", corpo);
+}
+
 export function drawUndo() {
   return postJson("/api/v1/draw/undo", "POST", {});
 }

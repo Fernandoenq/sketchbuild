@@ -48,6 +48,9 @@ class DrawStateResponse(BaseModel):
     suaves: dict[str, int] = Field(default_factory=dict)  # aresta -> bits (0x08 suave, 0x10 lisa)
     guias: dict[str, dict[str, Any]] = Field(default_factory=dict)
     secoes: dict[str, list[float]] = Field(default_factory=dict)
+    textos: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    cotas: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    uv: dict[str, list[float]] = Field(default_factory=dict)  # face -> matriz de posicionamento da textura
     cenas: list[dict[str, Any]] = Field(default_factory=list)
     counts: dict[str, int]
     historico: dict[str, bool] = Field(default_factory=dict)
@@ -152,6 +155,29 @@ class GuiaRequest(BaseModel):
     alvo: tuple[float, float, float] | None = None  # linha finita ate este ponto
     direcao: tuple[float, float, float] | None = None  # linha infinita nesta direcao; plano de secao: a normal
     id: int | None = None  # tipo=apagar
+
+
+class NotaRequest(BaseModel):
+    tipo: str = Field(pattern="^(texto|cota|apagar)$")
+    texto: str | None = None  # texto livre (obrigatorio); na cota vazio = o SketchUp mostra a medida
+    p: tuple[float, float, float] | None = None  # texto: ponto; cota: ponto inicial
+    fim: tuple[float, float, float] | None = None  # cota: ponto final
+    normal: tuple[float, float, float] | None = None  # cota: normal do plano (padrao: escolhida pela direcao)
+    eixo_x: tuple[float, float, float] | None = None  # cota: eixo X do plano (padrao: direcao da cota)
+    desloc: tuple[float, float] = (0.0, 0.0)  # cota: deslocamento do texto no plano
+    seta: int = Field(default=0, ge=0)
+    tipo_chamada: int = Field(default=0, ge=0, le=2)  # texto: tipo da linha de chamada
+    vetor: tuple[float, float, float] | None = None  # texto: vetor da linha de chamada
+    id: int | None = None  # tipo=apagar (texto ou cota)
+
+
+class PosicionarRequest(BaseModel):
+    faces: list[int] = Field(min_length=1)
+    tamanho: float | None = Field(default=None, gt=0)  # polegadas por repeticao da textura; None com `limpar`
+    u0: float = 0.0
+    v0: float = 0.0
+    graus: float = 0.0
+    limpar: bool = False
 
 
 class CenaRequest(BaseModel):

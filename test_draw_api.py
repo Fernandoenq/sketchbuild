@@ -5,7 +5,7 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, GuiaRequest
+from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, GuiaRequest, NotaRequest, PosicionarRequest
 
 
 def _tem_pillow():
@@ -257,6 +257,44 @@ class TestDrawController(unittest.TestCase):
         self.assertEqual(len(e.guias), 1)
         e = run(self.c.desfazer())
         self.assertEqual(len(e.guias), 2)
+
+    def test_texto_e_cota_na_api(self):
+        e = run(self.c.nota(NotaRequest(tipo="texto", texto="Olá", p=(1, 2, 3))))
+        self.assertEqual([x["texto"] for x in e.textos.values()], ["Olá"])
+        e = run(self.c.nota(NotaRequest(tipo="cota", p=(0, 0, 0), fim=(100, 0, 0))))
+        c = next(iter(e.cotas.values()))
+        self.assertEqual((c["normal"], c["eixo_x"]), ([0.0, 0.0, 1.0], [1.0, 0.0, 0.0]))
+        e = run(self.c.nota(NotaRequest(tipo="cota", p=(0, 0, 0), fim=(0, 0, 80))))  # aresta vertical: normal em y
+        self.assertIn([0.0, 1.0, 0.0], [x["normal"] for x in e.cotas.values()])
+        with self.assertRaises(HTTPException):
+            run(self.c.nota(NotaRequest(tipo="texto", p=(0, 0, 0))))  # sem texto
+        with self.assertRaises(HTTPException):
+            run(self.c.nota(NotaRequest(tipo="cota", p=(0, 0, 0))))  # sem fim
+        with self.assertRaises(HTTPException):
+            run(self.c.nota(NotaRequest(tipo="apagar", id=999)))
+        tid = int(next(iter(e.textos)))
+        e = run(self.c.nota(NotaRequest(tipo="apagar", id=tid)))
+        self.assertEqual((len(e.textos), len(e.cotas)), (0, 2))
+        cid = int(next(iter(e.cotas)))
+        e = run(self.c.nota(NotaRequest(tipo="apagar", id=cid)))
+        self.assertEqual(len(e.cotas), 1)
+        e = run(self.c.desfazer())
+        self.assertEqual(len(e.cotas), 2)
+
+    def test_posicionar_textura_na_api(self):
+        j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
+        fid = int(next(iter(j.faces.added)))
+        with self.assertRaises(HTTPException):  # sem textura na frente
+            run(self.c.posicionar(PosicionarRequest(faces=[fid], tamanho=50)))
+        run(self.c.pintar(PaintRequest(faces=[fid], material="Tijolo", textura_base64=self._png(), textura_nome="t.png")))
+        e = run(self.c.posicionar(PosicionarRequest(faces=[fid], tamanho=50, u0=0.25, v0=0.5)))
+        self.assertEqual(e.uv[str(fid)], [50.0, 0.0, 0.0, 50.0, -12.5, -25.0])
+        with self.assertRaises(HTTPException):
+            run(self.c.posicionar(PosicionarRequest(faces=[fid])))  # sem tamanho nem limpar
+        e = run(self.c.posicionar(PosicionarRequest(faces=[fid], limpar=True)))
+        self.assertEqual(e.uv, {})
+        e = run(self.c.desfazer())
+        self.assertIn(str(fid), e.uv)
 
 
 if __name__ == "__main__":

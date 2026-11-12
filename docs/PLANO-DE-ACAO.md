@@ -373,3 +373,5 @@ servidor 3D (`3d.parkelo.com.br`): login e 2FA já planejados; histórico versio
 - **Front (12/11/2026):** tag desligada some da vista 3D (`tagOculta` em `modelagem.js`). Assunção pendente: paredes e arestas novas do Push/Pull não herdam tag nem material da face de origem (sem oráculo na SketchUpAPI).
 
 - **Push/Pull (12/11/2026):** paredes novas herdam o material da frente da face puxada (assunção, sem oráculo; verso igual à frente); tag não é herdada (não há tag ativa no núcleo).
+
+- **Texto, cota e UV no app (12/11/2026):** rotas `POST /api/v1/draw/note` (texto livre, cota linear, apagar) e `POST /api/v1/draw/uv` (posicionar ou limpar a textura da frente); o estado devolve `textos`, `cotas` e `uv`. Front: botões Cotar, Texto e Posicionar textura (um campo de texto serve ao rótulo e ao tamanho do ladrilho em polegadas); cotas aparecem em azul e a marca do texto é uma cruz. Normal da cota escolhida pelo backend (z do mundo menos a parte paralela à direção; aresta vertical usa y). Só `node --check` no front, sem navegador.

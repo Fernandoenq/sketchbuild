@@ -1,6 +1,7 @@
 """Sessão de desenho em memória (F2): um núcleo de topologia por execução do backend."""
 from __future__ import annotations
 
+import math
 import base64
 import binascii
 import io
@@ -14,9 +15,10 @@ from core.topology.intersect import intersectar
 from core.topology.sweep import siga_me
 from core.topology.draw import desenhar
 from core.topology.edit import escalar, mover, offset, rotacionar, vertices_da_selecao
-from core.topology.material import definir_material, pintar
+from core.topology.material import definir_material, matriz_uv, pintar, posicionar_textura
 from core.topology.pushpull import empurrar
-from core.topology import guias, soften
+from core.topology import cotas, guias, soften
+from core.topology import texto as _texto
 from core.topology.tag import atribuir, atribuir_arestas, definir_tag
 
 MAX_TEXTURA = 8 * 1024 * 1024  # bytes da imagem
@@ -53,6 +55,18 @@ def _textura(b64: str, nome: str | None, escala, rgb) -> tuple[dict, tuple[int, 
 
 _CENA = Cena()
 _HIST = Historico(_CENA)
+
+
+def _normal_da_cota(d) -> tuple:
+    """Normal do plano da cota: o `z` do mundo menos a parte paralela à direção (aresta vertical: usa o `y`)."""
+    n = math.sqrt(sum(c * c for c in d))
+    u = tuple(c / n for c in d)
+    for base in ((0.0, 0.0, 1.0), (0.0, 1.0, 0.0)):
+        k = sum(base[i] * u[i] for i in range(3))
+        v = tuple(base[i] - k * u[i] for i in range(3))
+        if math.sqrt(sum(c * c for c in v)) > 1e-6:
+            return v
+    raise ValueError("cota: direção inválida")
 
 
 def _topo() -> Topology:
@@ -240,6 +254,42 @@ class DrawRepository:
         _HIST.executar("guia", {"tipo": tipo}, acao)
         return self.estado()
 
+    def nota(self, tipo, texto=None, p=None, fim=None, normal=None, eixo_x=None, desloc=(0.0, 0.0), seta=0,
+             tipo_chamada=0, vetor=None, id=None) -> dict:
+        def acao():
+            if tipo == "apagar":
+                if id is None:
+                    raise ValueError("nota: informe o id a apagar")
+                if id in _topo().textos:
+                    _texto.apagar_texto(_topo(), id)
+                else:
+                    cotas.apagar_cota(_topo(), id)
+            elif tipo == "texto":
+                if p is None or not texto:
+                    raise ValueError("texto: informe o texto e o ponto p")
+                _texto.texto_livre(_topo(), texto, p, tipo_chamada, vetor, seta)
+            else:
+                if p is None or fim is None:
+                    raise ValueError("cota: informe o ponto inicial p e o ponto final fim")
+                direcao = tuple(fim[i] - p[i] for i in range(3))
+                n = normal or _normal_da_cota(direcao)
+                cotas.cota_linear(_topo(), p, fim, n, eixo_x or direcao, texto or "", seta, desloc)
+            return {}
+
+        _HIST.executar("nota", {"tipo": tipo}, acao)
+        return self.estado()
+
+    def posicionar(self, faces, tamanho=None, u0=0.0, v0=0.0, graus=0.0, limpar=False) -> dict:
+        if not limpar and tamanho is None:
+            raise ValueError("posicionar: informe o tamanho (ou limpar)")
+
+        def acao():
+            posicionar_textura(_topo(), faces, None if limpar else matriz_uv(tamanho, u0, v0, graus))
+            return {}
+
+        _HIST.executar("posicionar", {"faces": list(faces)}, acao)
+        return self.estado()
+
     def suavizar(self, arestas=(), angulo=None, suave=True, lisa=True, limpar=False) -> dict:
         if not arestas and angulo is None:
             raise ValueError("suavizar: informe arestas ou angulo")
@@ -294,6 +344,9 @@ class DrawRepository:
             "suaves": {str(e): b for e, b in _topo().eflags.items()},
             "guias": {str(i): {k: (list(v) if isinstance(v, tuple) else v) for k, v in g.items()} for i, g in _topo().guias.items()},
             "secoes": {str(i): list(pl) for i, pl in _topo().secoes.items()},
+            "textos": {str(i): {k: (list(v) if isinstance(v, tuple) else v) for k, v in x.items()} for i, x in _topo().textos.items()},
+            "cotas": {str(i): {k: (list(v) if isinstance(v, tuple) else v) for k, v in x.items()} for i, x in _topo().cotas.items()},
+            "uv": {str(i): list(f.uv) for i, f in _topo().faces.items() if f.uv},
             "cenas": [{"nome": c["nome"], "descricao": c["descricao"], "animar": c["animar"], "camera": c["camera"] is not None}
                       for c in _CENA.cenas],
             "counts": _topo().counts(),

@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawUndo, drawRedo, drawSave } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawNote, drawUv, drawUndo, drawRedo, drawSave } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -167,6 +167,12 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     tagNome.title = "Nome da tag (camada)";
     tagNome.style.cssText = "width:70px;margin-left:6px";
     g.appendChild(tagNome);
+    const nota = document.createElement("input");
+    nota.type = "text";
+    nota.placeholder = "texto / pol";
+    nota.title = "Texto da cota ou do texto livre; em Posicionar textura, o tamanho do ladrilho em polegadas";
+    nota.style.cssText = "width:90px;margin-left:6px";
+    g.appendChild(nota);
     for (const [rotulo, titulo, fn] of [
       ["Pôr na tag", "Cria a tag (se não existe) e põe a seleção nela", () => marcarSelecao(tagNome.value, null)],
       ["Tag on/off", "Liga ou desliga a visibilidade da tag (gravada no .skp)", () => alternarTag(tagNome.value)],
@@ -175,6 +181,9 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       ["Endurecer", "Tira a suavização das arestas selecionadas", () => suavizarSelecao(true)],
       ["Suavizar 20°", "Suaviza as arestas do desenho entre faces com até 20° de diferença", () => suavizarAngulo(20)],
       ["Nova cena", "Acrescenta uma cena com o nome do campo ao lado (sem câmera)", () => novaCena(tagNome.value)],
+      ["Cotar", "Cota linear na aresta selecionada (o texto do campo ao lado vira o rótulo; vazio = a medida)", () => cotarSelecao(nota.value)],
+      ["Texto", "Põe o texto do campo ao lado no meio da aresta ou no primeiro vértice da face selecionada", () => textoNaSelecao(nota.value)],
+      ["Posicionar textura", "Ajusta a textura das faces selecionadas para repetir a cada N polegadas (campo ao lado)", () => posicionarTextura(nota.value)],
     ]) {
       const b = document.createElement("button");
       b.className = "toolbar-btn";
@@ -203,6 +212,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       estado.vertices.clear();
       estado.edges.clear();
       estado.faces.clear();
+      Object.assign(tagInfo, { tags: {}, faces: {}, arestas: {}, cotas: {}, textos: {} });
       redesenhar();
       setStatus("Desenho de modelagem zerado.");
     });
@@ -285,6 +295,61 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     }
   }
 
+  // texto livre, cota e posição da textura: o backend devolve o estado completo (tags, anotações e uv)
+  function pontoMedio(id) {
+    const e = estado.edges.get(id);
+    if (!e) return null;
+    const a = estado.vertices.get(String(e[0]));
+    const b = estado.vertices.get(String(e[1]));
+    return a && b ? [a, b] : null;
+  }
+
+  async function cotarSelecao(rotulo) {
+    if (sel.edges.size !== 1) return setStatus("Cotar: selecione UMA aresta (ferramenta Selecionar).", true);
+    const ab = pontoMedio([...sel.edges][0]);
+    if (!ab) return setStatus("Cotar: aresta não encontrada.", true);
+    try {
+      const s = await drawNote({ tipo: "cota", p: ab[0], fim: ab[1], texto: rotulo?.trim() || null });
+      substituirEstado(s);
+      setStatus("Cota criada. Cotas no desenho: " + Object.keys(s.cotas ?? {}).length + ".");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  async function textoNaSelecao(texto) {
+    if (!texto?.trim()) return setStatus("Texto: digite o texto no campo.", true);
+    let ponto = null;
+    if (sel.edges.size) {
+      const ab = pontoMedio([...sel.edges][0]);
+      if (ab) ponto = ab[0].map((v, i) => (v + ab[1][i]) / 2);
+    } else if (sel.faces.size) {
+      const f = estado.faces.get([...sel.faces][0]);
+      ponto = f && estado.vertices.get(String(f.outer[0]));
+    }
+    if (!ponto) return setStatus("Texto: selecione uma aresta ou uma face.", true);
+    try {
+      const s = await drawNote({ tipo: "texto", texto: texto.trim(), p: ponto });
+      substituirEstado(s);
+      setStatus("Texto criado. Textos no desenho: " + Object.keys(s.textos ?? {}).length + ".");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  async function posicionarTextura(tamanho) {
+    if (!sel.faces.size) return setStatus("Posicionar textura: selecione faces com textura.", true);
+    const pol = Number(String(tamanho).replace(",", "."));
+    if (!Number.isFinite(pol) || pol <= 0) return setStatus("Posicionar textura: digite o tamanho do ladrilho em polegadas.", true);
+    try {
+      const s = await drawUv({ faces: [...sel.faces].map(Number), tamanho: pol });
+      substituirEstado(s);
+      setStatus("Textura posicionada em " + Object.keys(s.uv ?? {}).length + " face(s).");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
   async function suavizarSelecao(limpar) {
     if (!sel.edges.size) return setStatus("Suavizar: selecione arestas antes.", true);
     try {
@@ -327,6 +392,8 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     tagInfo.tags = s.tags ?? {};
     tagInfo.faces = s.tag_faces ?? {};
     tagInfo.arestas = s.tag_arestas ?? {};
+    tagInfo.cotas = s.cotas ?? {};
+    tagInfo.textos = s.textos ?? {};
     for (const [fid, [frente]] of Object.entries(s.pintura ?? {})) {
       const rgb = frente && s.materiais?.[frente]?.rgb;
       if (rgb) corDaFace.set(fid, (rgb[0] << 16) | (rgb[1] << 8) | rgb[2]);
@@ -507,7 +574,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   }
 
   // tags do desenho: uma tag desligada some da vista (faces e arestas dela); vem de /draw/state e /draw/tag
-  const tagInfo = { tags: {}, faces: {}, arestas: {} };
+  const tagInfo = { tags: {}, faces: {}, arestas: {}, cotas: {}, textos: {} };
   const tagOculta = (nome) => !!nome && tagInfo.tags[nome]?.visivel === false;
   const corDaFace = new Map(); // id da face -> cor RGB da frente (vem de /draw/state e /draw/paint)
 
@@ -541,6 +608,18 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       h.renderOrder = 7;
       h.frustumCulled = false;
       grupo.add(h);
+    }
+    const notas = []; // cotas (azul) e marca dos textos (laranja): linha entre os pontos / cruz de 4 pol
+    for (const c of Object.values(tagInfo.cotas)) notas.push(fromSku(c.inicio), fromSku(c.fim));
+    for (const x of Object.values(tagInfo.textos)) {
+      const [px, py, pz] = x.ponto;
+      for (const [dx, dy] of [[-4, 0], [4, 0], [0, -4], [0, 4]]) notas.push(fromSku([px, py, pz]), fromSku([px + dx, py + dy, pz]));
+    }
+    if (notas.length) {
+      const l = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(notas), new THREE.LineBasicMaterial({ color: 0x1b6fd1 }));
+      l.renderOrder = 6;
+      l.frustumCulled = false;
+      grupo.add(l);
     }
     for (const [id, f] of estado.faces) {
       if (tagOculta(tagInfo.faces[id])) continue;
