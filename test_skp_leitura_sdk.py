@@ -150,6 +150,39 @@ class TestLeituraPelaSdk(unittest.TestCase):
                 finally:
                     m.close()
 
+    def test_comportamento_do_componente(self):
+        from core.skp_topology_writer import gravar_cena
+        from core.su_types import SUModelRef
+        from core.topology.cena import Cena
+        from core.topology.draw import desenhar
+        casos = (dict(face_me=True), dict(corta_abertura=True), dict(sombra_sol=True), dict(snap=3), dict(face_me=True, snap=1))
+        for args in casos:
+            with self.subTest(args):
+                c = Cena()
+                desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(30, 20, 0))
+                i = c.criar_componente(faces=[max(c.topo.faces)], nome="Boneco")
+                c.definir_comportamento(c.instancias[i].definicao, **args)
+                with tempfile.TemporaryDirectory() as tmp:
+                    p = os.path.join(tmp, "c.skp")
+                    gravar_cena(c, p)
+                    d, m = _api._dll, _api.open_model(p)
+                    try:
+                        n = ctypes.c_size_t()
+                        d.SUModelGetNumComponentDefinitions.argtypes = [SUModelRef, P(ctypes.c_size_t)]
+                        self.assertEqual(d.SUModelGetNumComponentDefinitions(m._model, ctypes.byref(n)), 0)
+                        arr, got = (_Ref * max(n.value, 1))(), ctypes.c_size_t()
+                        d.SUModelGetComponentDefinitions.argtypes = [SUModelRef, ctypes.c_size_t, P(_Ref), P(ctypes.c_size_t)]
+                        self.assertEqual(d.SUModelGetComponentDefinitions(m._model, n.value, arr, ctypes.byref(got)), 0)
+                        raw = (ctypes.c_ubyte * 16)()
+                        d.SUComponentDefinitionGetBehavior.argtypes = [_Ref, ctypes.c_void_p]
+                        self.assertEqual(d.SUComponentDefinitionGetBehavior(arr[0], raw), 0)
+                        # estrutura SUComponentBehavior: byte 0 snap, 4 corta abertura, 5 face-me, 6 sombra segue o sol
+                        self.assertEqual((raw[0], bool(raw[4]), bool(raw[5]), bool(raw[6])),
+                                         (args.get("snap", 0), args.get("corta_abertura", False),
+                                          args.get("face_me", False), args.get("sombra_sol", False)))
+                    finally:
+                        m.close()
+
 
 if __name__ == "__main__":
     unittest.main()
