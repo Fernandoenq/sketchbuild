@@ -187,6 +187,30 @@ Oráculo: `tools/gerar_flags_api.py` muda uma propriedade por vez pela SketchUpA
 
 O padrão da SDK é 0x06 (projeta e recebe sombra). O gravador usa 0x06 nas arestas (`| eflags`) e 0x46 nas faces. Núcleo: `Topology.eflags` (herdada na divisão em T, na limpeza de vértice e ao agrupar/explodir) e `core/topology/soften.py` (`definir`, `limpar`, `por_angulo`). Conferido pela DLL (`SUEdgeGetSoft`). **Pendente:** bit 0x40; sombra de face/aresta não tem controle no núcleo; efeito de suave+lisa na malha (normais) não implementado no leitor.
 
+## 7h. Guias e plano de seção — decifrado em 12/11/2026
+
+Oráculo: `tools/gerar_anotacoes_api.py` (base, ponto de guia, linha infinita, linha finita, plano de seção). Cada um entra em `0x1388` **depois das faces/instâncias e antes de `0x139e`**, e o id também entra na tabela `0x138e` (diferente dos vértices):
+
+```
+0x1392 > 0x426c   ponto de guia
+  0x4268 > 0x07d0   cabeçalho (id, flags 0x06)
+  0x426d            posição (3 doubles)
+  0x426e            3 doubles = 0 (função desconhecida)
+  0x426f            1 byte = 0
+0x1391 > 0x4269   linha de guia
+  0x4268 > 0x07d0   cabeçalho
+  0x426a            8 doubles: início (3), direção unitária (3), t mín, t máx
+                    infinita: -1e30 e 1e30; finita: 0 e o comprimento
+  0x426b            2 bytes = ff ff (função desconhecida)
+0x1393 > 0x445c   plano de seção
+  0x07d0            cabeçalho direto (sem 0x4268)
+  0x445d            plano A, B, C, D de A x + B y + C z + D = 0 (4 doubles)
+  0x445e, 0x445f    vazios
+```
+
+Núcleo: `Topology.guias`, `Topology.secoes` e `core/topology/guias.py` (`guia_ponto`, `guia_linha`, `plano_secao`, `apagar`); rota `POST /draw/guide`. Conferido pela DLL (`SUEntitiesGetNumGuidePoints/GuideLines/SectionPlanes` = 1/2/1).
+**Pendente:** `0x426e` e `0x426b`; cor, texto e visibilidade da guia; plano de seção ativo/inativo e nome (`0x445e`/`0x445f` vazios); **texto e cotas**: `SUTextSetPoint` derruba a DLL (violação de acesso) e um texto sem ponto falha ao salvar (`SU_ERROR_SERIALIZATION`), então o REA de texto/cota precisa de arquivos reais do SketchUp; guias sem caixa limite (a DLL não grava `0x13a0` com guias).
+
 ## 7d. Definições, grupos e componentes — decifrado em 11/11/2026
 
 Amostras geradas pela SketchUpAPI (grupo, componente, 2 instâncias, rotação, escala, espelho, aninhado) e comparadas com `tools/tlv_diff.py`.

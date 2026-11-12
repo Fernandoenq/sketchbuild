@@ -394,6 +394,35 @@ class TestGravadorDeTopologia(unittest.TestCase):
         finally:
             m.close()
 
+    def test_guias_e_plano_de_secao_lidos_pela_dll(self):
+        """Seção 7h: a SketchUpAPI enumera os pontos e linhas de guia e o plano de seção gravados."""
+        import ctypes
+        from core.su_types import SUEntitiesRef
+        from core.topology import guias
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        guias.guia_ponto(t, (10, 20, 30))
+        guias.guia_linha(t, (10, 20, 0), direcao=(0, 0, 1))
+        guias.guia_linha(t, (0, 0, 0), alvo=(50, 50, 0))
+        guias.plano_secao(t, (0, 0, 1), (0, 0, 50))
+        p = os.path.join(self.tmp.name, "guias.skp")
+        gravar_topologia(t, p)
+        verificar_skp(p)
+        d = _api._dll
+        m = _api.open_model(p)
+        try:
+            e = m.get_entities()
+            contagens = []
+            for nome in ("SUEntitiesGetNumGuidePoints", "SUEntitiesGetNumGuideLines", "SUEntitiesGetNumSectionPlanes"):
+                n = ctypes.c_size_t()
+                f = getattr(d, nome)
+                f.argtypes = [SUEntitiesRef, ctypes.POINTER(ctypes.c_size_t)]
+                self.assertEqual(f(e, ctypes.byref(n)), 0)
+                contagens.append(n.value)
+            self.assertEqual(contagens, [1, 2, 1])
+        finally:
+            m.close()
+
     def test_material_nao_definido_e_recusado(self):
         t = Topology()
         desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))

@@ -104,6 +104,11 @@ class Topology:
         # Só metadado para gravar o registro 0x1397; se uma aresta membro sumir ou for dividida, a curva é ignorada.
         self.curvas: Dict[int, dict] = {}
         self._cid = Contador()
+        # guias (ver FORMATO-SKP.md 7h): id -> {"tipo": "ponto", "p"} ou {"tipo": "linha", "p", "d", "t0", "t1"};
+        # planos de seção: id -> (A, B, C, D) do plano A x + B y + C z + D = 0
+        self.guias: Dict[int, dict] = {}
+        self.secoes: Dict[int, Tuple[float, float, float, float]] = {}
+        self._gid = Contador()
         # materiais: nome -> {"rgb": (r, g, b), "alpha": 0-255}. Faces apontam por nome (Face.frente / Face.verso).
         self.materiais: Dict[str, dict] = {}
         # tags (camadas): nome -> {"visivel": bool}. Faces apontam por nome (Face.tag).

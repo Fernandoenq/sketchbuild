@@ -46,6 +46,8 @@ class DrawStateResponse(BaseModel):
     tag_faces: dict[str, str] = Field(default_factory=dict)  # face -> tag
     tag_arestas: dict[str, str] = Field(default_factory=dict)  # aresta -> tag
     suaves: dict[str, int] = Field(default_factory=dict)  # aresta -> bits (0x08 suave, 0x10 lisa)
+    guias: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    secoes: dict[str, list[float]] = Field(default_factory=dict)
     cenas: list[dict[str, Any]] = Field(default_factory=list)
     counts: dict[str, int]
     historico: dict[str, bool] = Field(default_factory=dict)
@@ -142,6 +144,14 @@ class SoftenRequest(BaseModel):
     suave: bool = True
     lisa: bool = True
     limpar: bool = False  # tira suave e lisa das arestas dadas
+
+
+class GuiaRequest(BaseModel):
+    tipo: str = Field(pattern="^(ponto|linha|secao|apagar)$")
+    p: tuple[float, float, float] | None = None  # ponto da guia, inicio da linha ou ponto do plano de secao
+    alvo: tuple[float, float, float] | None = None  # linha finita ate este ponto
+    direcao: tuple[float, float, float] | None = None  # linha infinita nesta direcao; plano de secao: a normal
+    id: int | None = None  # tipo=apagar
 
 
 class CenaRequest(BaseModel):

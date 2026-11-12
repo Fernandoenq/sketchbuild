@@ -218,6 +218,14 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
     else:
         mid = mid_externo
         usados = []
+    gid_: Dict[int, int] = {}
+    for g in sorted(t.guias):
+        gid_[g] = prox
+        prox += 1
+    sid_: Dict[int, int] = {}
+    for g in sorted(t.secoes):
+        sid_[g] = prox
+        prox += 1
     curva_da_aresta = {e: cid_[c] for c, d in curvas.items() for e in d["arestas"]}
 
     verts = b"".join(
@@ -265,13 +273,28 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
             reg_simples += _rec(0x4A38, meta)
         else:
             reg_curvas += _rec(0x4C2C, _rec(0x4A38, meta) + _rec(0x4C2D, _carga_curva(d)))
-    tabela = b"".join(bytes([len(_id_bytes(i))]) + _id_bytes(i) for i in list(eid.values()) + list(fid_.values()))
+    pontos_guia = linhas_guia = planos = b""
+    for g in sorted(t.guias):
+        v = t.guias[g]
+        if v["tipo"] == "ponto":
+            pontos_guia += _rec(0x426C, _rec(0x4268, _cabecalho(gid_[g], FLAGS_ARESTA)) + _rec(0x426D, struct.pack("<3d", *v["p"]))
+                                + _rec(0x426E, struct.pack("<3d", 0.0, 0.0, 0.0)) + _rec(0x426F, bytes([0])))
+        else:
+            linhas_guia += _rec(0x4269, _rec(0x4268, _cabecalho(gid_[g], FLAGS_ARESTA))
+                                + _rec(0x426A, struct.pack("<8d", *v["p"], *v["d"], v["t0"], v["t1"])) + _rec(0x426B, bytes([255, 255])))
+    for g in sorted(t.secoes):
+        planos += _rec(0x445C, _cabecalho(sid_[g], FLAGS_ARESTA) + _rec(0x445D, struct.pack("<4d", *t.secoes[g]))
+                       + _rec(0x445E, b"") + _rec(0x445F, b""))
+    reg_guias = ((_rec(0x1391, linhas_guia) if linhas_guia else b"") + (_rec(0x1392, pontos_guia) if pontos_guia else b"")
+                  + (_rec(0x1393, planos) if planos else b""))
+    tabela = b"".join(bytes([len(_id_bytes(i))]) + _id_bytes(i)
+                      for i in list(eid.values()) + list(fid_.values()) + list(gid_.values()) + list(sid_.values()))
     pts = list(t.verts.values())
     caixa = None
     if pts:
         caixa = (tuple(min(p[k] for p in pts) for k in range(3)), tuple(max(p[k] for p in pts) for k in range(3)))
     return {"vertices": verts, "arestas": arestas, "faces": faces, "tabela": tabela, "curvas": reg_curvas,
-            "simples": reg_simples, "materiais": reg_materiais}, prox, caixa
+            "simples": reg_simples, "materiais": reg_materiais, "guias": reg_guias}, prox, caixa
 
 
 def _tabela(ids: Sequence[int]) -> bytes:
@@ -368,6 +391,7 @@ def _montar_cena(cena, prox: int, mid: Dict[str, int], tid: Optional[Dict[str, i
             corpo += _rec(0x138C, comp)
         if grup:
             corpo += _rec(0x138D, grup)
+        corpo += reg["guias"]
         corpo += _rec(0x139E, b"") + _rec(0x138E, reg["tabela"] + _tabela(ids))
         corpo += _rec(0x139B, _rec(0x639F, _rec(0x63A0, b""))) + _rec(0x139F, bytes([0]))
         cauda = (_rec(0x157D, uuid.uuid4().bytes) + _rec(0x157E, nome_def[d].encode("utf-8"))
@@ -607,8 +631,9 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
             geometria += _rec(0x138C, inst_comp)
         if inst_grup:
             geometria += _rec(0x138D, inst_grup)
+        geometria += reg["guias"]
         for a, bruto in novas:
-            if a == 0x139B and (t.edges or t.faces or inst_ids):
+            if a == 0x139B and (t.edges or t.faces or inst_ids or t.guias or t.secoes):
                 corpo += _rec(0x138E, reg["tabela"] + _tabela(inst_ids))
             if a == 0x139F:
                 bruto = _rec(0x139F, bytes([1])) if (t.edges or t.faces) else bruto

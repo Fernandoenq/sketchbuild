@@ -16,7 +16,7 @@ from core.topology.draw import desenhar
 from core.topology.edit import escalar, mover, offset, rotacionar, vertices_da_selecao
 from core.topology.material import definir_material, pintar
 from core.topology.pushpull import empurrar
-from core.topology import soften
+from core.topology import guias, soften
 from core.topology.tag import atribuir, atribuir_arestas, definir_tag
 
 MAX_TEXTURA = 8 * 1024 * 1024  # bytes da imagem
@@ -219,6 +219,27 @@ class DrawRepository:
         _HIST.executar("tag", {"nome": nome, "faces": list(faces), "arestas": list(arestas)}, acao)
         return self.estado()
 
+    def guia(self, tipo, p=None, alvo=None, direcao=None, id=None) -> dict:
+        def acao():
+            if tipo == "apagar":
+                if id is None:
+                    raise ValueError("guia: informe o id a apagar")
+                guias.apagar(_topo(), id)
+            elif p is None:
+                raise ValueError("guia: informe p")
+            elif tipo == "ponto":
+                guias.guia_ponto(_topo(), p)
+            elif tipo == "linha":
+                guias.guia_linha(_topo(), p, alvo, direcao)
+            else:
+                if direcao is None:
+                    raise ValueError("plano de secao: informe a normal em `direcao`")
+                guias.plano_secao(_topo(), direcao, p)
+            return {}
+
+        _HIST.executar("guia", {"tipo": tipo}, acao)
+        return self.estado()
+
     def suavizar(self, arestas=(), angulo=None, suave=True, lisa=True, limpar=False) -> dict:
         if not arestas and angulo is None:
             raise ValueError("suavizar: informe arestas ou angulo")
@@ -271,6 +292,8 @@ class DrawRepository:
             "tag_faces": {str(i): f.tag for i, f in _topo().faces.items() if f.tag},
             "tag_arestas": {str(e): n for e, n in _topo().etags.items()},
             "suaves": {str(e): b for e, b in _topo().eflags.items()},
+            "guias": {str(i): {k: (list(v) if isinstance(v, tuple) else v) for k, v in g.items()} for i, g in _topo().guias.items()},
+            "secoes": {str(i): list(pl) for i, pl in _topo().secoes.items()},
             "cenas": [{"nome": c["nome"], "descricao": c["descricao"], "animar": c["animar"], "camera": c["camera"] is not None}
                       for c in _CENA.cenas],
             "counts": _topo().counts(),

@@ -5,7 +5,7 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest
+from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, GuiaRequest
 
 
 def _tem_pillow():
@@ -240,6 +240,23 @@ class TestDrawController(unittest.TestCase):
             run(self.c.suavizar(SoftenRequest()))  # sem arestas e sem angulo
         e = run(self.c.desfazer())
         self.assertEqual(len(e.suaves), 24)
+
+    def test_guias_e_plano_de_secao_na_api(self):
+        e = run(self.c.guia(GuiaRequest(tipo="ponto", p=(1, 2, 3))))
+        self.assertEqual(len(e.guias), 1)
+        e = run(self.c.guia(GuiaRequest(tipo="linha", p=(0, 0, 0), direcao=(0, 0, 1))))
+        e = run(self.c.guia(GuiaRequest(tipo="secao", p=(0, 0, 50), direcao=(0, 0, 1))))
+        self.assertEqual(list(e.secoes.values()), [[0.0, 0.0, 1.0, -50.0]])
+        self.assertEqual(len(e.guias), 2)
+        with self.assertRaises(HTTPException):
+            run(self.c.guia(GuiaRequest(tipo="linha", p=(0, 0, 0))))  # nem alvo nem direcao
+        with self.assertRaises(HTTPException):
+            run(self.c.guia(GuiaRequest(tipo="apagar", id=999)))
+        gid = int(next(iter(e.guias)))
+        e = run(self.c.guia(GuiaRequest(tipo="apagar", id=gid)))
+        self.assertEqual(len(e.guias), 1)
+        e = run(self.c.desfazer())
+        self.assertEqual(len(e.guias), 2)
 
 
 if __name__ == "__main__":

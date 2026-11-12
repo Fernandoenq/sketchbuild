@@ -228,6 +228,38 @@ class TestGravadorSemDll(unittest.TestCase):
         with self.assertRaises(ValueError):
             soften.por_angulo(t, 200)
 
+    def test_guias_e_plano_de_secao(self):
+        from core.topology import guias
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))
+        guias.guia_ponto(t, (10, 20, 30))
+        guias.guia_linha(t, (10, 20, 0), direcao=(0, 0, 5))
+        guias.guia_linha(t, (0, 0, 0), alvo=(30, 40, 0))
+        pl = guias.plano_secao(t, (0, 0, 2), (0, 0, 50))
+        self.assertEqual(t.secoes[pl], (0.0, 0.0, 1.0, -50.0))
+        for ruim in (lambda: guias.guia_linha(t, (0, 0, 0)), lambda: guias.guia_linha(t, (1, 1, 1), alvo=(1, 1, 1)),
+                     lambda: guias.guia_linha(t, (0, 0, 0), direcao=(0, 0, 0)), lambda: guias.plano_secao(t, (0, 0, 0), (0, 0, 0))):
+            with self.assertRaises(ValueError):
+                ruim()
+        gravar_topologia(t, self.p("g.skp"))
+        d = dat_de(self.p("g.skp"))
+        pos = achar(d, 0x426D)
+        self.assertEqual(struct.unpack("<3d", d[pos[0][2] + 6:pos[0][2] + 30]), (10.0, 20.0, 30.0))
+        linhas = [struct.unpack("<8d", d[a[2] + 6:a[2] + 70]) for a in achar(d, 0x426A)]
+        self.assertEqual(linhas[0], (10.0, 20.0, 0.0, 0.0, 0.0, 1.0, -1e30, 1e30))  # infinita
+        self.assertEqual(linhas[1][3:8], (0.6, 0.8, 0.0, 0.0, 50.0))  # finita: direção unitária e comprimento 50
+        plano = achar(d, 0x445D)
+        self.assertEqual(struct.unpack("<4d", d[plano[0][2] + 6:plano[0][2] + 38]), (0.0, 0.0, 1.0, -50.0))
+        tabela = achar(d, 0x138E)[0]
+        bruto, n_itens, i = d[tabela[2] + 6:tabela[2] + 6 + tabela[1]], 0, 0
+        while i < len(bruto):
+            i += 1 + bruto[i]
+            n_itens += 1
+        self.assertEqual(n_itens, 4 + 1 + 3 + 1)  # arestas, face, 3 guias e o plano de seção (a SDK também lista as guias)
+        self.assertEqual(verificar_skp(self.p("g.skp"))["refs_quebradas"], 0)
+        guias.apagar(t, pl)
+        self.assertEqual(t.secoes, {})
+
     def test_hierarquia_definicoes_filhos_antes_dos_pais(self):
         c = Cena()
         desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
