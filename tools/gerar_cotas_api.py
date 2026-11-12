@@ -63,6 +63,14 @@ VARIACOES = {
 }
 
 
+for _h in (0, 2, 3, 4):
+    VARIACOES[f"halign{_h}"] = ((0, 0, 0), (100, 0, 0), lambda d, r, _h=_h: _inteiro(d, "SUDimensionLinearSetHorizontalAlignment", r, _h))
+VARIACOES["halign1_pos"] = ((0, 0, 0), (100, 0, 0), lambda d, r: (_inteiro(d, "SUDimensionLinearSetHorizontalAlignment", r, 1),
+                                                                  _ponto(d, "SUDimensionLinearSetPosition", r, (50, 25, 5))))
+VARIACOES["pos_halign1"] = ((0, 0, 0), (100, 0, 0), lambda d, r: (_ponto(d, "SUDimensionLinearSetPosition", r, (50, 25, 5)),
+                                                                  _inteiro(d, "SUDimensionLinearSetHorizontalAlignment", r, 1)))
+
+
 def _texto(d, r):
     d.SUDimensionSetText.argtypes = [_Ref, ctypes.c_char_p]
     assert d.SUDimensionSetText(r, "Meu texto".encode("utf-8")) == 0

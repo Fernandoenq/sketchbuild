@@ -255,7 +255,7 @@ class DrawRepository:
         return self.estado()
 
     def nota(self, tipo, texto=None, p=None, fim=None, normal=None, eixo_x=None, desloc=(0.0, 0.0), seta=0,
-             tipo_chamada=0, vetor=None, id=None, cor=None, fonte_nova=None) -> dict:
+             tipo_chamada=0, vetor=None, id=None, cor=None, fonte_nova=None, alinhamento_h=None) -> dict:
         def acao():
             if tipo == "apagar":
                 if id is None:
@@ -273,7 +273,7 @@ class DrawRepository:
                     raise ValueError("cota: informe o ponto inicial p e o ponto final fim")
                 direcao = tuple(fim[i] - p[i] for i in range(3))
                 n = normal or _normal_da_cota(direcao)
-                cotas.cota_linear(_topo(), p, fim, n, eixo_x or direcao, texto or "", seta, desloc)
+                cotas.cota_linear(_topo(), p, fim, n, eixo_x or direcao, texto or "", seta, desloc, alinhamento_h=alinhamento_h)
             return {}
 
         _HIST.executar("nota", {"tipo": tipo}, acao)

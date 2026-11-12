@@ -46,6 +46,11 @@ CASOS = {
     "seta2": dict(seta=2),
     "valign1": dict(alinhamento_v=0),  # SetVerticalAlignment(1) grava 0; o padrão grava 1
     "texto": dict(texto="Meu texto"),
+    "halign0": dict(alinhamento_h=0),
+    "halign1": dict(alinhamento_h=1),
+    "halign2": dict(alinhamento_h=2),
+    "halign1_pos": dict(desloc=(50.0, 25.0)),  # alinhamento posto antes da posição: a posição vence
+    "pos_halign1": dict(desloc=(50.0, 25.0), alinhamento_h=1),  # alinhamento depois: vira -1 e a posição mantém só o y
 }
 
 
@@ -63,6 +68,10 @@ class TestCotaContraASdk(unittest.TestCase):
                     sdk = gerar(d, nome)
                     self.assertIsNotNone(registro_1399(sdk))
                     self.assertEqual(registro_1399(meu), registro_1399(sdk))
+
+    def test_alinhamento_horizontal_invalido(self):
+        with self.assertRaises(ValueError):
+            cota_linear(Topology(), (0, 0, 0), (1, 0, 0), alinhamento_h=3)
 
     def test_dll_abre_o_arquivo_gravado(self):
         t = Topology()

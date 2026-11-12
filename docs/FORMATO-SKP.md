@@ -349,7 +349,7 @@ Oráculo: `tools/gerar_cotas_api.py` (uma cota por modelo e uma mudança por var
     0x5bd4 [u32]            alinhamento vertical (padrão 1; `SetVerticalAlignment(1)` gravou 0)
 ```
 
-`SUDimensionLinearSetPosition(50, 25, 5)` com início em (0,0,0) gravou `0x5bd3 = 50` e `0x5bd2 = 25` (o z some: é a posição projetada no plano da cota). `SetHorizontalAlignment(1)` gravou `0x5bd3 = -1.0` (alinhamento horizontal mora no mesmo campo, como sentinela quando não há posição). **Pendente:** relação do deslocamento com o ponto inicial (testado só com início na origem), alinhamento horizontal como sentinela, cota angular/raio/diâmetro, estilo e fonte da cota, caixa limite com cota (a raiz sem geometria não gravou `0x13a0`), exposição no app.
+`SUDimensionLinearSetPosition(50, 25, 5)` com início em (0,0,0) gravou `0x5bd3 = 50` e `0x5bd2 = 25` (o z some: é a posição projetada no plano da cota). `SetHorizontalAlignment(1)` gravou `0x5bd3 = -1.0` (alinhamento horizontal mora no mesmo campo, como sentinela quando não há posição). **Alinhamento horizontal (12/11/2026, `SUDimensionLinearSetHorizontalAlignment`):** valores 0, 1 e 2 gravam em `0x5bd3` 0.0, -1.0 e +1.0 (3 e 4 são recusados pela SDK); é o mesmo campo do x do deslocamento, então vale o que for posto por último (posição depois do alinhamento: x = posição; alinhamento depois da posição: x = sentinela e o y fica). `cota_linear(alinhamento_h=)` e `POST /note` reproduzem os 6 casos byte a byte. **Pendente:** relação do deslocamento com o ponto inicial (testado só com início na origem), cota angular/raio/diâmetro, estilo e fonte da cota, caixa limite com cota (a raiz sem geometria não gravou `0x13a0`), exposição no app.
 
 ## 7l. Texto livre `0x1398 > 0x55f0` — decifrado em 12/11/2026
 
