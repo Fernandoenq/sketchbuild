@@ -220,6 +220,7 @@ Tentativas com falha, para ninguém repetir sem outra fonte:
 - **Texto:** `SUTextSetPoint` dá violação de acesso (0x6), repetido em 12/11/2026 com `argtypes` explícitos, com os três tipos de linha de chamada (0, 1, 2) e com o texto já adicionado ao modelo antes (mesmo endereço 0x6: ponteiro interno nulo) e um texto sem ponto falha ao salvar (`SU_ERROR_SERIALIZATION`).
 - **Cota linear:** `SUDimensionLinearCreate` dá violação de acesso (0x5).
 - O arquivo real do Fernando que tem `0x1399` (registro desconhecido com materiais referenciados, `0x5bcc`/`0x59d8`/`0x5208`) pode ser texto/cota/imagem; sem rótulo não dá para afirmar.
+Tentativa de gerar esses arquivos no SketchUp 2026 real, sem ninguém na frente (12/11/2026): `SketchUp.exe -RubyStartup script.rb` abre o programa mas o script não roda (nenhum log, nenhum arquivo em 5 minutos); a instância foi fechada. Para usar o SketchUp real é preciso abri-lo à mão e carregar o script pelo Console Ruby, como em `ruby_bridge/f0_receitas.rb`. O script pronto está em `ruby_bridge/gerar_anotacoes_reais.rb` (texto, cota, textura posicionada, instâncias a 0/90/33° e grupo).
 Próxima fonte possível: arquivos reais do SketchUp com texto, cota e textura posicionada, comparados com a mesma cena sem o elemento.
 
  Definições, grupos e componentes — decifrado em 11/11/2026
