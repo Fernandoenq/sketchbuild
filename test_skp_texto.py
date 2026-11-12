@@ -96,6 +96,31 @@ class TestTextoContraASdk(unittest.TestCase):
             self.assertEqual(material(meu), material(gerar(d, "cor")))
             _api.open_model(meu).close()
 
+    def test_ids_de_texto_e_cota_seguem_a_ordem_de_inclusao_da_sdk(self):
+        from tools.gerar_texto_cota_api import gerar as gerar_tc
+
+        def trechos(caminho):
+            with zipfile.ZipFile(caminho) as z:
+                dat = z.read("model.dat")
+            out = []
+            for tag in (0x1398, 0x1399, 0x138E):
+                i = dat.find(struct.pack("<H", tag))
+                out.append(dat[i:i + 6 + struct.unpack("<I", dat[i + 2:i + 6])[0]])
+            return out
+
+        with tempfile.TemporaryDirectory() as d:
+            for nome, texto_primeiro in (("tc", True), ("ct", False)):
+                with self.subTest(nome):
+                    t = Topology()
+                    for k in ("t", "c") if texto_primeiro else ("c", "t"):
+                        if k == "t":
+                            texto_livre(t, "Nota", (10, 20, 30))
+                        else:
+                            cota_linear(t, (0, 0, 0), (100, 0, 0))
+                    meu = os.path.join(d, f"meu_{nome}.skp")
+                    gravar_topologia(t, meu)
+                    self.assertEqual(trechos(meu), trechos(gerar_tc(d, nome)))
+
     def test_dll_abre_o_arquivo_com_texto_e_cota(self):
         t = Topology()
         cota_linear(t, (0, 0, 0), (100, 0, 0))
