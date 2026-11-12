@@ -4,12 +4,17 @@ from typing import Optional, Sequence
 
 from .model import Point, Topology
 
+MATERIAL_AUTO = "<auto>"  # material automático que o SketchUp cria ao pôr cor num texto
 FONTE_PADRAO = 2  # id da primeira fonte do modelo em branco (a segunda é 3)
 
 
 def texto_livre(t: Topology, texto: str, ponto: Point, tipo: int = 0, vetor: Optional[Sequence[float]] = None,
-                seta: int = 0, fonte: int = FONTE_PADRAO) -> int:
-    """Texto no `ponto`. `tipo` = tipo da linha de chamada (0, 1 ou 2, como na SketchUpAPI); `vetor` = vetor da chamada."""
+                seta: int = 0, fonte: int = FONTE_PADRAO,
+                cor: Optional[Sequence[int]] = None) -> int:
+    """Texto no `ponto`. `tipo` = tipo da linha de chamada (0, 1 ou 2, como na SketchUpAPI); `vetor` = vetor da chamada.
+
+    `cor` = (r, g, b[, a]): o SketchUp cria o material automático "<auto>" (FORMATO-SKP 7l). Só uma cor de texto por
+    modelo: com várias, o nome dos materiais seguintes não foi observado."""
     if not texto.strip():
         raise ValueError("texto: o texto não pode ser vazio")
     if tipo not in (0, 1, 2):
@@ -19,9 +24,18 @@ def texto_livre(t: Topology, texto: str, ponto: Point, tipo: int = 0, vetor: Opt
     v = tuple(float(c) for c in (vetor or (0.0, 0.0, 0.0)))
     if any(not math.isfinite(c) for c in v) or any(not math.isfinite(c) for c in ponto):
         raise ValueError("texto: coordenada inválida")
+    material = None
+    if cor is not None:
+        c = [int(x) for x in cor]
+        if len(c) not in (3, 4) or any(not 0 <= x <= 255 for x in c):
+            raise ValueError("texto: cor deve ser (r, g, b[, a]) de 0 a 255")
+        novo = {"rgb": tuple(c[:3]), "alpha": c[3] if len(c) == 4 else 255}
+        if t.materiais.setdefault(MATERIAL_AUTO, novo) != novo:
+            raise ValueError("texto: só uma cor de texto por modelo (a segunda ainda não foi observada na SDK)")
+        material = MATERIAL_AUTO
     tid = next(t._gid)
     t.textos[tid] = {"texto": texto, "ponto": tuple(float(c) for c in ponto), "tipo": int(tipo), "vetor": v,
-                     "seta": int(seta), "fonte": int(fonte)}
+                     "seta": int(seta), "fonte": int(fonte), "material": material}
     return tid
 
 

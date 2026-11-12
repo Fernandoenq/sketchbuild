@@ -277,6 +277,12 @@ class TestDrawController(unittest.TestCase):
         e = run(self.c.desfazer())
         self.assertEqual(len(e.guias), 2)
 
+    def test_texto_com_cor_na_api(self):
+        e = run(self.c.nota(NotaRequest(tipo="texto", texto="Colorido", p=(1, 2, 3), cor=(10, 20, 30))))
+        self.assertEqual([x["material"] for x in e.textos.values()], ["<auto>"])
+        with self.assertRaises(HTTPException):
+            run(self.c.nota(NotaRequest(tipo="texto", texto="Outro", p=(1, 2, 3), cor=(1, 1, 1))))  # segunda cor
+
     def test_texto_e_cota_na_api(self):
         e = run(self.c.nota(NotaRequest(tipo="texto", texto="Olá", p=(1, 2, 3))))
         self.assertEqual([x["texto"] for x in e.textos.values()], ["Olá"])

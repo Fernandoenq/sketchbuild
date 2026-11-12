@@ -2571,7 +2571,7 @@ export function drawScene(corpo) {
   return postJson("/api/v1/draw/scene", "POST", corpo);
 }
 
-// texto livre ou cota linear: { tipo: "texto"|"cota"|"apagar", texto, p, fim, normal, eixo_x, desloc, seta, tipo_chamada, vetor, id }
+// texto livre ou cota linear: { tipo: "texto"|"cota"|"apagar", texto, p, fim, normal, eixo_x, desloc, seta, tipo_chamada, vetor, cor [r,g,b] (texto), id }
 export function drawNote(corpo) {
   return postJson("/api/v1/draw/note", "POST", corpo);
 }

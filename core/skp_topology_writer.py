@@ -125,10 +125,16 @@ def xml_material(nome: str, rgb: Tuple[int, int, int], alpha: int = 255, textura
     return corpo.encode("utf-8")
 
 
+def _nomes_de_material(t) -> set:
+    """Materiais que a topologia usa: frente/verso das faces e a cor dos textos livres (material "<auto>")."""
+    return ({n for f in t.faces.values() for n in (f.frente, f.verso) if n}
+            | {c["material"] for c in t.textos.values() if c.get("material")})
+
+
 def registro_material(ident: int, nome: str, material: dict) -> bytes:
     """Registro 0x32c8 da tabela de materiais; material com imagem leva também 0x32cd = 90 (valor observado)."""
     extra = _rec(0x32CD, struct.pack("<I", 90)) if material.get("textura") else b""
-    return _rec(0x32C8, _so_id(ident) + _rec(0x32CC, nome.encode("utf-8")) + _rec(0x32CA, bytes([0])) + _rec(0x32CB, b"") + extra)
+    return _rec(0x32C8, _so_id(ident) + _rec(0x32CC, (nome_seguro(nome) if nome.startswith("<auto>") else nome).encode("utf-8")) + _rec(0x32CA, bytes([0])) + _rec(0x32CB, b"") + extra)
 
 
 # Blocos constantes observados em arquivos da SketchUpAPI (docs/FORMATO-SKP.md, seção 7d).
@@ -169,13 +175,13 @@ def _registro_cota(ident: int, c: dict) -> bytes:
                 + _rec(0x5BD2, struct.pack("<d", c["desloc"][1])) + _rec(0x5BD4, struct.pack("<I", c["alinhamento_v"])))
 
 
-def _registro_texto(ident: int, c: dict) -> bytes:
+def _registro_texto(ident: int, c: dict, material: Optional[int] = None) -> bytes:
     """Registro 0x55f0 de um texto livre (FORMATO-SKP 7l). Os campos 0x55f2/f3, f6, f7, f8, fb, fc, fe levam os valores
     padrão que a SketchUpAPI grava (significado ainda não decifrado)."""
     vazio = _rec(0x53FC, _rec(0x53FE, b""))
     ponto = _rec(0x55F4, _rec(0x5208, _rec(0x5209, struct.pack("<I", 1)) + _rec(0x520A, struct.pack("<3d", *c["ponto"]))
                               + _rec(0x520B, vazio) + _rec(0x520C, vazio)))
-    return _rec(0x55F0, _cabecalho(ident, FLAGS_ARESTA) + _rec(0x55F1, c["texto"].encode("utf-8")) + _rec(0x55FF, b"")
+    return _rec(0x55F0, _cabecalho(ident, FLAGS_ARESTA, material) + _rec(0x55F1, c["texto"].encode("utf-8")) + _rec(0x55FF, b"")
                 + _rec(0x55F2, struct.pack("<d", 0.5)) + _rec(0x55F3, struct.pack("<d", 0.5)) + ponto
                 + _rec(0x55F5, struct.pack("<3d", *c["vetor"])) + _rec(0x55F6, bytes([1]))
                 + _rec(0x55F7, struct.pack("<3d", 0.0, 0.0, 1.0)) + _rec(0x55F8, bytes([0])) + _rec(0x55F9, bytes([c["fonte"]]))
@@ -282,7 +288,7 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
     for c in sorted(curvas):
         cid_[c] = prox
         prox += 1
-    usados = sorted({n for f in t.faces.values() for n in (f.frente, f.verso) if n})
+    usados = sorted(_nomes_de_material(t))
     if mid_externo is None:
         for n in usados:
             if n not in getattr(t, "materiais", {}):
@@ -373,7 +379,7 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
     reg_guias = ((_rec(0x1391, linhas_guia) if linhas_guia else b"") + (_rec(0x1392, pontos_guia) if pontos_guia else b"")
                   + (_rec(0x1393, planos) if planos else b""))
     reg_cotas = _rec(0x1399, b"".join(_registro_cota(did_cota[g], c) for g, c in sorted(getattr(t, "cotas", {}).items()))) if did_cota else b""
-    reg_textos = _rec(0x1398, b"".join(_registro_texto(did_texto[g], c) for g, c in sorted(t.textos.items()))) if did_texto else b""
+    reg_textos = _rec(0x1398, b"".join(_registro_texto(did_texto[g], c, mid[c["material"]] if c.get("material") else None) for g, c in sorted(t.textos.items()))) if did_texto else b""
     tabela = b"".join(bytes([len(_id_bytes(i))]) + _id_bytes(i)
                       for i in list(eid.values()) + list(fid_.values()) + list(gid_.values()) + list(sid_.values())
                       + list(did_cota.values()) + list(did_texto.values()))
@@ -683,7 +689,7 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
             definidos: Dict[str, dict] = {}
             for tp in todas:
                 definidos.update(getattr(tp, "materiais", {}))
-            nomes = sorted({n for tp in todas for f in tp.faces.values() for n in (f.frente, f.verso) if n})
+            nomes = sorted(set().union(*(_nomes_de_material(tp) for tp in todas)))
             for n in nomes:
                 if n not in definidos:
                     raise ValueError(f"material {n!r} usado numa face mas não definido")
@@ -764,7 +770,7 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
                 externo += dat[p:p + 6 + l]
         novo_dat = _rec(0x01F4, externo)
 
-        usados = {n for tp in todas for f in tp.faces.values() for n in (f.frente, f.verso) if n}
+        usados = set().union(*(_nomes_de_material(tp) for tp in todas))
         novos_zip = []
         for nome, m in sorted(todos_materiais.items()):
             if nome in usados:

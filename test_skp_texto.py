@@ -46,6 +46,7 @@ CASOS = {
     "vetor": dict(tipo=1, vetor=(0, 0, 40)),
     "seta1": dict(seta=1),
     "fonte1": dict(fonte=3),
+    "cor": dict(cor=(10, 20, 30, 255)),
 }
 
 
@@ -64,6 +65,22 @@ class TestTextoContraASdk(unittest.TestCase):
                     self.assertIsNotNone(registro_1398(sdk))
                     self.assertEqual(registro_1398(meu), registro_1398(sdk))
 
+    def test_cor_cria_o_material_auto_igual_ao_da_sdk(self):
+        def material(caminho):
+            with zipfile.ZipFile(caminho) as z:
+                dat = z.read("model.dat")
+                xml = z.read("materials/_auto_/material.xml")
+            i = dat.find(struct.pack("<H", 0x32C8))
+            return dat[i:i + 6 + struct.unpack("<I", dat[i + 2:i + 6])[0]], xml
+
+        with tempfile.TemporaryDirectory() as d:
+            t = Topology()
+            texto_livre(t, "Nota", (10, 20, 30), cor=(10, 20, 30, 255))
+            meu = os.path.join(d, "meu_cor.skp")
+            gravar_topologia(t, meu)
+            self.assertEqual(material(meu), material(gerar(d, "cor")))
+            _api.open_model(meu).close()
+
     def test_dll_abre_o_arquivo_com_texto_e_cota(self):
         t = Topology()
         cota_linear(t, (0, 0, 0), (100, 0, 0))
@@ -81,6 +98,14 @@ class TestTextoNoNucleo(unittest.TestCase):
                      dict(texto="x", ponto=(0, 0, 0), seta=-1), dict(texto="x", ponto=(float("nan"), 0, 0))):
             with self.assertRaises(ValueError):
                 texto_livre(t, **args)
+
+    def test_cor_validacao_e_uma_cor_so(self):
+        t = Topology()
+        texto_livre(t, "a", (0, 0, 0), cor=(1, 2, 3))
+        texto_livre(t, "b", (0, 0, 0), cor=(1, 2, 3, 255))  # mesma cor: reaproveita o material
+        for cor in ((1, 2), (1, 2, 300), (9, 9, 9)):
+            with self.assertRaises(ValueError):
+                texto_livre(t, "c", (0, 0, 0), cor=cor)
 
     def test_apagar(self):
         t = Topology()
