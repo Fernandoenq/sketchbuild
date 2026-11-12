@@ -6,6 +6,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from core.technical_drawing_exporter import TechnicalDrawingExporter  # noqa: E402
 from core.technical_sketch_shader import TechnicalSketchShader  # noqa: E402
 from core.unhide_entities_engine import UnhideEntitiesEngine  # noqa: E402
 
@@ -81,6 +82,44 @@ class TestEsbocoTecnico(unittest.TestCase):
             self.assertEqual(svg.count("<line"), 0)  # só varia em y: projeção frontal vira ponto
             with open(p, encoding="utf-8") as fh:
                 self.assertEqual(fh.read(), svg)
+
+
+def _cena_quadrado(lado_pol=100.0, dx_pol=0.0):
+    """Um quadrado de `lado_pol` polegadas (2 triângulos) deslocado `dx_pol` em x."""
+    v = [0, 0, 0, lado_pol, 0, 0, lado_pol, lado_pol, 0, 0, lado_pol, 0]
+    t = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, dx_pol, 0, 0, 1]
+    return {"definitions": [{"definition_id": 1, "vertices": v, "indices": [0, 1, 2, 0, 2, 3]}],
+            "instances": [{"definition_id": 1, "transform": t}]}
+
+
+class TestDesenhoTecnico(unittest.TestCase):
+    def test_cota_total_vem_da_geometria_em_metros(self):
+        # 100 pol = 2,54 m; instância deslocada não muda a largura
+        svg = TechnicalDrawingExporter.generate_svg(_cena_quadrado(100, 500), "top")
+        self.assertIn("2.54 m</text>", svg)
+        # 5 arestas distintas (4 do contorno + diagonal) no grupo de arestas
+        grupo = svg.split('<!-- Arestas do Modelo 2D -->')[1].split('</g>')[0]
+        self.assertEqual(grupo.count("<line"), 5)
+
+    def test_vista_invalida_vira_planta_e_titulo_e_escapado(self):
+        svg = TechnicalDrawingExporter.generate_svg(_cena_quadrado(), "xyz", title="A<b>&c")
+        self.assertIn("PLANTA BAIXA", svg)
+        self.assertIn("A&lt;b&gt;&amp;c", svg)
+        self.assertNotIn("A<b>", svg)
+
+    def test_elevacao_frontal_de_quadrado_no_plano_xy_nao_tem_arestas_verticais(self):
+        svg = TechnicalDrawingExporter.generate_svg(_cena_quadrado(), "front")
+        grupo = svg.split('<!-- Arestas do Modelo 2D -->')[1].split('</g>')[0]
+        self.assertEqual(grupo.count("<line"), 1)  # vira um segmento só (z constante)
+
+    def test_sem_geometria_usa_limites_padrao_e_exporta_arquivo(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "sub", "t.svg")
+            r = TechnicalDrawingExporter.export_svg({}, p, scale="1:100")
+            self.assertTrue(os.path.isfile(p))
+            self.assertEqual((r["scale"], r["file_size_bytes"] == os.path.getsize(p)), ("1:100", True))
+            with open(p, encoding="utf-8") as fh:
+                self.assertIn("4.00 m</text>", fh.read())  # sem geometria: limites padrão de -2 a 2 m
 
 
 if __name__ == "__main__":

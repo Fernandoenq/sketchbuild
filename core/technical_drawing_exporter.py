@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 import os
+from xml.sax.saxutils import escape
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -30,7 +31,7 @@ class TechnicalDrawingExporter:
         svg_content = cls.generate_svg(scene_dto, view_type=view_type, title=title, scale=scale)
 
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-        with open(output_path, "w", encoding="utf-8") as f:
+        with open(output_path, "w", encoding="utf-8", newline=chr(10)) as f:
             f.write(svg_content)
 
         return {
@@ -201,11 +202,11 @@ class TechnicalDrawingExporter:
         svg.append(f'    <line x1="200" y1="36" x2="200" y2="{stamp_h}" stroke="#1B365D" stroke-width="1"/>')
         svg.append('    <text x="12" y="24" font-family="Segoe UI, Arial" font-size="14" font-weight="bold" fill="#1B365D">ENGENHARIA DE PLAYGROUNDS</text>')
         svg.append(f'    <text x="12" y="52" font-family="Segoe UI, Arial" font-size="10" fill="#718096">PROJETO / MODELO</text>')
-        svg.append(f'    <text x="12" y="68" font-family="Segoe UI, Arial" font-size="12" font-weight="bold" fill="#1B365D">{title[:25]}</text>')
+        svg.append(f'    <text x="12" y="68" font-family="Segoe UI, Arial" font-size="12" font-weight="bold" fill="#1B365D">{escape(title[:25])}</text>')
         svg.append(f'    <text x="12" y="100" font-family="Segoe UI, Arial" font-size="10" fill="#718096">RESPONSÁVEL TÉCNICO</text>')
         svg.append('    <text x="12" y="116" font-family="Segoe UI, Arial" font-size="11" font-weight="bold" fill="#2D3748">Fernando Filho</text>')
         svg.append(f'    <text x="210" y="52" font-family="Segoe UI, Arial" font-size="10" fill="#718096">ESCALA</text>')
-        svg.append(f'    <text x="210" y="68" font-family="Segoe UI, Arial" font-size="12" font-weight="bold" fill="#1B365D">{scale}</text>')
+        svg.append(f'    <text x="210" y="68" font-family="Segoe UI, Arial" font-size="12" font-weight="bold" fill="#1B365D">{escape(scale)}</text>')
         svg.append(f'    <text x="210" y="100" font-family="Segoe UI, Arial" font-size="10" fill="#718096">DATA / VERSÃO</text>')
         svg.append('    <text x="210" y="116" font-family="Segoe UI, Arial" font-size="11" fill="#2D3748">2026-10-30</text>')
         svg.append('  </g>')
