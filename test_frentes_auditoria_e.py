@@ -7,6 +7,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core.art_report_generator import ArtReportGenerator  # noqa: E402
+from core.field_inspection_exporter import FieldInspectionExporter  # noqa: E402
 from core.technical_drawing_exporter import TechnicalDrawingExporter  # noqa: E402
 from core.technical_sketch_shader import TechnicalSketchShader  # noqa: E402
 from core.unhide_entities_engine import UnhideEntitiesEngine  # noqa: E402
@@ -154,6 +155,30 @@ class TestMinutaArt(unittest.TestCase):
         declarado = int(b.split(b"/Length ")[1].split(b" ")[0])
         self.assertEqual(declarado, len(corpo))
         self.assertIn(b"Ana ?", corpo)
+
+
+class TestFichaDeCampo(unittest.TestCase):
+    def test_campos_do_usuario_sao_escapados_no_html(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "f.html")
+            r = FieldInspectionExporter.generate_inspection_html("Parque <script>x</script> & Cia", "Ana", "2026-11-12", output_path=p)
+            with open(p, "rb") as fh:
+                b = fh.read()
+            html = b.decode("utf-8")
+        self.assertNotIn("<script>x", html)
+        self.assertIn("Parque &lt;script&gt;x&lt;/script&gt; &amp; Cia", html)
+        self.assertEqual(r["size_bytes"], len(b))  # sem troca de fim de linha ao gravar
+        self.assertEqual(r["items_count"], html.count("<tr>") - 3)  # 3 linhas de cabeçalho de tabela
+
+    def test_lista_de_equipamentos_padrao_e_informada(self):
+        padrao = FieldInspectionExporter.generate_inspection_html("P", "I", "D")
+        self.assertEqual(padrao["file_path"], "")
+        from core import field_inspection_exporter as m  # noqa: F401
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "g.html")
+            FieldInspectionExporter.generate_inspection_html("P", "I", "D", ["A", "B"], p)
+            with open(p, encoding="utf-8") as fh:
+                self.assertIn("2 unidades", fh.read())
 
 
 if __name__ == "__main__":

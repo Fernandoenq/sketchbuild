@@ -9,6 +9,7 @@ Gera aplicação web e laudo técnico autocontido em HTML5 para auditoria em cam
 """
 
 import os
+from html import escape
 from typing import Dict, Any, List
 
 
@@ -164,9 +165,9 @@ class FieldInspectionExporter:
   </div>
 
   <div class="meta-grid">
-    <div><strong>Local / Parque:</strong> {park_name}</div>
-    <div><strong>Inspetor Responsável:</strong> {inspector_name}</div>
-    <div><strong>Data da Vistoria:</strong> {inspection_date}</div>
+    <div><strong>Local / Parque:</strong> {escape(park_name)}</div>
+    <div><strong>Inspetor Responsável:</strong> {escape(inspector_name)}</div>
+    <div><strong>Data da Vistoria:</strong> {escape(inspection_date)}</div>
     <div><strong>Equipamentos Vistoriados:</strong> {len(equipment_list)} unidades</div>
   </div>
 
@@ -368,7 +369,7 @@ class FieldInspectionExporter:
 </html>
 """
         if output_path:
-            with open(output_path, "w", encoding="utf-8") as f:
+            with open(output_path, "w", encoding="utf-8", newline=chr(10)) as f:
                 f.write(html)
 
         return {

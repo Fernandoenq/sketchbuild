@@ -173,12 +173,14 @@
  },
  {
   "modulo": "core/art_report_generator.py",
-  "linhas": 153,
-  "funcoes": 1,
+  "linhas": 163,
+  "funcoes": 2,
   "descricao": "Gerador de Minuta Técnica de ART / RRT em PDF Vetorial (Zero DLL / Pure Python).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_e.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -949,12 +951,14 @@
  },
  {
   "modulo": "core/field_inspection_exporter.py",
-  "linhas": 383,
+  "linhas": 384,
   "funcoes": 1,
   "descricao": "Exportador de Ficha de Inspeção e Checklist de Campo Offline (NBR 16071-7 - Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_e.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -2494,8 +2498,8 @@
  },
  {
   "modulo": "core/skp_hidden_pruner.py",
-  "linhas": 569,
-  "funcoes": 28,
+  "linhas": 613,
+  "funcoes": 30,
   "descricao": "Poda de ocultos direto no `model.dat` (sem abrir o SketchUp).",
   "selo": "VALIDADO",
   "oraculo": "SketchUp real (KMP-0102) + 62 arquivos verificados",
@@ -2534,8 +2538,8 @@
  },
  {
   "modulo": "core/skp_topology_writer.py",
-  "linhas": 569,
-  "funcoes": 24,
+  "linhas": 711,
+  "funcoes": 31,
   "descricao": "B2: grava uma `Topology` (vértices, arestas, faces com furos) na raiz de um `.skp` VFF 2021+.",
   "selo": "VALIDADO",
   "oraculo": "SketchUpAPI.dll (roundtrip, 8 testes) ; B4 no SketchUp real pendente",
@@ -2939,12 +2943,14 @@
  },
  {
   "modulo": "core/technical_drawing_exporter.py",
-  "linhas": 215,
+  "linhas": 216,
   "funcoes": 6,
   "descricao": "SketchBuild - Compilador de Desenhos Técnicos Vetoriais 2D (Plantas Baixas e Elevações)",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_e.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -2959,9 +2965,11 @@
   "linhas": 119,
   "funcoes": 2,
   "descricao": "Renderizador e Filtro Estilizado de Linha Oculta e Esboço Técnico (Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_e.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -3075,12 +3083,13 @@
  },
  {
   "modulo": "core/topology/cena.py",
-  "linhas": 167,
-  "funcoes": 12,
+  "linhas": 197,
+  "funcoes": 13,
   "descricao": "F5: grupos e componentes sobre o núcleo de topologia.",
   "selo": "VALIDADO",
   "oraculo": "receitas golden F0 (r01 a r14)",
   "testes": [
+   "test_draw_api.py",
    "test_frentes_auditoria_d.py",
    "test_multiformat_exporter.py",
    "test_opcao_a_parte_2_sketchup_native.py",
@@ -3097,6 +3106,7 @@
    "app/repositories/skp_engine_repository.py",
    "app/routes/draw_router.py",
    "app/routes/scene_router.py",
+   "app/schemas/draw.py",
    "app/schemas/scene.py",
    "app/services/draw_service.py",
    "app/services/scene_service.py"
@@ -3120,6 +3130,7 @@
    "skp_binary_writer.py",
    "skp_topology_writer.py",
    "su_api.py",
+   "tag.py",
    "tag_folder_engine.py",
    "trimble_solid_tools_engine.py",
    "two_point_perspective_engine.py"
@@ -3182,6 +3193,38 @@
   "alertas": []
  },
  {
+  "modulo": "core/topology/guias.py",
+  "linhas": 52,
+  "funcoes": 4,
+  "descricao": "Guias (pontos e linhas de construção) e planos de seção: só dados; o gravador os escreve (FORMATO-SKP.md 7h).",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_draw_api.py",
+   "test_frentes_17_18_25_29_30.py",
+   "test_frentes_71_a_75.py",
+   "test_opcao_a_parte_8_sketchup_native.py",
+   "test_skp_synthetic.py",
+   "test_skp_topology_writer.py"
+  ],
+  "rotas_ou_app": [
+   "app/controllers/scene_controller.py",
+   "app/repositories/draw_repository.py",
+   "app/repositories/skp_engine_repository.py",
+   "app/routes/scene_router.py",
+   "app/schemas/draw.py",
+   "app/services/scene_service.py"
+  ],
+  "usado_por_core": [
+   "construction_guide_engine.py",
+   "infinite_guide_engine.py",
+   "model.py",
+   "skp_topology_writer.py"
+  ],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
   "modulo": "core/topology/historico.py",
   "linhas": 79,
   "funcoes": 9,
@@ -3230,7 +3273,7 @@
  },
  {
   "modulo": "core/topology/material.py",
-  "linhas": 45,
+  "linhas": 51,
   "funcoes": 3,
   "descricao": "Pintar faces com material de cor sólida (Fase C). O material vive em `Topology.materiais` e a face aponta por ",
   "selo": "VALIDADO",
@@ -3283,7 +3326,7 @@
  },
  {
   "modulo": "core/topology/model.py",
-  "linhas": 418,
+  "linhas": 444,
   "funcoes": 36,
   "descricao": "Grafo de vértices, arestas e faces com as regras de modelagem do SketchUp.",
   "selo": "VALIDADO",
@@ -3318,6 +3361,7 @@
    "cena.py",
    "draw.py",
    "edit.py",
+   "guias.py",
    "intersect.py",
    "material.py",
    "mesh_extractor.py",
@@ -3327,9 +3371,11 @@
    "skp_binary_writer.py",
    "skp_hidden_pruner.py",
    "skp_topology_writer.py",
+   "soften.py",
    "su_api.py",
    "su_types.py",
-   "sweep.py"
+   "sweep.py",
+   "tag.py"
   ],
   "usa_dll": false,
   "alertas": []
@@ -3363,6 +3409,25 @@
   "alertas": []
  },
  {
+  "modulo": "core/topology/soften.py",
+  "linhas": 62,
+  "funcoes": 3,
+  "descricao": "Suavizar arestas (Soften/Smooth Edges): bits 0x08 (suave) e 0x10 (lisa) do 0x07d3 da aresta.",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_skp_synthetic.py",
+   "test_skp_topology_writer.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/draw_repository.py",
+   "app/routes/draw_router.py"
+  ],
+  "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
   "modulo": "core/topology/sweep.py",
   "linhas": 135,
   "funcoes": 3,
@@ -3376,6 +3441,49 @@
    "app/repositories/draw_repository.py"
   ],
   "usado_por_core": [],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
+  "modulo": "core/topology/tag.py",
+  "linhas": 58,
+  "funcoes": 5,
+  "descricao": "Tags (camadas) das faces: definir, atribuir, descartar as não usadas.",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_opcao_a_parte_2_sketchup_native.py",
+   "test_opcao_a_parte_3_sketchup_native.py",
+   "test_opcao_a_parte_7_sketchup_native.py",
+   "test_skp_synthetic.py",
+   "test_skp_topology_writer.py"
+  ],
+  "rotas_ou_app": [
+   "app/repositories/draw_repository.py",
+   "app/repositories/skp_engine_repository.py",
+   "app/routes/draw_router.py",
+   "app/routes/scene_router.py",
+   "app/schemas/draw.py",
+   "app/schemas/scene.py",
+   "app/services/scene_service.py"
+  ],
+  "usado_por_core": [
+   "advanced_selection_engine.py",
+   "cena.py",
+   "color_by_tag_engine.py",
+   "entity_metrics_inspector_engine.py",
+   "generate_report_engine.py",
+   "ifc_classification_engine.py",
+   "mesh_extractor.py",
+   "model.py",
+   "purge_unused_engine.py",
+   "pushpull.py",
+   "skp_binary_reader.py",
+   "skp_hidden_pruner.py",
+   "skp_topology_writer.py",
+   "su_api.py",
+   "tag_folder_engine.py"
+  ],
   "usa_dll": false,
   "alertas": []
  },
@@ -3452,9 +3560,11 @@
   "linhas": 114,
   "funcoes": 2,
   "descricao": "SketchBuild - Motor de Reexibição de Entidades Ocultas (Zero DLL / Pure Python)",
-  "selo": "ORFAO",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_e.py"
+  ],
   "rotas_ou_app": [],
   "usado_por_core": [],
   "usa_dll": false,
