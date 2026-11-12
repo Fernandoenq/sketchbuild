@@ -85,6 +85,8 @@ class Face:
     outer: List[int]
     holes: List[List[int]] = field(default_factory=list)
     normal: Point = (0.0, 0.0, 1.0)
+    frente: Optional[str] = None  # nome do material (chave de Topology.materiais)
+    verso: Optional[str] = None
 
     def loops(self) -> List[List[int]]:
         return [self.outer] + self.holes
@@ -101,6 +103,8 @@ class Topology:
         # Só metadado para gravar o registro 0x1397; se uma aresta membro sumir ou for dividida, a curva é ignorada.
         self.curvas: Dict[int, dict] = {}
         self._cid = Contador()
+        # materiais: nome -> {"rgb": (r, g, b), "alpha": 0-255}. Faces apontam por nome (Face.frente / Face.verso).
+        self.materiais: Dict[str, dict] = {}
 
     # -- consulta ---------------------------------------------------------------
 

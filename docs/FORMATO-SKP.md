@@ -103,11 +103,34 @@ Validação: `tools/su_curvas.py` (SUEntitiesGetArcCurves) relê raio, centro, n
 
 Assunções: (1) ângulo inicial sempre 0 e X = direção do ponto inicial, o que o SketchUp faz nos arquivos gerados pela API; se o Ruby gravar outro X com ângulo inicial diferente, a geometria é a mesma; (2) a posição do id da curva no espaço de ids (aqui, depois das faces) não afeta a leitura pela DLL; (3) vários arcos dentro de um mesmo `0x1397` não foi confirmado em arquivo do SketchUp real.
 
+## 7c. Material de cor na face — decifrado em 11/11/2026
+
+Um material tem duas partes, e a cor mora só na segunda:
+
+1. `model.dat`: `0x01f7 > 0x30d4 > 0x30d5 > 0x32c8` (um por material; `0x01f7` já existe vazio no modelo em branco):
+   ```
+   0x32c8
+     0x05dc > 0x05de   id do material (mesmo espaço de ids da geometria)
+     0x32cc            nome em UTF-8 (sem terminador)
+     0x32ca [u8]       0 (só observado 0 = cor sólida, sem textura)
+     0x32cb [0]        vazio
+   ```
+2. ZIP: entrada `materials/<nome>/material.xml` (antes de `materials/Layer_Layer0`). O XML leva `colorRed/Green/Blue`, `trans` (= 1 - alpha/255; 0.5 quando opaco), `useTrans` (1 se alpha < 255) e `pbrPromoState` (0 opaco, 2 com alpha). O resto do XML é fixo (bloco `mat:pbrMR` padrão). Barra e outros caracteres inválidos no nome viram `_` no nome da entrada.
+
+Na face: frente = `0x07d1 [id]` dentro de `0x07d0` (entre `0x05dc` e `0x07d3`); verso = `0x0daf [id]` direto no registro da face, antes de `0x0dad`. O inteiro de integridade do cabeçalho precisa ser refeito porque entram entradas novas no ZIP (o writer já faz).
+
+Como foi descoberto: `tools/tlv_diff.py` entre arquivos gerados pela SketchUpAPI (sem material, vermelho, azul, vermelho+verso verde). Pintar pela API sem `SUModelAddMaterials` NÃO grava a cor: o material sai como `_auto_` sem XML.
+
+Validação: a SketchUpAPI relê cor da frente, cor e alpha do verso (`test_material_frente_e_verso_com_alpha`).
+
+Assunções: (1) nomes não ASCII entram no ZIP em UTF-8 com o flag de nome UTF-8 do Python; o SketchUp grava os bytes crus sem o flag, não testado no SketchUp real; (2) material com textura (`hasTexture=1`, imagem no ZIP) não decifrado; (3) o flag de face 0x46 (Ruby) contra 0x06 (API) segue sem efeito conhecido.
+
 ## 8. O que ainda não está mapeado (próximos passos do REA)
 
 | Tópico | Estado |
 |---|---|
-| Material frontal e do verso na face | não observado (receitas sem material) |
+| Material de cor, frente e verso | decifrado na seção 7c |
+| Material com textura (imagem) | não decifrado |
 | Curva de arco (`0x1397`, `0x0bbb`) | decifrado na seção 7b e gravado pelo writer |
 | Curva simples (`0x1396`, polígono/mão livre): só `0x4a38`, sem `0x4c2d` | observado, ainda não gravado |
 | Arestas suaves e lisas, na face e na aresta | flags conhecidas, efeito na malha não verificado |

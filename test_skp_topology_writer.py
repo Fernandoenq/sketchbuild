@@ -150,6 +150,38 @@ class TestGravadorDeTopologia(unittest.TestCase):
         gravar_topologia(t, p)
         self.assertEqual(curvas(p), [])
 
+    def test_material_frente_e_verso_com_alpha(self):
+        """Seção 7c do FORMATO-SKP.md: 0x07d1 (frente), 0x0daf (verso), 0x32c8 e material.xml no ZIP."""
+        import ctypes
+        from core.su_types import SUMaterialRef, SUColor
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        t.materiais = {"Vermelho": {"rgb": (255, 0, 0)}, "Verde Folha": {"rgb": (1, 200, 3), "alpha": 100}}
+        f = next(iter(t.faces.values()))
+        f.frente, f.verso = "Vermelho", "Verde Folha"
+        p = os.path.join(self.tmp.name, "mat.skp")
+        gravar_topologia(t, p)
+        verificar_skp(p)
+        m = _api.open_model(p)
+        try:
+            face = _api.get_faces(m.get_entities())[0]
+            self.assertEqual(_api.get_face_color(face), [255, 0, 0])
+            mt = SUMaterialRef()
+            self.assertEqual(_api._dll.SUFaceGetBackMaterial(face, ctypes.byref(mt)), 0)
+            self.assertEqual(_api._material_rgb(mt), [1, 200, 3])
+            c = SUColor()
+            _api._dll.SUMaterialGetColor(mt, ctypes.byref(c))
+            self.assertEqual(c.alpha, 100)
+        finally:
+            m.close()
+
+    def test_material_nao_definido_e_recusado(self):
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))
+        next(iter(t.faces.values())).frente = "Fantasma"
+        with self.assertRaises(ValueError):
+            gravar_topologia(t, os.path.join(self.tmp.name, "x.skp"))
+
     def test_modelo_vazio(self):
         p = os.path.join(self.tmp.name, "vazio.skp")
         gravar_topologia(Topology(), p)

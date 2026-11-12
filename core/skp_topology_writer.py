@@ -37,8 +37,49 @@ def _id_bytes(n: int) -> bytes:
     return n.to_bytes(w, "little")
 
 
-def _cabecalho(id_: int, flags: int) -> bytes:
-    return _rec(0x07D0, _rec(0x05DC, _rec(0x05DE, _id_bytes(id_))) + _rec(0x07D3, bytes([flags])))
+def _cabecalho(id_: int, flags: int, material: Optional[int] = None) -> bytes:
+    mat = _rec(0x07D1, _id_bytes(material)) if material is not None else b""
+    return _rec(0x07D0, _rec(0x05DC, _rec(0x05DE, _id_bytes(id_))) + mat + _rec(0x07D3, bytes([flags])))
+
+
+def nome_seguro(nome: str) -> str:
+    """Nome do diretório do material no ZIP: o SketchUp troca '/' por '_'."""
+    return "".join("_" if c in INVALIDOS else c for c in nome)
+
+
+INVALIDOS = '/\\:*?"<>|'
+
+_XML_MATERIAL = (
+    '<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n'
+    '<materialDocument xmlns="http://sketchup.google.com/schemas/sketchup/1.0/material" '
+    'xmlns:mat="http://sketchup.google.com/schemas/sketchup/1.0/material">\n'
+    '  <mat:material name=%s type="0" workflow="0" colorRed="%d" colorGreen="%d" colorBlue="%d" colorizeType="0" '
+    'trans="%s" useTrans="%d" pbrPromoState="%d" hasTexture="0">\n'
+    '    <mat:pbrMR xScale="1" yScale="1">\n'
+    '      <mat:enable_metalness>0</mat:enable_metalness>\n'
+    '      <mat:enable_roughness>0</mat:enable_roughness>\n'
+    '      <mat:roughness_texture_invert>0</mat:roughness_texture_invert>\n'
+    '      <mat:enable_normal>0</mat:enable_normal>\n'
+    '      <mat:enable_occlusion>0</mat:enable_occlusion>\n'
+    '      <mat:metallicFactor>1</mat:metallicFactor>\n'
+    '      <mat:roughnessFactor>1</mat:roughnessFactor>\n'
+    '      <mat:normalMapStyle>1</mat:normalMapStyle>\n'
+    '      <mat:normalScale>1</mat:normalScale>\n'
+    '      <mat:occlusionStrength>1</mat:occlusionStrength>\n'
+    '      <mat:baseColorFactor>4294967295</mat:baseColorFactor>\n'
+    '    </mat:pbrMR>\n'
+    '  </mat:material>\n'
+    '</materialDocument>\n'
+)
+
+
+def xml_material(nome: str, rgb: Tuple[int, int, int], alpha: int = 255) -> bytes:
+    """materials/<nome>/material.xml no formato observado em arquivos da SketchUpAPI (docs/FORMATO-SKP.md, seção 7c)."""
+    from xml.sax.saxutils import quoteattr
+    usa = alpha < 255
+    trans = repr(1 - alpha / 255) if usa else "0.5"
+    corpo = _XML_MATERIAL % (quoteattr(nome), rgb[0], rgb[1], rgb[2], trans, 1 if usa else 0, 2 if usa else 0)
+    return corpo.encode("utf-8")
 
 
 def _so_id(id_: int) -> bytes:
@@ -101,6 +142,14 @@ def montar_entidades(t: Topology, primeiro_id: int) -> Tuple[Dict[str, bytes], i
     for c in sorted(curvas):
         cid_[c] = prox
         prox += 1
+    usados = sorted({n for f in t.faces.values() for n in (f.frente, f.verso) if n})
+    for n in usados:
+        if n not in getattr(t, "materiais", {}):
+            raise ValueError(f"material {n!r} usado numa face mas não definido em Topology.materiais")
+    mid: Dict[str, int] = {}
+    for n in usados:
+        mid[n] = prox
+        prox += 1
     curva_da_aresta = {e: cid_[c] for c, d in curvas.items() for e in d["arestas"]}
 
     verts = b"".join(
@@ -130,10 +179,17 @@ def montar_entidades(t: Topology, primeiro_id: int) -> Tuple[Dict[str, bytes], i
                 sentido = 0 if t.edges[e] == (v, w) else 1
                 itens += _rec(0x0FA0, _rec(0x0FA1, _id_bytes(eid[e])) + _rec(0x0FA2, bytes([sentido])))
             corpo += _rec(0x1194, _rec(0x1195, itens))
+        fc = t.faces[f]
         faces += _rec(
             0x0DAC,
-            _cabecalho(fid_[f], FLAGS_FACE) + _rec(0x0DAD, struct.pack("<4d", *plano)) + _rec(0x0DAE, corpo),
+            _cabecalho(fid_[f], FLAGS_FACE, mid[fc.frente] if fc.frente else None)
+            + (_rec(0x0DAF, _id_bytes(mid[fc.verso])) if fc.verso else b"")
+            + _rec(0x0DAD, struct.pack("<4d", *plano)) + _rec(0x0DAE, corpo),
         )
+    reg_materiais = b"".join(
+        _rec(0x32C8, _so_id(mid[n]) + _rec(0x32CC, n.encode("utf-8")) + _rec(0x32CA, bytes([0])) + _rec(0x32CB, b""))
+        for n in usados
+    )
     reg_curvas = b""
     for c in sorted(curvas):
         d = curvas[c]
@@ -145,7 +201,7 @@ def montar_entidades(t: Topology, primeiro_id: int) -> Tuple[Dict[str, bytes], i
     caixa = None
     if pts:
         caixa = (tuple(min(p[k] for p in pts) for k in range(3)), tuple(max(p[k] for p in pts) for k in range(3)))
-    return {"vertices": verts, "arestas": arestas, "faces": faces, "tabela": tabela, "curvas": reg_curvas}, prox, caixa
+    return {"vertices": verts, "arestas": arestas, "faces": faces, "tabela": tabela, "curvas": reg_curvas, "materiais": reg_materiais}, prox, caixa
 
 
 def _base_vazia(destino: str) -> None:
@@ -162,6 +218,20 @@ def _base_vazia(destino: str) -> None:
             m.close()
     finally:
         api.terminate()
+
+
+def _com_materiais(dat: bytes, rec: Tuple[int, int, int], novos: bytes) -> bytes:
+    """Acrescenta registros 0x32c8 em 0x01f7 > 0x30d4 > 0x30d5 (lista de materiais do modelo)."""
+    a, l, p = rec
+    nivel1 = _parse(dat, p + 6, p + 6 + l)
+    if len(nivel1) != 1 or nivel1[0][0] != 0x30D4:
+        raise ValueError("estrutura inesperada em 0x01f7 (esperado 0x30d4)")
+    _, l2, p2 = nivel1[0]
+    nivel2 = _parse(dat, p2 + 6, p2 + 6 + l2)
+    if len(nivel2) != 1 or nivel2[0][0] != 0x30D5:
+        raise ValueError("estrutura inesperada em 0x30d4 (esperado 0x30d5)")
+    _, l3, p3 = nivel2[0]
+    return _rec(0x01F7, _rec(0x30D4, _rec(0x30D5, dat[p3 + 6:p3 + 6 + l3] + novos)))
 
 
 def _ler_contador(m: bytes, rec_5f1: Tuple[int, int, int]) -> int:
@@ -188,8 +258,9 @@ def gravar_topologia(t: Topology, destino: str, base: Optional[str] = None) -> D
         if off < 0:
             raise ValueError("a base não é um .skp VFF (sem ZIP)")
         prefixo = cab[:off]
-        zin = zipfile.ZipFile(base)
-        dat = zin.read("model.dat")
+        with zipfile.ZipFile(base) as zin:  # lê tudo e solta o arquivo (no Windows ele travaria a limpeza em caso de erro)
+            entradas = [(info, zin.read(info.filename)) for info in zin.infolist()]
+        dat = next(c for i, c in entradas if i.filename == "model.dat")
 
         ext = _parse(dat, 0, len(dat))
         if len(ext) != 1 or ext[0][0] != 0x01F4:
@@ -246,20 +317,30 @@ def gravar_topologia(t: Topology, destino: str, base: Optional[str] = None) -> D
                 externo += n_raiz
             elif a == 0x01F5:
                 externo += contador
+            elif a == 0x01F7 and reg["materiais"]:
+                externo += _com_materiais(dat, (a, l, p), reg["materiais"])
             else:
                 externo += dat[p:p + 6 + l]
         novo_dat = _rec(0x01F4, externo)
 
+        usados = {n for f in t.faces.values() for n in (f.frente, f.verso) if n}
+        inseridos = not usados
         zip_tmp = os.path.join(tmp, "novo.zip")
         with zipfile.ZipFile(zip_tmp, "w", allowZip64=True) as zout:
-            for info in zin.infolist():
+            for info, conteudo in entradas:
                 if info.filename == "model.dat":
                     zi = zipfile.ZipInfo("model.dat", date_time=info.date_time)
                     zi.compress_type = zipfile.ZIP_DEFLATED
                     zout.writestr(zi, novo_dat)
                 else:
-                    zout.writestr(info, zin.read(info.filename), compress_type=zipfile.ZIP_DEFLATED)
-        zin.close()
+                    if not inseridos and info.filename.startswith("materials/"):
+                        for nome, m in sorted(t.materiais.items()):
+                            if nome in usados:
+                                zout.writestr(f"materials/{nome_seguro(nome)}/material.xml",
+                                              xml_material(nome, tuple(m["rgb"]), m.get("alpha", 255)),
+                                              compress_type=zipfile.ZIP_DEFLATED)
+                        inseridos = True
+                    zout.writestr(info, conteudo, compress_type=zipfile.ZIP_DEFLATED)
         with zipfile.ZipFile(zip_tmp) as zchk:
             integ = valor_integridade([i.CRC for i in zchk.infolist()])
         os.makedirs(os.path.dirname(os.path.abspath(destino)), exist_ok=True)
