@@ -19,7 +19,7 @@ class _Ref(ctypes.Structure):
 
 P = ctypes.POINTER
 # nome -> (byte da estrutura SUComponentBehavior, valor): 0 snap, 4 corta abertura, 5 face-me, 6 sombra segue o sol
-VARIACOES = {"base": None, "facame": (5, 1), "corta": (4, 1), "sombra": (6, 1), "snap1": (0, 1), "snap2": (0, 2)}
+VARIACOES = {"base": None, "facame": (5, 1), "corta": (4, 1), "sombra": (6, 1), "snap1": (0, 1), "snap2": (0, 2), "snap3": (0, 3), "snap4": (0, 4)}
 
 
 def gerar(pasta: str, nome: str, api: SketchUpAPI) -> str:

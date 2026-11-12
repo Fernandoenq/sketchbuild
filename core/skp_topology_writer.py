@@ -185,7 +185,7 @@ def _registro_texto(ident: int, c: dict) -> bytes:
 
 def _comportamento(c: dict) -> bytes:
     """Registro 0x1b58 do comportamento do componente (FORMATO-SKP 7m); sem `c` = tudo desligado."""
-    return _rec(0x1B58, _rec(0x1B59, struct.pack("<I", 0)) + _rec(0x1B5A, struct.pack("<I", 0)) + _rec(0x1B5B, bytes([0]))
+    return _rec(0x1B58, _rec(0x1B59, struct.pack("<I", max(int(c.get("snap", 0)) - 1, 0))) + _rec(0x1B5A, struct.pack("<I", 0)) + _rec(0x1B5B, bytes([1 if c.get("snap", 0) else 0]))
                 + _rec(0x1B5C, bytes([1 if c.get("corta_abertura") else 0])) + _rec(0x1B5D, bytes([1 if c.get("face_me") else 0]))
                 + _rec(0x1B5E, bytes([1 if c.get("sombra_sol") else 0])))
 

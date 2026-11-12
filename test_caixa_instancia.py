@@ -235,7 +235,8 @@ class TestComportamentoDoComponente(unittest.TestCase):
     def test_registro_igual_ao_da_sdk_e_caixa_face_me_igual(self):
         import tempfile
         from core.skp_topology_writer import gravar_cena
-        casos = {"base": {}, "facame": dict(face_me=True), "corta": dict(corta_abertura=True), "sombra": dict(sombra_sol=True)}
+        casos = {"base": {}, "facame": dict(face_me=True), "corta": dict(corta_abertura=True), "sombra": dict(sombra_sol=True),
+                  "snap1": dict(snap=1), "snap2": dict(snap=2), "snap3": dict(snap=3), "snap4": dict(snap=4)}
         gerado = os.path.join(os.path.expanduser("~"), "sketchup_gerados", "comport")
         with tempfile.TemporaryDirectory() as d:
             for nome, args in casos.items():

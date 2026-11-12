@@ -59,15 +59,17 @@ class Cena:
         return len(self.cenas) - 1
 
     def definir_comportamento(self, definicao: int, face_me: bool = False, corta_abertura: bool = False,
-                              sombra_sol: bool = False) -> None:
-        """Comportamento do componente: sempre olha para a câmera, corta abertura, sombra segue o sol."""
+                              sombra_sol: bool = False, snap: int = 0) -> None:
+        """Comportamento do componente: sempre olha para a câmera, corta abertura, sombra segue o sol; snap 0-4 (nenhum, qualquer, horizontal, vertical, inclinado)."""
+        if not 0 <= snap <= 4:
+            raise ValueError("snap vai de 0 a 4")
         if definicao not in self.defs or definicao == 0:
             raise ValueError(f"definição {definicao} não existe ou é a raiz")
         usos = [i for i in self.instancias.values() if i.definicao == definicao]
         if not usos or any(i.tipo != "componente" for i in usos):
             raise ValueError("só componentes têm comportamento (grupo não)")
         self.comportamento[definicao] = {"face_me": bool(face_me), "corta_abertura": bool(corta_abertura),
-                                         "sombra_sol": bool(sombra_sol)}
+                                         "sombra_sol": bool(sombra_sol), "snap": int(snap)}
 
     # -- definição ativa -------------------------------------------------------------
 

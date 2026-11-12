@@ -384,9 +384,9 @@ Oráculo: `tools/gerar_comportamento_api.py` (`SUComponentDefinitionSetBehavior`
 
 ```
 0x1b58 [reg]  comportamento (cauda da definição, antes de 0x1585)
-  0x1b59 [u32]  0    (ligado ao snap; não decifrado)
-  0x1b5a [u32]  0    (idem)
-  0x1b5b [u8]   0    (idem)
+  0x1b59 [u32]  tipo do snap menos 1 (0 se sem snap): 0 qualquer, 1 horizontal, 2 vertical, 3 inclinado
+  0x1b5a [u32]  0    (nunca mudou nas 8 variações; sem teste)
+  0x1b5b [u8]   snap ligado (1 se `SUSnapTo` ≠ nenhum)
   0x1b5c [u8]   cortar abertura (cuts_opening)
   0x1b5d [u8]   sempre de frente para a câmera (always_face_camera)
   0x1b5e [u8]   sombra segue o sol (shadows_face_sun)
@@ -394,5 +394,5 @@ Oráculo: `tools/gerar_comportamento_api.py` (`SUComponentDefinitionSetBehavior`
 
 - Núcleo: `Cena.definir_comportamento(definicao, face_me, corta_abertura, sombra_sol)`; só componentes (grupo e raiz dão erro).
 - Gravador: `_comportamento(...)` reproduz byte a byte o registro da SDK nos quatro casos; com `face_me` a caixa `0x13a0` da raiz usa a fórmula face-me (seção 7).
-- **Pendências:** `0x1b59`/`0x1b5a`/`0x1b5b` (snap) não decifrados; comportamento não aparece no front; só conferido com giro em z e escala 1.
+- **Pendências:** `0x1b5a` nunca variou; comportamento não aparece no front; só conferido com giro em z e escala 1.
 
