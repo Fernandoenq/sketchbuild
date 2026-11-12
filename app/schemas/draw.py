@@ -154,6 +154,18 @@ class SoftenRequest(BaseModel):
     limpar: bool = False  # tira suave e lisa das arestas dadas
 
 
+class SolidoRequest(BaseModel):
+    acao: Literal["verificar", "uniao", "subtracao", "intersecao"]
+    a: list[int] = Field(min_length=1)  # faces do primeiro sólido
+    b: list[int] = Field(default_factory=list)  # faces do segundo (obrigatório nas operações)
+
+
+class SolidoResponse(BaseModel):
+    solido: bool
+    volume: float | None = None
+    faces: list[int] = Field(default_factory=list)  # faces do resultado (operações)
+
+
 class SelecaoRequest(BaseModel):
     acao: Literal["tudo", "inverter", "arestas_das_faces", "faces_das_arestas", "conectados", "tag", "material",
                   "janela", "cruzamento"]

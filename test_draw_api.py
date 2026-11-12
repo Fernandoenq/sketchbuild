@@ -5,7 +5,7 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest
+from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SolidoRequest, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest
 
 
 def _tem_pillow():
@@ -264,6 +264,40 @@ class TestDrawController(unittest.TestCase):
                 run(self.c.selecionar(corpo))
         with self.assertRaises(HTTPException):
             run(self.c.desenhar(DrawRequest(ferramenta="arco_3pontos", p0=(0, 0, 0), p1=(1, 0, 0), p2=(2, 0, 0))))
+
+    def _cubo_api(self, x, y, z, s):
+        ids = []
+        for p in ([(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)], [(0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1)],
+                  [(0, 0, 0), (1, 0, 0), (1, 0, 1), (0, 0, 1)], [(0, 1, 0), (1, 1, 0), (1, 1, 1), (0, 1, 1)],
+                  [(0, 0, 0), (0, 1, 0), (0, 1, 1), (0, 0, 1)], [(1, 0, 0), (1, 1, 0), (1, 1, 1), (1, 0, 1)]):
+            pts = [(x + i * s, y + j * s, z + k * s) for i, j, k in p]
+            antes = set(run(self.c.estado()).faces)
+            run(self.c.desenhar(DrawRequest(ferramenta="linha", pontos=pts + [pts[0]])))
+            ids += [int(i) for i in set(run(self.c.estado()).faces) - antes]
+        return sorted(ids)
+
+    def test_solido_verificar_e_operar(self):
+        a = self._cubo_api(0, 0, 0, 10)
+        b = self._cubo_api(5, 5, 5, 10)
+        self.assertEqual((len(a), len(b)), (6, 6))
+        v = run(self.c.solido(SolidoRequest(acao="verificar", a=a)))
+        self.assertTrue(v.solido)
+        self.assertAlmostEqual(v.volume, 1000.0)
+        self.assertFalse(run(self.c.solido(SolidoRequest(acao="verificar", a=a[:5]))).solido)
+        r = run(self.c.solido(SolidoRequest(acao="intersecao", a=a, b=b)))
+        self.assertAlmostEqual(r.volume, 125.0)
+        run(self.c.desfazer())
+        self.assertEqual(len(run(self.c.estado()).faces), 12)  # desfazer volta aos dois cubos
+        with self.assertRaises(HTTPException):
+            run(self.c.solido(SolidoRequest(acao="uniao", a=a)))  # falta o segundo sólido
+
+    def test_solido_coplanar_recusa_e_restaura(self):
+        a = self._cubo_api(0, 0, 0, 10)
+        b = self._cubo_api(10, 0, 0, 10)  # encosta numa face inteira: coplanares
+        antes = run(self.c.estado()).counts
+        with self.assertRaises(HTTPException):
+            run(self.c.solido(SolidoRequest(acao="uniao", a=a, b=b)))
+        self.assertEqual(run(self.c.estado()).counts, antes)
 
     def test_suavizar_por_angulo_e_por_selecao(self):
         j = run(self.c.desenhar(DrawRequest(ferramenta="circulo", centro=(0, 0, 0), raio=50)))

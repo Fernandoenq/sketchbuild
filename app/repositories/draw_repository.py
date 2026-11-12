@@ -17,7 +17,7 @@ from core.topology.draw import desenhar
 from core.topology.edit import escalar, mover, offset, rotacionar, vertices_da_selecao
 from core.topology.material import definir_material, matriz_uv, pintar, posicionar_textura
 from core.topology.pushpull import empurrar
-from core.topology import cotas, guias, selecao, soften
+from core.topology import cotas, guias, selecao, soften, solido
 from core.topology import texto as _texto
 from core.topology.tag import atribuir, atribuir_arestas, definir_tag
 
@@ -317,6 +317,17 @@ class DrawRepository:
 
         _HIST.executar("suavizar", {"arestas": list(arestas), "angulo": angulo}, acao)
         return self.estado()
+
+    def solido(self, acao, a, b=()) -> dict:
+        """Verifica um sólido ou combina dois (união, subtração A-B, interseção); o histórico desfaz se der erro."""
+        if acao == "verificar":
+            ok = solido.eh_solido(_topo(), a)
+            return {"solido": ok, "volume": solido.volume(_topo(), a) if ok else None, "faces": []}
+        if not b:
+            raise ValueError(f"{acao}: informe as faces do segundo sólido (b)")
+        res = _HIST.executar("solido:" + acao, {"a": list(a), "b": list(b)}, lambda: solido.booleana(_topo(), a, b, acao))
+        return {"solido": True, "volume": solido.volume(_topo(), res["faces"]) if res["faces"] else 0.0,
+                "faces": res["faces"]}
 
     def selecionar(self, acao, faces=(), arestas=(), nome=None, matriz=None, retangulo=None) -> dict:
         """Seleção não altera o modelo: fica fora do histórico."""

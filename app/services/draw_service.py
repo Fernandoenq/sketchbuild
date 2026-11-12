@@ -89,3 +89,6 @@ class DrawService:
 
     async def selecionar(self, **params) -> dict:
         return await run_in_threadpool(lambda: self._repository.selecionar(**params))
+
+    async def solido(self, **params) -> dict:
+        return await run_in_threadpool(lambda: self._repository.solido(**params))

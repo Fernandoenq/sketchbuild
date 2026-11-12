@@ -414,6 +414,16 @@ class Topology:
         # No SketchUp, face horizontal em z=0 nasce virada para baixo (golden r02/r03)
         if abs(abs(n[2]) - 1) < 1e-6 and all(abs(p[2]) <= self.tol for p in pts):
             n = (0.0, 0.0, -1.0)
+        fid_novo = None
+        for fid, f in list(self.faces.items()):
+            if self._dividir_por_percurso(f, loop, n):
+                fid_novo = next(self._fid)
+                self.faces[fid_novo] = Face(list(loop), [], n, f.frente, f.verso, f.tag, f.uv)  # herda pintura, tag e UV
+                for h in list(f.holes):  # furo que ficou do lado do laço novo muda de face
+                    if self._point_in_loop(self.verts[h[0]], loop, n):
+                        f.holes.remove(h)
+                        self.faces[fid_novo].holes.append(h)
+                return fid_novo
         host = None
         for fid, f in self.faces.items():
             if set(f.outer) & set(loop) or abs(_dot(n, f.normal)) < 1 - 1e-9:
@@ -429,6 +439,45 @@ class Topology:
         fid = next(self._fid)
         self.faces[fid] = Face(list(loop), [], n)
         return fid
+
+    def _dividir_por_percurso(self, f: Face, loop: List[int], n: Point) -> bool:
+        """Laço novo que divide a face por dentro e encosta no contorno por uma sequência contínua de arestas.
+
+        O laço guarda a parte nova; o contorno da face passa a ser o resto (o trecho compartilhado é trocado pelo caminho
+        interno do laço, de trás para frente). Devolve True se dividiu."""
+        if abs(_dot(n, f.normal)) < 1 - 1e-9 or not set(f.outer) & set(loop):
+            return False
+        if abs(_dot(_sub(self.verts[loop[0]], self.verts[f.outer[0]]), f.normal)) > self.tol:
+            return False
+        k, m = len(loop), len(f.outer)
+        pares = {frozenset((f.outer[i], f.outer[(i + 1) % m])) for i in range(m)}
+        comp = [frozenset((loop[i], loop[(i + 1) % k])) in pares for i in range(k)]
+        if all(comp) or not any(comp) or sum(comp[i] != comp[(i + 1) % k] for i in range(k)) != 2:
+            return False  # sem trecho compartilhado, ou mais de um trecho
+        ini = next(i for i in range(k) if comp[i] and not comp[i - 1])  # primeira aresta compartilhada
+        rot = loop[ini:] + loop[:ini]  # começa em q, percorre o trecho compartilhado até p, volta pelo caminho interno
+        nc = sum(1 for c in (comp[ini:] + comp[:ini]) if c)
+        q, p = rot[0], rot[nc]
+        caminho = rot[nc:] + [rot[0]]  # p ... q pelo lado de dentro
+        interior = caminho[1:-1]
+        if any(v in f.outer for v in interior):
+            return False
+        if not all(self._point_in_loop(self.verts[v], f.outer, f.normal) for v in interior):
+            return False
+        outer = list(f.outer)
+        reverso = False
+        i = outer.index(q)
+        if outer[(i + 1) % m] != rot[1]:
+            outer.reverse()
+            reverso = True
+        i = outer.index(q)
+        outer = outer[i:] + outer[:i]  # q, r1..rk, p, s1..sm
+        j = outer.index(p)
+        resto = outer[j:] + [q] + list(reversed(interior))  # p, s..., q, interior de trás para frente
+        if reverso:
+            resto.reverse()
+        f.outer = resto
+        return True
 
     def _point_in_loop(self, p: Point, lp: Sequence[int], normal: Point) -> bool:
         pts = [self.verts[v] for v in lp]

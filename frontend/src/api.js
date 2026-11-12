@@ -2561,6 +2561,11 @@ export function drawTag(corpo) {
   return postJson("/api/v1/draw/tag", "POST", corpo);
 }
 
+// sólidos: { acao: verificar|uniao|subtracao|intersecao, a: [faces], b: [faces] }; devolve { solido, volume, faces }
+export function drawSolid(corpo) {
+  return postJson("/api/v1/draw/solid", "POST", corpo);
+}
+
 // seleção sem alterar o modelo: { acao, faces, arestas, nome, matriz, retangulo }; devolve { faces, edges, vertices }
 export function drawSelect(corpo) {
   return postJson("/api/v1/draw/select", "POST", corpo);

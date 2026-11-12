@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SelecaoResponse, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest, PushPullRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SelecaoResponse, SolidoRequest, SolidoResponse, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest, PushPullRequest, SceneSummaryResponse
 from app.services.draw_service import DrawService
 
 
@@ -128,6 +128,12 @@ class DrawController:
         try:
             r = await self._service.selecionar(**body.model_dump())
             return SelecaoResponse(faces=r["faces"], edges=r["edges"], vertices=r["vertices"])
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+
+    async def solido(self, body: SolidoRequest) -> SolidoResponse:
+        try:
+            return SolidoResponse(**await self._service.solido(**body.model_dump()))
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
 
