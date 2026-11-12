@@ -400,3 +400,9 @@ Oráculo: `tools/gerar_comportamento_api.py` (`SUComponentDefinitionSetBehavior`
 - Gravador: `_comportamento(...)` reproduz byte a byte o registro da SDK nos quatro casos; com `face_me` a caixa `0x13a0` da raiz usa a fórmula face-me (seção 7).
 - **Pendências:** `0x1b5a` nunca variou; API `POST /api/v1/draw/behavior` e botões Agrupar/Componente/Entrar/Sair/Comportamento no front (Comportamento age no componente em que se entrou; `node --check`, sem teste em navegador); caixa face-me conferida com giros em x/y/z e escala uniforme (escala não uniforme e espelhamento em x ou z também conferidos, 72 casos).
 
+## 7n. Pendências que dependem de insumo externo (12/11/2026)
+
+- **Herança de cor no Push/Pull:** a SDK não tem PushPull; o único oráculo seria um arquivo salvo pelo SketchUp real com uma extrusão de face pintada. Os `.skp` disponíveis na máquina são do projeto Parkelô, vetados por instrução, e os arquivos reais já usados (r03, r04, r10, "Sem nome") não têm essa operação. Segue como assunção (paredes herdam a frente da face puxada); trocar assim que houver um arquivo real.
+- **Teste do front no navegador:** a extensão do Chrome não estava conectada (`tabs_context_mcp` falhou); um servidor isolado na porta 8765 subiu e respondeu 200, e foi encerrado. Verificação feita só com `node --check` e testes de API.
+- **`0x1b5a`:** nunca variou nas 8 variações do `SUComponentBehavior` (snap, corta abertura, face-me, sombra); gravado 0.
+
