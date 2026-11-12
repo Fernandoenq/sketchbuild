@@ -216,8 +216,8 @@ Núcleo: `Topology.guias`, `Topology.secoes` e `core/topology/guias.py` (`guia_p
 ## 7i. Lacunas que a SketchUpAPI desta instalação não deixa decifrar (12/11/2026)
 
 Tentativas com falha, para ninguém repetir sem outra fonte:
-- **Textura posicionada (UV):** `SUGeometryInputFaceSetFrontMaterial` dá violação de acesso (0x93), com ou sem UV (`tools/gerar_uv_api.py`). Sem oráculo; a textura é gravada com a projeção padrão.
-- **Texto:** `SUTextSetPoint` dá violação de acesso (0x6), repetido em 12/11/2026 com `argtypes` explícitos, com os três tipos de linha de chamada (0, 1, 2) e com o texto já adicionado ao modelo antes (mesmo endereço 0x6: ponteiro interno nulo) e um texto sem ponto falha ao salvar (`SU_ERROR_SERIALIZATION`).
+- **Textura posicionada (UV):** RESOLVIDO em 12/11/2026, ver a seção 7j. O crash era a ordem dos campos de `SUMaterialInput` (o material vai por último, offset 0x68), descoberta lendo a DLL no REA.
+- **Texto (causa do crash achada em 12/11/2026 pelo REA da DLL):** `SUTextSetPoint(texto, ponto, caminho_de_instância)` tem TRÊS parâmetros; o terceiro é opcional (NULL = ponto no espaço do modelo) e eu passava só dois, deixando lixo no registrador. Com o terceiro NULL a chamada funciona, mas o `.skp` ainda não salva (`SU_ERROR_SERIALIZATION`) com nenhum tipo de linha de chamada nem vetor; falta algum campo obrigatório do texto. Histórico da tentativa anterior: `SUTextSetPoint` dá violação de acesso (0x6), repetido em 12/11/2026 com `argtypes` explícitos, com os três tipos de linha de chamada (0, 1, 2) e com o texto já adicionado ao modelo antes (mesmo endereço 0x6: ponteiro interno nulo) e um texto sem ponto falha ao salvar (`SU_ERROR_SERIALIZATION`).
 - **Cota linear:** `SUDimensionLinearCreate` dá violação de acesso (0x5).
 - O arquivo real do Fernando que tem `0x1399` (registro desconhecido com materiais referenciados, `0x5bcc`/`0x59d8`/`0x5208`) pode ser texto/cota/imagem; sem rótulo não dá para afirmar.
 Tentativa de gerar esses arquivos no SketchUp 2026 real, sem ninguém na frente (12/11/2026): `SketchUp.exe -RubyStartup script.rb` abre o programa mas o script não roda (nenhum log, nenhum arquivo em 5 minutos); a instância foi fechada. Para usar o SketchUp real é preciso abri-lo à mão e carregar o script pelo Console Ruby, como em `ruby_bridge/f0_receitas.rb`. O script pronto está em `ruby_bridge/gerar_anotacoes_reais.rb` (texto, cota, textura posicionada, instâncias a 0/90/33° e grupo).
@@ -279,3 +279,37 @@ Assunções: (1) vários grupos num mesmo `0x138d` (cada um num `0x1d4c`) e vár
 2. `0x07d3 = 0x46` na face: bit `0x40` desconhecido (presente em todas as faces observadas).
 3. O contador `0x03e9` precisa ser maior que qualquer id; se isso for violado o SketchUp pode recusar ou reaproveitar ids.
 4. A caixa limite precisa ser recalculada; um valor velho provavelmente só afeta o zoom, não a abertura (a confirmar).
+
+## 7j. Textura posicionada (UV) por face `0x2710` — decifrada em 12/11/2026
+
+Oráculo: `tools/gerar_uv_api.py` (SketchUpAPI, `SUGeometryInputFaceSetFrontMaterial` com `SUMaterialInput` = `num_uv_coords`, `uv_coords[4]`, `vertex_indices[4]`, `material`; 112 bytes, material por último). Comparação com `tools/tlv_diff.py` entre a face com textura padrão e com UV: a face sem posicionamento não tem `0x2710`.
+
+Lugar: dentro do cabeçalho da face, `0x07d0 > 0x05dc > 0x05dd > 0x36b1 > 0x36b2 > 0x2710`:
+
+```
+0x2710
+  0x36b0               vazio
+  0x2711               frente
+    0x2713
+      0x2714 [u32]     1 (frente posicionada)
+      0x2715 [72]      matriz 3x3 em f64, por linhas
+      0x2716 [24]      3 x f64 = 0 (significado desconhecido; sempre 0 nos casos testados)
+      0x2717           vazio
+  0x2712               verso (sem posicionamento)
+    0x2713
+      0x2714 [u32]     0
+      0x2715 [72]      identidade
+      0x2716 [24]      zeros
+      0x2717           vazio
+```
+
+**Matriz** `M` (linhas `[a b 0] [c d 0] [tx ty 1]`): `[u v 1] * M = [x y 1]`, isto é, leva a coordenada de textura ao plano da face. Conferido em quatro casos num quadrado de 100 pol no plano z=0 (normal +z), com UV nos cantos (0,0), (100,0), (100,100), (0,100):
+
+| UV nos cantos | `M` |
+|---|---|
+| (0,0) (2,0) (2,2) (0,2) | `diag(50, 50, 1)`; 50 = tamanho do ladrilho em polegadas |
+| mesmo com 4 em vez de 2 | `diag(25, 25, 1)` |
+| deslocado (0,25; 0,5) | `diag(50, 50, 1)` com `tx = -12,5` e `ty = -25` (`-u0 * 50`, `-v0 * 50`) |
+| (0,0) (0,2) (-2,2) (-2,0) | `[[0,-50,0],[50,0,0],[0,0,1]]` (`u = -y/50`, `v = x/50`) |
+
+**Pendente:** eixos x/y do plano em face inclinada (aqui sempre x e y do mundo); UV com perspectiva (4 pontos que não formam transformação afim; a SketchUpAPI só aceita o par de cantos); `0x2716`; textura posicionada no verso; escrita pelo gravador (próximo passo).

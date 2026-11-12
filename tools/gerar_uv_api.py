@@ -3,9 +3,8 @@
   uv_padrao.skp  face texturizada sem UV explícito (projeção padrão)
   uv_posic.skp   mesma face com UV (0,0)-(2,0)-(2,2)-(0,2) e outra com (0,0)-(1,0)-(1,1)-(0,1)
 
-NOTA (12/11/2026): `SUGeometryInputFaceSetFrontMaterial` derruba a SketchUpAPI desta instalação com violação de acesso
-(0x93) mesmo com a estrutura SUMaterialInput do SDK; por isso o REA de textura posicionada (UV) ficou sem oráculo. A
-ferramenta fica para quando houver outra DLL ou um arquivo real do SketchUp com textura posicionada.
+NOTA (12/11/2026): o crash antigo era a ordem dos campos de SUMaterialInput. Lida no REA da SketchUpAPI.dll (112 bytes):
+num_uv_coords, uv_coords[4] (pares u,v), vertex_indices[4] e, por último, o material (offset 0x68).
 
 Uso:  py -3.12 tools/gerar_uv_api.py PASTA  e depois  tools/tlv_diff.py uv_padrao.skp uv_posic.skp
 """
@@ -29,12 +28,14 @@ class _P2(ctypes.Structure):
 
 
 class _MatInput(ctypes.Structure):
-    _fields_ = [("material", _Ref), ("num_uv_coords", ctypes.c_size_t), ("uv_coords", _P2 * 4), ("vertex_indices", ctypes.c_size_t * 4)]
+    # ordem lida no REA da SketchUpAPI.dll (112 bytes; o material fica no offset 0x68, por último)
+    _fields_ = [("num_uv_coords", ctypes.c_size_t), ("uv_coords", _P2 * 4), ("vertex_indices", ctypes.c_size_t * 4), ("material", _Ref)]
 
 
-def gerar(pasta: str, com_uv: bool, escala: float = 2.0) -> str:
+def gerar(pasta: str, com_uv: bool, escala: float = 2.0, uvs=None, nome: str = None) -> str:
+    """`uvs` = 4 pares (u, v) para os cantos (0,0),(100,0),(100,100),(0,100); padrão: ladrilho de 100/escala."""
     os.makedirs(pasta, exist_ok=True)
-    destino = os.path.join(pasta, "uv_posic.skp" if com_uv else "uv_padrao.skp")
+    destino = os.path.join(pasta, nome or ("uv_posic.skp" if com_uv else "uv_padrao.skp"))
     api = SketchUpAPI()
     api.initialize()
     d = api._dll
@@ -77,8 +78,8 @@ def gerar(pasta: str, com_uv: bool, escala: float = 2.0) -> str:
         if com_uv:
             mi = _MatInput()
             mi.material = mat
-            mi.num_uv_coords = 4 if os.environ.get('UV0') is None else 0
-            for i, (u, v) in enumerate(((0, 0), (escala, 0), (escala, escala), (0, escala))):
+            mi.num_uv_coords = 4
+            for i, (u, v) in enumerate(uvs or ((0, 0), (escala, 0), (escala, escala), (0, escala))):
                 mi.uv_coords[i] = _P2(u, v)
                 mi.vertex_indices[i] = i
             d.SUGeometryInputFaceSetFrontMaterial.argtypes = [_Ref, ctypes.c_size_t, P(_MatInput)]
@@ -102,3 +103,7 @@ if __name__ == "__main__":
     pasta = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.expanduser("~"), "sketchup_gerados", "uv")
     print(gerar(pasta, False))
     print(gerar(pasta, True))
+    # variantes para fixar a convenção da matriz (cantos (0,0),(100,0),(100,100),(0,100) do quadrado de 100)
+    print(gerar(pasta, True, nome="uv_escala4.skp", uvs=((0, 0), (4, 0), (4, 4), (0, 4))))
+    print(gerar(pasta, True, nome="uv_desloc.skp", uvs=((0.25, 0.5), (2.25, 0.5), (2.25, 2.5), (0.25, 2.5))))
+    print(gerar(pasta, True, nome="uv_rot90.skp", uvs=((0, 0), (0, 2), (-2, 2), (-2, 0))))
