@@ -20,6 +20,7 @@ import tempfile
 import zipfile
 from typing import Dict, List, Optional, Sequence, Tuple
 
+from core.caixa_instancia import caixa_instancia
 from core.skp_hidden_pruner import HEADER, _parse, valor_integridade
 from core.topology.model import Topology, _cross, _dot, _newell, _norm, _sub, _unit
 
@@ -182,6 +183,34 @@ def _registro_texto(ident: int, c: dict) -> bytes:
                 + _rec(0x55F7, struct.pack("<3d", 0.0, 0.0, 1.0)) + _rec(0x55F8, bytes([0])) + _rec(0x55F9, bytes([c["fonte"]]))
                 + _rec(0x55FA, struct.pack("<I", c["seta"])) + _rec(0x55FB, struct.pack("<I", 1)) + _rec(0x55FC, bytes([1]))
                 + _rec(0x55FD, struct.pack("<I", c["tipo"])) + _rec(0x55FE, struct.pack("<I", 0)))
+
+
+def _pontos_da_definicao(cena, did: int) -> List[Tuple[float, float, float]]:
+    """Vértices da definição mais os cantos das caixas das instâncias que ela contém (recursivo)."""
+    pts = list(cena.defs[did].verts.values())
+    for i in cena.instancias.values():
+        if i.pai == did:
+            interno = _pontos_da_definicao(cena, i.definicao)
+            if interno:
+                lo, hi = caixa_instancia(interno, i.transformacao)
+                pts += [lo, hi]
+    return pts
+
+
+def _caixa_com_instancias(cena, caixa):
+    """Caixa limite da raiz: geometria solta mais as instâncias da raiz (FORMATO-SKP 7; core/caixa_instancia.py).
+
+    O gravador não grava o comportamento "sempre olha para a câmera", então as instâncias são comuns."""
+    pts = [] if caixa is None else [caixa[0], caixa[1]]
+    for i in cena.instancias.values():
+        if i.pai == 0:
+            interno = _pontos_da_definicao(cena, i.definicao)
+            if interno:
+                lo, hi = caixa_instancia(interno, i.transformacao)
+                pts += [lo, hi]
+    if not pts:
+        return None
+    return (tuple(min(p[k] for p in pts) for k in range(3)), tuple(max(p[k] for p in pts) for k in range(3)))
 
 
 def _so_id(id_: int) -> bytes:
@@ -661,6 +690,7 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
             reg, prox, caixa = montar_entidades(t, primeiro_geo, mid_global, tid_global)
             reg["materiais"] = b"".join(registro_material(mid_global[n], n, definidos[n]) for n in nomes)
             defs_bytes, (inst_comp, inst_grup, inst_ids), prox = _montar_cena(cena, prox, mid_global, tid_global)
+            caixa = _caixa_com_instancias(cena, caixa)
             todos_materiais = definidos
         else:
             reg, prox, caixa = montar_entidades(t, primeiro, tid=tid_global)

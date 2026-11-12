@@ -125,5 +125,77 @@ class TestCaixaContraASdk(unittest.TestCase):
                         self.assertAlmostEqual(got, want, places=4)
 
 
+def caixa_da_raiz(caminho):
+    """Seis f64 do 0x13a0 que fecha o 0x1388 da raiz do modelo (ou None)."""
+    import struct
+    import zipfile
+    dat = zipfile.ZipFile(caminho).read("model.dat")
+    i = dat.rfind(struct.pack("<HI", 0x13A0, 48))
+    return struct.unpack("<6d", dat[i + 6:i + 54]) if i >= 0 else None
+
+
+class TestCaixaNoGravador(unittest.TestCase):
+    def _cena(self):
+        from core.topology import Topology  # noqa: F401
+        from core.topology.cena import Cena
+        from core.topology.draw import desenhar
+        c = Cena()
+        desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        desenhar(c.topo, "retangulo", p0=(500, 0, 0), p1=(540, 40, 0))
+        g = c.criar_grupo(faces=[max(c.topo.faces)], nome="G")
+        c.instancias[g].transformacao = _giro_z(33, (1000, 2000, 50))
+        return c
+
+    def test_raiz_leva_a_uniao_da_geometria_com_as_instancias(self):
+        import tempfile
+        from core.skp_topology_writer import gravar_cena
+        c = self._cena()
+        raiz, grupo = c.defs[0], c.defs[next(i for i in c.defs if i)]
+        lo_g, hi_g = caixa_instancia(list(grupo.verts.values()), next(iter(c.instancias.values())).transformacao)
+        pts = list(raiz.verts.values()) + [lo_g, hi_g]
+        esperado = [min(p[k] for p in pts) for k in range(3)] + [max(p[k] for p in pts) for k in range(3)]
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "c.skp")
+            gravar_cena(c, p)
+            for got, want in zip(caixa_da_raiz(p), esperado):
+                self.assertAlmostEqual(got, want, places=6)
+
+    @unittest.skipUnless(DISPONIVEL, "SketchUpAPI.dll / Python 3.12 indisponível")
+    def test_caixa_da_instancia_gravada_bate_com_a_da_sdk(self):
+        import tempfile
+        from core.skp_topology_writer import gravar_cena
+        c = self._cena()
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "c.skp")
+            gravar_cena(c, p)
+            d_ = _api._dll
+            m = _api.open_model(p)
+            try:
+                e = m.get_entities()
+                n = ctypes.c_size_t()
+                d_.SUEntitiesGetNumInstances.argtypes = [type(e), P(ctypes.c_size_t)]
+                d_.SUEntitiesGetNumInstances(e, ctypes.byref(n))
+                grupos = ctypes.c_size_t()
+                d_.SUEntitiesGetNumGroups.argtypes = [type(e), P(ctypes.c_size_t)]
+                d_.SUEntitiesGetNumGroups(e, ctypes.byref(grupos))
+                self.assertEqual(grupos.value, 1)
+                arr = (_Ref * 1)()
+                got = ctypes.c_size_t()
+                d_.SUEntitiesGetGroups.argtypes = [type(e), ctypes.c_size_t, P(_Ref), P(ctypes.c_size_t)]
+                d_.SUEntitiesGetGroups(e, 1, arr, ctypes.byref(got))
+                d_.SUGroupToDrawingElement.restype = _Ref
+                d_.SUGroupToDrawingElement.argtypes = [_Ref]
+                d_.SUDrawingElementGetBoundingBox.argtypes = [_Ref, P(_BB)]
+                b = _BB()
+                self.assertEqual(d_.SUDrawingElementGetBoundingBox(d_.SUGroupToDrawingElement(arr[0]), ctypes.byref(b)), 0)
+                sdk = (b.a.x, b.a.y, b.a.z, b.b.x, b.b.y, b.b.z)
+            finally:
+                m.close()
+            grupo = c.defs[next(i for i in c.defs if i)]
+            lo, hi = caixa_instancia(list(grupo.verts.values()), next(iter(c.instancias.values())).transformacao)
+            for got, want in zip(lo + hi, sdk):
+                self.assertAlmostEqual(got, want, places=4)
+
+
 if __name__ == "__main__":
     unittest.main()
