@@ -6,12 +6,12 @@ Arquivo gerado. Não editar à mão: rode `python tools/auditar_frentes.py`. Reg
 
 | Selo | Módulos | Significado |
 |---|---|---|
-| VALIDADO | 13 | conferido contra o SketchUp real, a SketchUpAPI.dll ou golden |
+| VALIDADO | 14 | conferido contra o SketchUp real, a SketchUpAPI.dll ou golden |
 | TESTADO | 164 | teste automatizado cita o módulo, mas só confere consistência interna (sem oráculo) |
 | SEM TESTE | 20 | usado pelo app ou por outro módulo, nenhum teste o cita |
 | ORFAO | 1 | nem o app, nem outros módulos, nem testes o usam |
 
-Total: 198 módulos em `core/`, 33167 linhas. Módulos com palavra de alerta (simul, mock, placeholder, etc.): 38.
+Total: 199 módulos em `core/`, 33737 linhas. Módulos com palavra de alerta (simul, mock, placeholder, etc.): 38.
 
 Rigor dos testes das frentes (`test_frentes_*.py`): 389 asserts frouxos (limite mínimo, tipo de entidade, presença) contra 311 de valor exato.
 
@@ -218,20 +218,21 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 | `core/scale_tool.py` | 58 | Ferramenta de Escala e Redimensionamento Paramétrico (Scale Tool - Zero DLL). | test_frentes_36_a_40.py | 1 | - | - |
 | `core/fog_settings_engine.py` | 56 | Engine de Engenharia Reversa da Caixa de Dialogo de Nevoa (Fog Settings Dialog). | test_opcao_a_parte_6_sketchup_native.py | 1 | - | - |
 
-## VALIDADO (13)
+## VALIDADO (14)
 
 | Módulo | Linhas | Descrição | Testes | App/rotas | DLL | Alertas |
 |---|---|---|---|---|---|---|
 | `core/su_api.py` | 2004 | Binding ctypes para a C API pública da Trimble (SketchUpAPI.dll). | test_add_geometry_native.py, test_attribute_injection.py, test_box_native.py... | 2 | sim | aproxima, stub |
-| `core/skp_hidden_pruner.py` | 441 | Poda de ocultos direto no `model.dat` (sem abrir o SketchUp). | test_skp_topology_writer.py | 1 | - | exemplo |
+| `core/skp_hidden_pruner.py` | 569 | Poda de ocultos direto no `model.dat` (sem abrir o SketchUp). | test_skp_hidden_pruner_geometria.py, test_skp_synthetic.py, test_skp_topology_writer.py | 1 | - | exemplo |
 | `core/skp_binary_reader.py` | 1587 | SketchBuild - Leitor Binário Nativo de Arquivos .SKP (Pure Python / Zero DLL) | test_add_geometry_native.py, test_attribute_injection.py, test_binary_mesh_extraction.py... | 3 | sim | - |
+| `core/skp_topology_writer.py` | 569 | B2: grava uma `Topology` (vértices, arestas, faces com furos) na raiz de um `.skp` VFF 2021+. | test_skp_synthetic.py, test_skp_topology_writer.py | 1 | sim | - |
+| `core/topology/model.py` | 418 | Grafo de vértices, arestas e faces com as regras de modelagem do SketchUp. | test_add_geometry_native.py, test_attribute_injection.py, test_box_native.py... | 7 | - | - |
 | `core/mesh_extractor.py` | 398 | Percorre a arvore Model -> Entities -> {Faces, ComponentInstances} de um | test_skp_topology_writer.py | 1 | sim | - |
-| `core/topology/model.py` | 389 | Grafo de vértices, arestas e faces com as regras de modelagem do SketchUp. | test_add_geometry_native.py, test_attribute_injection.py, test_box_native.py... | 7 | - | - |
-| `core/skp_topology_writer.py` | 232 | B2: grava uma `Topology` (vértices, arestas, faces com furos) na raiz de um `.skp` VFF 2021+. | test_skp_topology_writer.py | 1 | sim | - |
-| `core/topology/pushpull.py` | 190 | F3: Empurrar/Puxar (Push/Pull) sobre o núcleo de topologia. | test_draw_api.py, test_skp_topology_writer.py, test_topology_cena.py... | 3 | - | - |
+| `core/topology/pushpull.py` | 190 | F3: Empurrar/Puxar (Push/Pull) sobre o núcleo de topologia. | test_draw_api.py, test_skp_synthetic.py, test_skp_topology_writer.py... | 3 | - | - |
 | `core/topology/edit.py` | 180 | F4: edição sobre o núcleo de topologia: Mover, Rotacionar, Escalar e Offset. | test_draw_api.py, test_topology_edit.py, test_topology_historico.py | 3 | - | - |
-| `core/topology/cena.py` | 164 | F5: grupos e componentes sobre o núcleo de topologia. | test_multiformat_exporter.py, test_opcao_a_parte_2_sketchup_native.py, test_topology_cena.py... | 10 | - | - |
+| `core/topology/cena.py` | 167 | F5: grupos e componentes sobre o núcleo de topologia. | test_multiformat_exporter.py, test_opcao_a_parte_2_sketchup_native.py, test_skp_synthetic.py... | 10 | - | - |
+| `core/topology/draw.py` | 154 | F2: ferramentas de desenho (Linha, Retângulo, Círculo, Polígono, Arco, Mão livre) | test_draw_api.py, test_skp_synthetic.py, test_skp_topology_writer.py... | 3 | - | - |
 | `core/topology/sweep.py` | 135 | F5: Siga-me (Follow Me): varre uma face (perfil) ao longo de um caminho de arestas. | test_topology_sweep.py | 1 | - | - |
-| `core/topology/draw.py` | 126 | F2: ferramentas de desenho (Linha, Retângulo, Círculo, Polígono, Arco, Mão livre) | test_draw_api.py, test_skp_topology_writer.py, test_topology_cena.py... | 3 | - | - |
 | `core/topology/intersect.py` | 92 | F5: Intersect Faces. Cada par de faces em planos diferentes que se cruzam ganha a aresta da | test_draw_api.py, test_opcao_a_sketchup_native.py, test_topology_intersect.py | 4 | - | - |
 | `core/topology/historico.py` | 79 | F6: histórico (desfazer e refazer) da Cena, com log de operações. | test_draw_api.py, test_topology_historico.py | 6 | - | - |
+| `core/topology/material.py` | 45 | Pintar faces com material de cor sólida (Fase C). O material vive em `Topology.materiais` e a face aponta por  | test_cutlist_exporter.py, test_draw_api.py, test_frentes_23_24_14.py... | 8 | - | - |

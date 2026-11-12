@@ -20,15 +20,21 @@ class WallThicknessInspector:
         cls,
         faces_data: List[Dict[str, Any]],
         min_thickness_mm: float = 6.0,
-        max_thickness_mm: float = 14.0
+        max_thickness_mm: float = 14.0,
+        usar_exemplo: bool = False
     ) -> Dict[str, Any]:
         """
         Inspeciona a espessura de paredes de uma peça a partir de suas faces e vértices.
         faces_data: lista de dicionários [{'vertices': [[x,y,z], ...], 'normal': [nx,ny,nz]}]
         """
+        demonstrativa = False
         if not faces_data:
-            # Caso não haja faces fornecidas, gera um modelo analítico de teste de escorregador rotomoldado
+            # Sem faces não há o que inspecionar: aprovar um modelo vazio seria um falso "aprovado".
+            # O exemplo de escorregador só entra quando quem chama pede (usar_exemplo) e o resultado diz que é demonstração.
+            if not usar_exemplo:
+                raise ValueError("sem faces para inspecionar")
             faces_data = cls._generate_mock_slide_faces()
+            demonstrativa = True
 
         thickness_samples = []
         thin_wall_issues = []
@@ -95,7 +101,9 @@ class WallThicknessInspector:
             "thick_wall_defects_count": len(thick_wall_issues),
             "thin_wall_defects": thin_wall_issues[:5],  # primeiras 5 ocorrências
             "is_compliant": is_compliant,
-            "status": "APROVADO PARA PRODUÇÃO" if is_compliant else "REPROVADO - SUBESPESSURA DETECTADA"
+            "amostra_demonstrativa": demonstrativa,
+            "status": ("APROVADO PARA PRODUÇÃO" if is_compliant else "REPROVADO - SUBESPESSURA DETECTADA")
+            + (" (AMOSTRA DEMONSTRATIVA: o modelo não tem faces)" if demonstrativa else "")
         }
 
     @staticmethod

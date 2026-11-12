@@ -2472,12 +2472,14 @@
  },
  {
   "modulo": "core/skp_hidden_pruner.py",
-  "linhas": 441,
-  "funcoes": 24,
+  "linhas": 569,
+  "funcoes": 28,
   "descricao": "Poda de ocultos direto no `model.dat` (sem abrir o SketchUp).",
   "selo": "VALIDADO",
   "oraculo": "SketchUp real (KMP-0102) + 62 arquivos verificados",
   "testes": [
+   "test_skp_hidden_pruner_geometria.py",
+   "test_skp_synthetic.py",
    "test_skp_topology_writer.py"
   ],
   "rotas_ou_app": [
@@ -2510,12 +2512,13 @@
  },
  {
   "modulo": "core/skp_topology_writer.py",
-  "linhas": 232,
-  "funcoes": 9,
+  "linhas": 569,
+  "funcoes": 24,
   "descricao": "B2: grava uma `Topology` (vértices, arestas, faces com furos) na raiz de um `.skp` VFF 2021+.",
   "selo": "VALIDADO",
   "oraculo": "SketchUpAPI.dll (roundtrip, 8 testes) ; B4 no SketchUp real pendente",
   "testes": [
+   "test_skp_synthetic.py",
    "test_skp_topology_writer.py"
   ],
   "rotas_ou_app": [
@@ -2823,6 +2826,7 @@
    "test_interactive_drawing.py",
    "test_nested_hierarchy.py",
    "test_rendering_styles.py",
+   "test_skp_hidden_pruner_geometria.py",
    "test_skp_topology_writer.py",
    "test_texture_injection.py"
   ],
@@ -2857,6 +2861,7 @@
    "test_frentes_23_24_14.py",
    "test_interactive_drawing.py",
    "test_nested_hierarchy.py",
+   "test_skp_topology_writer.py",
    "test_texture_injection.py"
   ],
   "rotas_ou_app": [
@@ -3042,7 +3047,7 @@
  },
  {
   "modulo": "core/topology/cena.py",
-  "linhas": 164,
+  "linhas": 167,
   "funcoes": 12,
   "descricao": "F5: grupos e componentes sobre o núcleo de topologia.",
   "selo": "VALIDADO",
@@ -3050,6 +3055,8 @@
   "testes": [
    "test_multiformat_exporter.py",
    "test_opcao_a_parte_2_sketchup_native.py",
+   "test_skp_synthetic.py",
+   "test_skp_topology_writer.py",
    "test_topology_cena.py",
    "test_topology_historico.py"
   ],
@@ -3082,6 +3089,7 @@
    "scenes_animation_engine.py",
    "skp_binary_reader.py",
    "skp_binary_writer.py",
+   "skp_topology_writer.py",
    "su_api.py",
    "tag_folder_engine.py",
    "trimble_solid_tools_engine.py",
@@ -3092,13 +3100,14 @@
  },
  {
   "modulo": "core/topology/draw.py",
-  "linhas": 126,
-  "funcoes": 11,
+  "linhas": 154,
+  "funcoes": 12,
   "descricao": "F2: ferramentas de desenho (Linha, Retângulo, Círculo, Polígono, Arco, Mão livre)",
   "selo": "VALIDADO",
   "oraculo": "receitas golden F0 (r01 a r14)",
   "testes": [
    "test_draw_api.py",
+   "test_skp_synthetic.py",
    "test_skp_topology_writer.py",
    "test_topology_cena.py",
    "test_topology_draw.py",
@@ -3191,9 +3200,62 @@
   "alertas": []
  },
  {
+  "modulo": "core/topology/material.py",
+  "linhas": 45,
+  "funcoes": 3,
+  "descricao": "Pintar faces com material de cor sólida (Fase C). O material vive em `Topology.materiais` e a face aponta por ",
+  "selo": "VALIDADO",
+  "oraculo": "receitas golden F0 (r01 a r14)",
+  "testes": [
+   "test_cutlist_exporter.py",
+   "test_draw_api.py",
+   "test_frentes_23_24_14.py",
+   "test_frentes_layout_e_marcenaria_avancada.py",
+   "test_multiformat_exporter.py",
+   "test_opcao_a_parte_2_sketchup_native.py",
+   "test_opcao_a_parte_3_sketchup_native.py",
+   "test_skp_synthetic.py",
+   "test_skp_topology_writer.py"
+  ],
+  "rotas_ou_app": [
+   "app/controllers/scene_controller.py",
+   "app/repositories/draw_repository.py",
+   "app/repositories/skp_engine_repository.py",
+   "app/routes/draw_router.py",
+   "app/routes/scene_router.py",
+   "app/schemas/draw.py",
+   "app/schemas/scene.py",
+   "app/services/scene_service.py"
+  ],
+  "usado_por_core": [
+   "advanced_selection_engine.py",
+   "cam_cutlist_fabrication_engine.py",
+   "color_by_tag_engine.py",
+   "cutlist_exporter.py",
+   "face_styles_engine.py",
+   "furniture_edge_banding_engine.py",
+   "generate_report_engine.py",
+   "glb_exporter.py",
+   "life_cycle_assessment_engine.py",
+   "mass_properties_engine.py",
+   "mesh_extractor.py",
+   "model.py",
+   "purge_unused_engine.py",
+   "skp_binary_reader.py",
+   "skp_binary_writer.py",
+   "skp_topology_writer.py",
+   "su_api.py",
+   "su_types.py",
+   "texture_projection_engine.py",
+   "thermal_comfort_engine.py"
+  ],
+  "usa_dll": false,
+  "alertas": []
+ },
+ {
   "modulo": "core/topology/model.py",
-  "linhas": 389,
-  "funcoes": 35,
+  "linhas": 418,
+  "funcoes": 36,
   "descricao": "Grafo de vértices, arestas e faces com as regras de modelagem do SketchUp.",
   "selo": "VALIDADO",
   "oraculo": "receitas golden F0 (r01 a r14)",
@@ -3210,6 +3272,7 @@
    "test_frentes_61_a_65.py",
    "test_nested_hierarchy.py",
    "test_rendering_styles.py",
+   "test_skp_synthetic.py",
    "test_texture_injection.py"
   ],
   "rotas_ou_app": [
@@ -3227,6 +3290,7 @@
    "draw.py",
    "edit.py",
    "intersect.py",
+   "material.py",
    "mesh_extractor.py",
    "obj_to_skp_importer.py",
    "pushpull.py",
@@ -3250,6 +3314,7 @@
   "oraculo": "receitas golden F0 (r01 a r14)",
   "testes": [
    "test_draw_api.py",
+   "test_skp_synthetic.py",
    "test_skp_topology_writer.py",
    "test_topology_cena.py",
    "test_topology_edit.py",

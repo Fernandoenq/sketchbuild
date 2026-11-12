@@ -12,6 +12,11 @@ import os
 from typing import Dict, Any, List
 
 
+def _zpl(texto: str) -> str:
+    """Campo ZPL seguro: '^' e '~' são caracteres de comando e quebrariam o formato (ex.: nome com '^FS^XZ')."""
+    return str(texto).replace("^", " ").replace("~", " ")
+
+
 class ZebraLabelExporter:
     """Compilador de etiquetas industriais em ZPL II e SVG."""
 
@@ -30,6 +35,8 @@ class ZebraLabelExporter:
         Gera o código ZPL II puro compatível com impressoras Zebra 203 DPI (8 dots/mm).
         Tamanho da etiqueta padrão: 100mm x 50mm (800 x 400 dots).
         """
+        part_name, part_sku, dimensions_mm, lot_batch, treatment, serial_number, qr_url = (
+            _zpl(x) for x in (part_name, part_sku, dimensions_mm, lot_batch, treatment, serial_number, qr_url))
         zpl = [
             "^XA",  # Início de formato
             "^PW800",  # Largura da etiqueta: 800 dots (100mm)
@@ -71,6 +78,9 @@ class ZebraLabelExporter:
         """
         Gera pré-visualização vetorial SVG da etiqueta térmica.
         """
+        from xml.sax.saxutils import escape
+        part_name, part_sku, dimensions_mm, lot_batch, serial_number = (
+            escape(str(x)) for x in (part_name, part_sku, dimensions_mm, lot_batch, serial_number))
         svg = [
             '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">',
             '  <rect width="600" height="300" rx="10" fill="#FFFFFF" stroke="#2D3748" stroke-width="3" />',
@@ -116,16 +126,17 @@ class ZebraLabelExporter:
         dimensions_mm: str,
         lot_batch: str,
         output_zpl_path: str,
-        output_svg_path: str = None
+        output_svg_path: str = None,
+        serial_number: str = "SN-98421"
     ) -> Dict[str, Any]:
         """
         Exporta o arquivo de impressão ZPL e o arquivo visual SVG.
         """
-        zpl_content = cls.generate_zpl(part_name, part_sku, dimensions_mm, lot_batch)
+        zpl_content = cls.generate_zpl(part_name, part_sku, dimensions_mm, lot_batch, serial_number=serial_number)
         with open(output_zpl_path, "w", encoding="utf-8") as f:
             f.write(zpl_content)
 
-        svg_content = cls.generate_preview_svg(part_name, part_sku, dimensions_mm, lot_batch, "SN-98421")
+        svg_content = cls.generate_preview_svg(part_name, part_sku, dimensions_mm, lot_batch, serial_number)
         if output_svg_path:
             with open(output_svg_path, "w", encoding="utf-8") as f:
                 f.write(svg_content)

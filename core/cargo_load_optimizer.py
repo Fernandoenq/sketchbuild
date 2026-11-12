@@ -79,6 +79,11 @@ class CargoLoadOptimizer:
                 unpacked_items.append({**item, "reason": "Excesso de peso máximo do veículo"})
                 continue
 
+            # Volume maior que o baú em qualquer eixo nunca cabe (as novas linhas e camadas reiniciam X e Y sem conferir)
+            if il > v_length or iw > v_width or ih > v_height:
+                unpacked_items.append({**item, "reason": "Volume maior que as dimensões do baú"})
+                continue
+
             # Tentativa de alocação ao longo do comprimento X
             if curr_x + il <= v_length and curr_y + iw <= v_width and curr_z + ih <= v_height:
                 pass

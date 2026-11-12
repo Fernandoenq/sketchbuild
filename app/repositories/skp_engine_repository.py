@@ -1767,7 +1767,7 @@ class SkpEngineRepository:
                         faces_data.append({"vertices": f.get("vertices", []), "normal": f.get("normal", [0, 0, 1])})
         except Exception:
             pass
-        return WallThicknessInspector.inspect_thickness(faces_data, min_thickness_mm, max_thickness_mm)
+        return WallThicknessInspector.inspect_thickness(faces_data, min_thickness_mm, max_thickness_mm, usar_exemplo=not faces_data)
 
     def optimize_cargo_load(self, packages: list, vehicle_type: str = "caminhao_truck") -> dict:
         """Otimiza a cubagem e alocação 3D de volumes no transporte (Frente 49)."""
