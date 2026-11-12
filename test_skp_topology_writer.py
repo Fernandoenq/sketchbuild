@@ -182,6 +182,90 @@ class TestGravadorDeTopologia(unittest.TestCase):
         with self.assertRaises(ValueError):
             gravar_topologia(t, os.path.join(self.tmp.name, "x.skp"))
 
+    def _nome_grupo(self, g):
+        import ctypes
+        from core.su_types import SUStringRef
+        d = _api._dll
+        s = SUStringRef()
+        d.SUStringCreate(ctypes.byref(s))
+        d.SUGroupGetName.argtypes = [type(g), ctypes.POINTER(SUStringRef)]
+        d.SUGroupGetName(g, ctypes.byref(s))
+        n = ctypes.c_size_t()
+        d.SUStringGetUTF8Length(s, ctypes.byref(n))
+        buf = ctypes.create_string_buffer(n.value + 1)
+        d.SUStringGetUTF8(s, n.value + 1, buf, ctypes.byref(ctypes.c_size_t()))
+        return buf.value.decode("utf-8")
+
+    def test_grupo_e_componente_com_transformacao(self):
+        """Seção 7d do FORMATO-SKP.md: definições 0x157c, instâncias 0x138c/0x138d, transformação de 13 doubles."""
+        from core.topology.cena import Cena
+        from core.skp_topology_writer import gravar_cena
+        c = Cena()
+        desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        desenhar(c.topo, "retangulo", p0=(500, 0, 0), p1=(600, 100, 0))
+        desenhar(c.topo, "retangulo", p0=(900, 0, 0), p1=(950, 50, 0))
+        f = sorted(c.topo.faces)
+        c.criar_grupo(faces=[f[0]], nome="G1")
+        k = c.criar_componente(faces=[f[1]], nome="Peca")
+        rot = [0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1, 0, 7, 8, 9, 1]
+        esc = [2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4, 0, 0, 0, 0, 1]
+        c.instanciar(k, rot)
+        c.instanciar(k, esc)
+        p = os.path.join(self.tmp.name, "cena.skp")
+        r = gravar_cena(c, p)
+        self.assertEqual((r["definicoes"], r["instancias"]), (2, 4))
+        info = verificar_skp(p)
+        self.assertEqual(info["refs_quebradas"], 0)
+        m = _api.open_model(p)
+        try:
+            e = m.get_entities()
+            self.assertEqual(m.count_summary()["faces"], 1)  # a terceira ficou solta na raiz
+            grupos = _api.get_groups(e)
+            self.assertEqual([self._nome_grupo(g) for g in grupos], ["G1"])
+            self.assertEqual(_api.count_faces(_api.get_group_entities(grupos[0])), 1)
+            inst = _api.get_instances(e)
+            self.assertEqual(len(inst), 3)
+            mats = sorted(tuple(round(x, 6) for x in _api.get_instance_transform(i)) for i in inst)
+            esperado = sorted(tuple(float(x) for x in t) for t in (c.instancias[i].transformacao for i in c.instancias if c.instancias[i].tipo == "componente"))
+            self.assertEqual([tuple(abs(x) if x == 0 else x for x in mt) for mt in mats],
+                             [tuple(abs(x) if x == 0 else x for x in mt) for mt in esperado])
+            for i in inst:
+                d = _api.get_instance_definition(i)
+                self.assertEqual(_api.get_definition_name(d), "Peca")
+                self.assertEqual(_api.count_faces(_api.get_definition_entities(d)), 1)
+        finally:
+            m.close()
+
+    def test_grupo_aninhado_e_material_na_definicao(self):
+        import ctypes
+        from core.su_types import SUMaterialRef
+        from core.topology.cena import Cena
+        from core.skp_topology_writer import gravar_cena
+        c = Cena()
+        desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        c.topo.materiais = {"Vermelho": {"rgb": (255, 0, 0)}}
+        next(iter(c.topo.faces.values())).frente = "Vermelho"
+        externo = c.criar_grupo(faces=list(c.topo.faces), nome="Externo")
+        c.entrar(externo)
+        desenhar(c.topo, "retangulo", p0=(200, 0, 0), p1=(300, 100, 0))
+        interno = c.criar_grupo(faces=[max(c.topo.faces)], nome="Interno")
+        c.sair()
+        p = os.path.join(self.tmp.name, "aninhado.skp")
+        gravar_cena(c, p)
+        self.assertEqual(verificar_skp(p)["refs_quebradas"], 0)
+        m = _api.open_model(p)
+        try:
+            raiz = _api.get_groups(m.get_entities())
+            self.assertEqual([self._nome_grupo(g) for g in raiz], ["Externo"])
+            ent = _api.get_group_entities(raiz[0])
+            dentro = _api.get_groups(ent)
+            self.assertEqual([self._nome_grupo(g) for g in dentro], ["Interno"])
+            self.assertEqual(_api.count_faces(ent), 1)
+            face = _api.get_faces(ent)[0]
+            self.assertEqual(_api.get_face_color(face), [255, 0, 0])
+        finally:
+            m.close()
+
     def test_modelo_vazio(self):
         p = os.path.join(self.tmp.name, "vazio.skp")
         gravar_topologia(Topology(), p)

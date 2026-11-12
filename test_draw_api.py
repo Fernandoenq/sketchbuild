@@ -65,6 +65,18 @@ class TestDrawController(unittest.TestCase):
         run(self.c.explodir(InstanceRequest(instancia=g["instancia"])))
         self.assertEqual(run(self.c.estado()).counts["faces"], 1)
 
+    def test_salvar_cena_com_grupo(self):
+        import os
+        import sys
+        import tempfile
+        j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
+        fid = int(next(iter(j.faces.added)))
+        run(self.c.agrupar(GroupRequest(faces=[fid])))
+        if sys.version_info[:2] == (3, 12):
+            with tempfile.TemporaryDirectory() as tmp:
+                r = run(self.c.salvar(SaveDrawRequest(path=os.path.join(tmp, "g.skp"))))
+                self.assertEqual((r.faces, r.arestas), (0, 0))  # a geometria esta dentro do grupo, nao na raiz
+
     def test_intersect_e_followme(self):
         run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
         r = run(self.c.intersectar(IntersectRequest()))

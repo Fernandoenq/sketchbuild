@@ -125,6 +125,41 @@ Validação: a SketchUpAPI relê cor da frente, cor e alpha do verso (`test_mate
 
 Assunções: (1) nomes não ASCII entram no ZIP em UTF-8 com o flag de nome UTF-8 do Python; o SketchUp grava os bytes crus sem o flag, não testado no SketchUp real; (2) material com textura (`hasTexture=1`, imagem no ZIP) não decifrado; (3) o flag de face 0x46 (Ruby) contra 0x06 (API) segue sem efeito conhecido.
 
+## 7d. Definições, grupos e componentes — decifrado em 11/11/2026
+
+Amostras geradas pela SketchUpAPI (grupo, componente, 2 instâncias, rotação, escala, espelho, aninhado) e comparadas com `tools/tlv_diff.py`.
+
+**Definição** (grupo e componente usam o mesmo registro): `0x01f9 > 0x1770 > 0x1771 > 0x157c`, um por definição.
+```
+0x157c
+  0x1388                     entidades da definição: 07d0, 1389, 1397?, 138a, 138b, 138c?, 138d?, 139e, 138e, 139b, 139f
+  0x157d [16]                GUID aleatório
+  0x157e                     nome (componente: nome dele; grupo: "Group", "Group1", ...)
+  0x157f                     "Group" se for grupo, vazio se componente
+  0x1580 [0]   0x1582 [u8=0]
+  0x1583 [u32]               1 = grupo, 0 = componente
+  0x1581 [u32]               carimbo de tempo Unix (segundos) da criação
+  0x1b58 [48]                bloco constante          0x1585 [275]  bloco constante (câmera/eixos padrão), independe da geometria
+```
+Dentro de `0x1388` da definição: `0x139f` = 0 e SEM `0x13a0` (caixa limite), mesmo com geometria; `0x139e` vazio e `0x139b > 0x639f > 0x63a0` iguais aos da raiz; a tabela `0x138e` lista arestas, faces e ids das instâncias filhas. O cabeçalho `0x07d0` do componente leva o dicionário de atributos `SU_DefinitionSet` (Price, Size, Url) em `0x05dc > 0x05dd`; o do grupo é só id + flags.
+
+**Instância** `0x1964`:
+```
+0x1964
+  0x07d0                     cabeçalho (componente: com atributos SU_InstanceSet Owner/Status; grupo: só id + flags)
+  0x1965                     nome da instância (grupo: o nome dado; componente: vazio)
+  0x1966 [104]               13 doubles: matriz 3x3 por linhas (m[r][c]) + translação (3) + 1.0
+  0x1967 [id]                id da definição
+  0x1968 [16]                GUID aleatório
+```
+Onde ficam: componentes em `0x138c > 0x1964`; grupos em `0x138d > 0x1d4c > 0x1964`. Esses contêineres entram em `0x1388` da raiz (ou da definição pai) depois de `0x138b` e antes de `0x139e`. A matriz do SketchUp vem em ordem de colunas (m[0..15]); o registro guarda por linhas: `[m0,m4,m8, m1,m5,m9, m2,m6,m10, m12,m13,m14, 1]`. Escala e espelho entram direto na matriz 3x3.
+
+**Ordem das definições na lista:** filhos antes dos pais. Se uma definição aparecer antes da definição que ela instancia, a SketchUpAPI carrega o modelo mas não enxerga o grupo aninhado (foi o bug da primeira versão). A raiz continua sem `0x13a0` quando só tem instâncias; com geometria solta, a caixa cobre só a geometria (assunção).
+
+Validação (`test_grupo_e_componente_com_transformacao`, `test_grupo_aninhado_e_material_na_definicao`): a DLL relê nome do grupo, faces dentro do grupo, 3 instâncias com as matrizes de rotação, translação e escala idênticas, nome da definição, grupo aninhado e a cor do material dentro da definição; `verificar_skp` sem referências quebradas.
+
+Assunções: (1) vários grupos num mesmo `0x138d` (cada um num `0x1d4c`) e várias instâncias num `0x138c` foram vistos na API mas não em arquivo do SketchUp real; (2) o carimbo `0x1581` e os GUIDs podem ser validados pelo SketchUp, não testado; (3) bbox da raiz com instâncias; (4) tag/camada da instância não escrita (padrão); (5) espelho: o SketchUp pode ajustar a orientação das faces, só a matriz foi conferida.
+
 ## 8. O que ainda não está mapeado (próximos passos do REA)
 
 | Tópico | Estado |
@@ -134,7 +169,7 @@ Assunções: (1) nomes não ASCII entram no ZIP em UTF-8 com o flag de nome UTF-
 | Curva de arco (`0x1397`, `0x0bbb`) | decifrado na seção 7b e gravado pelo writer |
 | Curva simples (`0x1396`, polígono/mão livre): só `0x4a38`, sem `0x4c2d` | observado, ainda não gravado |
 | Arestas suaves e lisas, na face e na aresta | flags conhecidas, efeito na malha não verificado |
-| Grupos e componentes novos (`0x1964`, `0x138d`, `0x1967`) | só leitura |
+| Grupos e componentes novos (`0x1964`, `0x138d`, `0x1967`) | decifrado na seção 7d e gravado |
 | Guias, textos, cotas, planos de seção | gravador por patch já escreve alguns, sem receita golden |
 | Laços da face em definições (mesmo layout, mas com `0x138e` própria) | não testado |
 | Tamanho do id quando passa de 65535 (3 bytes) | só observado em modelos grandes |

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 
-from core.skp_topology_writer import gravar_topologia
+from core.skp_topology_writer import gravar_cena
 from core.topology import Topology
 from core.topology.cena import Cena
 from core.topology.historico import Historico
@@ -129,14 +129,12 @@ class DrawRepository:
         }
 
     def salvar(self, caminho: str, sobrescrever: bool = False) -> dict:
-        """Grava a raiz do desenho num .skp novo. Nunca sobrescreve sem confirmacao."""
+        """Grava o desenho (raiz, grupos e componentes) num .skp novo. Nunca sobrescreve sem confirmacao."""
         if not caminho.lower().endswith(".skp"):
             raise ValueError("o caminho precisa terminar em .skp")
-        if _CENA.instancias:
-            raise ValueError("salvar grupos e componentes ainda nao e suportado (so a raiz com geometria solta)")
         if os.path.exists(caminho) and not sobrescrever:
             raise FileExistsError(caminho)
-        return {"path": caminho, **self._relatorio(gravar_topologia(_CENA.defs[0], caminho))}
+        return {"path": caminho, **self._relatorio(gravar_cena(_CENA, caminho))}
 
     @staticmethod
     def _relatorio(r: dict) -> dict:

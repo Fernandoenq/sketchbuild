@@ -207,7 +207,7 @@ class Topology:
             i, j = sorted((lp.index(a), lp.index(b)))
             l1, l2 = lp[i:j + 1], lp[j:] + lp[:i + 1]
             del self.faces[fid]
-            n1, n2 = Face(l1, [], f.normal), Face(l2, [], f.normal)
+            n1, n2 = Face(l1, [], f.normal, f.frente, f.verso), Face(l2, [], f.normal, f.frente, f.verso)
             for h in f.holes:
                 (n1 if self._point_in_loop(self.verts[h[0]], l1, f.normal) else n2).holes.append(h)
             self.faces[next(self._fid)] = n1
@@ -244,7 +244,7 @@ class Topology:
             lb.reverse()
         _, j = direction(lb)
         lb = lb[j + 1:] + lb[:j + 1]  # começa em x, termina em y
-        self.faces[next(self._fid)] = Face(la + lb[1:-1], A.holes + B.holes, A.normal)
+        self.faces[next(self._fid)] = Face(la + lb[1:-1], A.holes + B.holes, A.normal, A.frente, A.verso)
 
     def _heal_vertex(self, vid: int) -> None:
         """Remove vértice de grau 2 colinear, juntando as duas arestas e ajustando os laços."""

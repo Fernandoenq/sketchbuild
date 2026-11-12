@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import math
 import os
+import time
+import uuid
 import shutil
 import struct
 import tempfile
@@ -82,6 +84,31 @@ def xml_material(nome: str, rgb: Tuple[int, int, int], alpha: int = 255) -> byte
     return corpo.encode("utf-8")
 
 
+# Blocos constantes observados em arquivos da SketchUpAPI (docs/FORMATO-SKP.md, seção 7d).
+_ATTR_DEFINICAO = bytes.fromhex(
+    "dd0580000000b1367a000000b23674000000b3366e000000b03600000000b4361000000053555f446566696e6974696f6e536574"
+    "b53642000000b636050000005072696365a43806000000ad3800000000b6360400000053697a65a43806000000ad3800000000"
+    "b6360300000055726ca43806000000ad3800000000b7360400000000000000")
+_ATTR_INSTANCIA = bytes.fromhex(
+    "dd056b000000b13665000000b2365f000000b33659000000b03600000000b4360e00000053555f496e7374616e6365536574"
+    "b5362f000000b636050000004f776e6572a43806000000ad3800000000b63606000000537461747573a43806000000ad380000"
+    "0000b7360400000000000000")
+_T_1B58 = bytes.fromhex(
+    "581b30000000591b04000000000000005a1b04000000000000005b1b01000000005c1b01000000005d1b01000000005e1b0100000000")
+_T_1585 = bytes.fromhex(
+    "8515130100001c250d0100001d2507010000bc3401010000bd341800000000000000000000000000000000000000000000000000f03f"
+    "be3418000000000000000000000000000000000000000000000000000040bf34180000000000000000000000000000000000f03f00"
+    "00000000000000c034080000000000000000000000c134080000000000000000000000c2340100000001c434080000000000000000"
+    "003e40c33408000000000000000000f03fc534080000000000000000000000c6340100000001c7340100000000c8340000000"
+    "0c934080000000000000000000000ca340100000000cb3408000000000000000000f03fcc34080000000000000000000000cd3408"
+    "0000000000000000000000ce340100000000")
+
+
+def _cabecalho_attr(id_: int, attr: bytes) -> bytes:
+    """Cabeçalho de entidade com dicionário de atributos (definição e instância de componente)."""
+    return _rec(0x07D0, _rec(0x05DC, _rec(0x05DE, _id_bytes(id_)) + attr) + _rec(0x07D3, bytes([FLAGS_ARESTA])))
+
+
 def _so_id(id_: int) -> bytes:
     return _rec(0x05DC, _rec(0x05DE, _id_bytes(id_)))
 
@@ -121,8 +148,12 @@ def _carga_curva(c: dict) -> bytes:
     return struct.pack("<16d", *cx, *n, -_dot(n, cx), *(r * k for k in x), *(r * k for k in y), r, 0.0, varredura)
 
 
-def montar_entidades(t: Topology, primeiro_id: int) -> Tuple[Dict[str, bytes], int, Tuple[Optional[tuple], Optional[tuple]]]:
-    """Registros 0x1389 (vértices), 0x138a (arestas), 0x138b (faces), tabela 0x138e e próximo id livre."""
+def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[str, int]] = None
+                     ) -> Tuple[Dict[str, bytes], int, Tuple[Optional[tuple], Optional[tuple]]]:
+    """Registros 0x1389 (vértices), 0x138a (arestas), 0x138b (faces), tabela 0x138e e próximo id livre.
+
+    `mid_externo`: ids de material já alocados para o modelo todo (cena com várias definições); sem ele, os
+    materiais usados por esta topologia são alocados aqui e devolvidos em reg["materiais"]."""
     prox = primeiro_id
     vid: Dict[int, int] = {}
     eid: Dict[int, int] = {}
@@ -143,13 +174,17 @@ def montar_entidades(t: Topology, primeiro_id: int) -> Tuple[Dict[str, bytes], i
         cid_[c] = prox
         prox += 1
     usados = sorted({n for f in t.faces.values() for n in (f.frente, f.verso) if n})
-    for n in usados:
-        if n not in getattr(t, "materiais", {}):
-            raise ValueError(f"material {n!r} usado numa face mas não definido em Topology.materiais")
-    mid: Dict[str, int] = {}
-    for n in usados:
-        mid[n] = prox
-        prox += 1
+    if mid_externo is None:
+        for n in usados:
+            if n not in getattr(t, "materiais", {}):
+                raise ValueError(f"material {n!r} usado numa face mas não definido em Topology.materiais")
+        mid: Dict[str, int] = {}
+        for n in usados:
+            mid[n] = prox
+            prox += 1
+    else:
+        mid = mid_externo
+        usados = []
     curva_da_aresta = {e: cid_[c] for c, d in curvas.items() for e in d["arestas"]}
 
     verts = b"".join(
@@ -201,7 +236,133 @@ def montar_entidades(t: Topology, primeiro_id: int) -> Tuple[Dict[str, bytes], i
     caixa = None
     if pts:
         caixa = (tuple(min(p[k] for p in pts) for k in range(3)), tuple(max(p[k] for p in pts) for k in range(3)))
-    return {"vertices": verts, "arestas": arestas, "faces": faces, "tabela": tabela, "curvas": reg_curvas, "materiais": reg_materiais}, prox, caixa
+    return {"vertices": verts, "arestas": arestas, "faces": faces, "tabela": tabela, "curvas": reg_curvas,
+            "materiais": reg_materiais}, prox, caixa
+
+
+def _tabela(ids: Sequence[int]) -> bytes:
+    return b"".join(bytes([len(_id_bytes(i))]) + _id_bytes(i) for i in ids)
+
+
+def _ids_da_tabela(tabela: bytes) -> List[int]:
+    out, i = [], 0
+    while i < len(tabela):
+        n = tabela[i]
+        out.append(int.from_bytes(tabela[i + 1:i + 1 + n], "little"))
+        i += 1 + n
+    return out
+
+
+def _nome_de_grupo(usados: set, base: str = "Group") -> str:
+    n, nome = 0, base
+    while nome in usados:
+        n += 1
+        nome = f"{base}{n}"
+    usados.add(nome)
+    return nome
+
+
+def _montar_cena(cena, prox: int, mid: Dict[str, int]):
+    """Definições (0x157c) e instâncias da cena. Devolve (bytes das definições, instâncias da raiz, prox).
+
+    Instâncias da raiz: (componentes 0x138c, grupos 0x138d, ids) para entrar em 0x1388 da raiz."""
+    did: Dict[int, int] = {}
+    for d in sorted(k for k in cena.defs if k != 0):
+        did[d] = prox
+        prox += 1
+    iid: Dict[int, int] = {}
+    for i in sorted(cena.instancias):
+        iid[i] = prox
+        prox += 1
+    nomes_usados: set = set()
+    nome_def: Dict[int, str] = {}
+    for d in sorted(did):
+        gr = any(x.definicao == d and x.tipo == "grupo" for x in cena.instancias.values())
+        nome_def[d] = _nome_de_grupo(nomes_usados) if gr else cena.nomes.get(d, f"Componente{d}")
+
+    def instancias_de(pai: int):
+        comp, grup, ids = b"", b"", []
+        for i in sorted(x for x, v in cena.instancias.items() if v.pai == pai):
+            v = cena.instancias[i]
+            if len(v.transformacao) != 16:
+                raise ValueError("transformação 4x4 inválida")
+            m = v.transformacao
+            carga = struct.pack("<13d", m[0], m[4], m[8], m[1], m[5], m[9], m[2], m[6], m[10], m[12], m[13], m[14], 1.0)
+            grupo = v.tipo == "grupo"
+            corpo = (_cabecalho(iid[i], FLAGS_ARESTA) if grupo else _cabecalho_attr(iid[i], _ATTR_INSTANCIA))
+            corpo += _rec(0x1965, v.nome.encode("utf-8") if grupo else b"") + _rec(0x1966, carga)
+            corpo += _rec(0x1967, _id_bytes(did[v.definicao])) + _rec(0x1968, uuid.uuid4().bytes)
+            if grupo:
+                grup += _rec(0x1D4C, _rec(0x1964, corpo))
+            else:
+                comp += _rec(0x1964, corpo)
+            ids.append(iid[i])
+        return comp, grup, ids
+
+    # a SketchUpAPI só carrega a instância se a definição dela já veio antes: filhos antes dos pais
+    ordem: List[int] = []
+
+    def visita(d: int) -> None:
+        if d in ordem:
+            return
+        for x in sorted(cena.instancias.values(), key=lambda v: v.id):
+            if x.pai == d and x.definicao != d:
+                visita(x.definicao)
+        ordem.append(d)
+
+    for d in sorted(did):
+        visita(d)
+    defs = b""
+    for d in ordem:
+        topo = cena.defs[d]
+        reg, prox, _ = montar_entidades(topo, prox, mid)
+        comp, grup, ids = instancias_de(d)
+        grupo = any(x.definicao == d and x.tipo == "grupo" for x in cena.instancias.values())
+        corpo = _cabecalho(did[d], FLAGS_ARESTA) if grupo else _cabecalho_attr(did[d], _ATTR_DEFINICAO)
+        if topo.verts:
+            corpo += _rec(0x1389, reg["vertices"])
+        if reg["curvas"]:
+            corpo += _rec(0x1397, reg["curvas"])
+        if topo.edges:
+            corpo += _rec(0x138A, reg["arestas"])
+        if topo.faces:
+            corpo += _rec(0x138B, reg["faces"])
+        if comp:
+            corpo += _rec(0x138C, comp)
+        if grup:
+            corpo += _rec(0x138D, grup)
+        corpo += _rec(0x139E, b"") + _rec(0x138E, reg["tabela"] + _tabela(ids))
+        corpo += _rec(0x139B, _rec(0x639F, _rec(0x63A0, b""))) + _rec(0x139F, bytes([0]))
+        cauda = (_rec(0x157D, uuid.uuid4().bytes) + _rec(0x157E, nome_def[d].encode("utf-8"))
+                 + _rec(0x157F, b"Group" if grupo else b"") + _rec(0x1580, b"") + _rec(0x1582, bytes([0]))
+                 + _rec(0x1583, struct.pack("<I", 1 if grupo else 0)) + _rec(0x1581, struct.pack("<I", int(time.time())))
+                 + _T_1B58 + _T_1585)
+        defs += _rec(0x157C, _rec(0x1388, corpo) + cauda)
+    return defs, instancias_de(0), prox
+
+
+def _com_definicoes(dat: bytes, rec: Tuple[int, int, int], novas: bytes) -> bytes:
+    """Acrescenta registros 0x157c em 0x01f9 > 0x1770 > 0x1771 (lista de definições do modelo)."""
+    a, l, p = rec
+    n1 = _parse(dat, p + 6, p + 6 + l)
+    saida = b""
+    achou = False
+    for t, ll, q in n1:
+        if t != 0x1770:
+            saida += dat[q:q + 6 + ll]
+            continue
+        n2 = _parse(dat, q + 6, q + 6 + ll)
+        interno = b""
+        for t2, l2, q2 in n2:
+            if t2 == 0x1771:
+                interno += _rec(0x1771, dat[q2 + 6:q2 + 6 + l2] + novas)
+                achou = True
+            else:
+                interno += dat[q2:q2 + 6 + l2]
+        saida += _rec(0x1770, interno)
+    if not achou:
+        raise ValueError("estrutura inesperada em 0x01f9 (esperado 0x1770 > 0x1771)")
+    return _rec(0x01F9, saida)
 
 
 def _base_vazia(destino: str) -> None:
@@ -246,6 +407,15 @@ def _ler_contador(m: bytes, rec_5f1: Tuple[int, int, int]) -> int:
 
 def gravar_topologia(t: Topology, destino: str, base: Optional[str] = None) -> Dict[str, int]:
     """Grava `t` na raiz de um modelo-base e salva em `destino` (que não pode ser o próprio `base`)."""
+    return _escrever(t, destino, base, None)
+
+
+def gravar_cena(cena, destino: str, base: Optional[str] = None) -> Dict[str, int]:
+    """Grava a cena inteira (raiz + definições + grupos e componentes com transformação)."""
+    return _escrever(cena.defs[0], destino, base, cena)
+
+
+def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str, int]:
     with tempfile.TemporaryDirectory(prefix="skp_topo_") as tmp:
         if base is None:
             base = os.path.join(tmp, "base.skp")
@@ -279,7 +449,31 @@ def gravar_topologia(t: Topology, destino: str, base: Optional[str] = None) -> D
             raise ValueError("a base já tem geometria na raiz; use um modelo vazio")
 
         primeiro = _ler_contador(dat, cont)
-        reg, prox, caixa = montar_entidades(t, primeiro)
+        mid_global: Optional[Dict[str, int]] = None
+        todas = [t] if cena is None else [cena.defs[k] for k in sorted(cena.defs)]
+        if cena is not None:
+            definidos: Dict[str, dict] = {}
+            for tp in todas:
+                definidos.update(getattr(tp, "materiais", {}))
+            nomes = sorted({n for tp in todas for f in tp.faces.values() for n in (f.frente, f.verso) if n})
+            for n in nomes:
+                if n not in definidos:
+                    raise ValueError(f"material {n!r} usado numa face mas não definido")
+            mid_global = {}
+            primeiro_geo = primeiro
+            for n in nomes:
+                mid_global[n] = primeiro_geo
+                primeiro_geo += 1
+            reg, prox, caixa = montar_entidades(t, primeiro_geo, mid_global)
+            reg["materiais"] = b"".join(
+                _rec(0x32C8, _so_id(mid_global[n]) + _rec(0x32CC, n.encode("utf-8")) + _rec(0x32CA, bytes([0])) + _rec(0x32CB, b""))
+                for n in nomes)
+            defs_bytes, (inst_comp, inst_grup, inst_ids), prox = _montar_cena(cena, prox, mid_global)
+            todos_materiais = definidos
+        else:
+            reg, prox, caixa = montar_entidades(t, primeiro)
+            defs_bytes, inst_comp, inst_grup, inst_ids = b"", b"", b"", []
+            todos_materiais = getattr(t, "materiais", {})
 
         novas = [(a, dat[p:p + 6 + l]) for a, l, p in sub]
         # ordem observada em r10: 07d0, 1389, 138a, 138b, 139e, 138e, 139b, 139f, 13a0
@@ -293,9 +487,13 @@ def gravar_topologia(t: Topology, destino: str, base: Optional[str] = None) -> D
             geometria += _rec(0x138A, reg["arestas"])
         if t.faces:
             geometria += _rec(0x138B, reg["faces"])
+        if inst_comp:
+            geometria += _rec(0x138C, inst_comp)
+        if inst_grup:
+            geometria += _rec(0x138D, inst_grup)
         for a, bruto in novas:
-            if a == 0x139B and (t.edges or t.faces):
-                corpo += _rec(0x138E, reg["tabela"])
+            if a == 0x139B and (t.edges or t.faces or inst_ids):
+                corpo += _rec(0x138E, reg["tabela"] + _tabela(inst_ids))
             if a == 0x139F:
                 bruto = _rec(0x139F, bytes([1])) if (t.edges or t.faces) else bruto
             corpo += bruto
@@ -317,13 +515,15 @@ def gravar_topologia(t: Topology, destino: str, base: Optional[str] = None) -> D
                 externo += n_raiz
             elif a == 0x01F5:
                 externo += contador
+            elif a == 0x01F9 and defs_bytes:
+                externo += _com_definicoes(dat, (a, l, p), defs_bytes)
             elif a == 0x01F7 and reg["materiais"]:
                 externo += _com_materiais(dat, (a, l, p), reg["materiais"])
             else:
                 externo += dat[p:p + 6 + l]
         novo_dat = _rec(0x01F4, externo)
 
-        usados = {n for f in t.faces.values() for n in (f.frente, f.verso) if n}
+        usados = {n for tp in todas for f in tp.faces.values() for n in (f.frente, f.verso) if n}
         inseridos = not usados
         zip_tmp = os.path.join(tmp, "novo.zip")
         with zipfile.ZipFile(zip_tmp, "w", allowZip64=True) as zout:
@@ -334,7 +534,7 @@ def gravar_topologia(t: Topology, destino: str, base: Optional[str] = None) -> D
                     zout.writestr(zi, novo_dat)
                 else:
                     if not inseridos and info.filename.startswith("materials/"):
-                        for nome, m in sorted(t.materiais.items()):
+                        for nome, m in sorted(todos_materiais.items()):
                             if nome in usados:
                                 zout.writestr(f"materials/{nome_seguro(nome)}/material.xml",
                                               xml_material(nome, tuple(m["rgb"]), m.get("alpha", 255)),
@@ -348,4 +548,6 @@ def gravar_topologia(t: Topology, destino: str, base: Optional[str] = None) -> D
             out.write(prefixo[:-4] + struct.pack("<I", integ))
             shutil.copyfileobj(zf, out)
     return {"vertices": len(t.verts), "arestas": len(t.edges), "faces": len(t.faces), "proximo_id": prox,
-            "bytes": os.path.getsize(destino)}
+            "bytes": os.path.getsize(destino),
+            "definicoes": 0 if cena is None else len(cena.defs) - 1,
+            "instancias": 0 if cena is None else len(cena.instancias)}

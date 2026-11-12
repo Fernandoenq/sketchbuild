@@ -163,7 +163,7 @@ def _extrusar(t: Topology, fid: int, v: Point, manter_base: bool) -> None:
         t.faces[pousa].holes.append(list(topo))
         del t.faces[fid]
         return
-    novo = Face(topo, [[novos[x] for x in h] for h in f.holes], dirv)
+    novo = Face(topo, [[novos[x] for x in h] for h in f.holes], dirv, f.frente, f.verso)
     if manter_base or not estava_presa:  # a original vira a base do sólido
         f.normal = tuple(-x for x in dirv)
     else:
