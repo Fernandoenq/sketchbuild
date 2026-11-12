@@ -108,6 +108,8 @@ class Topology:
         self.materiais: Dict[str, dict] = {}
         # tags (camadas): nome -> {"visivel": bool}. Faces apontam por nome (Face.tag).
         self.tags: Dict[str, dict] = {}
+        # bits extras do 0x07d3 da aresta (ver FORMATO-SKP.md 7g): 0x08 suave (soft), 0x10 lisa (smooth), 0x04 sem sombra
+        self.eflags: Dict[int, int] = {}
         self.etags: Dict[int, str] = {}  # tag de arestas soltas ou de borda: id da aresta -> nome da tag
 
     # -- consulta ---------------------------------------------------------------
@@ -164,6 +166,8 @@ class Topology:
             e1, e2 = next(self._eid), next(self._eid)
             if eid in self.etags:
                 self.etags[e1] = self.etags[e2] = self.etags.pop(eid)
+            if eid in self.eflags:
+                self.eflags[e1] = self.eflags[e2] = self.eflags.pop(eid)
             self.edges[e1] = (u, vid)
             self.edges[e2] = (vid, v)
             self._dividir_na_curva(eid, e1, e2, (u, v))
@@ -244,6 +248,7 @@ class Topology:
     def erase_edge(self, eid: int) -> None:
         a, b = self.edges.pop(eid)
         self.etags.pop(eid, None)
+        self.eflags.pop(eid, None)
         adjacent = [fid for fid, f in self.faces.items() if any(_has_edge(lp, a, b) for lp in f.loops())]
         if len(adjacent) == 2 and all(_has_edge(self.faces[f].outer, a, b) for f in adjacent):
             self._merge_faces(adjacent[0], adjacent[1], a, b)
@@ -300,8 +305,12 @@ class Topology:
         self.edges[novo] = (u, w)
         if self.etags.get(e1) is not None and self.etags.get(e1) == self.etags.get(e2):
             self.etags[novo] = self.etags[e1]
+        if self.eflags.get(e1) is not None and self.eflags.get(e1) == self.eflags.get(e2):
+            self.eflags[novo] = self.eflags[e1]
         self.etags.pop(e1, None)
         self.etags.pop(e2, None)
+        self.eflags.pop(e1, None)
+        self.eflags.pop(e2, None)
         del self.verts[vid]
 
     # -- faces ------------------------------------------------------------------

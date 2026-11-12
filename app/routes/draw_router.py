@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Response, status
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, TagRequest, CenaRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, SceneSummaryResponse
 
 router = APIRouter(prefix="/draw", tags=["draw"])
 
@@ -86,6 +86,11 @@ async def pintar(body: PaintRequest, controller: DrawController = Depends(get_co
 @router.post("/tag", response_model=DrawStateResponse, summary="Cria/liga/desliga tags e poe faces ou arestas nelas")
 async def marcar(body: TagRequest, controller: DrawController = Depends(get_controller)) -> DrawStateResponse:
     return await controller.marcar(body)
+
+
+@router.post("/soften", response_model=DrawStateResponse, summary="Suaviza arestas (por selecao ou por angulo) ou tira a suavizacao")
+async def suavizar(body: SoftenRequest, controller: DrawController = Depends(get_controller)) -> DrawStateResponse:
+    return await controller.suavizar(body)
 
 
 @router.post("/scene", response_model=DrawStateResponse, summary="Acrescenta uma cena (aba), com camera opcional")

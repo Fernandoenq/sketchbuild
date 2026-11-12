@@ -2561,6 +2561,11 @@ export function drawTag(corpo) {
   return postJson("/api/v1/draw/tag", "POST", corpo);
 }
 
+// suavizar arestas: { arestas, angulo, suave, lisa, limpar }; devolve o estado completo
+export function drawSoften(corpo) {
+  return postJson("/api/v1/draw/soften", "POST", corpo);
+}
+
 // cenas (abas): { nome, descricao, animar, olho, alvo, cima }; devolve o estado completo
 export function drawScene(corpo) {
   return postJson("/api/v1/draw/scene", "POST", corpo);

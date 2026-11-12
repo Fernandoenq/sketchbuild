@@ -5,7 +5,7 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest
+from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest, SoftenRequest
 
 
 def _tem_pillow():
@@ -225,6 +225,21 @@ class TestDrawController(unittest.TestCase):
             run(self.c.adicionar_cena(CenaRequest(nome="Sem alvo", olho=(1, 2, 3))))
         e = run(self.c.desfazer())
         self.assertEqual(e.cenas, [])  # desfez a cena; as duas tentativas recusadas nao entraram no historico
+
+    def test_suavizar_por_angulo_e_por_selecao(self):
+        j = run(self.c.desenhar(DrawRequest(ferramenta="circulo", centro=(0, 0, 0), raio=50)))
+        fid = int(next(iter(j.faces.added)))
+        run(self.c.empurrar(PushPullRequest(face_id=fid, distancia=100)))
+        e = run(self.c.suavizar(SoftenRequest(angulo=20)))
+        self.assertEqual(len(e.suaves), 24)
+        self.assertTrue(all(b == 0x18 for b in e.suaves.values()))
+        primeira = int(next(iter(e.suaves)))
+        e = run(self.c.suavizar(SoftenRequest(arestas=[primeira], limpar=True)))
+        self.assertEqual(len(e.suaves), 23)
+        with self.assertRaises(HTTPException):
+            run(self.c.suavizar(SoftenRequest()))  # sem arestas e sem angulo
+        e = run(self.c.desfazer())
+        self.assertEqual(len(e.suaves), 24)
 
 
 if __name__ == "__main__":

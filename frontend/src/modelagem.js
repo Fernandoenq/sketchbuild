@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawUndo, drawRedo, drawSave } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawUndo, drawRedo, drawSave } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -171,6 +171,9 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       ["Pôr na tag", "Cria a tag (se não existe) e põe a seleção nela", () => marcarSelecao(tagNome.value, null)],
       ["Tag on/off", "Liga ou desliga a visibilidade da tag (gravada no .skp)", () => alternarTag(tagNome.value)],
       ["Tirar da tag", "Devolve a seleção à tag padrão (Layer0)", () => marcarSelecao(null, true)],
+      ["Suavizar", "Suaviza (suave + lisa) as arestas selecionadas", () => suavizarSelecao(false)],
+      ["Endurecer", "Tira a suavização das arestas selecionadas", () => suavizarSelecao(true)],
+      ["Suavizar 20°", "Suaviza as arestas do desenho entre faces com até 20° de diferença", () => suavizarAngulo(20)],
       ["Nova cena", "Acrescenta uma cena com o nome do campo ao lado (sem câmera)", () => novaCena(tagNome.value)],
     ]) {
       const b = document.createElement("button");
@@ -274,6 +277,25 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       const atual = (await drawState()).tags?.[nome.trim()];
       if (!atual) return setStatus("Tag: " + nome.trim() + " não existe (use Pôr na tag para criar).", true);
       setStatus(resumoTags(await drawTag({ nome: nome.trim(), visivel: !atual.visivel })));
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  async function suavizarSelecao(limpar) {
+    if (!sel.edges.size) return setStatus("Suavizar: selecione arestas antes.", true);
+    try {
+      const s = await drawSoften({ arestas: [...sel.edges].map(Number), limpar });
+      setStatus((limpar ? "Endurecidas" : "Suavizadas") + ". Arestas suavizadas no desenho: " + Object.keys(s.suaves ?? {}).length + ".");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  async function suavizarAngulo(graus) {
+    try {
+      const s = await drawSoften({ angulo: graus });
+      setStatus("Suavizar até " + graus + "°: " + Object.keys(s.suaves ?? {}).length + " aresta(s) suavizada(s) no desenho.");
     } catch (err) {
       setStatus("Erro: " + (err?.message ?? err), true);
     }

@@ -172,6 +172,21 @@ Oráculo: `tools/gerar_tags_api.py` (base, tag visível, tag desligada, cena), c
 
 **Cena, formato do registro mínimo (SDK):** `0x0207 > 0x6d60 > 0x6d61` (vazio sem cenas) passa a ter um `0x7148` por cena com `0x6f54{0x05dc>0x05de id, 0x6f55 nome, 0x6f56 vazio}`, `0x7149 = 0` (u32), `0x7152 = 1`, `0x7153` vazio, `0x7154` e `0x7155` = -1.0 (double), `0x715c` vazio, `0x7157 = 1`. Uma cena criada só com nome não leva câmera nem estilo; o que cada campo controla (câmera, visibilidade por tag) falta decifrar com cenas reais.
 
+## 7g. Bits de `0x07d3` (flags de entidade) — decifrado em 12/11/2026
+
+Oráculo: `tools/gerar_flags_api.py` muda uma propriedade por vez pela SketchUpAPI e lê o byte `0x07d3` do cabeçalho da face e das arestas.
+
+| Bit | Significado | Evidência |
+|---|---|---|
+| `0x01` | oculta (hidden) | face e aresta: 0x06 -> 0x07 |
+| `0x02` | projeta sombra | desligar: 0x06 -> 0x04 |
+| `0x04` | recebe sombra | desligar (face): 0x06 -> 0x02 |
+| `0x08` | aresta suave (soft) | `SUEdgeSetSoft`: 0x06 -> 0x0e |
+| `0x10` | aresta lisa (smooth) | `SUEdgeSetSmooth`: 0x06 -> 0x16 |
+| `0x40` | **desconhecido** | só aparece nos arquivos salvos pelo SketchUp (faces 0x46), nunca nos da SDK |
+
+O padrão da SDK é 0x06 (projeta e recebe sombra). O gravador usa 0x06 nas arestas (`| eflags`) e 0x46 nas faces. Núcleo: `Topology.eflags` (herdada na divisão em T, na limpeza de vértice e ao agrupar/explodir) e `core/topology/soften.py` (`definir`, `limpar`, `por_angulo`). Conferido pela DLL (`SUEdgeGetSoft`). **Pendente:** bit 0x40; sombra de face/aresta não tem controle no núcleo; efeito de suave+lisa na malha (normais) não implementado no leitor.
+
 ## 7d. Definições, grupos e componentes — decifrado em 11/11/2026
 
 Amostras geradas pela SketchUpAPI (grupo, componente, 2 instâncias, rotação, escala, espelho, aninhado) e comparadas com `tools/tlv_diff.py`.

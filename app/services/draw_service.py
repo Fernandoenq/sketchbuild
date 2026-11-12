@@ -54,6 +54,9 @@ class DrawService:
     async def marcar(self, **params) -> dict:
         return await run_in_threadpool(lambda: self._repository.marcar(**params))
 
+    async def suavizar(self, **params) -> dict:
+        return await run_in_threadpool(lambda: self._repository.suavizar(**params))
+
     async def adicionar_cena(self, **params) -> dict:
         return await run_in_threadpool(lambda: self._repository.adicionar_cena(**params))
 

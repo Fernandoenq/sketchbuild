@@ -45,6 +45,7 @@ class DrawStateResponse(BaseModel):
     tags: dict[str, dict[str, Any]] = Field(default_factory=dict)  # nome -> {visivel}
     tag_faces: dict[str, str] = Field(default_factory=dict)  # face -> tag
     tag_arestas: dict[str, str] = Field(default_factory=dict)  # aresta -> tag
+    suaves: dict[str, int] = Field(default_factory=dict)  # aresta -> bits (0x08 suave, 0x10 lisa)
     cenas: list[dict[str, Any]] = Field(default_factory=list)
     counts: dict[str, int]
     historico: dict[str, bool] = Field(default_factory=dict)
@@ -133,6 +134,14 @@ class TagRequest(BaseModel):
     faces: list[int] = Field(default_factory=list)
     arestas: list[int] = Field(default_factory=list)
     limpar: bool = False  # tira as entidades da tag (volta a Layer0)
+
+
+class SoftenRequest(BaseModel):
+    arestas: list[int] = Field(default_factory=list)  # vazio com `angulo` = o modelo todo
+    angulo: float | None = Field(default=None, ge=0, le=180)  # suaviza arestas entre faces com ate esse angulo
+    suave: bool = True
+    lisa: bool = True
+    limpar: bool = False  # tira suave e lisa das arestas dadas
 
 
 class CenaRequest(BaseModel):

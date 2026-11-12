@@ -16,6 +16,7 @@ from core.topology.draw import desenhar
 from core.topology.edit import escalar, mover, offset, rotacionar, vertices_da_selecao
 from core.topology.material import definir_material, pintar
 from core.topology.pushpull import empurrar
+from core.topology import soften
 from core.topology.tag import atribuir, atribuir_arestas, definir_tag
 
 MAX_TEXTURA = 8 * 1024 * 1024  # bytes da imagem
@@ -218,6 +219,24 @@ class DrawRepository:
         _HIST.executar("tag", {"nome": nome, "faces": list(faces), "arestas": list(arestas)}, acao)
         return self.estado()
 
+    def suavizar(self, arestas=(), angulo=None, suave=True, lisa=True, limpar=False) -> dict:
+        if not arestas and angulo is None:
+            raise ValueError("suavizar: informe arestas ou angulo")
+        if limpar and angulo is not None:
+            raise ValueError("suavizar: limpar nao combina com angulo")
+
+        def acao():
+            if limpar:
+                soften.limpar(_topo(), arestas)
+            elif angulo is not None:
+                soften.por_angulo(_topo(), angulo, arestas or None)
+            else:
+                soften.definir(_topo(), arestas, suave, lisa)
+            return {}
+
+        _HIST.executar("suavizar", {"arestas": list(arestas), "angulo": angulo}, acao)
+        return self.estado()
+
     def adicionar_cena(self, nome, descricao="", animar=True, olho=None, alvo=None, cima=(0.0, 0.0, 1.0)) -> dict:
         if (olho is None) != (alvo is None):
             raise ValueError("cena: informe olho e alvo juntos")
@@ -251,6 +270,7 @@ class DrawRepository:
             "tags": {n: dict(m) for n, m in _topo().tags.items()},
             "tag_faces": {str(i): f.tag for i, f in _topo().faces.items() if f.tag},
             "tag_arestas": {str(e): n for e, n in _topo().etags.items()},
+            "suaves": {str(e): b for e, b in _topo().eflags.items()},
             "cenas": [{"nome": c["nome"], "descricao": c["descricao"], "animar": c["animar"], "camera": c["camera"] is not None}
                       for c in _CENA.cenas],
             "counts": _topo().counts(),

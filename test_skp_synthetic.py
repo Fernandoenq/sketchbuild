@@ -205,6 +205,29 @@ class TestGravadorSemDll(unittest.TestCase):
         self.assertEqual(struct.unpack("<3d", d[olho[2] + 6:olho[2] + 30]), (0.0, -100.0, 0.0))
         self.assertEqual(verificar_skp(self.p("c.skp"))["refs_quebradas"], 0)
 
+    def test_suavizar_arestas_bits_e_angulo(self):
+        from core.topology import soften
+        t = Topology()
+        desenhar(t, "circulo", centro=(0, 0, 0), raio=50, lados=24)
+        empurrar(t, next(iter(t.faces)), 100)
+        # 24 arestas verticais (15 graus entre faces vizinhas) + 48 do anel de cima e de baixo (90 graus)
+        mudadas = soften.por_angulo(t, 20)
+        self.assertEqual(len(mudadas), 24)
+        self.assertTrue(all(t.verts[t.edges[e][0]][2] != t.verts[t.edges[e][1]][2] for e in mudadas))  # só as verticais
+        self.assertEqual(soften.por_angulo(t, 10), [])  # 15 graus passa de 10: nenhuma (as 24 já marcadas continuam)
+        gravar_topologia(t, self.p("sv.skp"))
+        d = dat_de(self.p("sv.skp"))
+        flags = []
+        for _, l, p in achar(d, 0x0BB8):
+            a = achar(d, 0x07D3, p + 6, p + 6 + l)
+            flags.append(d[a[0][2] + 6])
+        self.assertEqual(sorted(set(flags)), [0x06, 0x1E])  # 0x06 comum; 0x06 | 0x08 | 0x10 = 0x1e
+        self.assertEqual(flags.count(0x1E), 24)
+        soften.limpar(t, mudadas)
+        self.assertEqual(t.eflags, {})
+        with self.assertRaises(ValueError):
+            soften.por_angulo(t, 200)
+
     def test_hierarquia_definicoes_filhos_antes_dos_pais(self):
         c = Cena()
         desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))

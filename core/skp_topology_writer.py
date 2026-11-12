@@ -228,7 +228,7 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
         a, b = t.edges[e]
         arestas += _rec(
             0x0BB8,
-            _cabecalho(eid[e], FLAGS_ARESTA, None, tid[t.etags[e]] if t.etags.get(e) else None)
+            _cabecalho(eid[e], FLAGS_ARESTA | t.eflags.get(e, 0), None, tid[t.etags[e]] if t.etags.get(e) else None)
             + _rec(0x0BB9, _id_bytes(vid[a]))
             + _rec(0x0BBA, _id_bytes(vid[b]))
             + (_rec(0x0BBB, _id_bytes(curva_da_aresta[e])) if e in curva_da_aresta else b""),

@@ -110,6 +110,8 @@ class Cena:
             d.edges[ne] = (mapa[a], mapa[b])
             if e in t.etags:
                 d.etags[ne] = t.etags[e]
+            if e in t.eflags:
+                d.eflags[ne] = t.eflags[e]
         for f in sorted(mover_f):
             F = t.faces[f]
             d.faces[next(d._fid)] = Face([mapa[v] for v in F.outer], [[mapa[v] for v in h] for h in F.holes], F.normal,
@@ -165,11 +167,14 @@ class Cena:
         t.tags.update({n: m for n, m in d.tags.items() if n not in t.tags})
         for ed, (a, b) in d.edges.items():
             tag_aresta = d.etags.get(ed)
+            flags_aresta = d.eflags.get(ed)
             if t.edge_between(mapa[a], mapa[b]) is None and mapa[a] != mapa[b]:
                 ne = next(t._eid)
                 t.edges[ne] = (mapa[a], mapa[b])
                 if tag_aresta is not None:
                     t.etags[ne] = tag_aresta
+                if flags_aresta is not None:
+                    t.eflags[ne] = flags_aresta
         for F in d.faces.values():
             t.faces[next(t._fid)] = Face([mapa[v] for v in F.outer], [[mapa[v] for v in h] for h in F.holes], F.normal, F.frente, F.verso, F.tag)
         del self.instancias[instancia]

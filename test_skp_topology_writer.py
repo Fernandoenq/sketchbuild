@@ -357,6 +357,43 @@ class TestGravadorDeTopologia(unittest.TestCase):
         finally:
             m.close()
 
+    def test_aresta_suave_e_lisa_lidas_pela_dll(self):
+        """Seção 7g: bit 0x08 = suave (soft), 0x10 = lisa (smooth) no 0x07d3 da aresta; a DLL devolve os dois."""
+        import ctypes
+        from core.su_types import SUEntitiesRef
+        from core.topology import soften
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        primeira = sorted(t.edges)[0]
+        soften.definir(t, [primeira], suave=True, lisa=False)
+        p = os.path.join(self.tmp.name, "soft.skp")
+        gravar_topologia(t, p)
+        verificar_skp(p)
+        d = _api._dll
+
+        class _R(ctypes.Structure):
+            _fields_ = [("ptr", ctypes.c_void_p)]
+        m = _api.open_model(p)
+        try:
+            e = m.get_entities()
+            n = ctypes.c_size_t()
+            d.SUEntitiesGetNumEdges.argtypes = [SUEntitiesRef, ctypes.c_bool, ctypes.POINTER(ctypes.c_size_t)]
+            d.SUEntitiesGetNumEdges(e, False, ctypes.byref(n))
+            arr = (_R * n.value)()
+            d.SUEntitiesGetEdges.argtypes = [SUEntitiesRef, ctypes.c_bool, ctypes.c_size_t, ctypes.POINTER(_R), ctypes.POINTER(ctypes.c_size_t)]
+            d.SUEntitiesGetEdges(e, False, n.value, arr, ctypes.byref(ctypes.c_size_t()))
+            soft, smooth = ctypes.c_bool(), ctypes.c_bool()
+            d.SUEdgeGetSoft.argtypes = [_R, ctypes.POINTER(ctypes.c_bool)]
+            d.SUEdgeGetSmooth.argtypes = [_R, ctypes.POINTER(ctypes.c_bool)]
+            suaves = []
+            for x in arr:
+                d.SUEdgeGetSoft(x, ctypes.byref(soft))
+                d.SUEdgeGetSmooth(x, ctypes.byref(smooth))
+                suaves.append((soft.value, smooth.value))
+            self.assertEqual(sorted(suaves), [(False, False)] * 3 + [(True, False)])
+        finally:
+            m.close()
+
     def test_material_nao_definido_e_recusado(self):
         t = Topology()
         desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))
