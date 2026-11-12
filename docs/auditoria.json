@@ -108,9 +108,11 @@
   "linhas": 110,
   "funcoes": 1,
   "descricao": "Ferramenta de Cota Angular e Medição de Transferidor 3D (Angle Dimension - Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_a.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -191,9 +193,11 @@
   "linhas": 211,
   "funcoes": 3,
   "descricao": "SketchBuild - Sequenciador de Montagem Passo a Passo e Manual Técnico 3D",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_d.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -378,9 +382,11 @@
   "linhas": 93,
   "funcoes": 3,
   "descricao": "Cache em disco da malha (triangulos) de cada definicao grande (04/11/2026,",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_d.py"
+  ],
   "rotas_ou_app": [],
   "usado_por_core": [
    "mesh_extractor.py"
@@ -444,9 +450,11 @@
   "linhas": 74,
   "funcoes": 1,
   "descricao": "Calculador de Pegada de Carbono e Sustentabilidade de Madeira (Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_a.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -456,12 +464,14 @@
  },
  {
   "modulo": "core/cargo_load_optimizer.py",
-  "linhas": 145,
+  "linhas": 150,
   "funcoes": 1,
   "descricao": "Otimizador de Carregamento de Carga e Cubagem 3D (Cargo Load Optimizer - Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_a.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -891,9 +901,11 @@
   "linhas": 93,
   "funcoes": 1,
   "descricao": "Ferramenta de Linhas de Trajetória para Vista Explodida (Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_a.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -923,9 +935,11 @@
   "linhas": 87,
   "funcoes": 1,
   "descricao": "Otimizador de Parafusos, Fixadores e Torque de Aperto (NBR 7190 / ISO 898 - Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_a.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -1263,9 +1277,11 @@
   "linhas": 126,
   "funcoes": 1,
   "descricao": "Simulador de Impacto e Altura Crítica de Queda HIC (NBR 16071-3 / EN 1177 - Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_b.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -1297,9 +1313,11 @@
   "linhas": 112,
   "funcoes": 1,
   "descricao": "Gerador de Telhados de Quatro Águas e Piramidais Paramétricos (Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_b.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -1735,9 +1753,11 @@
   "linhas": 99,
   "funcoes": 3,
   "descricao": "Exportador OBJ standalone -- equivalente parcial do menu",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_c.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -1803,9 +1823,11 @@
   "linhas": 110,
   "funcoes": 1,
   "descricao": "Calculador de Centro de Gravidade e Estabilidade ao Tombamento (NBR 16071 / NBR 6123 - Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_b.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -2620,9 +2642,11 @@
   "linhas": 141,
   "funcoes": 2,
   "descricao": "SketchBuild - Motor Astronômico de Estudo Solar e Sombras Analíticas",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_d.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -2705,9 +2729,11 @@
   "linhas": 150,
   "funcoes": 2,
   "descricao": "Gerador de Tubos e Tobogãs Espirais Paramétricos 3D (Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_d.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -2880,9 +2906,11 @@
   "linhas": 95,
   "funcoes": 1,
   "descricao": "Simulador de Cinemática e Envelope de Segurança para Balanços (NBR 16071 - Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_b.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
@@ -3053,6 +3081,7 @@
   "selo": "VALIDADO",
   "oraculo": "receitas golden F0 (r01 a r14)",
   "testes": [
+   "test_frentes_auditoria_d.py",
    "test_multiformat_exporter.py",
    "test_opcao_a_parte_2_sketchup_native.py",
    "test_skp_synthetic.py",
@@ -3541,18 +3570,22 @@
  },
  {
   "modulo": "core/wall_thickness_inspector.py",
-  "linhas": 125,
+  "linhas": 133,
   "funcoes": 3,
   "descricao": "Inspetor de Espessura de Parede e Casca Fina (Wall Thickness Inspector - Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_c.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],
   "usado_por_core": [],
   "usa_dll": false,
   "alertas": [
+   "demonstra",
+   "exemplo",
    "mock"
   ]
  },
@@ -3626,12 +3659,14 @@
  },
  {
   "modulo": "core/zebra_label_exporter.py",
-  "linhas": 142,
-  "funcoes": 3,
+  "linhas": 153,
+  "funcoes": 4,
   "descricao": "Exportador de Etiquetas Térmicas Zebra ZPL II para Fábrica (Zero DLL).",
-  "selo": "SEM TESTE",
+  "selo": "TESTADO",
   "oraculo": "",
-  "testes": [],
+  "testes": [
+   "test_frentes_auditoria_c.py"
+  ],
   "rotas_ou_app": [
    "app/repositories/skp_engine_repository.py"
   ],

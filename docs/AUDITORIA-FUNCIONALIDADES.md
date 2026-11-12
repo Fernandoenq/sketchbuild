@@ -7,13 +7,13 @@ Arquivo gerado. Não editar à mão: rode `python tools/auditar_frentes.py`. Reg
 | Selo | Módulos | Significado |
 |---|---|---|
 | VALIDADO | 14 | conferido contra o SketchUp real, a SketchUpAPI.dll ou golden |
-| TESTADO | 164 | teste automatizado cita o módulo, mas só confere consistência interna (sem oráculo) |
-| SEM TESTE | 20 | usado pelo app ou por outro módulo, nenhum teste o cita |
+| TESTADO | 180 | teste automatizado cita o módulo, mas só confere consistência interna (sem oráculo) |
+| SEM TESTE | 4 | usado pelo app ou por outro módulo, nenhum teste o cita |
 | ORFAO | 1 | nem o app, nem outros módulos, nem testes o usam |
 
-Total: 199 módulos em `core/`, 33737 linhas. Módulos com palavra de alerta (simul, mock, placeholder, etc.): 38.
+Total: 199 módulos em `core/`, 33761 linhas. Módulos com palavra de alerta (simul, mock, placeholder, etc.): 38.
 
-Rigor dos testes das frentes (`test_frentes_*.py`): 389 asserts frouxos (limite mínimo, tipo de entidade, presença) contra 311 de valor exato.
+Rigor dos testes das frentes (`test_frentes_*.py`): 410 asserts frouxos (limite mínimo, tipo de entidade, presença) contra 453 de valor exato.
 
 **Leitura honesta:** só VALIDADO tem prova de fidelidade ao SketchUp. TESTADO significa que o código faz o que o
 próprio teste espera, o que não prova que o resultado bate com o SketchUp ou com a norma citada.
@@ -24,35 +24,20 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 |---|---|---|---|---|---|---|
 | `core/unhide_entities_engine.py` | 114 | SketchBuild - Motor de Reexibição de Entidades Ocultas (Zero DLL / Pure Python) | - | - | - | - |
 
-## SEM TESTE (20)
+## SEM TESTE (4)
 
 | Módulo | Linhas | Descrição | Testes | App/rotas | DLL | Alertas |
 |---|---|---|---|---|---|---|
 | `core/technical_drawing_exporter.py` | 215 | SketchBuild - Compilador de Desenhos Técnicos Vetoriais 2D (Plantas Baixas e Elevações) | - | 1 | - | aproxima |
 | `core/art_report_generator.py` | 153 | Gerador de Minuta Técnica de ART / RRT em PDF Vetorial (Zero DLL / Pure Python). | - | 1 | - | simul |
-| `core/spiral_tube_generator.py` | 150 | Gerador de Tubos e Tobogãs Espirais Paramétricos 3D (Zero DLL). | - | 1 | - | aproxima |
-| `core/zebra_label_exporter.py` | 142 | Exportador de Etiquetas Térmicas Zebra ZPL II para Fábrica (Zero DLL). | - | 1 | - | simul |
-| `core/hic_simulator.py` | 126 | Simulador de Impacto e Altura Crítica de Queda HIC (NBR 16071-3 / EN 1177 - Zero DLL). | - | 1 | - | simul |
-| `core/wall_thickness_inspector.py` | 125 | Inspetor de Espessura de Parede e Casca Fina (Wall Thickness Inspector - Zero DLL). | - | 1 | - | mock |
-| `core/swing_kinematics_simulator.py` | 95 | Simulador de Cinemática e Envelope de Segurança para Balanços (NBR 16071 - Zero DLL). | - | 1 | - | simul |
 | `core/field_inspection_exporter.py` | 383 | Exportador de Ficha de Inspeção e Checklist de Campo Offline (NBR 16071-7 - Zero DLL). | - | 1 | - | - |
-| `core/assembly_sequencer.py` | 211 | SketchBuild - Sequenciador de Montagem Passo a Passo e Manual Técnico 3D | - | 1 | - | - |
-| `core/cargo_load_optimizer.py` | 145 | Otimizador de Carregamento de Carga e Cubagem 3D (Cargo Load Optimizer - Zero DLL). | - | 1 | - | - |
-| `core/solar_calculator.py` | 141 | SketchBuild - Motor Astronômico de Estudo Solar e Sombras Analíticas | - | 1 | - | - |
 | `core/technical_sketch_shader.py` | 119 | Renderizador e Filtro Estilizado de Linha Oculta e Esboço Técnico (Zero DLL). | - | 1 | - | - |
-| `core/hip_roof_generator.py` | 112 | Gerador de Telhados de Quatro Águas e Piramidais Paramétricos (Zero DLL). | - | 1 | - | - |
-| `core/angle_dimension_tool.py` | 110 | Ferramenta de Cota Angular e Medição de Transferidor 3D (Angle Dimension - Zero DLL). | - | 1 | - | - |
-| `core/overturn_stability_calculator.py` | 110 | Calculador de Centro de Gravidade e Estabilidade ao Tombamento (NBR 16071 / NBR 6123 - Zero DLL). | - | 1 | - | - |
-| `core/obj_exporter.py` | 99 | Exportador OBJ standalone -- equivalente parcial do menu | - | 1 | sim | - |
-| `core/cache_malhas.py` | 93 | Cache em disco da malha (triangulos) de cada definicao grande (04/11/2026, | - | - | - | - |
-| `core/exploded_view_trail_tool.py` | 93 | Ferramenta de Linhas de Trajetória para Vista Explodida (Zero DLL). | - | 1 | - | - |
-| `core/fastener_torque_optimizer.py` | 87 | Otimizador de Parafusos, Fixadores e Torque de Aperto (NBR 7190 / ISO 898 - Zero DLL). | - | 1 | - | - |
-| `core/carbon_footprint_calculator.py` | 74 | Calculador de Pegada de Carbono e Sustentabilidade de Madeira (Zero DLL). | - | 1 | - | - |
 
-## TESTADO (164)
+## TESTADO (180)
 
 | Módulo | Linhas | Descrição | Testes | App/rotas | DLL | Alertas |
 |---|---|---|---|---|---|---|
+| `core/wall_thickness_inspector.py` | 133 | Inspetor de Espessura de Parede e Casca Fina (Wall Thickness Inspector - Zero DLL). | test_frentes_auditoria_c.py | 1 | - | demonstra, exemplo, mock |
 | `core/mini_wind_cfd_2d_engine.py` | 114 | Motor de Túnel de Vento Numérico CFD 2D em Python Puro (Mini Wind CFD 2D - Zero DLL). | test_frentes_116_a_145.py | 1 | - | aproxima, simul |
 | `core/cutlist_exporter.py` | 401 | SketchBuild - Compilador Nativo de Lista de Corte e Orçamento Industrial em Excel .xlsx | test_cutlist_exporter.py, test_frentes_23_24_14.py | 1 | - | aproxima |
 | `core/sheet_nesting_2d_engine.py` | 242 | SketchBuild - Motor de Plano de Corte e Nesting 2D Guilhotinado para Marcenaria (Zero DLL / Pure Python) | test_frentes_layout_e_marcenaria_avancada.py | 1 | - | simul |
@@ -63,11 +48,14 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 | `core/infinite_guide_engine.py` | 165 | SketchBuild - Motor de Linhas e Pontos de Construção Infinitos (Zero DLL / Pure Python) | test_frentes_71_a_75.py | 1 | - | simul |
 | `core/shadow_heliodon_engine.py` | 163 | SketchBuild - Motor de Sombras e Heliodon Integrado (Zero DLL / Pure Python) | test_frentes_66_a_70.py | 1 | - | aproxima |
 | `core/slicing_3d_print_engine.py` | 159 | Motor de Fatiamento e Exportação para Impressão 3D (3D Slicing & G-Code / STL & 3MF - Zero DLL). | test_frentes_106_a_115.py | 1 | - | aproxima |
+| `core/zebra_label_exporter.py` | 153 | Exportador de Etiquetas Térmicas Zebra ZPL II para Fábrica (Zero DLL). | test_frentes_auditoria_c.py | 1 | - | simul |
+| `core/spiral_tube_generator.py` | 150 | Gerador de Tubos e Tobogãs Espirais Paramétricos 3D (Zero DLL). | test_frentes_auditoria_d.py | 1 | - | aproxima |
 | `core/match_photo_engine.py` | 148 | Motor de Adequar Fotografia do SketchUp (Match Photo Engine - Zero DLL). | test_opcao_a_sketchup_native.py | 1 | - | aproxima |
 | `core/dolly_fov_lens_engine.py` | 145 | Motor de Dolly de Câmera, Campo de Visão (FOV) e Lente Fotográfica do SketchUp (Zero DLL). | test_opcao_a_parte_4_sketchup_native.py | 1 | - | aproxima |
 | `core/steel_profile_engine.py` | 144 | Motor de Perfis Estruturais Metálicos Paramétricos NBR 8800 (Structural Steel Profiles - Zero DLL). | test_frentes_106_a_115.py | 1 | - | aproxima |
 | `core/hydraulic_piping_engine.py` | 134 | Motor de Tubulações Hidráulicas, Conexões e Perda de Carga NBR 5626 (Hydraulic Piping - Zero DLL). | test_frentes_106_a_115.py | 1 | - | aproxima |
 | `core/reinforced_concrete_beam_engine.py` | 133 | Motor de Vigas de Concreto Armado no Estado Limite Último ABNT NBR 6118 (RC Beam ELU - Zero DLL). | test_frentes_116_a_145.py | 1 | - | aproxima |
+| `core/hic_simulator.py` | 126 | Simulador de Impacto e Altura Crítica de Queda HIC (NBR 16071-3 / EN 1177 - Zero DLL). | test_frentes_auditoria_b.py | 1 | - | simul |
 | `core/rigid_body_physics_engine.py` | 125 | Motor de Simulação de Cinemática e Corpos Rígidos (Rigid Body Physics - Zero DLL). | test_frentes_106_a_115.py | 1 | - | simul |
 | `core/add_detail_sandbox_engine.py` | 124 | Engine de Engenharia Reversa da Ferramenta Adicionar Detalhe (Add Detail Tool) da Caixa de Areia. | test_opcao_a_parte_6_sketchup_native.py | 1 | - | aproxima |
 | `core/nbr16071_auditor.py` | 124 | Auditor Automático de Segurança e Conformidade ABNT NBR 16071 (Zero DLL). | test_frentes_31_a_35.py | 1 | - | simul |
@@ -81,6 +69,7 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 | `core/bim_4d_gantt_schedule_engine.py` | 99 | Motor de Planejamento BIM 4D e Cronograma Físico-Financeiro Gantt (BIM 4D Schedule - Zero DLL). | test_frentes_116_a_145.py | 1 | - | simul |
 | `core/ventilated_facade_engine.py` | 96 | Motor de Fachadas Ventiladas e Câmara Convectiva de Ar (Ventilated Facade - Zero DLL). | test_frentes_116_a_145.py | 1 | - | simul |
 | `core/wind_pressure_engine.py` | 96 | SketchBuild - Simulação de Vento e Pressão Dinâmica NBR 6123 (Zero DLL / Pure Python) | test_frentes_101_a_105.py | 1 | - | simul |
+| `core/swing_kinematics_simulator.py` | 95 | Simulador de Cinemática e Envelope de Segurança para Balanços (NBR 16071 - Zero DLL). | test_frentes_auditoria_b.py | 1 | - | simul |
 | `core/construction_site_logistics_engine.py` | 92 | Motor de Logística de Canteiro e Interferência de Gruas NR-18 (Site Logistics - Zero DLL). | test_frentes_116_a_145.py | 1 | - | simul |
 | `core/skp_binary_writer.py` | 2395 | SketchBuild - Gravador Binário Nativo de Arquivos .SKP (Pure Python / Zero DLL) | test_add_geometry_native.py, test_attribute_injection.py, test_binary_mesh_extraction.py... | 2 | sim | - |
 | `core/glb_exporter.py` | 317 | - | test_multiformat_exporter.py | 1 | - | - |
@@ -94,6 +83,7 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 | `core/polymesh_loop_engine.py` | 223 | SketchBuild - Decodificador de Malhas com Furos e Hierarquia de Loops (Zero DLL / Pure Python) | test_frentes_81_a_85.py | 1 | - | - |
 | `core/architectural_wall_engine.py` | 222 | SketchBuild - Paredes Arquitetônicas com Aberturas Automáticas de Vãos (Zero DLL / Pure Python) | test_frentes_96_a_100.py | 1 | - | - |
 | `core/abnt_drawing_sheet_engine.py` | 214 | SketchBuild - Motor de Pranchas Técnicas ABNT e Viewports com Escala (Zero DLL / Pure Python) | test_frentes_layout_e_marcenaria_avancada.py | 1 | - | - |
+| `core/assembly_sequencer.py` | 211 | SketchBuild - Sequenciador de Montagem Passo a Passo e Manual Técnico 3D | test_frentes_auditoria_d.py | 1 | - | - |
 | `core/intersect_faces_engine.py` | 210 | Motor de Interseção de Faces do SketchUp (Intersect Faces with Model / Selection - Zero DLL). | test_opcao_a_parte_4_sketchup_native.py | 1 | - | - |
 | `core/walk_look_around_engine.py` | 203 | Motor das Ferramentas Nativas Caminhar, Olhar em Volta e Posicionar Câmera do SketchUp (Zero DLL). | test_opcao_a_sketchup_native.py | 1 | - | - |
 | `core/quad_mesh_subd_engine.py` | 200 | SketchBuild - Decodificador e Subdivisão de Superfície SubD / QuadMesh (Zero DLL / Pure Python) | test_frentes_86_a_90.py | 1 | - | - |
@@ -121,6 +111,7 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 | `core/model_units_precision_engine.py` | 153 | Motor de Unidades, Precisão Decimal e Snaps do Modelo do SketchUp (Zero DLL). | test_opcao_a_parte_2_sketchup_native.py | 1 | - | - |
 | `core/axes_system_engine.py` | 151 | Motor do Sistema de Eixos do Modelo do SketchUp (Axes Tool - Zero DLL). | test_opcao_a_parte_2_sketchup_native.py | 1 | - | - |
 | `core/retaining_wall_engine.py` | 151 | Motor de Muros de Arrimo e Estabilidade Geotécnica NBR 11682 (Retaining Walls - Zero DLL). | test_frentes_106_a_115.py | 1 | - | - |
+| `core/cargo_load_optimizer.py` | 150 | Otimizador de Carregamento de Carga e Cubagem 3D (Cargo Load Optimizer - Zero DLL). | test_frentes_auditoria_a.py | 1 | - | - |
 | `core/generate_report_engine.py` | 150 | Motor Oficial de Geração de Relatórios do SketchUp (Generate Report - Zero DLL). | test_opcao_a_parte_2_sketchup_native.py | 1 | - | - |
 | `core/weld_edges_engine.py` | 149 | Motor de Soldagem de Arestas do SketchUp (Weld Edges Tool - Zero DLL / Pure Python). | test_opcao_a_parte_7_sketchup_native.py | - | - | - |
 | `core/shell_solid_offset_engine.py` | 148 | SketchBuild - Motor de Espessura e Offset de Casca Sólida B-Rep (Zero DLL / Pure Python) | test_frentes_91_a_95.py | 1 | - | - |
@@ -131,6 +122,7 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 | `core/slope_stability_bishop_engine.py` | 145 | Motor de Estabilidade de Taludes e Encostas Método de Bishop Simplificado (Slope Stability - Zero DLL). | test_frentes_116_a_145.py | 1 | - | - |
 | `core/space_truss_engine.py` | 143 | Motor de Estruturas Espaciais e Treliças Tubulares 3D (Space Truss - Zero DLL). | test_frentes_116_a_145.py | 1 | - | - |
 | `core/attribute_dictionary_engine.py` | 141 | Motor de Dicionários de Atributos e Componentes Dinâmicos do SketchUp (Zero DLL). | test_opcao_a_parte_7_sketchup_native.py | 1 | - | - |
+| `core/solar_calculator.py` | 141 | SketchBuild - Motor Astronômico de Estudo Solar e Sombras Analíticas | test_frentes_auditoria_d.py | 1 | - | - |
 | `core/flip_along_axes_engine.py` | 139 | Motor de Inversão ao Longo dos Eixos do SketchUp (Flip Along Tool - Zero DLL / Pure Python). | test_opcao_a_parte_7_sketchup_native.py | 1 | - | - |
 | `core/ifc4_bim_export_engine.py` | 138 | SketchBuild - Exportador Canônico de IFC4 BIM LOI/LOD 350 (Zero DLL / Pure Python) | test_frentes_101_a_105.py | 1 | - | - |
 | `core/orbit_flythrough_path_engine.py` | 137 | SketchBuild - Animação de Câmera em Percurso Orbit e Flythrough (Zero DLL / Pure Python) | test_frentes_91_a_95.py | 1 | - | - |
@@ -160,9 +152,12 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 | `core/deep_foundations_piles_engine.py` | 113 | Motor de Estacas e Fundações Profundas ABNT NBR 6122 (Deep Foundations - Zero DLL). | test_frentes_116_a_145.py | 1 | - | - |
 | `core/drape_contour_engine.py` | 113 | Engine de Engenharia Reversa da Ferramenta Projetar (Drape Tool) da Caixa de Areia (Sandbox). | test_opcao_a_parte_5_sketchup_native.py | 1 | - | - |
 | `core/qr_tag_generator.py` | 113 | Gerador de Etiquetas Técnicas de Patrimônio com QR Code Analítico (Zero DLL). | test_frentes_41_a_45.py | 1 | - | - |
+| `core/hip_roof_generator.py` | 112 | Gerador de Telhados de Quatro Águas e Piramidais Paramétricos (Zero DLL). | test_frentes_auditoria_b.py | 1 | - | - |
 | `core/bim_ifc_property_set_engine.py` | 111 | Engine de Engenharia Reversa para Conjuntos de Propriedades BIM (IFC Property Sets - Psets). | test_opcao_a_parte_5_sketchup_native.py | 1 | - | - |
 | `core/shallow_footings_engine.py` | 111 | Motor de Sapatas Isoladas e Fundações Rasas ABNT NBR 6122 / NBR 6118 (Shallow Footings - Zero DLL). | test_frentes_116_a_145.py | 1 | - | - |
 | `core/align_view_engine.py` | 110 | SketchBuild - Motor de Alinhamento de Câmera à Face (Zero DLL / Pure Python) | test_frentes_81_a_85.py | 1 | - | - |
+| `core/angle_dimension_tool.py` | 110 | Ferramenta de Cota Angular e Medição de Transferidor 3D (Angle Dimension - Zero DLL). | test_frentes_auditoria_a.py | 1 | - | - |
+| `core/overturn_stability_calculator.py` | 110 | Calculador de Centro de Gravidade e Estabilidade ao Tombamento (NBR 16071 / NBR 6123 - Zero DLL). | test_frentes_auditoria_b.py | 1 | - | - |
 | `core/section_cut_fill_engine.py` | 110 | Engine de Engenharia Reversa para Inversao de Plano de Corte e Preenchimento de Secao (Section Cut Fill). | test_opcao_a_parte_5_sketchup_native.py | 1 | - | - |
 | `core/detention_basin_hydrology_engine.py` | 109 | Motor de Bacias de Detenção e Amortecimento Hidrológico de Cheias (Detention Basin - Zero DLL). | test_frentes_116_a_145.py | 1 | - | - |
 | `core/edge_styles_engine.py` | 109 | Motor de Estilos de Arestas Nativos do SketchUp (Zero DLL). | test_opcao_a_parte_7_sketchup_native.py | 1 | - | - |
@@ -179,6 +174,7 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 | `core/concrete_formwork_shoring_engine.py` | 100 | Motor de Fôrmas e Escoramento de Estruturas de Concreto ABNT NBR 15696 / DIN 18218 (Formwork & Shoring - Zero  | test_frentes_116_a_145.py | 1 | - | - |
 | `core/panorama_spherical_engine.py` | 100 | SketchBuild - Decodificador de Projeção Esférica e Panorama 360° (Zero DLL / Pure Python) | test_frentes_86_a_90.py | 1 | - | - |
 | `core/advanced_selection_engine.py` | 99 | Motor de Seleção Avançada do SketchUp (Advanced Selection - Zero DLL). | test_opcao_a_parte_3_sketchup_native.py | 1 | - | - |
+| `core/obj_exporter.py` | 99 | Exportador OBJ standalone -- equivalente parcial do menu | test_frentes_auditoria_c.py | 1 | sim | - |
 | `core/hvac_thermal_load_engine.py` | 98 | Motor de Carga Térmica de Climatização HVAC ASHRAE / ABNT NBR 16401 (HVAC Thermal Load - Zero DLL). | test_frentes_116_a_145.py | 1 | - | - |
 | `core/life_cycle_assessment_engine.py` | 98 | Motor de Avaliação do Ciclo de Vida (ACV / LCA) e Energia Embutida ISO 14040 (Life Cycle Assessment - Zero DLL | test_frentes_116_a_145.py | 1 | - | - |
 | `core/transformation_engine.py` | 98 | Motor de Transformações Geométricas 3D e Ferramenta Rotacionar (Rotate Tool - Zero DLL). | test_frentes_31_a_35.py | 1 | - | - |
@@ -191,12 +187,15 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 | `core/text_engine.py` | 95 | SketchBuild - Motor de Textos 2D na Tela e Rótulos Anotativos de Líder (Zero DLL / Pure Python) | test_frentes_71_a_75.py | 1 | - | - |
 | `core/camera_path_interpolator.py` | 94 | Interpolador de Caminho de Câmera e Voo Panorâmico (Flythrough - Zero DLL). | test_frentes_41_a_45.py | 1 | - | - |
 | `core/maintenance_planner.py` | 94 | Planejador de Manutenção Preventiva e Vida Útil de Playgrounds (NBR 16071-7 - Zero DLL). | test_frentes_41_a_45.py | 1 | - | - |
+| `core/cache_malhas.py` | 93 | Cache em disco da malha (triangulos) de cada definicao grande (04/11/2026, | test_frentes_auditoria_d.py | - | - | - |
 | `core/earthwork_bruckner_engine.py` | 93 | Motor de Movimentação de Terra e Diagrama de Massas de Brückner (Earthwork - Zero DLL). | test_frentes_116_a_145.py | 1 | - | - |
+| `core/exploded_view_trail_tool.py` | 93 | Ferramenta de Linhas de Trajetória para Vista Explodida (Zero DLL). | test_frentes_auditoria_a.py | 1 | - | - |
 | `core/fire_egress_route_engine.py` | 93 | Motor de Rotas de Fuga e Saídas de Emergência em Edifícios ABNT NBR 9077 (Fire Egress - Zero DLL). | test_frentes_116_a_145.py | 1 | - | - |
 | `core/permeable_pavement_engine.py` | 93 | Motor de Pavimentação Permeável e Drenagem Sustentável ABNT NBR 16416 (Permeable Pavement - Zero DLL). | test_frentes_116_a_145.py | 1 | - | - |
 | `core/dimension_tolerance_engine.py` | 90 | SketchBuild - Motor de Cotas com Tolerâncias e Desvios Dimensionais (Zero DLL / Pure Python) | test_frentes_81_a_85.py | 1 | - | - |
 | `core/hidden_geometry_engine.py` | 89 | Motor de Geometria Oculta e Objetos Ocultos do SketchUp (Zero DLL). | test_opcao_a_parte_3_sketchup_native.py | 1 | - | - |
 | `core/natural_ventilation_engine.py` | 88 | Motor de Ventilação Natural e Efeito Chaminé ABNT NBR 15220 / ASHRAE (Natural Ventilation - Zero DLL). | test_frentes_116_a_145.py | 1 | - | - |
+| `core/fastener_torque_optimizer.py` | 87 | Otimizador de Parafusos, Fixadores e Torque de Aperto (NBR 7190 / ISO 898 - Zero DLL). | test_frentes_auditoria_a.py | 1 | - | - |
 | `core/flip_edge_sandbox_engine.py` | 87 | Engine de Engenharia Reversa da Ferramenta Girar Aresta (Flip Edge Tool) da Caixa de Areia. | test_opcao_a_parte_6_sketchup_native.py | 1 | - | - |
 | `core/shadow_casting_surface_engine.py` | 87 | SketchBuild - Sombras Projetadas em Superfícies e Lotes Vizinhos (Zero DLL / Pure Python) | test_frentes_96_a_100.py | 1 | - | - |
 | `core/model_statistics_engine.py` | 86 | Motor de Estatísticas e Contagem de Entidades do SketchUp (Model Statistics - Zero DLL). | test_opcao_a_parte_3_sketchup_native.py | 1 | - | - |
@@ -211,6 +210,7 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 | `core/position_camera_engine.py` | 76 | Engine de Engenharia Reversa da Ferramenta Posicionar Camera (Position Camera Tool). | test_opcao_a_parte_6_sketchup_native.py | 1 | - | - |
 | `core/fog_depth_engine.py` | 75 | SketchBuild - Motor de Estilos de Névoa e Profundidade Atmosférica (Zero DLL / Pure Python) | test_frentes_76_a_80.py | 1 | - | - |
 | `core/universal_accessibility_engine.py` | 75 | Motor de Acessibilidade Universal a Edificações ABNT NBR 9050 (Universal Accessibility - Zero DLL). | test_frentes_116_a_145.py | 1 | - | - |
+| `core/carbon_footprint_calculator.py` | 74 | Calculador de Pegada de Carbono e Sustentabilidade de Madeira (Zero DLL). | test_frentes_auditoria_a.py | 1 | - | - |
 | `core/color_by_tag_engine.py` | 73 | Motor do Modo 'Colorir por Etiqueta' do SketchUp (Color by Tag - Zero DLL). | test_opcao_a_parte_3_sketchup_native.py | 1 | - | - |
 | `core/point_cloud_exporter.py` | 70 | Exportador de Nuvem de Pontos 3D (LiDAR / XYZ / PTS - Zero DLL). | test_frentes_41_a_45.py | 1 | - | - |
 | `core/look_around_camera_engine.py` | 69 | Engine de Engenharia Reversa da Ferramenta Olhar ao Redor (Look Around Tool). | test_opcao_a_parte_6_sketchup_native.py | 1 | - | - |
@@ -230,7 +230,7 @@ próprio teste espera, o que não prova que o resultado bate com o SketchUp ou c
 | `core/mesh_extractor.py` | 398 | Percorre a arvore Model -> Entities -> {Faces, ComponentInstances} de um | test_skp_topology_writer.py | 1 | sim | - |
 | `core/topology/pushpull.py` | 190 | F3: Empurrar/Puxar (Push/Pull) sobre o núcleo de topologia. | test_draw_api.py, test_skp_synthetic.py, test_skp_topology_writer.py... | 3 | - | - |
 | `core/topology/edit.py` | 180 | F4: edição sobre o núcleo de topologia: Mover, Rotacionar, Escalar e Offset. | test_draw_api.py, test_topology_edit.py, test_topology_historico.py | 3 | - | - |
-| `core/topology/cena.py` | 167 | F5: grupos e componentes sobre o núcleo de topologia. | test_multiformat_exporter.py, test_opcao_a_parte_2_sketchup_native.py, test_skp_synthetic.py... | 10 | - | - |
+| `core/topology/cena.py` | 167 | F5: grupos e componentes sobre o núcleo de topologia. | test_frentes_auditoria_d.py, test_multiformat_exporter.py, test_opcao_a_parte_2_sketchup_native.py... | 10 | - | - |
 | `core/topology/draw.py` | 154 | F2: ferramentas de desenho (Linha, Retângulo, Círculo, Polígono, Arco, Mão livre) | test_draw_api.py, test_skp_synthetic.py, test_skp_topology_writer.py... | 3 | - | - |
 | `core/topology/sweep.py` | 135 | F5: Siga-me (Follow Me): varre uma face (perfil) ao longo de um caminho de arestas. | test_topology_sweep.py | 1 | - | - |
 | `core/topology/intersect.py` | 92 | F5: Intersect Faces. Cada par de faces em planos diferentes que se cruzam ganha a aresta da | test_draw_api.py, test_opcao_a_sketchup_native.py, test_topology_intersect.py | 4 | - | - |

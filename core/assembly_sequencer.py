@@ -38,7 +38,7 @@ class AssemblySequencer:
     @classmethod
     def _categorizar_peca(cls, nome: str) -> str:
         n = nome.upper()
-        if any(k in n for k in ["SAPATA", "CHUMBADOR", "BASE", "PE"]):
+        if any(k in n for k in ["SAPATA", "CHUMBADOR", "BASE"]) or "PE" in n.replace("-", " ").split():  # "PE" só como palavra: "TUBO PEQUENO" não é fundação
             return "fundacao"
         if any(k in n for k in ["COLUNA", "POSTE", "PILAR", "VIGA"]):
             return "estruturas"
