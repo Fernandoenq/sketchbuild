@@ -20,12 +20,12 @@ def guia_linha(t: Topology, p: Point, alvo: Optional[Point] = None, direcao: Opt
         n = math.sqrt(sum(c * c for c in v))
         if n < 1e-12:
             raise ValueError("guia: início e fim iguais")
-        d, t0, t1 = tuple(c / n for c in v), 0.0, n
+        d, t0, t1 = tuple(c * (1.0 / n) for c in v), 0.0, n  # multiplica pelo inverso, como a SDK (1 ulp de diferença)
     else:
         n = math.sqrt(sum(c * c for c in direcao))
         if n < 1e-12:
             raise ValueError("guia: direção nula")
-        d, t0, t1 = tuple(c / n for c in direcao), -1e30, 1e30
+        d, t0, t1 = tuple(c * (1.0 / n) for c in direcao), -1e30, 1e30
     gid = next(t._gid)
     t.guias[gid] = {"tipo": "linha", "p": tuple(float(c) for c in p), "d": d, "t0": t0, "t1": t1}
     return gid

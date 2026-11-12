@@ -380,6 +380,8 @@ Oráculo: `tools/gerar_texto_api.py` (um texto por modelo e uma mudança por var
 
 **Ordem de ids texto × cota (resolvida em 12/11/2026, `tools/gerar_texto_cota_api.py`):** a SDK numera pela ordem de **inclusão nas entidades**, não de criação (criar texto antes mas incluir a cota primeiro dá cota = 0x12, texto = 0x13). O gravador numera na ordem de criação no núcleo (que no app é a de inclusão) e a tabela 0x138e fica em ordem crescente de id; conferido byte a byte (`0x1398`, `0x1399`, `0x138e`) nas duas ordens.
 
+**Ids de guias, seções, cotas e textos (resolvido em 12/11/2026, `tools/gerar_ordem_guias_api.py`):** todos entram numa só sequência pela ordem de inclusão nas entidades (ponto de guia, linha de guia e plano de seção misturados; conferido nas ordens psl, slp, lps, spl). O gravador numera os quatro tipos pela ordem de criação do núcleo. Detalhe de ponto flutuante: a direção unitária da linha de guia sai de `c * (1/n)`, não de `c / n` (1 ulp de diferença, só aparecia na comparação byte a byte). **Pendente:** a SDK intercala os ids de vértices e arestas (v, e, v, e…) e o gravador numera vértices, arestas e faces em blocos; não afeta o primeiro id livre, mas os ids da geometria não são os da SDK.
+
 ## 7m. Comportamento do componente `0x157c > 0x1b58` — decifrado em 12/11/2026
 
 Oráculo: `tools/gerar_comportamento_api.py` (`SUComponentDefinitionSetBehavior`) + diff de `tools/tlv_diff.py` entre `base.skp` e uma variação por vez.

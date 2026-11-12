@@ -317,17 +317,15 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
         mid = mid_externo
         usados = []
     gid_: Dict[int, int] = {}
-    for g in sorted(t.guias):
-        gid_[g] = prox
-        prox += 1
     sid_: Dict[int, int] = {}
-    for g in sorted(t.secoes):
-        sid_[g] = prox
-        prox += 1
     did_cota: Dict[int, int] = {}
     did_texto: Dict[int, int] = {}
-    for g in sorted(set(getattr(t, "cotas", {})) | set(t.textos)):  # ids na ordem de criação (a SDK numera pela ordem de inclusão)
-        (did_cota if g in getattr(t, "cotas", {}) else did_texto)[g] = prox
+    cotas_ = getattr(t, "cotas", {})
+    # guias, seções, cotas e textos: ids na ordem de criação, que no app é a de inclusão; a SDK numera por essa
+    # ordem, misturando os tipos (conferido com tools/gerar_ordem_guias_api.py e gerar_texto_cota_api.py)
+    for g in sorted(set(t.guias) | set(t.secoes) | set(cotas_) | set(t.textos)):
+        alvo = gid_ if g in t.guias else sid_ if g in t.secoes else did_cota if g in cotas_ else did_texto
+        alvo[g] = prox
         prox += 1
     curva_da_aresta = {e: cid_[c] for c, d in curvas.items() for e in d["arestas"]}
 
@@ -395,8 +393,8 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
     reg_cotas = _rec(0x1399, b"".join(_registro_cota(did_cota[g], c) for g, c in sorted(getattr(t, "cotas", {}).items()))) if did_cota else b""
     reg_textos = _rec(0x1398, b"".join(_registro_texto(did_texto[g], c, mid[c["material"]] if c.get("material") else None, mid[c["fonte_nova"]] if c.get("fonte_nova") else None) for g, c in sorted(t.textos.items()))) if did_texto else b""
     tabela = b"".join(bytes([len(_id_bytes(i))]) + _id_bytes(i)
-                      for i in list(eid.values()) + list(fid_.values()) + list(gid_.values()) + list(sid_.values())
-                      + sorted(list(did_cota.values()) + list(did_texto.values())))
+                      for i in list(eid.values()) + list(fid_.values())
+                      + sorted(list(gid_.values()) + list(sid_.values()) + list(did_cota.values()) + list(did_texto.values())))
     pts = list(t.verts.values())
     caixa = None
     if pts:
