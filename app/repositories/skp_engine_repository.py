@@ -328,12 +328,14 @@ class SkpEngineRepository:
             try:
                 lido = verificar_skp(origem)
                 destino = os.path.join(tmp, "podado.skp")
-                rel = podar_skp(origem, destino)
+                rel = podar_skp(origem, destino, "total")
             except ValueError as e:
                 raise SceneSessionError(f"nao foi possivel analisar os ocultos: {e}") from e
         return {
             "instancias": lido["instancias"],
             "instancias_ocultas": rel["instancias_removidas"],
+            "arestas_ocultas": rel["geometria_arestas"],
+            "faces_ocultas": rel["geometria_faces"],
             "definicoes": lido["definicoes"],
             "definicoes_removidas": rel["definicoes_removidas"],
             "mb_antes": round(rel["bytes_antes"] / 2**20, 1),
@@ -350,11 +352,12 @@ class SkpEngineRepository:
             origem = self._exportar_para_temporario(tmp)
             destino = os.path.join(tmp, "podado.skp")
             try:
-                rel = podar_skp(origem, destino)
+                rel = podar_skp(origem, destino, "total")
                 rel["verificacao"] = verificar_skp(destino)
             except ValueError as e:
                 raise SceneSessionError(f"falha ao remover os ocultos: {e}") from e
-            if rel["verificacao"]["ocultas"] or rel["verificacao"]["refs_quebradas"]:
+            ver = rel["verificacao"]
+            if ver["ocultas"] or ver["refs_quebradas"] or ver["arestas_ocultas"] or ver["faces_ocultas"]:
                 raise SceneSessionError(f"a poda nao passou na verificacao: {rel['verificacao']}")
             with open(destino, "rb") as fh:
                 dados = fh.read()

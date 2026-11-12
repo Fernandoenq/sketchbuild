@@ -2664,12 +2664,13 @@ async function handleRemoveHidden() {
   setStatus("Analisando os objetos ocultos do modelo...");
   try {
     const r = await hiddenSummary();
-    if (!r.instancias_ocultas) {
+    if (!r.instancias_ocultas && !r.arestas_ocultas && !r.faces_ocultas) {
       setStatus("Nao ha objetos ocultos neste modelo.");
       return;
     }
     const ok = window.confirm(
-      `Remover ${r.instancias_ocultas} instancias ocultas (de ${r.instancias}) e ` +
+      `Remover ${r.instancias_ocultas} instancias ocultas (de ${r.instancias}), ` +
+        `${r.faces_ocultas ?? 0} faces e ${r.arestas_ocultas ?? 0} arestas ocultas, e ` +
         `${r.definicoes_removidas} definicoes sem uso?
 ` +
         `Tamanho estimado: ${r.mb_antes} MB -> ${r.mb_depois} MB.

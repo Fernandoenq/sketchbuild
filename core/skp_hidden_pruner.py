@@ -16,7 +16,14 @@ Instância 0x1964 > 0x07d0: 0x05dc>0x05de = ID, 0x07d3 = flags, 0x07d2 = ID da t
 0x1967 = ID da definição (o ID da definição é o do 0x07d0 do seu 0x1388).
 
 O original nunca é alterado: lê de `origem` e grava só em `destino`.
-Arestas e faces ocultas dentro das definições não são tocadas (mexem na topologia).
+
+Modo "total" (além do "completo"): poda também arestas e faces ocultas (bit 0x01 de 0x07d3 em 0x0bb8 e
+0x0dac, ou tag invisível em 0x07d2) dentro da raiz e das definições vivas, com estas regras:
+  - face oculta some; aresta oculta só some se nenhuma face viva a usa (aresta oculta de face viva é
+    "aresta escondida" da superfície e fica);
+  - vértice some se só era usado por aresta que sumiu;
+  - curva (0x1396/0x1397) que perdeu qualquer aresta some inteira e as arestas que sobraram perdem o 0x0bbb;
+  - a tabela 0x138e perde os ids removidos; a caixa limite 0x13a0 não é recalculada (assunção).
 """
 from __future__ import annotations
 
@@ -209,6 +216,69 @@ class _Plano:
                     out.append((r, _instancia(m, r)))
         return out
 
+    # -- geometria oculta (modo "total") ----------------------------------------------------
+
+    def _oculto(self, hdr: Rec) -> bool:
+        m = self.m
+        flags, tag = 0, None
+        for a, l, p in _parse(m, hdr[2] + 6, hdr[2] + 6 + hdr[1]):
+            if a == 0x07D3 and l:
+                flags = m[p + 6]
+            elif a == 0x07D2:
+                tag = _varint(m[p + 6: p + 6 + l])
+        return bool(flags & HIDDEN_BIT) or (tag is not None and tag in self.tags_invisiveis)
+
+    def _cabecalho(self, rec: Rec) -> Optional[Rec]:
+        return next((x for x in _parse(self.m, rec[2] + 6, rec[2] + 6 + rec[1]) if x[0] == 0x07D0), None)
+
+    def _geometria_morta(self, did: Optional[int], forcar: bool = False) -> Optional[dict]:
+        """Ids de vértices, arestas, faces e curvas que a poda "total" remove no contêiner 0x1388 `did`.
+
+        `forcar` analisa mesmo fora do modo "total" (para só contar, em verificar_skp)."""
+        if self.modo != "total" and not forcar:
+            return None
+        m, e = self.m, self.ents[did]
+        filhos = _parse(m, e[2] + 6, e[2] + 6 + e[1])
+        arestas, faces = {}, {}
+        for a, l, p in filhos:
+            if a == 0x138A:
+                for r in _parse(m, p + 6, p + 6 + l):
+                    h = self._cabecalho(r)
+                    v1 = v2 = curva = None
+                    for t, ll, q in _parse(m, r[2] + 6, r[2] + 6 + r[1]):
+                        if t == 0x0BB9:
+                            v1 = _varint(m[q + 6: q + 6 + ll])
+                        elif t == 0x0BBA:
+                            v2 = _varint(m[q + 6: q + 6 + ll])
+                        elif t == 0x0BBB:
+                            curva = _varint(m[q + 6: q + 6 + ll])
+                    arestas[_eid(m, h)] = (self._oculto(h), v1, v2, curva)
+            elif a == 0x138B:
+                for r in _parse(m, p + 6, p + 6 + l):
+                    h = self._cabecalho(r)
+                    usadas = set()
+                    for _, _, q in _find_all(m, r[2] + 6, r[2] + 6 + r[1], 0x0FA1, limit=6):
+                        usadas.add(_varint(m[q + 6: q + 6 + HEADER.unpack_from(m, q)[1]]))
+                    faces[_eid(m, h)] = (self._oculto(h), usadas)
+        if not any(v[0] for v in arestas.values()) and not any(v[0] for v in faces.values()):
+            return None
+        faces_mortas = {i for i, (oc, _) in faces.items() if oc}
+        em_face_viva = set()
+        for i, (oc, us) in faces.items():
+            if not oc:
+                em_face_viva |= us
+        arestas_mortas = {i for i, (oc, _, _, _) in arestas.items() if oc and i not in em_face_viva}
+        vivas_v = set()
+        for i, (_, a, b, _) in arestas.items():
+            if i not in arestas_mortas:
+                vivas_v |= {a, b}
+        verts_mortos = set()
+        for i in arestas_mortas:
+            verts_mortos |= {arestas[i][1], arestas[i][2]}
+        verts_mortos -= vivas_v
+        curvas_mortas = {arestas[i][3] for i in arestas_mortas if arestas[i][3] is not None}
+        return {"arestas": arestas_mortas, "faces": faces_mortas, "vertices": verts_mortos, "curvas": curvas_mortas}
+
     def morta(self, inst: _Instancia) -> bool:
         if self.modo == "identidade":
             return False
@@ -233,10 +303,20 @@ class _Plano:
         """Partes do 0x1388 sem as instâncias mortas. Devolve (partes do registro, removidas)."""
         m, e = self.m, self.ents[did]
         mortas = {i.id for _, i in self.insts[did] if self.morta(i)}
-        if not mortas:
+        geo = self._geometria_morta(did)
+        if not mortas and geo is None:
             return _raw(m, e), 0
+        self.relatorio_geo = getattr(self, "relatorio_geo", {"arestas": 0, "faces": 0, "vertices": 0, "curvas": 0})
+        self.tocadas = getattr(self, "tocadas", set())
+        self.tocadas.add(did)
+        if geo is not None:
+            for k in geo:
+                self.relatorio_geo[k] += len(geo[k])
         filhos: List = []
         for a, l, p in _parse(m, e[2] + 6, e[2] + 6 + e[1]):
+            if geo is not None and a in (0x1389, 0x138A, 0x138B, 0x1396, 0x1397):
+                filhos += self._geometria_filtrada(a, (a, l, p), geo)
+                continue
             if a in (0x138C, 0x138D):
                 keep = [r for r in _parse(m, p + 6, p + 6 + l) if _instancia(m, r).id not in mortas]
                 if not keep:
@@ -252,7 +332,8 @@ class _Plano:
                 tab, q, fim = bytearray(), p + 6, p + 6 + l
                 while q < fim:
                     n = m[q]
-                    if _varint(m[q + 1: q + 1 + n]) not in mortas:
+                    ident = _varint(m[q + 1: q + 1 + n])
+                    if ident not in mortas and not (geo is not None and (ident in geo["arestas"] or ident in geo["faces"])):
                         tab += m[q: q + 1 + n]
                     q += 1 + n
                 filhos += _rec(a, [bytes(tab)])
@@ -260,10 +341,51 @@ class _Plano:
                 filhos += _raw(m, (a, l, p))
         return _rec(0x1388, filhos), len(mortas)
 
+    def _geometria_filtrada(self, tag: int, rec: Rec, geo: dict) -> List:
+        """Partes do contêiner 0x1389/0x138a/0x138b/0x1396/0x1397 sem o que a poda removeu."""
+        m = self.m
+        a, l, p = rec
+        itens = _parse(m, p + 6, p + 6 + l)
+        manter: List = []
+        for r in itens:
+            if tag == 0x1389:
+                if _eid(m, r) in geo["vertices"]:
+                    continue
+                manter += _raw(m, r)
+            elif tag == 0x138A:
+                ident = _eid(m, self._cabecalho(r))
+                if ident in geo["arestas"]:
+                    continue
+                curva = next((_varint(m[q + 6: q + 6 + ll]) for t, ll, q in _parse(m, r[2] + 6, r[2] + 6 + r[1]) if t == 0x0BBB), None)
+                if curva is not None and curva in geo["curvas"]:  # a curva morreu: a aresta que sobrou fica comum
+                    corpo: List = []
+                    for t, ll, q in _parse(m, r[2] + 6, r[2] + 6 + r[1]):
+                        if t != 0x0BBB:
+                            corpo += _raw(m, (t, ll, q))
+                    manter += _rec(0x0BB8, corpo)
+                else:
+                    manter += _raw(m, r)
+            elif tag == 0x138B:
+                if _eid(m, self._cabecalho(r)) in geo["faces"]:
+                    continue
+                manter += _raw(m, r)
+            else:  # curvas: 0x4a38 direto (0x1396) ou dentro de 0x4c2c (0x1397)
+                alvo = r
+                if r[0] == 0x4C2C:
+                    alvo = next(x for x in _parse(m, r[2] + 6, r[2] + 6 + r[1]) if x[0] == 0x4A38)
+                if _eid(m, alvo) in geo["curvas"]:
+                    continue
+                manter += _raw(m, r)
+        if not manter:
+            return []
+        if len(manter) == sum(len(_raw(m, r)) for r in itens):
+            return _raw(m, rec)
+        return _rec(tag, manter)
+
     def escrever(self, saida) -> Dict[str, int]:
         """Grava o model.dat podado em `saida` (arquivo binário aberto). Devolve o relatório."""
         m = self.m
-        vivas = set(self.defs) if self.modo != "completo" else self.vivas()
+        vivas = set(self.defs) if self.modo not in ("completo", "total") else self.vivas()
         rel = {"definicoes_antes": len(self.defs), "definicoes_removidas": 0,
                "instancias_removidas": 0, "instancias_total": sum(len(v) for v in self.insts.values())}
 
@@ -278,7 +400,7 @@ class _Plano:
                 continue
             ent_parts, n = self._ents_parts(did)
             rel["instancias_removidas"] += n
-            if n == 0:
+            if n == 0 and did not in getattr(self, "tocadas", set()):
                 defs_parts += _raw(m, r)
                 continue
             corpo: List = []
@@ -301,6 +423,7 @@ class _Plano:
         rk = _parse(m, self.root[2] + 6, self.root[2] + 6 + self.root[1])
         p1f6 = com_filhos(self.root, rk, 0x1388, raiz_parts)
 
+        rel.update({"geometria_" + k: v for k, v in getattr(self, "relatorio_geo", {"arestas": 0, "faces": 0, "vertices": 0, "curvas": 0}).items()})
         corpo_parts: List = []
         for r in self.top:
             corpo_parts += p1f9 if r is self.f9 else p1f6 if r is self.root else _raw(m, r)
@@ -315,7 +438,9 @@ class _Plano:
 
 
 def podar_skp(origem: str, destino: str, modo: str = "completo") -> Dict[str, int]:
-    """Gera `destino` sem as partes ocultas de `origem` (que não é alterado)."""
+    """Gera `destino` sem as partes ocultas de `origem` (que não é alterado).
+
+    modo: "identidade" | "instancias" | "completo" (instâncias e definições) | "total" (completo + arestas e faces ocultas)."""
     if os.path.abspath(origem) == os.path.abspath(destino):
         raise ValueError("origem e destino não podem ser o mesmo arquivo")
     with open(origem, "rb") as fh:
@@ -378,7 +503,10 @@ def verificar_skp(caminho: str) -> Dict[str, int]:
                     raise ValueError("tamanho do registro externo do model.dat não confere")
                 p = _Plano(m)
                 todas = [i for v in p.insts.values() for _, i in v]
+                geo = [g for g in (p._geometria_morta(d, True) for d in p.ents) if g]
                 rel = {
+                    "arestas_ocultas": sum(len(g["arestas"]) for g in geo),
+                    "faces_ocultas": sum(len(g["faces"]) for g in geo),
                     "definicoes": len(p.defs),
                     "instancias": len(todas),
                     "ocultas": sum(1 for i in todas if p.morta(i)),

@@ -371,8 +371,15 @@ def _com_definicoes(dat: bytes, rec: Tuple[int, int, int], novas: bytes) -> byte
     return _rec(0x01F9, saida)
 
 
+MODELO_VAZIO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "modelos", "base_vazia.skp")
+
+
 def _base_vazia(destino: str) -> None:
-    """Modelo vazio salvo pela SketchUpAPI (Python 3.12)."""
+    """Modelo vazio: a cópia guardada em core/modelos (salva pela SketchUpAPI, sem dado de ninguém) ou,
+    se ela sumir, um modelo novo salvo pela SketchUpAPI (Python 3.12)."""
+    if os.path.exists(MODELO_VAZIO):
+        shutil.copyfile(MODELO_VAZIO, destino)
+        return
     from core.su_api import SketchUpAPI
 
     api = SketchUpAPI()

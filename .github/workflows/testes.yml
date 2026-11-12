@@ -1,0 +1,31 @@
+name: testes
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  nucleo:
+    # Windows porque o app carrega a SketchUpAPI.dll via ctypes.WinDLL; no runner a DLL não existe,
+    # então os testes que a usam (gravador, poda de geometria) se pulam sozinhos e rodam só na máquina do Fernando.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Núcleo de topologia e rotas de desenho
+        run: python -m unittest test_topology_golden test_topology_draw test_topology_pushpull test_topology_edit test_topology_sweep test_topology_intersect test_topology_cena test_topology_historico test_draw_api test_skp_synthetic
+      - name: Testes que dependem da DLL (devem pular, não falhar)
+        run: python -m unittest test_skp_topology_writer test_skp_hidden_pruner_geometria
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Sintaxe do front de modelagem
+        shell: bash
+        run: |
+          node --input-type=module --check < frontend/src/modelagem.js
+          node --input-type=module --check < frontend/src/api.js
