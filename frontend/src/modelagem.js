@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawUndo, drawRedo, drawSave } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawUndo, drawRedo, drawSave } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -149,6 +149,37 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       b.addEventListener("click", () => pintarSelecao(cor.value, verso));
       g.appendChild(b);
     }
+    const arq = document.createElement("input");
+    arq.type = "file";
+    arq.accept = "image/png,image/jpeg";
+    arq.style.display = "none";
+    arq.addEventListener("change", () => texturizarSelecao(arq));
+    g.appendChild(arq);
+    const tex = document.createElement("button");
+    tex.className = "toolbar-btn";
+    tex.textContent = "Textura";
+    tex.title = "Pinta a frente das faces selecionadas com uma imagem (PNG ou JPEG, até 8 MB)";
+    tex.addEventListener("click", () => arq.click());
+    g.appendChild(tex);
+    const tagNome = document.createElement("input");
+    tagNome.type = "text";
+    tagNome.placeholder = "tag";
+    tagNome.title = "Nome da tag (camada)";
+    tagNome.style.cssText = "width:70px;margin-left:6px";
+    g.appendChild(tagNome);
+    for (const [rotulo, titulo, fn] of [
+      ["Pôr na tag", "Cria a tag (se não existe) e põe a seleção nela", () => marcarSelecao(tagNome.value, null)],
+      ["Tag on/off", "Liga ou desliga a visibilidade da tag (gravada no .skp)", () => alternarTag(tagNome.value)],
+      ["Tirar da tag", "Devolve a seleção à tag padrão (Layer0)", () => marcarSelecao(null, true)],
+      ["Nova cena", "Acrescenta uma cena com o nome do campo ao lado (sem câmera)", () => novaCena(tagNome.value)],
+    ]) {
+      const b = document.createElement("button");
+      b.className = "toolbar-btn";
+      b.textContent = rotulo;
+      b.title = titulo;
+      b.addEventListener("click", fn);
+      g.appendChild(b);
+    }
     const salvar = document.createElement("button");
     salvar.className = "toolbar-btn";
     salvar.textContent = "Salvar .skp";
@@ -198,6 +229,60 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       const r = await drawPaint([...sel.faces].map(Number), "Cor " + hex.toUpperCase(), rgb, 255, verso);
       aplicarPintura(r.pintadas, r.materiais);
       setStatus("Pintado (" + (verso ? "verso" : "frente") + "): " + Object.keys(r.pintadas).length + " face(s).");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  async function texturizarSelecao(entrada) {
+    const arquivo = entrada.files?.[0];
+    entrada.value = "";
+    if (!arquivo) return;
+    if (!sel.faces.size) return setStatus("Textura: selecione faces antes (ferramenta Selecionar).", true);
+    try {
+      const bytes = new Uint8Array(await arquivo.arrayBuffer());
+      let bin = "";
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      const nome = arquivo.name;
+      const r = await drawPaint([...sel.faces].map(Number), "Textura " + nome, null, 255, false, false, { base64: globalThis.btoa(bin), nome });
+      aplicarPintura(r.pintadas, r.materiais);
+      setStatus("Textura " + nome + " aplicada em " + Object.keys(r.pintadas).length + " face(s) (na tela aparece a cor média).");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  function resumoTags(s) {
+    const tags = Object.entries(s.tags ?? {}).map(([n, m]) => n + (m.visivel ? "" : " (off)"));
+    return "Tags: " + (tags.length ? tags.join(", ") : "nenhuma") + ". Cenas: " + (s.cenas?.length ?? 0) + ".";
+  }
+
+  async function marcarSelecao(nome, limpar) {
+    if (!sel.faces.size && !sel.edges.size) return setStatus("Tag: selecione faces ou arestas antes.", true);
+    if (!limpar && !nome?.trim()) return setStatus("Tag: digite o nome da tag no campo.", true);
+    try {
+      const s = await drawTag({ nome: limpar ? null : nome.trim(), limpar: !!limpar, faces: [...sel.faces].map(Number), arestas: [...sel.edges].map(Number) });
+      setStatus(resumoTags(s));
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  async function alternarTag(nome) {
+    if (!nome?.trim()) return setStatus("Tag: digite o nome da tag no campo.", true);
+    try {
+      const atual = (await drawState()).tags?.[nome.trim()];
+      if (!atual) return setStatus("Tag: " + nome.trim() + " não existe (use Pôr na tag para criar).", true);
+      setStatus(resumoTags(await drawTag({ nome: nome.trim(), visivel: !atual.visivel })));
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  async function novaCena(nome) {
+    if (!nome?.trim()) return setStatus("Cena: digite o nome no campo.", true);
+    try {
+      setStatus(resumoTags(await drawScene({ nome: nome.trim() })));
     } catch (err) {
       setStatus("Erro: " + (err?.message ?? err), true);
     }

@@ -5,7 +5,15 @@ import unittest
 from fastapi import HTTPException
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest
+from app.schemas.draw import DrawRequest, SaveDrawRequest, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PushPullRequest, TagRequest, CenaRequest
+
+
+def _tem_pillow():
+    try:
+        import PIL  # noqa: F401
+        return True
+    except ImportError:
+        return False
 
 
 def run(c):
@@ -156,6 +164,67 @@ class TestDrawController(unittest.TestCase):
         self.assertIn("/api/v1/draw/offset", caminhos)
         for r in ("save", "paint", "undo", "redo", "history", "followme", "intersect", "scene", "group", "instance", "explode", "enter", "exit"):
             self.assertIn("/api/v1/draw/" + r, caminhos)
+
+    def _png(self):
+        import base64
+        import struct
+        import zlib
+        linhas = b"".join(bytes([0]) + bytes([255, 0, 0]) * 4 for _ in range(4))  # 4x4 todo vermelho
+
+        def bloco(tp, dd):
+            return struct.pack(">I", len(dd)) + tp + dd + struct.pack(">I", zlib.crc32(tp + dd) & 0xFFFFFFFF)
+        assinatura = bytes([0x89]) + b"PNG" + bytes([13, 10, 26, 10])
+        png = (assinatura + bloco(b"IHDR", struct.pack(">IIBBBBB", 4, 4, 8, 2, 0, 0, 0))
+               + bloco(b"IDAT", zlib.compress(linhas)) + bloco(b"IEND", b""))
+        return base64.b64encode(png).decode()
+
+    def test_pintar_com_textura_e_salvar(self):
+        import os
+        import tempfile
+        import zipfile
+        j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
+        fid = int(next(iter(j.faces.added)))
+        r = run(self.c.pintar(PaintRequest(faces=[fid], material="Tijolo", textura_base64=self._png(), textura_nome="C:/x/tijolo.png")))
+        self.assertEqual(r.pintadas[str(fid)], ["Tijolo", None])
+        self.assertEqual(r.materiais["Tijolo"]["rgb"], [128, 128, 128] if not _tem_pillow() else [255, 0, 0])
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "t.skp")
+            run(self.c.salvar(SaveDrawRequest(path=p)))
+            with open(p, "rb") as fh:
+                b = fh.read()
+            import io
+            z = zipfile.ZipFile(io.BytesIO(b[b.find(b"PK" + bytes([3, 4])):]))
+            self.assertIn("materials/Tijolo/tijolo.png", z.namelist())  # so o nome do arquivo, sem a pasta enviada
+
+    def test_textura_invalida(self):
+        j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
+        fid = int(next(iter(j.faces.added)))
+        for ruim in ("@@@", "aGVsbG8="):  # nao e base64 / base64 de texto
+            with self.assertRaises(HTTPException) as cm:
+                run(self.c.pintar(PaintRequest(faces=[fid], material="X", textura_base64=ruim)))
+            self.assertEqual(cm.exception.status_code, 422)
+
+    def test_tags_e_cenas_no_estado_e_no_desfazer(self):
+        j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(100, 100, 0))))
+        fid = int(next(iter(j.faces.added)))
+        e = run(self.c.marcar(TagRequest(nome="Piso", faces=[fid], arestas=[1])))
+        self.assertEqual(e.tags, {"Piso": {"visivel": True}})
+        self.assertEqual(e.tag_faces, {str(fid): "Piso"})
+        self.assertEqual(e.tag_arestas, {"1": "Piso"})
+        e = run(self.c.marcar(TagRequest(nome="Piso", visivel=False)))
+        self.assertEqual(e.tags["Piso"]["visivel"], False)
+        e = run(self.c.marcar(TagRequest(limpar=True, faces=[fid])))
+        self.assertEqual(e.tag_faces, {})
+        with self.assertRaises(HTTPException):
+            run(self.c.marcar(TagRequest(faces=[fid])))  # sem nome e sem limpar
+        e = run(self.c.adicionar_cena(CenaRequest(nome="Vista", olho=(0, -300, 100), alvo=(0, 0, 0))))
+        self.assertEqual(e.cenas, [{"nome": "Vista", "descricao": "", "animar": True, "camera": True}])
+        with self.assertRaises(HTTPException):
+            run(self.c.adicionar_cena(CenaRequest(nome="Vista")))  # repetida
+        with self.assertRaises(HTTPException):
+            run(self.c.adicionar_cena(CenaRequest(nome="Sem alvo", olho=(1, 2, 3))))
+        e = run(self.c.desfazer())
+        self.assertEqual(e.cenas, [])  # desfez a cena; as duas tentativas recusadas nao entraram no historico
 
 
 if __name__ == "__main__":

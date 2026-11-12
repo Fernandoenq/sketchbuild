@@ -4,3 +4,4 @@ pydantic==2.13.4
 python-multipart==0.0.32
 numpy>=1.26,<3
 httpx>=0.27,<0.28
+pillow>=10  # cor média da textura enviada ao /draw/paint (opcional: sem ele usa a cor informada)

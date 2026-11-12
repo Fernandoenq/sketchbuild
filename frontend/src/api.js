@@ -2545,8 +2545,25 @@ export function drawIntersect(faces = null) {
   return postJson("/api/v1/draw/intersect", "POST", { faces });
 }
 
-export function drawPaint(faces, material, rgb = null, alpha = 255, verso = false, limpar = false) {
-  return postJson("/api/v1/draw/paint", "POST", { faces, material, rgb, alpha, verso, limpar });
+export function drawPaint(faces, material, rgb = null, alpha = 255, verso = false, limpar = false, textura = null) {
+  // textura = { base64, nome, escala: [s, t] } (imagem PNG/JPEG do material)
+  const corpo = { faces, material, rgb, alpha, verso, limpar };
+  if (textura) {
+    corpo.textura_base64 = textura.base64;
+    corpo.textura_nome = textura.nome;
+    if (textura.escala) corpo.escala = textura.escala;
+  }
+  return postJson("/api/v1/draw/paint", "POST", corpo);
+}
+
+// tags (camadas): { nome, visivel, faces, arestas, limpar }; devolve o estado completo
+export function drawTag(corpo) {
+  return postJson("/api/v1/draw/tag", "POST", corpo);
+}
+
+// cenas (abas): { nome, descricao, animar, olho, alvo, cima }; devolve o estado completo
+export function drawScene(corpo) {
+  return postJson("/api/v1/draw/scene", "POST", corpo);
 }
 
 export function drawUndo() {

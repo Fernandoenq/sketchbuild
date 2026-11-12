@@ -42,6 +42,10 @@ class DrawStateResponse(BaseModel):
     faces: dict[str, Any]
     pintura: dict[str, list[str | None]] = Field(default_factory=dict)  # face -> [frente, verso]
     materiais: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    tags: dict[str, dict[str, Any]] = Field(default_factory=dict)  # nome -> {visivel}
+    tag_faces: dict[str, str] = Field(default_factory=dict)  # face -> tag
+    tag_arestas: dict[str, str] = Field(default_factory=dict)  # aresta -> tag
+    cenas: list[dict[str, Any]] = Field(default_factory=list)
     counts: dict[str, int]
     historico: dict[str, bool] = Field(default_factory=dict)
 
@@ -118,6 +122,26 @@ class PaintRequest(BaseModel):
     alpha: int = Field(default=255, ge=0, le=255)
     verso: bool = False
     limpar: bool = False  # volta ao padrao (frente, ou verso se verso=True)
+    textura_base64: str | None = None  # imagem (PNG/JPEG) do material; precisa de `material`
+    textura_nome: str | None = None  # nome do arquivo gravado no .skp (ex.: tijolo.png)
+    escala: tuple[float, float] = (1.0, 1.0)  # xScale/yScale da textura (unidade do SketchUp, nao validada)
+
+
+class TagRequest(BaseModel):
+    nome: str | None = None  # None com `limpar` devolve as entidades a Layer0
+    visivel: bool | None = None  # cria a tag (ou muda a visibilidade se ja existe)
+    faces: list[int] = Field(default_factory=list)
+    arestas: list[int] = Field(default_factory=list)
+    limpar: bool = False  # tira as entidades da tag (volta a Layer0)
+
+
+class CenaRequest(BaseModel):
+    nome: str = Field(min_length=1)
+    descricao: str = ""
+    animar: bool = True
+    olho: tuple[float, float, float] | None = None  # camera da cena (precisa de alvo)
+    alvo: tuple[float, float, float] | None = None
+    cima: tuple[float, float, float] = (0.0, 0.0, 1.0)
 
 
 class PaintResponse(BaseModel):

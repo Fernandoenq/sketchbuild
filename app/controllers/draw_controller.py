@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, TagRequest, CenaRequest, PushPullRequest, SceneSummaryResponse
 from app.services.draw_service import DrawService
 
 
@@ -85,6 +85,18 @@ class DrawController:
     async def pintar(self, body: PaintRequest) -> PaintResponse:
         try:
             return PaintResponse(**await self._service.pintar(**body.model_dump()))
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+
+    async def marcar(self, body: TagRequest) -> DrawStateResponse:
+        try:
+            return DrawStateResponse(**await self._service.marcar(**body.model_dump()))
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+
+    async def adicionar_cena(self, body: CenaRequest) -> DrawStateResponse:
+        try:
+            return DrawStateResponse(**await self._service.adicionar_cena(**body.model_dump()))
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
 

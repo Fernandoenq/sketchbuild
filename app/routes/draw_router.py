@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Response, status
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, TagRequest, CenaRequest, SceneSummaryResponse
 
 router = APIRouter(prefix="/draw", tags=["draw"])
 
@@ -81,6 +81,16 @@ async def salvar(body: SaveDrawRequest, controller: DrawController = Depends(get
 @router.post("/paint", response_model=PaintResponse, summary="Pinta faces (frente ou verso) com material de cor solida")
 async def pintar(body: PaintRequest, controller: DrawController = Depends(get_controller)) -> PaintResponse:
     return await controller.pintar(body)
+
+
+@router.post("/tag", response_model=DrawStateResponse, summary="Cria/liga/desliga tags e poe faces ou arestas nelas")
+async def marcar(body: TagRequest, controller: DrawController = Depends(get_controller)) -> DrawStateResponse:
+    return await controller.marcar(body)
+
+
+@router.post("/scene", response_model=DrawStateResponse, summary="Acrescenta uma cena (aba), com camera opcional")
+async def adicionar_cena(body: CenaRequest, controller: DrawController = Depends(get_controller)) -> DrawStateResponse:
+    return await controller.adicionar_cena(body)
 
 
 @router.post("/undo", response_model=DrawStateResponse, summary="Desfaz a ultima operacao (devolve o estado completo)")

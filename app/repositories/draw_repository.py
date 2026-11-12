@@ -1,6 +1,9 @@
 """Sessão de desenho em memória (F2): um núcleo de topologia por execução do backend."""
 from __future__ import annotations
 
+import base64
+import binascii
+import io
 import os
 
 from core.skp_topology_writer import gravar_cena
@@ -13,6 +16,39 @@ from core.topology.draw import desenhar
 from core.topology.edit import escalar, mover, offset, rotacionar, vertices_da_selecao
 from core.topology.material import definir_material, pintar
 from core.topology.pushpull import empurrar
+from core.topology.tag import atribuir, atribuir_arestas, definir_tag
+
+MAX_TEXTURA = 8 * 1024 * 1024  # bytes da imagem
+_ASSINATURA_PNG = bytes([0x89]) + b"PNG" + bytes([13, 10, 26, 10])
+_ASSINATURA_JPEG = bytes([0xFF, 0xD8, 0xFF])
+
+
+def _textura(b64: str, nome: str | None, escala, rgb) -> tuple[dict, tuple[int, int, int]]:
+    """Decodifica a imagem enviada. Devolve (textura para o gravador, cor média). A cor média vem do Pillow quando
+    existe; sem ele usa `rgb` (ou cinza)."""
+    try:
+        dados = base64.b64decode(b64, validate=True)
+    except (binascii.Error, ValueError) as e:
+        raise ValueError("textura: base64 inválido") from e
+    if not dados or len(dados) > MAX_TEXTURA:
+        raise ValueError(f"textura: tamanho inválido (máximo {MAX_TEXTURA // (1024 * 1024)} MB)")
+    if not (dados.startswith(_ASSINATURA_PNG) or dados.startswith(_ASSINATURA_JPEG)):
+        raise ValueError("textura: só PNG ou JPEG")
+    media = tuple(rgb) if rgb is not None else (128, 128, 128)
+    try:
+        from PIL import Image
+        with Image.open(io.BytesIO(dados)) as im:
+            media = tuple(int(c) for c in im.convert("RGB").resize((1, 1), Image.BOX).getpixel((0, 0)))
+    except ImportError:
+        pass
+    except Exception as e:  # imagem corrompida
+        raise ValueError("textura: imagem ilegível") from e
+    ext = ".png" if dados.startswith(_ASSINATURA_PNG) else ".jpg"
+    arq = os.path.basename((nome or "").replace(chr(92), "/")) or ("textura" + ext)
+    if not arq.lower().endswith((".png", ".jpg", ".jpeg")):
+        arq += ext
+    return {"nome": arq, "bytes": dados, "escala": (float(escala[0]), float(escala[1]))}, media
+
 
 _CENA = Cena()
 _HIST = Historico(_CENA)
@@ -140,12 +176,18 @@ class DrawRepository:
     def _relatorio(r: dict) -> dict:
         return {"vertices": r["vertices"], "arestas": r["arestas"], "faces": r["faces"], "bytes": r["bytes"]}
 
-    def pintar(self, faces, material=None, rgb=None, alpha=255, verso=False, limpar=False) -> dict:
+    def pintar(self, faces, material=None, rgb=None, alpha=255, verso=False, limpar=False,
+               textura_base64=None, textura_nome=None, escala=(1.0, 1.0)) -> dict:
         if not material and not limpar:
             raise ValueError("pintar: informe o material (ou limpar)")
 
         def acao():
-            if rgb is not None:
+            if textura_base64:
+                if not material:
+                    raise ValueError("pintar: textura sem nome de material")
+                tex, media = _textura(textura_base64, textura_nome, escala, rgb)
+                definir_material(_topo(), material, media, alpha, tex)
+            elif rgb is not None:
                 if not material:
                     raise ValueError("pintar: rgb sem nome de material")
                 definir_material(_topo(), material, rgb, alpha)
@@ -156,6 +198,36 @@ class DrawRepository:
         res = _HIST.executar("pintar", {"faces": list(faces), "material": material}, acao)
         return {"pintadas": {str(k): list(v) for k, v in res.items()},
                 "materiais": {n: {"rgb": list(m["rgb"]), "alpha": m["alpha"]} for n, m in _topo().materiais.items()}}
+
+    def marcar(self, nome=None, visivel=None, faces=(), arestas=(), limpar=False) -> dict:
+        if limpar and nome:
+            raise ValueError("tag: `limpar` nao combina com `nome` (limpar tira da tag)")
+        if not limpar and not nome:
+            raise ValueError("tag: informe o nome (ou limpar)")
+
+        def acao():
+            if nome and (visivel is not None or nome not in _topo().tags):
+                definir_tag(_topo(), nome, True if visivel is None else visivel)
+            alvo = None if limpar else nome
+            if faces:
+                atribuir(_topo(), faces, alvo)
+            if arestas:
+                atribuir_arestas(_topo(), arestas, alvo)
+            return {}
+
+        _HIST.executar("tag", {"nome": nome, "faces": list(faces), "arestas": list(arestas)}, acao)
+        return self.estado()
+
+    def adicionar_cena(self, nome, descricao="", animar=True, olho=None, alvo=None, cima=(0.0, 0.0, 1.0)) -> dict:
+        if (olho is None) != (alvo is None):
+            raise ValueError("cena: informe olho e alvo juntos")
+        camera = None if olho is None else {"olho": olho, "alvo": alvo, "cima": cima}
+        def acao():
+            _CENA.adicionar_cena(nome, descricao, animar, camera)
+            return {}
+
+        _HIST.executar("cena", {"nome": nome}, acao)
+        return self.estado()
 
     def desfazer(self) -> dict:
         _HIST.desfazer()
@@ -176,6 +248,11 @@ class DrawRepository:
                       for i, f in _topo().faces.items()},
             "pintura": {str(i): [f.frente, f.verso] for i, f in _topo().faces.items() if f.frente or f.verso},
             "materiais": {n: {"rgb": list(m["rgb"]), "alpha": m["alpha"]} for n, m in _topo().materiais.items()},
+            "tags": {n: dict(m) for n, m in _topo().tags.items()},
+            "tag_faces": {str(i): f.tag for i, f in _topo().faces.items() if f.tag},
+            "tag_arestas": {str(e): n for e, n in _topo().etags.items()},
+            "cenas": [{"nome": c["nome"], "descricao": c["descricao"], "animar": c["animar"], "camera": c["camera"] is not None}
+                      for c in _CENA.cenas],
             "counts": _topo().counts(),
             "historico": {k: v for k, v in _HIST.resumo().items() if k.startswith("pode")},
         }
