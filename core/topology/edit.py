@@ -139,6 +139,10 @@ def _laco_paralelo(t: Topology, lp: Sequence[int], normal: Point, d: float) -> L
             continue
         s = _dot(_cross(_sub(p2, p1), d2), c) / den
         out.append(tuple(p1[k] + d1[k] * s for k in range(3)))
+    for i in range(n):  # aresta que encolheu até sumir ou virou do avesso: o contorno colapsou
+        novo = _sub(out[(i + 1) % n], out[i])
+        if _dot(novo, linhas[i][1]) <= 1e-9:
+            raise ValueError("o offset colapsa o contorno: a distância é maior que a espessura da face")
     return out
 
 

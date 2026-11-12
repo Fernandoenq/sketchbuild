@@ -102,5 +102,34 @@ class TestEdicao(unittest.TestCase):
             offset(t, 999, 5)
 
 
+class TestOffsetColapso(unittest.TestCase):
+    def _l(self):
+        t = Topology()
+        return t, t.add_face([(0, 0, 0), (100, 0, 0), (100, 20, 0), (20, 20, 0), (20, 100, 0), (0, 100, 0)])
+
+    def test_para_dentro_alem_da_espessura_recusa_e_nao_altera(self):
+        for d in (-11, -30):
+            t, f = self._l()
+            antes = (dict(t.verts), dict(t.edges), len(t.faces))
+            with self.assertRaises(ValueError):
+                offset(t, f, d)
+            self.assertEqual((dict(t.verts), dict(t.edges), len(t.faces)), antes)
+
+    def test_quadrado_colapsa_no_centro_e_alem(self):
+        for d in (-5, -6, -20):
+            t = Topology()
+            f = t.add_face([(0, 0, 0), (10, 0, 0), (10, 10, 0), (0, 10, 0)])
+            with self.assertRaises(ValueError):
+                offset(t, f, d)
+
+    def test_quina_concava_e_distancia_valida(self):
+        t, f = self._l()
+        offset(t, f, -9)  # quinas côncavas (L) com folga de 1 até colapsar
+        self.assertEqual(len(t.faces), 2)
+        t, f = self._l()
+        offset(t, f, 50)  # para fora nunca colapsa um L
+        self.assertEqual(len(t.faces), 2)
+
+
 if __name__ == "__main__":
     unittest.main()
