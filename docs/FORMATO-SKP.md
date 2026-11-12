@@ -162,7 +162,8 @@ Oráculo: `tools/gerar_tags_api.py` (base, tag visível, tag desligada, cena), c
 - ZIP: `materials/Layer_<nome>/material.xml` com cor 0,0,0 e `pbrPromoState="0"` (a Layer0 do modelo vazio é 255,84,84 e promo 2).
 - Entidade em tag: `0x07d2` (id da tag) no cabeçalho `0x07d0`, entre `0x07d1` (material) e `0x07d3` (flags).
 - O gravador (`core/topology/tag.py`, `Face.tag`) grava só as tags usadas por alguma face, em ordem alfabética, cada uma com dois ids.
-- **Assunções pendentes:** só faces carregam tag (aresta e instância não); tag da instância não gravada; visibilidade por cena não gravada.
+- Aresta (`0x0bb8`), grupo e componente (`0x1964`) usam o mesmo `0x07d2` no `0x07d0`; conferido pela DLL (`SUDrawingElementGetLayer`) em face, aresta solta e grupo. No núcleo: `Face.tag`, `Topology.etags` (propagada ao dividir/limpar arestas) e `Instancia.tag`.
+- **Assunções pendentes:** a tag de aresta de borda de face não é herdada quando a face muda de forma (Push/Pull cria arestas novas sem tag); visibilidade por cena não gravada.
 
 **Cena** (só lida, ainda não gravada): `0x0207 > 0x6d60 > 0x6d61` (vazio sem cenas) passa a ter um `0x7148` por cena com `0x6f54{0x05dc>0x05de id, 0x6f55 nome, 0x6f56 vazio}`, `0x7149 = 0` (u32), `0x7152 = 1`, `0x7153` vazio, `0x7154` e `0x7155` = -1.0 (double), `0x715c` vazio, `0x7157 = 1`. Uma cena criada só com nome não leva câmera nem estilo; o que cada campo controla (câmera, visibilidade por tag) falta decifrar com cenas reais.
 

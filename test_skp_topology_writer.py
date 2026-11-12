@@ -225,6 +225,79 @@ class TestGravadorDeTopologia(unittest.TestCase):
         finally:
             m.close()
 
+    def _tag_de(self, de) -> str:
+        """Nome da tag de um SUDrawingElementRef pela DLL ("" se não tem)."""
+        import ctypes
+        from core.su_types import SUStringRef
+        d = _api._dll
+
+        class _R(ctypes.Structure):
+            _fields_ = [("ptr", ctypes.c_void_p)]
+        lay = _R()
+        d.SUDrawingElementGetLayer.argtypes = [type(de), ctypes.POINTER(_R)]
+        if d.SUDrawingElementGetLayer(de, ctypes.byref(lay)) != 0:
+            return ""
+        d.SULayerGetName.argtypes = [_R, ctypes.POINTER(SUStringRef)]
+        s = SUStringRef()
+        d.SUStringCreate(ctypes.byref(s))
+        d.SULayerGetName(lay, ctypes.byref(s))
+        n = ctypes.c_size_t()
+        d.SUStringGetUTF8Length(s, ctypes.byref(n))
+        buf = ctypes.create_string_buffer(n.value + 1)
+        d.SUStringGetUTF8(s, n.value + 1, buf, ctypes.byref(ctypes.c_size_t()))
+        return buf.value.decode("utf-8")
+
+    def test_tag_em_face_aresta_solta_e_grupo_lida_pela_dll(self):
+        """Face, aresta solta e grupo em tags diferentes: a DLL devolve o nome de cada uma."""
+        import ctypes
+        from core.skp_topology_writer import gravar_cena
+        from core.topology.cena import Cena
+        from core.topology.tag import atribuir, atribuir_arestas, atribuir_instancia, definir_tag
+        c = Cena()
+        t = c.topo
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        desenhar(t, "linha", pontos=[(500, 0, 0), (600, 0, 0)])
+        desenhar(t, "retangulo", p0=(0, 300, 0), p1=(50, 350, 0))
+        for n in ("Piso", "Linha", "Peca"):
+            definir_tag(t, n)
+        f1 = sorted(t.faces)[0]
+        solta = next(e for e, (a, b) in t.edges.items() if t.verts[a][0] >= 500)
+        atribuir(t, [f1], "Piso")
+        atribuir_arestas(t, [solta], "Linha")
+        g = c.criar_grupo(faces=[max(t.faces)], nome="G")
+        atribuir_instancia(c, g, "Peca")
+        p = os.path.join(self.tmp.name, "tags3.skp")
+        gravar_cena(c, p)
+        verificar_skp(p)
+        d = _api._dll
+
+        class _R(ctypes.Structure):
+            _fields_ = [("ptr", ctypes.c_void_p)]
+        m = _api.open_model(p)
+        try:
+            e = m.get_entities()
+            face = _api.get_faces(e)[0]
+            d.SUFaceToDrawingElement.restype = _R
+            d.SUFaceToDrawingElement.argtypes = [type(face)]
+            self.assertEqual(self._tag_de(d.SUFaceToDrawingElement(face)), "Piso")
+            grupo = _api.get_groups(e)[0]
+            d.SUGroupToDrawingElement.restype = _R
+            d.SUGroupToDrawingElement.argtypes = [type(grupo)]
+            self.assertEqual(self._tag_de(d.SUGroupToDrawingElement(grupo)), "Peca")
+            from core.su_types import SUEntitiesRef
+            n = ctypes.c_size_t()
+            d.SUEntitiesGetNumEdges.argtypes = [SUEntitiesRef, ctypes.c_bool, ctypes.POINTER(ctypes.c_size_t)]
+            d.SUEntitiesGetNumEdges(e, False, ctypes.byref(n))
+            arr = (_R * n.value)()
+            d.SUEntitiesGetEdges.argtypes = [SUEntitiesRef, ctypes.c_bool, ctypes.c_size_t, ctypes.POINTER(_R), ctypes.POINTER(ctypes.c_size_t)]
+            d.SUEntitiesGetEdges(e, False, n.value, arr, ctypes.byref(ctypes.c_size_t()))
+            d.SUEdgeToDrawingElement.restype = _R
+            d.SUEdgeToDrawingElement.argtypes = [_R]
+            nomes = sorted(self._tag_de(d.SUEdgeToDrawingElement(x)) for x in arr)
+            self.assertIn("Linha", nomes)
+        finally:
+            m.close()
+
     def test_material_nao_definido_e_recusado(self):
         t = Topology()
         desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))

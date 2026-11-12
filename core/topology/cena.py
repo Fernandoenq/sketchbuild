@@ -21,6 +21,7 @@ class Instancia:
     nome: str
     tipo: str  # "grupo" | "componente"
     transformacao: List[float] = field(default_factory=lambda: list(IDENTIDADE))
+    tag: Optional[str] = None  # nome da tag (Topology.tags); None = Layer0
 
 
 def _aplica(m: Sequence[float], p: Point) -> Point:
@@ -90,7 +91,10 @@ class Cena:
             mapa[v] = d._vertex(t.verts[v])
         for e in sorted(mover_e):
             a, b = t.edges[e]
-            d.edges[next(d._eid)] = (mapa[a], mapa[b])
+            ne = next(d._eid)
+            d.edges[ne] = (mapa[a], mapa[b])
+            if e in t.etags:
+                d.etags[ne] = t.etags[e]
         for f in sorted(mover_f):
             F = t.faces[f]
             d.faces[next(d._fid)] = Face([mapa[v] for v in F.outer], [[mapa[v] for v in h] for h in F.holes], F.normal,
@@ -144,9 +148,13 @@ class Cena:
         mapa = {v: t._vertex(_aplica(i.transformacao, p)) for v, p in d.verts.items()}
         t.materiais.update({n: m for n, m in d.materiais.items() if n not in t.materiais})
         t.tags.update({n: m for n, m in d.tags.items() if n not in t.tags})
-        for a, b in d.edges.values():
+        for ed, (a, b) in d.edges.items():
+            tag_aresta = d.etags.get(ed)
             if t.edge_between(mapa[a], mapa[b]) is None and mapa[a] != mapa[b]:
-                t.edges[next(t._eid)] = (mapa[a], mapa[b])
+                ne = next(t._eid)
+                t.edges[ne] = (mapa[a], mapa[b])
+                if tag_aresta is not None:
+                    t.etags[ne] = tag_aresta
         for F in d.faces.values():
             t.faces[next(t._fid)] = Face([mapa[v] for v in F.outer], [[mapa[v] for v in h] for h in F.holes], F.normal, F.frente, F.verso, F.tag)
         del self.instancias[instancia]

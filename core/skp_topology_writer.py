@@ -136,9 +136,10 @@ _T_1585 = bytes.fromhex(
     "0000000000000000000000ce340100000000")
 
 
-def _cabecalho_attr(id_: int, attr: bytes) -> bytes:
+def _cabecalho_attr(id_: int, attr: bytes, tag: Optional[int] = None) -> bytes:
     """Cabeçalho de entidade com dicionário de atributos (definição e instância de componente)."""
-    return _rec(0x07D0, _rec(0x05DC, _rec(0x05DE, _id_bytes(id_)) + attr) + _rec(0x07D3, bytes([FLAGS_ARESTA])))
+    return _rec(0x07D0, _rec(0x05DC, _rec(0x05DE, _id_bytes(id_)) + attr)
+                + (_rec(0x07D2, _id_bytes(tag)) if tag is not None else b"") + _rec(0x07D3, bytes([FLAGS_ARESTA])))
 
 
 def _so_id(id_: int) -> bytes:
@@ -227,7 +228,7 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
         a, b = t.edges[e]
         arestas += _rec(
             0x0BB8,
-            _cabecalho(eid[e], FLAGS_ARESTA)
+            _cabecalho(eid[e], FLAGS_ARESTA, None, tid[t.etags[e]] if t.etags.get(e) else None)
             + _rec(0x0BB9, _id_bytes(vid[a]))
             + _rec(0x0BBA, _id_bytes(vid[b]))
             + (_rec(0x0BBB, _id_bytes(curva_da_aresta[e])) if e in curva_da_aresta else b""),
@@ -322,7 +323,8 @@ def _montar_cena(cena, prox: int, mid: Dict[str, int], tid: Optional[Dict[str, i
             m = v.transformacao
             carga = struct.pack("<13d", m[0], m[4], m[8], m[1], m[5], m[9], m[2], m[6], m[10], m[12], m[13], m[14], 1.0)
             grupo = v.tipo == "grupo"
-            corpo = (_cabecalho(iid[i], FLAGS_ARESTA) if grupo else _cabecalho_attr(iid[i], _ATTR_INSTANCIA))
+            tg = tid[v.tag] if v.tag else None
+            corpo = (_cabecalho(iid[i], FLAGS_ARESTA, None, tg) if grupo else _cabecalho_attr(iid[i], _ATTR_INSTANCIA, tg))
             corpo += _rec(0x1965, v.nome.encode("utf-8") if grupo else b"") + _rec(0x1966, carga)
             corpo += _rec(0x1967, _id_bytes(did[v.definicao])) + _rec(0x1968, uuid.uuid4().bytes)
             if grupo:
@@ -517,7 +519,9 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
         tags_def: Dict[str, dict] = {}
         for tp in todas:
             tags_def.update(getattr(tp, "tags", {}))
-        tags_usadas = sorted({f.tag for tp in todas for f in tp.faces.values() if f.tag})
+        tags_usadas = sorted({f.tag for tp in todas for f in tp.faces.values() if f.tag}
+                             | {n for tp in todas for n in tp.etags.values()}
+                             | ({i.tag for i in cena.instancias.values() if i.tag} if cena is not None else set()))
         for n in tags_usadas:
             if n not in tags_def:
                 raise ValueError(f"tag {n!r} usada numa face mas não definida")
