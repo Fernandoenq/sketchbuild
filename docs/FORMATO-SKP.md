@@ -69,6 +69,8 @@ Lista de entradas `tamanho(1 byte) + id`, com os ids das **arestas, faces e inst
 Seis float64: `mín x, mín y, mín z, máx x, máx y, máx z` da definição **incluindo as instâncias** (no modelo de
 exemplo, o boneco do modelo padrão entra na conta).
 
+**Regra conferida em 11/11/2026** (arquivos reais r03, r10 e "Sem nome", salvos pelo SketchUp): em contêiner **sem instâncias** a caixa é exatamente o mín/máx dos vértices (1678 vértices da definição do boneco batem em 1e-6). Com instância, a caixa da raiz **não** é a dos oito cantos da caixa da definição transformados: no exemplo ela fica centrada na origem da instância (meia largura 24,352 em x e y; z igual ao da definição). A regra de instância segue **não decifrada**. A poda total recalcula a caixa só em contêiner sem instâncias vivas; com instância viva mantém a antiga (só pode ser maior).
+
 ## 7b. Curva de arco `0x1397` (círculo e arco) — decifrada em 11/11/2026
 
 Lugar: filho de `0x1388`, entre `0x1389` (vértices) e `0x138a` (arestas). Um `0x1397` guarda um `0x4c2c` por curva:

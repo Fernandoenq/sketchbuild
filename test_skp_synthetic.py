@@ -160,6 +160,17 @@ class TestGravadorSemDll(unittest.TestCase):
         self.assertEqual(mats[1][9:12], (0.0, 0.0, 0.0))
         self.assertEqual(len(achar(d, 0x138C)), 1)
 
+    def test_caixa_limite_da_poda_e_a_dos_vertices(self):
+        from core.skp_hidden_pruner import _Plano
+        t = Topology()
+        desenhar(t, "retangulo", p0=(10, 20, 0), p1=(110, 70, 0))
+        gravar_topologia(t, self.p("b.skp"))
+        d = memoryview(bytearray(dat_de(self.p("b.skp"))))
+        pl = _Plano(d, "total")
+        self.assertEqual(pl._caixa_dos_vertices(pl.ents[None], set()), (10.0, 20.0, 0.0, 110.0, 70.0, 0.0))
+        vs = [i for i in t.verts]
+        self.assertEqual(pl._caixa_dos_vertices(pl.ents[None], set()) is not None, bool(vs))
+
     def test_recusa_base_com_geometria_e_material_inexistente(self):
         t = Topology()
         desenhar(t, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))

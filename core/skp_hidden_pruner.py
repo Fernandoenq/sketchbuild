@@ -23,7 +23,7 @@ Modo "total" (além do "completo"): poda também arestas e faces ocultas (bit 0x
     "aresta escondida" da superfície e fica);
   - vértice some se só era usado por aresta que sumiu;
   - curva (0x1396/0x1397) que perdeu qualquer aresta some inteira e as arestas que sobraram perdem o 0x0bbb;
-  - a tabela 0x138e perde os ids removidos; a caixa limite 0x13a0 não é recalculada (assunção).
+  - a tabela 0x138e perde os ids removidos; a caixa limite 0x13a0 é recalculada só em contêiner sem instâncias vivas (vértices que sobram); com instâncias vivas fica a antiga, que só pode ser maior.
 """
 from __future__ import annotations
 
@@ -313,7 +313,13 @@ class _Plano:
             for k in geo:
                 self.relatorio_geo[k] += len(geo[k])
         filhos: List = []
+        sem_instancias = all(i.id in mortas for _, i in self.insts[did])
         for a, l, p in _parse(m, e[2] + 6, e[2] + 6 + e[1]):
+            if a == 0x13A0 and sem_instancias:
+                caixa = self._caixa_dos_vertices(e, geo["vertices"] if geo else set())
+                if caixa is not None:
+                    filhos += _rec(a, [struct.pack("<6d", *caixa)])
+                    continue
             if geo is not None and a in (0x1389, 0x138A, 0x138B, 0x1396, 0x1397):
                 filhos += self._geometria_filtrada(a, (a, l, p), geo)
                 continue
@@ -340,6 +346,23 @@ class _Plano:
             else:
                 filhos += _raw(m, (a, l, p))
         return _rec(0x1388, filhos), len(mortas)
+
+    def _caixa_dos_vertices(self, e: Rec, mortos: Set[int]) -> Optional[Tuple[float, ...]]:
+        """Caixa limite (mín x,y,z, máx x,y,z) dos vértices que sobram. Em contêiner sem instâncias o SketchUp guarda
+        exatamente isso (conferido em r03, r10 e "Sem nome"); com instâncias a regra do SketchUp não está decifrada."""
+        m, pts = self.m, []
+        for a, l, p in _parse(m, e[2] + 6, e[2] + 6 + e[1]):
+            if a != 0x1389:
+                continue
+            for r in _parse(m, p + 6, p + 6 + l):
+                if _eid(m, r) in mortos:
+                    continue
+                for t, ll, q in _parse(m, r[2] + 6, r[2] + 6 + r[1]):
+                    if t == 0x09C5 and ll == 24:
+                        pts.append(struct.unpack_from("<3d", m, q + 6))
+        if not pts:
+            return None
+        return tuple(min(c[k] for c in pts) for k in range(3)) + tuple(max(c[k] for c in pts) for k in range(3))
 
     def _geometria_filtrada(self, tag: int, rec: Rec, geo: dict) -> List:
         """Partes do contêiner 0x1389/0x138a/0x138b/0x1396/0x1397 sem o que a poda removeu."""
