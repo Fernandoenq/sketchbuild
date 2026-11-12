@@ -59,13 +59,25 @@ class TestSoften(unittest.TestCase):
         self.assertEqual(len(ns), 2)
         for d in ns.values():
             self.assertEqual(len(d), 2)  # só os 2 vértices da aresta compartilhada
-        n1, n2 = (next(iter(d.values())) for d in ns.values())
-        self.assertEqual(n1, n2)
-        # a média das duas normais fica na metade do ângulo entre elas
+        # cada face recebe a normal do grupo virada para o seu lado; as duas são a mesma reta
+        (f1, d1), (f2, d2) = ns.items()
+        v = next(iter(d1))
+        a, b = d1[v], d2[v]
+        self.assertAlmostEqual(abs(sum(x * y for x, y in zip(a, b))), 1.0, places=9)
+        for fid, d in ns.items():
+            self.assertGreaterEqual(sum(x * y for x, y in zip(d[v], t.faces[fid].normal)), 0.0)  # lado da própria face
+
+    def test_enrolamento_consistente_e_cantos_iguais_da_a_bissetriz(self):
+        t = Topology()
+        a = math.radians(60)
+        t.add_face([(0, 0, 0), (-10, 0, 0), (-10, 10, 0), (0, 10, 0)])  # percorre a aresta do meio de (0,10,0) para (0,0,0)
+        t.add_face([(0, 0, 0), (0, 10, 0), (10 * math.cos(a), 10, 10 * math.sin(a)), (10 * math.cos(a), 0, 10 * math.sin(a))])  # no sentido oposto
+        definir(t, [aresta_do_meio(t)])
+        ns = normais_suaves(t)
         f1, f2 = (f.normal for f in t.faces.values())
-        for fn in (f1, f2):
-            ang = math.degrees(math.acos(max(-1.0, min(1.0, sum(a * b for a, b in zip(n1, fn))))))
-            self.assertAlmostEqual(ang, dobra(t) / 2, places=4)
+        for fid, d in ns.items():
+            ang = math.degrees(math.acos(max(-1.0, min(1.0, sum(x * y for x, y in zip(next(iter(d.values())), t.faces[fid].normal))))))
+            self.assertAlmostEqual(ang, dobra(t) / 2, places=4)  # regra da SDK: peso = ângulo do canto (90 e 90)
 
     def test_aresta_dura_nao_suaviza(self):
         t = telhado(60)
