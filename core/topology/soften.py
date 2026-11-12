@@ -61,13 +61,24 @@ def por_angulo(t: Topology, angulo_max: float, arestas: Iterable[int] | None = N
     return sorted(mudadas)
 
 
-def _canto(t: Topology, f: Face, v: int) -> float:
-    """Ângulo do canto da face no vértice v, em graus (0 a 360), medido do lado de dentro do contorno externo."""
-    lp = f.outer
+def _lacos(t: Topology, f: Face) -> List[List[int]]:
+    """Contorno externo e furos, com os furos no sentido oposto ao do externo (o material fica sempre à esquerda)."""
+    nw = _unit(_newell([t.verts[x] for x in f.outer]))
+    saida = [list(f.outer)]
+    for h in f.holes:
+        if _dot(_newell([t.verts[x] for x in h]), nw) > 0:
+            h = list(reversed(h))
+        saida.append(list(h))
+    return saida
+
+
+def _canto(t: Topology, f: Face, v: int, lp: List[int] | None = None) -> float:
+    """Ângulo do canto da face no vértice v, em graus (0 a 360), medido do lado do material (contorno externo ou furo)."""
+    lp = lp or f.outer
     i = lp.index(v)
     p, q = t.verts[lp[i - 1]], t.verts[lp[(i + 1) % len(lp)]]
     c = t.verts[v]
-    nw = _unit(_newell([t.verts[x] for x in lp]))
+    nw = _unit(_newell([t.verts[x] for x in f.outer]))
     a, b = _sub(q, c), _sub(p, c)
     ang = math.atan2(_dot(_cross(a, b), nw), _dot(a, b))
     return math.degrees(ang % (2 * math.pi))
@@ -88,17 +99,20 @@ def normais_suaves(t: Topology) -> Dict[int, Dict[int, tuple]]:
         inverte).
     Só entram vértices do contorno externo; grupo de uma face só usa a normal da própria face."""
     por_aresta: Dict[tuple, List[tuple]] = {}
+    laco_de: Dict[tuple, List[int]] = {}
     for fid, f in t.faces.items():
-        lp = f.outer
-        for i, a in enumerate(lp):
-            b = lp[(i + 1) % len(lp)]
-            por_aresta.setdefault((min(a, b), max(a, b)), []).append((fid, a, b))
+        for lp in _lacos(t, f):
+            for i, a in enumerate(lp):
+                b = lp[(i + 1) % len(lp)]
+                por_aresta.setdefault((min(a, b), max(a, b)), []).append((fid, a, b))
+                laco_de[(fid, a)] = lp
     lisa_ids = {(min(a, b), max(a, b)) for e, (a, b) in t.edges.items() if t.eflags.get(e, 0) & LISA}
     lisas = {k: u for k, u in por_aresta.items() if len(u) == 2 and k in lisa_ids}
     em_vertice: Dict[int, List[int]] = {}
     for fid, f in t.faces.items():
-        for v in f.outer:
-            em_vertice.setdefault(v, []).append(fid)
+        for lp in _lacos(t, f):
+            for v in lp:
+                em_vertice.setdefault(v, []).append(fid)
     saida: Dict[int, Dict[int, tuple]] = {}
     for v, fs in em_vertice.items():
         vizinhos: Dict[int, List[tuple]] = {f: [] for f in fs}
@@ -122,11 +136,16 @@ def normais_suaves(t: Topology) -> Dict[int, Dict[int, tuple]]:
             visto |= set(sinal)
             if len(sinal) < 2:
                 continue
+            # medido na SDK (pirâmides de 3 a 8 lados, tools/conferir_normais_sdk.py): anel FECHADO de 6 faces ou mais em
+            # volta do vértice não é suavizado; anel aberto (até 11 faces testadas) e anel fechado de até 5 faces são.
+            # Causa não localizada na DLL: é uma regra empírica.
+            if len(sinal) >= 6 and all(len(vizinhos[f]) == 2 for f in sinal):
+                continue
             soma = [0.0, 0.0, 0.0]
             for f, s in sinal.items():
                 face = t.faces[f]
                 nw = _unit(_newell([t.verts[x] for x in face.outer]))
-                ang = _canto(t, face, v)
+                ang = _canto(t, face, v, laco_de[(f, v)])
                 peso = ang if s > 0 else 360.0 - ang
                 for i in range(3):
                     soma[i] += s * peso * nw[i]
@@ -135,5 +154,5 @@ def normais_suaves(t: Topology) -> Dict[int, Dict[int, tuple]]:
             r = _unit(tuple(soma))
             for f in sinal:
                 n = t.faces[f].normal
-                saida.setdefault(f, {})[v] = r if _dot(r, n) >= 0 else tuple(-c for c in r)
+                saida.setdefault(f, {})[v] = r if _dot(r, n) >= -1e-9 else tuple(-c for c in r)
     return saida
