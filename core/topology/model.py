@@ -157,8 +157,10 @@ class Topology:
             if vid in (u, v) or self._interior_param(p, u, v) is None:
                 continue
             del self.edges[eid]
-            self.edges[next(self._eid)] = (u, vid)
-            self.edges[next(self._eid)] = (vid, v)
+            e1, e2 = next(self._eid), next(self._eid)
+            self.edges[e1] = (u, vid)
+            self.edges[e2] = (vid, v)
+            self._dividir_na_curva(eid, e1, e2, (u, v))
             for f in self.faces.values():
                 for lp in f.loops():
                     n = len(lp)
@@ -166,6 +168,25 @@ class Topology:
                         if {lp[i], lp[(i + 1) % n]} == {u, v}:
                             lp.insert(i + 1, vid)
                             break
+
+    def _dividir_na_curva(self, eid: int, e1: int, e2: int, uv: Tuple[int, int]) -> None:
+        """A aresta `eid` (u→v) virou e1 (u→vid) e e2 (vid→v): a curva que a continha passa a ter as duas, em ordem."""
+        for c in self.curvas.values():
+            ar = c["arestas"]
+            if eid not in ar:
+                continue
+            i = ar.index(eid)
+            vizinho = ar[i - 1] if i > 0 else (ar[i + 1] if len(ar) > 1 else None)
+            u, v = uv
+            # sentido do percurso: a ponta que a aresta compartilha com a anterior (ou a de trás da seguinte) é o início
+            comeca_em_u = True
+            if vizinho is not None and vizinho in self.edges:
+                a, b = self.edges[vizinho]
+                if i > 0:
+                    comeca_em_u = u in (a, b)
+                else:
+                    comeca_em_u = v in (a, b)
+            ar[i:i + 1] = [e1, e2] if comeca_em_u else [e2, e1]
 
     # -- arestas ----------------------------------------------------------------
 

@@ -101,6 +101,13 @@ Cada aresta membro leva `0x0bbb` = id da curva, depois de `0x0bba`. A tabela `0x
 
 Validação: `tools/su_curvas.py` (SUEntitiesGetArcCurves) relê raio, centro, normal, eixos e ângulos do que o writer grava (3 testes novos). Observação: a DLL só enumera a curva quando as arestas NÃO têm face; nos arquivos feitos pelo SketchUp real (r09 círculo, r13 arco com raios) ela também devolve zero, então o comportamento bate. O círculo do SketchBuild (com face) grava o registro igual ao do SketchUp.
 
+**Curva simples `0x1396`** (polígono, mão livre; a SketchUpAPI cria com `SUCurveCreateWithEdges`): mesmo lugar, mas só os metadados, sem `0x4c2c` e sem `0x4c2d`:
+```
+0x1396
+  0x4a38  (um por curva)   0x05dc>0x05de id | 0x4a39 u32 nº de arestas | 0x4a3a u8=0 | 0x4a3b 1ª aresta | 0x4a3c última aresta
+```
+As arestas levam `0x0bbb` = id da curva, igual à curva de arco. Se uma aresta da curva é dividida em T, a curva passa a listar as duas metades, na ordem do percurso (o writer faz isso em `Topology._dividir_na_curva`); se uma aresta some, a curva inteira é ignorada e as arestas saem comuns.
+
 Assunções: (1) ângulo inicial sempre 0 e X = direção do ponto inicial, o que o SketchUp faz nos arquivos gerados pela API; se o Ruby gravar outro X com ângulo inicial diferente, a geometria é a mesma; (2) a posição do id da curva no espaço de ids (aqui, depois das faces) não afeta a leitura pela DLL; (3) vários arcos dentro de um mesmo `0x1397` não foi confirmado em arquivo do SketchUp real.
 
 ## 7c. Material de cor na face — decifrado em 11/11/2026

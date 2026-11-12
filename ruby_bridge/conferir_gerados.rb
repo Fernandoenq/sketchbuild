@@ -25,7 +25,24 @@ module ConferirGerados
       when Sketchup::Edge then edges += 1
       end
     end
-    { 'faces' => faces, 'edges' => edges, 'area_total' => area.round(3) }
+    r = { 'faces' => faces, 'edges' => edges, 'area_total' => area.round(3) }
+    r['curvas'] = model.entities.grep(Sketchup::Edge).map(&:curve).compact.uniq.size
+    r['grupos'] = model.entities.grep(Sketchup::Group).size
+    r['componentes'] = model.entities.grep(Sketchup::ComponentInstance).size
+    face = model.entities.grep(Sketchup::Face).first
+    if face
+      r['cor_frente'] = face.material ? face.material.color.to_a.first(3) : nil
+      r['cor_verso'] = face.back_material ? face.back_material.color.to_a.first(3) : nil
+    end
+    r
+  end
+
+  # compara so o que o esperado.json traz (arquivos antigos nao tem curvas/grupos/cores)
+  def confere?(got, esp)
+    return false unless got['faces'] == esp['faces'] && got['edges'] == esp['edges']
+    return false unless (got['area_total'] - esp['area_total']).abs < 0.01
+    %w[curvas grupos componentes].all? { |k| !esp.key?(k) || got[k] == esp[k] } &&
+      %w[cor_frente cor_verso].all? { |k| !esp.key?(k) || got[k] == esp[k] }
   end
 
   def run
@@ -36,7 +53,7 @@ module ConferirGerados
       begin
         Sketchup.open_file(caminho, with_status: true)
         got = medir(Sketchup.active_model)
-        ok = got['faces'] == esp['faces'] && got['edges'] == esp['edges'] && (got['area_total'] - esp['area_total']).abs < 0.01
+        ok = confere?(got, esp)
         resultado[nome] = { 'ok' => ok, 'esperado' => esp, 'sketchup' => got }
         puts "[gerados] #{ok ? 'OK ' : 'FALHOU'} #{nome}: SketchUp #{got.inspect} | esperado #{esp.inspect}"
       rescue StandardError => e

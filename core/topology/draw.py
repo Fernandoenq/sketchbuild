@@ -2,7 +2,7 @@
 sobre o núcleo de topologia. Cada ferramenta gera os pontos como o SketchUp e chama
 `add_edge`/`add_face`; `desenhar` devolve o delta (o que nasceu, mudou e sumiu)."""
 import math
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from core.topology.model import Point, Topology, _cross, _dot, _norm, _unit
 
@@ -83,9 +83,12 @@ def _polilinha(t: Topology, pts: Sequence[Point], fechar: bool) -> None:
         t.add_edge(pts[i], pts[(i + 1) % n])
 
 
-def _registrar_curva(t: Topology, pts: Sequence[Point], fechar: bool, centro: Point, raio: float,
-                     ang_ini: float, ang_fim: float, normal: Point) -> None:
-    """Guarda a curva (círculo/arco) com as arestas na ordem em que foram desenhadas."""
+def _registrar_curva(t: Topology, pts: Sequence[Point], fechar: bool, centro: Optional[Point] = None,
+                     raio: float = 0.0, ang_ini: float = 0.0, ang_fim: float = 0.0,
+                     normal: Point = (0, 0, 1)) -> None:
+    """Guarda a curva com as arestas na ordem em que foram desenhadas.
+
+    Com `centro`, é curva de arco (círculo/arco, registro 0x1397); sem, é curva simples (polígono, mão livre: 0x1396)."""
     n = len(pts)
     arestas = []
     for i in range(n if fechar else n - 1):
@@ -94,7 +97,10 @@ def _registrar_curva(t: Topology, pts: Sequence[Point], fechar: bool, centro: Po
         if e is None:
             return
         arestas.append(e)
-    t.curvas[next(t._cid)] = {"centro": tuple(centro), "normal": tuple(normal), "raio": raio,
+    if centro is None:
+        t.curvas[next(t._cid)] = {"tipo": "simples", "arestas": arestas}
+        return
+    t.curvas[next(t._cid)] = {"tipo": "arco", "centro": tuple(centro), "normal": tuple(normal), "raio": raio,
                               "ang_ini": ang_ini, "ang_fim": ang_fim, "inicio": tuple(pts[0]), "arestas": arestas}
 
 
@@ -123,8 +129,10 @@ def desenhar(t: Topology, ferramenta: str, **p) -> Dict[str, dict]:
         t.add_face(pts)
         _registrar_curva(t, pts, True, p["centro"], p["raio"], 0.0, 360.0, p.get("normal", (0, 0, 1)))
     elif ferramenta == "poligono":
-        t.add_face(pontos_poligono(p["centro"], p["raio"], p.get("normal", (0, 0, 1)),
-                                   p.get("lados", POLIGONO_LADOS), p.get("circunscrito", False)))
+        pts = pontos_poligono(p["centro"], p["raio"], p.get("normal", (0, 0, 1)),
+                              p.get("lados", POLIGONO_LADOS), p.get("circunscrito", False))
+        t.add_face(pts)
+        _registrar_curva(t, pts, True)
     elif ferramenta == "arco":
         pts = pontos_arco(p["centro"], p["raio"], p["ang_ini"], p["ang_fim"],
                           p.get("normal", (0, 0, 1)), p.get("lados", ARCO_LADOS))
@@ -138,6 +146,8 @@ def desenhar(t: Topology, ferramenta: str, **p) -> Dict[str, dict]:
             pts = pts[:-1]
         _polilinha(t, pts, fechar)
         _fechar_lacos(t, eids)
+        if len(pts) > 1:
+            _registrar_curva(t, pts, fechar)
     else:
         raise ValueError(f"ferramenta desconhecida: {ferramenta!r}")
     return _delta(antes, _estado(t))

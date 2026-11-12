@@ -266,6 +266,43 @@ class TestGravadorDeTopologia(unittest.TestCase):
         finally:
             m.close()
 
+    def _num_curvas(self, m):
+        import ctypes
+        from core.su_types import SUEntitiesRef
+        d = _api._dll
+        d.SUEntitiesGetNumCurves.argtypes = [SUEntitiesRef, ctypes.POINTER(ctypes.c_size_t)]
+        n = ctypes.c_size_t()
+        d.SUEntitiesGetNumCurves(m.get_entities(), ctypes.byref(n))
+        return n.value
+
+    def test_curva_simples_mao_livre_e_arco_dividido(self):
+        """0x1396 (curva simples) e arco cuja aresta foi dividida em T continua curva."""
+        from tools.su_curvas import curvas
+        t = Topology()
+        desenhar(t, "mao_livre", pontos=[(0, 0, 0), (100, 0, 0), (150, 80, 0), (100, 160, 30)], fechar=False)
+        self.assertEqual(t.curvas[1]["tipo"], "simples")
+        p = os.path.join(self.tmp.name, "simples.skp")
+        gravar_topologia(t, p)
+        verificar_skp(p)
+        m = _api.open_model(p)
+        try:
+            self.assertEqual(self._num_curvas(m), 1)
+        finally:
+            m.close()
+        t2 = Topology()
+        desenhar(t2, "arco", centro=(0, 0, 0), raio=30, ang_ini=0, ang_fim=90, normal=(0, 0, 1), lados=8)
+        antes = len(t2.curvas[1]["arestas"])
+        e0 = t2.curvas[1]["arestas"][2]
+        a, b = t2.edges[e0]
+        meio = tuple((x + y) / 2 for x, y in zip(t2.verts[a], t2.verts[b]))
+        t2.add_edge(meio, (meio[0] + 10, meio[1] + 10, 0))  # T no meio da aresta do arco
+        self.assertEqual(len(t2.curvas[1]["arestas"]), antes + 1)
+        p2 = os.path.join(self.tmp.name, "arco_t.skp")
+        gravar_topologia(t2, p2)
+        c = curvas(p2)
+        self.assertEqual(len(c), 1)
+        self.assertAlmostEqual(c[0]["raio"], 30.0, 4)
+
     def test_modelo_vazio(self):
         p = os.path.join(self.tmp.name, "vazio.skp")
         gravar_topologia(Topology(), p)

@@ -226,18 +226,22 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
         for n in usados
     )
     reg_curvas = b""
+    reg_simples = b""
     for c in sorted(curvas):
         d = curvas[c]
         meta = (_so_id(cid_[c]) + _rec(0x4A39, struct.pack("<I", len(d["arestas"]))) + _rec(0x4A3A, bytes([0]))
                 + _rec(0x4A3B, _id_bytes(eid[d["arestas"][0]])) + _rec(0x4A3C, _id_bytes(eid[d["arestas"][-1]])))
-        reg_curvas += _rec(0x4C2C, _rec(0x4A38, meta) + _rec(0x4C2D, _carga_curva(d)))
+        if d.get("tipo", "arco") == "simples":
+            reg_simples += _rec(0x4A38, meta)
+        else:
+            reg_curvas += _rec(0x4C2C, _rec(0x4A38, meta) + _rec(0x4C2D, _carga_curva(d)))
     tabela = b"".join(bytes([len(_id_bytes(i))]) + _id_bytes(i) for i in list(eid.values()) + list(fid_.values()))
     pts = list(t.verts.values())
     caixa = None
     if pts:
         caixa = (tuple(min(p[k] for p in pts) for k in range(3)), tuple(max(p[k] for p in pts) for k in range(3)))
     return {"vertices": verts, "arestas": arestas, "faces": faces, "tabela": tabela, "curvas": reg_curvas,
-            "materiais": reg_materiais}, prox, caixa
+            "simples": reg_simples, "materiais": reg_materiais}, prox, caixa
 
 
 def _tabela(ids: Sequence[int]) -> bytes:
@@ -321,6 +325,8 @@ def _montar_cena(cena, prox: int, mid: Dict[str, int]):
         corpo = _cabecalho(did[d], FLAGS_ARESTA) if grupo else _cabecalho_attr(did[d], _ATTR_DEFINICAO)
         if topo.verts:
             corpo += _rec(0x1389, reg["vertices"])
+        if reg["simples"]:
+            corpo += _rec(0x1396, reg["simples"])
         if reg["curvas"]:
             corpo += _rec(0x1397, reg["curvas"])
         if topo.edges:
@@ -481,6 +487,8 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
         geometria = b""
         if t.verts:
             geometria += _rec(0x1389, reg["vertices"])
+        if reg["simples"]:
+            geometria += _rec(0x1396, reg["simples"])
         if reg["curvas"]:
             geometria += _rec(0x1397, reg["curvas"])
         if t.edges:
