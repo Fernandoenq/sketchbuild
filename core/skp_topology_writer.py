@@ -131,6 +131,19 @@ def _nomes_de_material(t) -> set:
             | {c["material"] for c in t.textos.values() if c.get("material")})
 
 
+def _fontes_novas(t) -> set:
+    """Fontes novas dos textos livres: (nome, negrito, itálico, pontos)."""
+    return {c["fonte_nova"] for c in t.textos.values() if c.get("fonte_nova")}
+
+
+def registro_fonte(ident: int, f: tuple) -> bytes:
+    """Registro 0x5014 da lista de fontes `0x01fd > 0x4e20 > 0x4e21` (FORMATO-SKP 7l)."""
+    nome, negrito, italico, pontos = f
+    return _rec(0x5014, _rec(0x05DC, _rec(0x05DE, _id_bytes(ident))) + _rec(0x5015, nome.encode("utf-8"))
+                + _rec(0x5016, bytes([1 if negrito else 0])) + _rec(0x5017, bytes([1 if italico else 0]))
+                + _rec(0x5018, struct.pack("<I", pontos)) + _rec(0x5019, bytes([0])) + _rec(0x501A, struct.pack("<d", 0.0)))
+
+
 def registro_material(ident: int, nome: str, material: dict) -> bytes:
     """Registro 0x32c8 da tabela de materiais; material com imagem leva também 0x32cd = 90 (valor observado)."""
     extra = _rec(0x32CD, struct.pack("<I", 90)) if material.get("textura") else b""
@@ -175,7 +188,7 @@ def _registro_cota(ident: int, c: dict) -> bytes:
                 + _rec(0x5BD2, struct.pack("<d", c["desloc"][1])) + _rec(0x5BD4, struct.pack("<I", c["alinhamento_v"])))
 
 
-def _registro_texto(ident: int, c: dict, material: Optional[int] = None) -> bytes:
+def _registro_texto(ident: int, c: dict, material: Optional[int] = None, fonte: Optional[int] = None) -> bytes:
     """Registro 0x55f0 de um texto livre (FORMATO-SKP 7l). Os campos 0x55f2/f3, f6, f7, f8, fb, fc, fe levam os valores
     padrão que a SketchUpAPI grava (significado ainda não decifrado)."""
     vazio = _rec(0x53FC, _rec(0x53FE, b""))
@@ -184,7 +197,7 @@ def _registro_texto(ident: int, c: dict, material: Optional[int] = None) -> byte
     return _rec(0x55F0, _cabecalho(ident, FLAGS_ARESTA, material) + _rec(0x55F1, c["texto"].encode("utf-8")) + _rec(0x55FF, b"")
                 + _rec(0x55F2, struct.pack("<d", 0.5)) + _rec(0x55F3, struct.pack("<d", 0.5)) + ponto
                 + _rec(0x55F5, struct.pack("<3d", *c["vetor"])) + _rec(0x55F6, bytes([1]))
-                + _rec(0x55F7, struct.pack("<3d", 0.0, 0.0, 1.0)) + _rec(0x55F8, bytes([0])) + _rec(0x55F9, bytes([c["fonte"]]))
+                + _rec(0x55F7, struct.pack("<3d", 0.0, 0.0, 1.0)) + _rec(0x55F8, bytes([0])) + _rec(0x55F9, bytes([c["fonte"] if fonte is None else fonte]))
                 + _rec(0x55FA, struct.pack("<I", c["seta"])) + _rec(0x55FB, struct.pack("<I", 1)) + _rec(0x55FC, bytes([1]))
                 + _rec(0x55FD, struct.pack("<I", c["tipo"])) + _rec(0x55FE, struct.pack("<I", 0)))
 
@@ -294,6 +307,9 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
             if n not in getattr(t, "materiais", {}):
                 raise ValueError(f"material {n!r} usado numa face mas não definido em Topology.materiais")
         mid: Dict[str, int] = {}
+        for f in sorted(_fontes_novas(t)):  # fontes antes dos materiais (ordem de criação na SDK, ver 7l)
+            mid[f] = prox
+            prox += 1
         for n in usados:
             mid[n] = prox
             prox += 1
@@ -354,6 +370,7 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
             + _rec(0x0DAD, struct.pack("<4d", *plano)) + _rec(0x0DAE, corpo),
         )
     reg_materiais = b"".join(registro_material(mid[n], n, getattr(t, "materiais", {}).get(n, {})) for n in usados)
+    reg_fontes = b"".join(registro_fonte(mid[f], f) for f in sorted(_fontes_novas(t))) if mid_externo is None else b""
     reg_curvas = b""
     reg_simples = b""
     for c in sorted(curvas):
@@ -379,7 +396,7 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
     reg_guias = ((_rec(0x1391, linhas_guia) if linhas_guia else b"") + (_rec(0x1392, pontos_guia) if pontos_guia else b"")
                   + (_rec(0x1393, planos) if planos else b""))
     reg_cotas = _rec(0x1399, b"".join(_registro_cota(did_cota[g], c) for g, c in sorted(getattr(t, "cotas", {}).items()))) if did_cota else b""
-    reg_textos = _rec(0x1398, b"".join(_registro_texto(did_texto[g], c, mid[c["material"]] if c.get("material") else None) for g, c in sorted(t.textos.items()))) if did_texto else b""
+    reg_textos = _rec(0x1398, b"".join(_registro_texto(did_texto[g], c, mid[c["material"]] if c.get("material") else None, mid[c["fonte_nova"]] if c.get("fonte_nova") else None) for g, c in sorted(t.textos.items()))) if did_texto else b""
     tabela = b"".join(bytes([len(_id_bytes(i))]) + _id_bytes(i)
                       for i in list(eid.values()) + list(fid_.values()) + list(gid_.values()) + list(sid_.values())
                       + list(did_cota.values()) + list(did_texto.values()))
@@ -388,7 +405,7 @@ def montar_entidades(t: Topology, primeiro_id: int, mid_externo: Optional[Dict[s
     if pts:
         caixa = (tuple(min(p[k] for p in pts) for k in range(3)), tuple(max(p[k] for p in pts) for k in range(3)))
     return {"vertices": verts, "arestas": arestas, "faces": faces, "tabela": tabela, "curvas": reg_curvas,
-            "simples": reg_simples, "materiais": reg_materiais, "guias": reg_guias + reg_textos + reg_cotas}, prox, caixa
+            "simples": reg_simples, "materiais": reg_materiais, "fontes": reg_fontes, "guias": reg_guias + reg_textos + reg_cotas}, prox, caixa
 
 
 def _tabela(ids: Sequence[int]) -> bytes:
@@ -695,11 +712,16 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
                     raise ValueError(f"material {n!r} usado numa face mas não definido")
             mid_global = {}
             primeiro_geo = primeiro
+            fontes_todas = sorted(set().union(*(_fontes_novas(tp) for tp in todas)))
+            for f in fontes_todas:
+                mid_global[f] = primeiro_geo
+                primeiro_geo += 1
             for n in nomes:
                 mid_global[n] = primeiro_geo
                 primeiro_geo += 1
             reg, prox, caixa = montar_entidades(t, primeiro_geo, mid_global, tid_global)
             reg["materiais"] = b"".join(registro_material(mid_global[n], n, definidos[n]) for n in nomes)
+            reg["fontes"] = b"".join(registro_fonte(mid_global[f], f) for f in fontes_todas)
             defs_bytes, (inst_comp, inst_grup, inst_ids), prox = _montar_cena(cena, prox, mid_global, tid_global)
             caixa = _caixa_com_instancias(cena, caixa)
             todos_materiais = definidos
@@ -764,6 +786,8 @@ def _escrever(t: Topology, destino: str, base: Optional[str], cena) -> Dict[str,
                 externo += _acrescentar(dat, (a, l, p), [0x6D60, 0x6D61], reg_cenas)
             elif a == 0x01F8 and tags_usadas:
                 externo += _com_tags(dat, (a, l, p), b"".join(registro_tag(tid_global[n], n, tags_def[n].get("visivel", True)) for n in tags_usadas))
+            elif a == 0x01FD and reg.get("fontes"):
+                externo += _acrescentar(dat, (a, l, p), [0x4E20, 0x4E21], reg["fontes"])
             elif a == 0x01F7 and reg["materiais"]:
                 externo += _com_materiais(dat, (a, l, p), reg["materiais"])
             else:

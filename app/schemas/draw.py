@@ -169,6 +169,7 @@ class NotaRequest(BaseModel):
     tipo_chamada: int = Field(default=0, ge=0, le=2)  # texto: tipo da linha de chamada
     vetor: tuple[float, float, float] | None = None  # texto: vetor da linha de chamada
     cor: tuple[int, int, int] | tuple[int, int, int, int] | None = None  # texto: cor rgb[a] 0-255 (uma so por modelo)
+    fonte_nova: tuple[str, bool, bool, int] | None = None  # texto: (nome, negrito, italico, pontos 1-1000)
     id: int | None = None  # tipo=apagar (texto ou cota)
 
 

@@ -47,7 +47,20 @@ CASOS = {
     "seta1": dict(seta=1),
     "fonte1": dict(fonte=3),
     "cor": dict(cor=(10, 20, 30, 255)),
+    "fn_base": dict(fonte_nova=("Arial", False, False, 12)),
+    "fn_b0": dict(fonte_nova=("Arial", True, False, 12)),
+    "fn_b1": dict(fonte_nova=("Arial", False, True, 12)),
+    "fn_tam": dict(fonte_nova=("Arial", False, False, 24)),
+    "fn_nome": dict(fonte_nova=("Courier New", False, False, 12)),
+    "fn_cor": dict(fonte_nova=("Arial", True, True, 18), cor=(10, 20, 30, 255)),
 }
+
+def lista_de_fontes(caminho):
+    """Bytes da lista de fontes 0x4e21 (com todos os 0x5014) do modelo."""
+    with zipfile.ZipFile(caminho) as z:
+        dat = z.read("model.dat")
+    i = dat.find(struct.pack("<H", 0x4E21))
+    return dat[i:i + 6 + struct.unpack("<I", dat[i + 2:i + 6])[0]]
 
 
 @unittest.skipUnless(DISPONIVEL, "SketchUpAPI.dll / Python 3.12 indisponível")
@@ -64,6 +77,7 @@ class TestTextoContraASdk(unittest.TestCase):
                     sdk = gerar(d, nome)
                     self.assertIsNotNone(registro_1398(sdk))
                     self.assertEqual(registro_1398(meu), registro_1398(sdk))
+                    self.assertEqual(lista_de_fontes(meu), lista_de_fontes(sdk))
 
     def test_cor_cria_o_material_auto_igual_ao_da_sdk(self):
         def material(caminho):
@@ -98,6 +112,29 @@ class TestTextoNoNucleo(unittest.TestCase):
                      dict(texto="x", ponto=(0, 0, 0), seta=-1), dict(texto="x", ponto=(float("nan"), 0, 0))):
             with self.assertRaises(ValueError):
                 texto_livre(t, **args)
+
+    def test_fonte_nova_validacao_e_na_cena(self):
+        import os as _os
+        from core.skp_topology_writer import gravar_cena
+        from core.topology.cena import Cena
+        from core.topology.draw import desenhar
+        t = Topology()
+        for f in (("", False, False, 12), ("Arial", False, False, 0), ("Arial", False, False, 1001)):
+            with self.assertRaises(ValueError):
+                texto_livre(t, "x", (0, 0, 0), fonte_nova=f)
+        c = Cena()
+        desenhar(c.topo, "retangulo", p0=(0, 0, 0), p1=(10, 10, 0))
+        g = c.criar_grupo(faces=[max(c.topo.faces)])
+        texto_livre(c.topo, "raiz", (0, 0, 0), fonte_nova=("Arial", True, False, 20))
+        c.entrar(g)
+        texto_livre(c.topo, "dentro", (1, 1, 1), fonte_nova=("Arial", True, False, 20))  # mesma fonte: um registro só
+        c.sair()
+        with tempfile.TemporaryDirectory() as d:
+            p = _os.path.join(d, "c.skp")
+            gravar_cena(c, p)
+            self.assertEqual(lista_de_fontes(p).count(struct.pack("<H", 0x5014)), 3)  # 2 do modelo + 1 nova
+            if DISPONIVEL:
+                _api.open_model(p).close()
 
     def test_cor_validacao_e_uma_cor_so(self):
         t = Topology()

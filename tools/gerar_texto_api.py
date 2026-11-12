@@ -30,6 +30,13 @@ class _Cor(ctypes.Structure):
 P = ctypes.POINTER
 
 
+class _FontInput(ctypes.Structure):
+    """Entrada de `SUModelAddFont(modelo, entrada, saida)` (lida no pseudocódigo da DLL): versão 1, nome, dois bytes
+    (negrito/itálico, ordem a confirmar pelo diff), tamanho em pontos, flag de tamanho no mundo e esse tamanho."""
+    _fields_ = [("versao", ctypes.c_int), ("nome", ctypes.c_char_p), ("b0", ctypes.c_ubyte), ("b1", ctypes.c_ubyte),
+                ("pontos", ctypes.c_int), ("mundo", ctypes.c_ubyte), ("tam_mundo", ctypes.c_double)]
+
+
 def _pt(x, y, z):
     p = SUPoint3D()
     p.x, p.y, p.z = x, y, z
@@ -48,6 +55,13 @@ VARIACOES = {
     "seta1": dict(seta=1),
     "cor": dict(cor=(10, 20, 30, 255)),
     "fonte1": dict(fonte=1),
+    # fonte nova do modelo (face, byte0, byte1, pontos); o modelo só serializa a fonte se algum texto a usa
+    "fn_base": dict(fonte_nova=(b"Arial", 0, 0, 12)),
+    "fn_b0": dict(fonte_nova=(b"Arial", 1, 0, 12)),
+    "fn_b1": dict(fonte_nova=(b"Arial", 0, 1, 12)),
+    "fn_tam": dict(fonte_nova=(b"Arial", 0, 0, 24)),
+    "fn_nome": dict(fonte_nova=(b"Courier New", 0, 0, 12)),
+    "fn_cor": dict(fonte_nova=(b"Arial", 1, 1, 18), cor=(10, 20, 30, 255)),
 }
 
 
@@ -78,7 +92,13 @@ def gerar(pasta: str, nome: str) -> str:
         d.SUTextSetPoint.argtypes = [_Ref, P(SUPoint3D), _Ref]
         assert d.SUTextSetPoint(r, ctypes.byref(_pt(*v["ponto"])), _Ref()) == 0
         d.SUTextSetFont.argtypes = [_Ref, _Ref]
-        assert d.SUTextSetFont(r, fontes[v["fonte"]]) == 0
+        fonte = fontes[v["fonte"]]
+        if v.get("fonte_nova"):
+            fn = v["fonte_nova"]
+            d.SUModelAddFont.argtypes = [SUModelRef, P(_FontInput), P(_Ref)]
+            fonte = _Ref()
+            assert d.SUModelAddFont(mr, ctypes.byref(_FontInput(1, fn[0], fn[1], fn[2], fn[3], 0, 0.0)), ctypes.byref(fonte)) == 0
+        assert d.SUTextSetFont(r, fonte) == 0
         if v["vetor"]:
             d.SUTextSetLeaderVector.argtypes = [_Ref, P(_Vec)]
             assert d.SUTextSetLeaderVector(r, ctypes.byref(_Vec(*v["vetor"]))) == 0
