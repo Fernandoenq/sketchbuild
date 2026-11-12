@@ -9,10 +9,14 @@ Ponto = tuple[float, float, float]
 
 
 class DrawRequest(BaseModel):
-    ferramenta: Literal["linha", "retangulo", "circulo", "poligono", "arco", "mao_livre"]
+    ferramenta: Literal["linha", "retangulo", "circulo", "poligono", "arco", "mao_livre",
+                      "arco_3pontos", "arco_corda", "setor", "fatia", "bezier"]
     pontos: list[Ponto] | None = None  # linha, mao_livre
     p0: Ponto | None = None  # retangulo
     p1: Ponto | None = None
+    p2: Ponto | None = None  # arco_3pontos
+    flecha: float | None = None  # arco_corda
+    tolerancia: float | None = Field(default=None, ge=0)  # mao_livre (RDP)
     centro: Ponto | None = None  # circulo, poligono, arco
     raio: float | None = Field(default=None, gt=0)
     normal: Ponto = (0.0, 0.0, 1.0)

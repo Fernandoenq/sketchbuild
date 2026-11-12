@@ -57,6 +57,84 @@ def pontos_arco(centro: Point, raio: float, ang_ini: float, ang_fim: float,
             for i in range(lados + 1)]
 
 
+def arco_por_3_pontos(p0: Point, p1: Point, p2: Point) -> Tuple[Point, float, Point, float, float]:
+    """Arco que parte de p0, passa por p1 e termina em p2: (centro, raio, normal, ang_ini, ang_fim) em graus.
+
+    A normal é a do triângulo (p0, p1, p2), então o arco sempre corre no sentido anti-horário em torno dela."""
+    u = tuple(p1[i] - p0[i] for i in range(3))
+    v = tuple(p2[i] - p0[i] for i in range(3))
+    n = _cross(u, v)
+    d = 2.0 * _dot(n, n)
+    if d <= 1e-18 or _norm(n) <= 1e-9 * max(_norm(u), _norm(v), 1.0):
+        raise ValueError("arco: os três pontos são colineares")
+    uu, vv = _dot(u, u), _dot(v, v)
+    c = tuple((vv * _cross(n, u)[i] + uu * _cross(v, n)[i]) / d for i in range(3))
+    centro = tuple(p0[i] + c[i] for i in range(3))
+    raio = _norm(c)
+    normal = _unit(n)
+    x, y = eixos(normal)
+
+    def ang(p: Point) -> float:
+        r = tuple(p[i] - centro[i] for i in range(3))
+        return math.degrees(math.atan2(_dot(r, y), _dot(r, x)))
+
+    ini = ang(p0)
+    varredura = (ang(p2) - ini) % 360.0
+    return centro, raio, normal, ini, ini + varredura
+
+
+def arco_por_corda(p0: Point, p1: Point, flecha: float, normal: Point = (0, 0, 1)) -> Tuple[Point, float, Point, float, float]:
+    """Arco por corda (p0 a p1) e flecha (altura do arco, positiva à esquerda de p0→p1 visto da normal)."""
+    corda = tuple(p1[i] - p0[i] for i in range(3))
+    if _norm(corda) <= 1e-9:
+        raise ValueError("arco: corda de comprimento zero")
+    if abs(flecha) <= 1e-9:
+        raise ValueError("arco: flecha zero")
+    lado = _unit(_cross(_unit(normal), corda))
+    topo = tuple((p0[i] + p1[i]) / 2.0 + flecha * lado[i] for i in range(3))
+    return arco_por_3_pontos(p0, topo, p1)
+
+
+def pontos_bezier(controles: Sequence[Point], lados: int = ARCO_LADOS) -> List[Point]:
+    """Curva de Bézier (de Casteljau) de grau len(controles)-1, com `lados` segmentos."""
+    if len(controles) < 3:
+        raise ValueError("bezier: precisa de ao menos 3 pontos de controle")
+    out = []
+    for i in range(lados + 1):
+        u = i / lados
+        q = [tuple(c) for c in controles]
+        while len(q) > 1:
+            q = [tuple((1 - u) * q[k][j] + u * q[k + 1][j] for j in range(3)) for k in range(len(q) - 1)]
+        out.append(q[0])
+    out[0], out[-1] = tuple(controles[0]), tuple(controles[-1])
+    return out
+
+
+def simplificar_rdp(pontos: Sequence[Point], tolerancia: float) -> List[Point]:
+    """Ramer-Douglas-Peucker: tira pontos a menos de `tolerancia` da reta entre os extremos do trecho."""
+    pts = [tuple(p) for p in pontos]
+    if tolerancia <= 0 or len(pts) < 3:
+        return pts
+    manter = [False] * len(pts)
+    manter[0] = manter[-1] = True
+    pilha = [(0, len(pts) - 1)]
+    while pilha:
+        i, j = pilha.pop()
+        a, b = pts[i], pts[j]
+        ab = tuple(b[k] - a[k] for k in range(3))
+        nab = _norm(ab)
+        melhor, idx = -1.0, -1
+        for m in range(i + 1, j):
+            ap = tuple(pts[m][k] - a[k] for k in range(3))
+            dist = _norm(ap) if nab <= 1e-12 else _norm(_cross(ab, ap)) / nab
+            if dist > melhor:
+                melhor, idx = dist, m
+        if idx >= 0 and melhor > tolerancia:
+            manter[idx] = True
+            pilha += [(i, idx), (idx, j)]
+    return [p for p, m in zip(pts, manter) if m]
+
+
 def _estado(t: Topology) -> Dict[str, dict]:
     return {
         "vertices": dict(t.verts),
@@ -116,7 +194,9 @@ def desenhar(t: Topology, ferramenta: str, **p) -> Dict[str, dict]:
 
     linha(pontos) | retangulo(p0, p1, normal) | circulo(centro, raio, normal, lados)
     poligono(centro, raio, normal, lados, circunscrito) | arco(centro, raio, ang_ini, ang_fim, normal, lados)
-    mao_livre(pontos, fechar)
+    mao_livre(pontos, fechar, tolerancia) | arco_3pontos(p0, p1, p2, lados) | arco_corda(p0, p1, flecha, normal, lados)
+    setor(centro, raio, ang_ini, ang_fim, normal, lados) | fatia(centro, raio, ang_ini, ang_fim, normal, lados)
+    bezier(pontos, lados)
     """
     antes, eids = _estado(t), set(t.edges)
     if ferramenta == "linha":
@@ -139,8 +219,27 @@ def desenhar(t: Topology, ferramenta: str, **p) -> Dict[str, dict]:
         _polilinha(t, pts, False)
         _registrar_curva(t, pts, False, p["centro"], p["raio"], p["ang_ini"], p["ang_fim"], p.get("normal", (0, 0, 1)))
         _fechar_lacos(t, eids)
+    elif ferramenta in ("arco_3pontos", "arco_corda"):
+        if ferramenta == "arco_3pontos":
+            c, r, n, a0, a1 = arco_por_3_pontos(p["p0"], p["p1"], p["p2"])
+        else:
+            c, r, n, a0, a1 = arco_por_corda(p["p0"], p["p1"], p["flecha"], p.get("normal", (0, 0, 1)))
+        pts = pontos_arco(c, r, a0, a1, n, p.get("lados", ARCO_LADOS))
+        _polilinha(t, pts, False)
+        _registrar_curva(t, pts, False, c, r, a0, a1, n)
+        _fechar_lacos(t, eids)
+    elif ferramenta in ("setor", "fatia"):
+        n = p.get("normal", (0, 0, 1))
+        pts = pontos_arco(p["centro"], p["raio"], p["ang_ini"], p["ang_fim"], n, p.get("lados", ARCO_LADOS))
+        t.add_face(([tuple(p["centro"])] if ferramenta == "setor" else []) + pts)
+        _registrar_curva(t, pts, False, p["centro"], p["raio"], p["ang_ini"], p["ang_fim"], n)
+    elif ferramenta == "bezier":
+        pts = pontos_bezier(p["pontos"], p.get("lados", ARCO_LADOS))
+        _polilinha(t, pts, False)
+        _registrar_curva(t, pts, False)
+        _fechar_lacos(t, eids)
     elif ferramenta == "mao_livre":
-        pts = list(p["pontos"])
+        pts = simplificar_rdp(p["pontos"], p.get("tolerancia", 0.0))
         fechar = p.get("fechar", _norm(tuple(pts[0][i] - pts[-1][i] for i in range(3))) <= t.tol)
         if fechar and len(pts) > 1 and _norm(tuple(pts[0][i] - pts[-1][i] for i in range(3))) <= t.tol:
             pts = pts[:-1]
