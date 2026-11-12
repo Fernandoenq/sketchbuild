@@ -58,6 +58,8 @@ def _orientacao(t: Topology, faces: List[int]) -> Optional[Tuple[Dict[int, int],
 
 
 def _volume_da_casca(t: Topology, casca: List[int], sinal: Dict[int, int]) -> float:
+    """Volume COM SINAL da casca: positivo se a primeira face (a de referência) aponta para fora, negativo se aponta
+    para dentro. As outras faces entram com o sentido corrigido para ficarem consistentes com ela."""
     total = 0.0
     for fid in casca:
         f = t.faces[fid]
@@ -69,13 +71,16 @@ def _volume_da_casca(t: Topology, casca: List[int], sinal: Dict[int, int]) -> fl
             else:
                 vet = tuple(vet[i] + hv[i] for i in range(3))
         total += sinal[fid] * _dot(vet, t.verts[f.outer[0]]) / 6.0  # a soma de Newell é o dobro da área; o volume divide por 3
-    return abs(total)
+    return total
 
 
 def volume(t: Topology, faces: Iterable[int]) -> float:
-    """Volume (positivo) do sólido formado pelas faces; ValueError se não for um sólido válido.
+    """Volume do sólido formado pelas faces; ValueError se não for um sólido válido.
 
-    Cascas dentro de outra casca são cavidades e entram subtraindo (uma casca dentro de uma cavidade volta a somar)."""
+    Regra conferida contra `SUComponentInstanceComputeVolume` da SketchUpAPI (`tools/conferir_volume_sdk.py`): cada casca
+    conexa tem as faces unificadas a partir da primeira (menor id) e conta com o sinal do sentido dela; o resultado é o
+    valor absoluto da soma. Por isso um cubo inteiro virado para dentro dá o mesmo volume, uma casca interna com o sentido
+    oposto ao da externa é uma cavidade (subtrai) e uma casca interna com o mesmo sentido soma."""
     faces = sorted(set(faces))
     for f in faces:
         if f not in t.faces:
@@ -84,13 +89,7 @@ def volume(t: Topology, faces: Iterable[int]) -> float:
     if orient is None:
         raise ValueError("não é um sólido: toda aresta precisa estar em exatamente duas faces, com orientação consistente")
     sinal, cascas = orient
-    total = 0.0
-    for c in cascas:
-        profundidade = 0
-        if len(cascas) > 1:
-            ponto = _ponto_interior(t, t.faces[c[0]])
-            profundidade = sum(1 for o in cascas if o is not c and _classificar(t, ponto, o)[0] == "dentro")
-        total += (-1) ** profundidade * _volume_da_casca(t, c, sinal)
+    total = abs(sum(_volume_da_casca(t, c, sinal) for c in cascas))
     if total <= t.tol ** 3:
         raise ValueError("não é um sólido: volume zero")
     return total
@@ -202,10 +201,10 @@ def _executar(t: Topology, fa: List[int], fb: List[int], operacao: str) -> List[
                 (manter if _acao_coplanar(operacao, da_a, mesmo) == "manter" else largar).append(f)
             elif da_a:
                 (manter if tipo == manter_a else largar).append(f)
+            elif operacao == "subtracao" and tipo == "dentro":
+                virar.append(f)  # a parede de B dentro de A vira a parede da cavidade, com o sentido invertido
             elif tipo == manter_b:
                 manter.append(f)
-            elif operacao == "subtracao" and tipo == "dentro":
-                virar.append(f)
             else:
                 largar.append(f)
     for f in largar:
