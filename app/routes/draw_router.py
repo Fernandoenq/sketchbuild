@@ -68,6 +68,11 @@ async def combinar_grupos(body: GroupSolidRequest, controller: DrawController = 
     return await controller.combinar_grupos(body)
 
 
+@router.post("/erase-instance", response_model=SceneSummaryResponse, summary="Apaga um grupo ou componente da definicao ativa")
+async def apagar_instancia(body: InstanceRequest, controller: DrawController = Depends(get_controller)) -> SceneSummaryResponse:
+    return await controller.apagar_instancia(body)
+
+
 @router.post("/explode", response_model=SceneSummaryResponse, summary="Explode uma instancia na definicao ativa")
 async def explodir(body: InstanceRequest, controller: DrawController = Depends(get_controller)) -> SceneSummaryResponse:
     return await controller.explodir(body)

@@ -199,6 +199,22 @@ class Cena:
             self.comportamento.pop(i.definicao, None)
             del self.nomes[i.definicao]
 
+    def apagar_instancia(self, instancia: int) -> None:
+        """Apaga um grupo/componente da definição ativa (como Delete no SketchUp): a instância some e, se nenhuma outra usa a
+        definição, ela some também junto com as instâncias que havia dentro dela."""
+        i = self.instancias.get(instancia)
+        if i is None or i.pai != self.ativa:
+            raise ValueError("só dá para apagar uma instância da definição ativa")
+        pendentes = [instancia]
+        while pendentes:
+            iid = pendentes.pop()
+            x = self.instancias.pop(iid)
+            if not any(y.definicao == x.definicao for y in self.instancias.values()):
+                pendentes += [y.id for y in self.instancias.values() if y.pai == x.definicao]
+                self.defs.pop(x.definicao, None)
+                self.comportamento.pop(x.definicao, None)
+                self.nomes.pop(x.definicao, None)
+
     def _validar_par(self, a: int, b: int) -> tuple:
         if a == b:
             raise ValueError("escolha duas instâncias diferentes")

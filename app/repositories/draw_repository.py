@@ -182,6 +182,10 @@ class DrawRepository:
         iid = _HIST.executar("instanciar", {"instancia": instancia}, lambda: _CENA.instanciar(instancia, transformacao))
         return {"instancia": iid, **self.cena()}
 
+    def apagar_instancia(self, instancia: int) -> dict:
+        _HIST.executar("apagar_instancia", {"instancia": instancia}, lambda: _CENA.apagar_instancia(instancia))
+        return self.cena()
+
     def explodir(self, instancia: int) -> dict:
         _HIST.executar("explodir", {"instancia": instancia}, lambda: _CENA.explodir(instancia))
         return self.cena()

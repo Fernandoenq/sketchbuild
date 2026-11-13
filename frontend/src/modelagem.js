@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawErase, drawSolid, drawSelect, drawGroupSolid, drawNote, drawUv, drawBehavior, drawGroup, drawEnter, drawExit, drawUndo, drawRedo, drawSave } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawErase, drawEraseInstance, drawSolid, drawSelect, drawGroupSolid, drawNote, drawUv, drawBehavior, drawGroup, drawEnter, drawExit, drawUndo, drawRedo, drawSave } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -232,6 +232,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       ["Componente", "Cria um componente com a seleção (nome no campo de tag)", () => agruparSelecao("componente", tagNome.value)],
       ["Entrar", "Entra no último grupo/componente criado, ou no número da instância digitado no campo ao lado", () => entrarOuSair(true, nota.value)],
       ["Sair", "Sai da edição do grupo/componente", () => entrarOuSair(false)],
+      ["Excluir", "Apaga o grupo/componente (número da instância no campo ao lado; vazio = o último criado)", () => excluirInstancia(nota.value)],
       ["Comportamento", "Define o comportamento do componente em que se entrou: face-me, corta, sombra, snap=0..4 (campo ao lado; vazio desliga)", () => comportamentoAtivo(nota.value)],
       "Sólidos (booleana entre grupos)",
       ["União", "União entre dois grupos (campo ao lado: a,b = instâncias; vazio = os dois últimos criados). Nome do resultado no campo de tag", () => booleanaGrupos("uniao", nota.value, tagNome.value)],
@@ -511,6 +512,21 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       sel.edges.clear();
       substituirEstado(await drawState());
       setStatus((tipo === "grupo" ? "Grupo" : "Componente") + " " + r.instancia + " criado (Entrar usa o último, ou o número do campo).");
+    } catch (err) {
+      setStatus("Erro: " + (err?.message ?? err), true);
+    }
+  }
+
+  async function excluirInstancia(campo) {
+    const n = campo?.trim() ? Number(campo) : ultimaInstancia;
+    if (!Number.isInteger(n)) return setStatus("Excluir: digite o número da instância no campo ou crie um grupo antes.", true);
+    try {
+      await drawEraseInstance({ instancia: n });
+      const i = instanciasCriadas.indexOf(n);
+      if (i >= 0) instanciasCriadas.splice(i, 1);
+      if (ultimaInstancia === n) ultimaInstancia = instanciasCriadas[instanciasCriadas.length - 1] ?? null;
+      substituirEstado(await drawState());
+      setStatus("Instância " + n + " apagada (com a definição, se ninguém mais a usa).");
     } catch (err) {
       setStatus("Erro: " + (err?.message ?? err), true);
     }
@@ -950,6 +966,57 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     return melhor;
   }
 
+  // cota (linha entre os pontos) ou texto livre (marca em cruz) sob o mouse: devolve o id ou null
+  function notaSob(event) {
+    const r = renderer.domElement.getBoundingClientRect();
+    const px = event.clientX - r.left;
+    const py = event.clientY - r.top;
+    const tela = (v) => {
+      const s = fromSku(v).project(camera);
+      return [((s.x + 1) / 2) * r.width, ((1 - s.y) / 2) * r.height];
+    };
+    let melhor = null;
+    let dist = 8;
+    for (const [id, c] of Object.entries(tagInfo.cotas)) {
+      const [ax, ay] = tela(c.inicio);
+      const [bx, by] = tela(c.fim);
+      const dx = bx - ax;
+      const dy = by - ay;
+      const q = dx * dx + dy * dy;
+      const u = q ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / q)) : 0;
+      const d = Math.hypot(px - (ax + u * dx), py - (ay + u * dy));
+      if (d < dist) {
+        dist = d;
+        melhor = id;
+      }
+    }
+    for (const [id, x] of Object.entries(tagInfo.textos)) {
+      const [tx, ty] = tela(x.ponto);
+      const d = Math.hypot(px - tx, py - ty);
+      if (d < dist) {
+        dist = d;
+        melhor = id;
+      }
+    }
+    return melhor;
+  }
+
+  // apaga o que está marcado: arestas/faces pelo núcleo (leva faces e curvas) e cotas/textos livres pela rota de notas
+  async function apagarMarcados({ arestas = [], faces = [], notas = [] }) {
+    let resumo = "";
+    if (arestas.length || faces.length) {
+      const r = await drawErase({ arestas, faces });
+      aplicar(r);
+      resumo = r.counts.edges + " arestas, " + r.counts.faces + " faces restam";
+    }
+    for (const id of notas) await drawNote({ tipo: "apagar", id: Number(id) });
+    if (notas.length) {
+      substituirEstado(await drawState());
+      resumo += (resumo ? "; " : "") + notas.length + " cota(s)/texto(s) apagado(s)";
+    }
+    return resumo;
+  }
+
   function selecionarClique(event) {
     const r = renderer.domElement.getBoundingClientRect();
     ray.setFromCamera({ x: ((event.clientX - r.left) / r.width) * 2 - 1, y: -((event.clientY - r.top) / r.height) * 2 + 1 }, camera);
@@ -1035,44 +1102,44 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
 
   const el = renderer.domElement;
   // fase de captura: com a modelagem ativa, o clique não chega à seleção do app
-  // Apagar (Ferramentas > Apagar, modo "erase"): clique numa aresta ou arraste por várias; leva as faces e a curva delas.
-  // Sem aresta sob o mouse não faz nada aqui e o clique segue para o Apagar das peças da cena aberta.
-  let apagando = null; // arestas sob o arraste
+  // Apagar (Ferramentas > Apagar, modo "erase"): clique numa aresta, cota ou texto, ou arraste por vários; a aresta leva as
+  // faces e a curva dela. Sem nada sob o mouse não faz nada aqui e o clique segue para o Apagar das peças da cena aberta.
+  let apagando = null; // { arestas: Set, notas: Set } sob o arraste
   let apagouAgora = false;
+  const marcarSob = (e) => {
+    const a = arestaSob(e);
+    if (a != null) apagando.arestas.add(a);
+    else {
+      const n = notaSob(e);
+      if (n != null) apagando.notas.add(n);
+    }
+    sel.edges = new Set(apagando.arestas);
+    redesenhar();
+  };
   el.addEventListener(
     "pointerdown",
     (e) => {
       if (getToolMode() !== "erase" || e.button !== 0) return;
-      const a = arestaSob(e);
-      apagando = new Set(a != null ? [a] : []);
+      apagando = { arestas: new Set(), notas: new Set() };
       sel.faces.clear();
-      sel.edges = new Set(apagando);
-      redesenhar();
+      marcarSob(e);
     },
     true
   );
   el.addEventListener("pointermove", (e) => {
-    if (!apagando || getToolMode() !== "erase") return;
-    const a = arestaSob(e);
-    if (a != null && !apagando.has(a)) {
-      apagando.add(a);
-      sel.edges = new Set(apagando);
-      redesenhar();
-    }
+    if (apagando && getToolMode() === "erase") marcarSob(e);
   });
   el.addEventListener(
     "pointerup",
     async (e) => {
       if (!apagando || e.button !== 0) return;
-      const ids = [...apagando].map(Number);
+      const alvo = { arestas: [...apagando.arestas].map(Number), notas: [...apagando.notas] };
       apagando = null;
       sel.edges = new Set();
-      if (!ids.length) return redesenhar();
+      if (!alvo.arestas.length && !alvo.notas.length) return redesenhar();
       apagouAgora = true;
       try {
-        const r = await drawErase({ arestas: ids });
-        aplicar(r);
-        setStatus("Apagado: " + ids.length + " aresta(s) (com as faces e curvas delas). " + r.counts.edges + " arestas, " + r.counts.faces + " faces restam.");
+        setStatus("Apagado: " + (await apagarMarcados(alvo)) + ".");
       } catch (err) {
         redesenhar();
         setStatus("Erro ao apagar: " + (err?.message ?? err), true);
@@ -1136,6 +1203,14 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       const ctrl = pontos.map(toSku);
       terminar();
       enviar({ ferramenta: "bezier", pontos: ctrl, lados: 24 });
+      return;
+    }
+    if ((e.key === "Delete" || e.key === "Backspace") && (sel.faces.size || sel.edges.size) && !e.target.matches?.("input,textarea")) {
+      const alvo = { arestas: [...sel.edges].map(Number), faces: [...sel.faces].map(Number) };
+      sel.faces.clear();
+      sel.edges.clear();
+      apagarMarcados(alvo).then((r) => setStatus("Apagado: " + r + ".")).catch((err) => setStatus("Erro ao apagar: " + (err?.message ?? err), true));
+      e.preventDefault();
       return;
     }
     if (e.key === "Escape" || e.key === "Enter") terminar();

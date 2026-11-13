@@ -183,12 +183,48 @@ def offset(t: Topology, fid: int, distancia: float) -> Dict[str, dict]:
     return _delta(antes, _estado(t))
 
 
-def apagar(t: Topology, arestas: Iterable[int] = (), faces: Iterable[int] = ()) -> Dict[str, dict]:
-    """Ferramenta Apagar / tecla Delete, como no SketchUp.
+def _usos(t: Topology, a: int, b: int) -> List[tuple]:
+    """(face, índice do laço) de cada laço que passa pela aresta a-b; 0 é o contorno externo, 1 em diante os furos."""
+    out = []
+    for fid, f in t.faces.items():
+        for k, lp in enumerate(f.loops()):
+            if any({lp[i], lp[(i + 1) % len(lp)]} == {a, b} for i in range(len(lp))):
+                out.append((fid, k))
+    return out
 
-    Apagar uma aresta leva junto as faces que a usam (no contorno ou em furo) e, se ela faz parte de uma curva
-    (círculo, arco, Bézier, polígono, mão livre), a curva inteira. Apagar uma face deixa as arestas dela. Vértice que
-    não é mais usado por aresta nem face some. Sem nada a apagar dá erro."""
+
+def _apagar_aresta(t: Topology, e: int) -> None:
+    """Uma aresta, como `SUEntitiesErase` da SketchUpAPI (conferido em tools/conferir_apagar_sdk.py).
+
+    Duas faces coplanares que se encontram só nela viram uma (como o SketchUp, mesmo em L); senão as faces que a usam no
+    contorno somem, e a face que a tem num furo perde o furo. Os vértices das pontas que ficam com duas arestas
+    colineares são fundidos."""
+    a, b = t.edges.pop(e)
+    t.etags.pop(e, None)
+    t.eflags.pop(e, None)
+    usos = _usos(t, a, b)
+    if len(usos) == 2 and all(k == 0 for _, k in usos):
+        f1, f2 = usos[0][0], usos[1][0]
+        if f1 != f2 and abs(_dot(_unit(t.faces[f1].normal), _unit(t.faces[f2].normal))) >= 1 - 1e-9:
+            t._merge_faces(f1, f2, a, b)
+            usos = []
+    for fid, k in usos:
+        if fid not in t.faces:
+            continue
+        if k == 0:
+            del t.faces[fid]
+        else:
+            t.faces[fid].holes.pop(k - 1)
+    for v in (a, b):
+        t._heal_vertex(v)
+
+
+def apagar(t: Topology, arestas: Iterable[int] = (), faces: Iterable[int] = ()) -> Dict[str, dict]:
+    """Ferramenta Apagar / tecla Delete.
+
+    Aresta: regras de `_apagar_aresta` (conferidas na SDK). Se faz parte de uma curva (círculo, arco, Bézier, polígono, mão
+    livre) a curva inteira vai junto: isso é comportamento da interface do SketchUp, não da SDK (que apaga só a aresta e
+    recusa apagar a curva como entidade). Face: só a face some, as arestas ficam."""
     arestas, faces = list(dict.fromkeys(arestas)), list(dict.fromkeys(faces))
     faltam = [e for e in arestas if e not in t.edges] + [f for f in faces if f not in t.faces]
     if faltam:
@@ -196,25 +232,13 @@ def apagar(t: Topology, arestas: Iterable[int] = (), faces: Iterable[int] = ()) 
     if not arestas and not faces:
         raise ValueError("apagar: nada selecionado")
     antes = _estado(t)
-    alvo = set(arestas)
-    for cid in [c for c, cv in t.curvas.items() if alvo & set(cv["arestas"])]:
-        alvo |= set(t.curvas[cid]["arestas"])
+    alvo = list(arestas)
+    for cid in [c for c, cv in t.curvas.items() if set(arestas) & set(cv["arestas"])]:
+        alvo += [e for e in t.curvas[cid]["arestas"] if e not in alvo]
         del t.curvas[cid]
-    por_apagar = set(faces)
+    for fid in faces:
+        t.faces.pop(fid, None)
     for e in alvo:
-        a, b = t.edges[e]
-        for fid, f in t.faces.items():
-            if any({lp[i], lp[(i + 1) % len(lp)]} == {a, b} for lp in f.loops() for i in range(len(lp))):
-                por_apagar.add(fid)
-    for fid in por_apagar:
-        del t.faces[fid]
-    tocados = set()
-    for e in alvo:
-        tocados |= set(t.edges.pop(e))
-        t.etags.pop(e, None)
-        t.eflags.pop(e, None)
-    for v in tocados:
-        if v in t.verts and not any(v in e for e in t.edges.values()) \
-                and not any(v in lp for f in t.faces.values() for lp in f.loops()):
-            del t.verts[v]
+        if e in t.edges:  # a fusão de vértices pode já ter juntado esta aresta com a vizinha
+            _apagar_aresta(t, e)
     return _delta(antes, _estado(t))

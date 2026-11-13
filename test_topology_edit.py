@@ -135,17 +135,13 @@ class TestApagar(unittest.TestCase):
     def test_aresta_do_cubo_leva_as_duas_faces(self):
         t = cubo()
         e = next(iter(t.edges))
-        a, b = t.edges[e]
         apagar(t, arestas=[e])
-        self.assertEqual(len(t.faces), 4)
-        self.assertEqual(len(t.edges), 11)
-        self.assertNotIn(e, t.edges)
+        self.assertEqual((len(t.faces), len(t.edges)), (4, 11))  # SDK: 6f/12a -> 4f/11a
 
     def test_face_apagada_deixa_as_arestas(self):
         t = cubo()
-        f = next(iter(t.faces))
-        apagar(t, faces=[f])
-        self.assertEqual((len(t.faces), len(t.edges), len(t.verts)), (5, 12, 8))
+        apagar(t, faces=[next(iter(t.faces))])
+        self.assertEqual((len(t.faces), len(t.edges), len(t.verts)), (5, 12, 8))  # SDK: 5f/12a
 
     def test_linha_solta_some_com_os_vertices(self):
         t = Topology()
@@ -160,14 +156,46 @@ class TestApagar(unittest.TestCase):
         apagar(t, arestas=[next(iter(t.edges))])
         self.assertEqual((len(t.edges), len(t.faces), len(t.verts), len(t.curvas)), (0, 0, 0, 0))
 
-    def test_aresta_dentro_de_furo_leva_a_face_do_furo(self):
+    def test_divisoria_apagada_devolve_a_face_inteira(self):
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(30, 10, 0))
+        desenhar(t, "linha", pontos=[(10, 0, 0), (10, 10, 0)])
+        desenhar(t, "linha", pontos=[(20, 0, 0), (20, 10, 0)])
+        self.assertEqual((len(t.faces), len(t.edges)), (3, 10))
+        div = next(e for e, (a, b) in t.edges.items() if t.verts[a][0] == t.verts[b][0] == 10)
+        apagar(t, arestas=[div])
+        self.assertEqual((len(t.faces), len(t.edges)), (2, 7))  # SDK: 3f/10a -> 2f/7a (funde e junta os vértices colineares)
+        div = next(e for e, (a, b) in t.edges.items() if t.verts[a][0] == t.verts[b][0] == 20)
+        apagar(t, arestas=[div])
+        self.assertEqual((len(t.faces), len(t.edges), len(t.verts)), (1, 4, 4))
+
+    def test_faces_coplanares_em_L_fundem_mesmo_sem_vertice_colinear(self):
+        t = Topology()
+        desenhar(t, "linha", pontos=[(0, 0, 0), (20, 0, 0), (20, 10, 0), (10, 10, 0), (10, 20, 0), (0, 20, 0), (0, 0, 0)])
+        desenhar(t, "linha", pontos=[(0, 10, 0), (10, 10, 0)])
+        self.assertEqual(len(t.faces), 2)
+        meio = next(e for e, (a, b) in t.edges.items() if {t.verts[a], t.verts[b]} == {(0, 10, 0), (10, 10, 0)})
+        apagar(t, arestas=[meio])
+        self.assertEqual((len(t.faces), len(t.edges)), (1, 6))  # SDK: 2f/8a -> 1f/6a
+
+    def test_aresta_de_furo_apaga_a_face_interna_e_a_externa_perde_o_furo(self):
         t = Topology()
         desenhar(t, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
         desenhar(t, "retangulo", p0=(20, 20, 0), p1=(40, 40, 0))
         self.assertEqual(len(t.faces), 2)
         furo = next(e for e, (a, b) in t.edges.items() if min(t.verts[a][0], t.verts[b][0]) >= 20 and max(t.verts[a][0], t.verts[b][0]) <= 40)
         apagar(t, arestas=[furo])
-        self.assertEqual(len(t.faces), 0)  # as duas faces que usam a aresta (o quadrado e a grande, pelo furo) saem
+        self.assertEqual((len(t.faces), len(t.edges)), (1, 7))  # SDK: 2f/8a -> 1f/7a, a face que sobra tem 4 vértices
+        (f,) = t.faces.values()
+        self.assertEqual((len(f.outer), len(f.holes)), (4, 0))
+
+    def test_galho_apagado_funde_os_dois_trechos_colineares(self):
+        t = Topology()
+        desenhar(t, "linha", pontos=[(0, 0, 0), (10, 0, 0), (20, 0, 0)])
+        desenhar(t, "linha", pontos=[(10, 0, 0), (10, 10, 0)])
+        galho = next(e for e, (a, b) in t.edges.items() if t.verts[a][1] != t.verts[b][1])
+        apagar(t, arestas=[galho])
+        self.assertEqual(len(t.edges), 1)  # SDK: 3 arestas -> 1
 
     def test_recusa_vazio_e_inexistente(self):
         t = cubo()

@@ -153,5 +153,29 @@ class TestCombinarGrupos(unittest.TestCase):
             c.combinar_grupos(a, b, "uniao")
 
 
+class TestApagarInstancia(unittest.TestCase):
+    def test_grupo_apagado_leva_a_definicao(self):
+        c = cena_com_cubo()
+        g = c.criar_grupo(faces=list(c.topo.faces))
+        c.apagar_instancia(g)
+        self.assertEqual((len(c.instancias), len(c.defs)), (0, 1))
+
+    def test_componente_com_outra_instancia_mantem_a_definicao(self):
+        c = cena_com_cubo()
+        a = c.criar_componente(faces=list(c.topo.faces))
+        b = c.instanciar(a)
+        c.apagar_instancia(a)
+        self.assertEqual((sorted(c.instancias), len(c.defs)), ([b], 2))
+
+    def test_so_na_definicao_ativa(self):
+        c = cena_com_cubo()
+        g = c.criar_grupo(faces=list(c.topo.faces))
+        with self.assertRaises(ValueError):
+            c.apagar_instancia(99)
+        c.entrar(g)
+        with self.assertRaises(ValueError):
+            c.apagar_instancia(g)
+
+
 if __name__ == "__main__":
     unittest.main()

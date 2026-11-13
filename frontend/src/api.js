@@ -2534,6 +2534,11 @@ export function drawErase(corpo) {
   return postJson("/api/v1/draw/erase", "POST", corpo);
 }
 
+// apaga um grupo/componente da definição ativa: { instancia }; devolve o resumo da cena
+export function drawEraseInstance(corpo) {
+  return postJson("/api/v1/draw/erase-instance", "POST", corpo);
+}
+
 export function drawEdit(corpo) {
   return postJson("/api/v1/draw/edit", "POST", corpo);
 }

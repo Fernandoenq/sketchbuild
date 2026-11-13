@@ -68,6 +68,9 @@ class DrawController:
     async def combinar_grupos(self, body: GroupSolidRequest) -> SceneSummaryResponse:
         return SceneSummaryResponse(**await self._cena(self._service.combinar_grupos(**body.model_dump())))
 
+    async def apagar_instancia(self, body: InstanceRequest) -> SceneSummaryResponse:
+        return SceneSummaryResponse(**await self._cena(self._service.apagar_instancia(body.instancia)))
+
     async def explodir(self, body: InstanceRequest) -> SceneSummaryResponse:
         return SceneSummaryResponse(**await self._cena(self._service.explodir(body.instancia)))
 
