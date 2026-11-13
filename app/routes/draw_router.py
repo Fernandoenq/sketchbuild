@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Response, status
 
 from app.controllers.draw_controller import DrawController
-from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, FollowMeRequest, GroupRequest, InstanceRequest, GroupSolidRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SelecaoResponse, SolidoRequest, SolidoResponse, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest, SceneSummaryResponse
+from app.schemas.draw import DrawRequest, DrawResponse, SaveDrawRequest, SaveDrawResponse, DrawStateResponse, EditRequest, EraseRequest, FollowMeRequest, GroupRequest, InstanceRequest, GroupSolidRequest, IntersectRequest, OffsetRequest, PaintRequest, PaintResponse, PushPullRequest, TagRequest, CenaRequest, SoftenRequest, SelecaoRequest, SelecaoResponse, SolidoRequest, SolidoResponse, GuiaRequest, NotaRequest, PosicionarRequest, ComportamentoRequest, SceneSummaryResponse
 
 router = APIRouter(prefix="/draw", tags=["draw"])
 
@@ -21,6 +21,11 @@ async def desenhar(body: DrawRequest, controller: DrawController = Depends(get_c
 @router.post("/pushpull", response_model=DrawResponse, summary="Empurrar/Puxar uma face e devolve o delta da topologia")
 async def empurrar(body: PushPullRequest, controller: DrawController = Depends(get_controller)) -> DrawResponse:
     return await controller.empurrar(body)
+
+
+@router.post("/erase", response_model=DrawResponse, summary="Apaga arestas (com as faces e a curva delas) ou faces")
+async def apagar(body: EraseRequest, controller: DrawController = Depends(get_controller)) -> DrawResponse:
+    return await controller.apagar(body)
 
 
 @router.post("/edit", response_model=DrawResponse, summary="Mover, rotacionar ou escalar a selecao (vertices, arestas, faces)")

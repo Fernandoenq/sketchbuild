@@ -3,7 +3,7 @@ import unittest
 
 from core.topology import Topology
 from core.topology.draw import desenhar
-from core.topology.edit import escalar, mover, offset, rotacionar, vertices_da_selecao
+from core.topology.edit import apagar, escalar, mover, offset, rotacionar, vertices_da_selecao
 from core.topology.pushpull import empurrar
 
 
@@ -129,6 +129,53 @@ class TestOffsetColapso(unittest.TestCase):
         t, f = self._l()
         offset(t, f, 50)  # para fora nunca colapsa um L
         self.assertEqual(len(t.faces), 2)
+
+
+class TestApagar(unittest.TestCase):
+    def test_aresta_do_cubo_leva_as_duas_faces(self):
+        t = cubo()
+        e = next(iter(t.edges))
+        a, b = t.edges[e]
+        apagar(t, arestas=[e])
+        self.assertEqual(len(t.faces), 4)
+        self.assertEqual(len(t.edges), 11)
+        self.assertNotIn(e, t.edges)
+
+    def test_face_apagada_deixa_as_arestas(self):
+        t = cubo()
+        f = next(iter(t.faces))
+        apagar(t, faces=[f])
+        self.assertEqual((len(t.faces), len(t.edges), len(t.verts)), (5, 12, 8))
+
+    def test_linha_solta_some_com_os_vertices(self):
+        t = Topology()
+        desenhar(t, "linha", pontos=[(0, 0, 0), (10, 0, 0)])
+        apagar(t, arestas=list(t.edges))
+        self.assertEqual((len(t.edges), len(t.verts)), (0, 0))
+
+    def test_aresta_de_curva_leva_a_curva_inteira(self):
+        t = Topology()
+        desenhar(t, "circulo", centro=(0, 0, 0), raio=10, lados=12)
+        self.assertEqual(len(t.curvas), 1)
+        apagar(t, arestas=[next(iter(t.edges))])
+        self.assertEqual((len(t.edges), len(t.faces), len(t.verts), len(t.curvas)), (0, 0, 0, 0))
+
+    def test_aresta_dentro_de_furo_leva_a_face_do_furo(self):
+        t = Topology()
+        desenhar(t, "retangulo", p0=(0, 0, 0), p1=(100, 100, 0))
+        desenhar(t, "retangulo", p0=(20, 20, 0), p1=(40, 40, 0))
+        self.assertEqual(len(t.faces), 2)
+        furo = next(e for e, (a, b) in t.edges.items() if min(t.verts[a][0], t.verts[b][0]) >= 20 and max(t.verts[a][0], t.verts[b][0]) <= 40)
+        apagar(t, arestas=[furo])
+        self.assertEqual(len(t.faces), 0)  # as duas faces que usam a aresta (o quadrado e a grande, pelo furo) saem
+
+    def test_recusa_vazio_e_inexistente(self):
+        t = cubo()
+        with self.assertRaises(ValueError):
+            apagar(t)
+        with self.assertRaises(ValueError):
+            apagar(t, arestas=[9999])
+        self.assertEqual(len(t.faces), 6)
 
 
 if __name__ == "__main__":

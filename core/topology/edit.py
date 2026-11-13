@@ -181,3 +181,40 @@ def offset(t: Topology, fid: int, distancia: float) -> Dict[str, dict]:
         nova_id = next(t._fid)
         t.faces[nova_id] = Face(ids, [list(f.outer)], n)
     return _delta(antes, _estado(t))
+
+
+def apagar(t: Topology, arestas: Iterable[int] = (), faces: Iterable[int] = ()) -> Dict[str, dict]:
+    """Ferramenta Apagar / tecla Delete, como no SketchUp.
+
+    Apagar uma aresta leva junto as faces que a usam (no contorno ou em furo) e, se ela faz parte de uma curva
+    (círculo, arco, Bézier, polígono, mão livre), a curva inteira. Apagar uma face deixa as arestas dela. Vértice que
+    não é mais usado por aresta nem face some. Sem nada a apagar dá erro."""
+    arestas, faces = list(dict.fromkeys(arestas)), list(dict.fromkeys(faces))
+    faltam = [e for e in arestas if e not in t.edges] + [f for f in faces if f not in t.faces]
+    if faltam:
+        raise ValueError(f"não existem: {faltam}")
+    if not arestas and not faces:
+        raise ValueError("apagar: nada selecionado")
+    antes = _estado(t)
+    alvo = set(arestas)
+    for cid in [c for c, cv in t.curvas.items() if alvo & set(cv["arestas"])]:
+        alvo |= set(t.curvas[cid]["arestas"])
+        del t.curvas[cid]
+    por_apagar = set(faces)
+    for e in alvo:
+        a, b = t.edges[e]
+        for fid, f in t.faces.items():
+            if any({lp[i], lp[(i + 1) % len(lp)]} == {a, b} for lp in f.loops() for i in range(len(lp))):
+                por_apagar.add(fid)
+    for fid in por_apagar:
+        del t.faces[fid]
+    tocados = set()
+    for e in alvo:
+        tocados |= set(t.edges.pop(e))
+        t.etags.pop(e, None)
+        t.eflags.pop(e, None)
+    for v in tocados:
+        if v in t.verts and not any(v in e for e in t.edges.values()) \
+                and not any(v in lp for f in t.faces.values() for lp in f.loops()):
+            del t.verts[v]
+    return _delta(antes, _estado(t))

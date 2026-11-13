@@ -668,7 +668,9 @@ function setToolMode(mode) {
       inferenceEngine.updateGeometryIndex([currentGroup, userDrawingsGroup]);
     }
   }
-  if (mode === "erase") setStatus("Modo Apagar: clique numa peca pra excluir na hora.");
+  renderer.domElement.classList.toggle("su-eraser-cursor", mode === "erase");
+  renderer.domElement.classList.toggle("su-cross-cursor", mode === "modelar");
+  if (mode === "erase") setStatus("Modo Apagar: clique numa aresta do desenho (ou arraste por varias) para apagar com as faces e a curva dela; clique numa peca da cena para exclui-la.");
   else if (mode === "measure") setStatus("Modo Fita metrica: clique no primeiro ponto.");
   else if (mode === "protractor") setStatus("Modo Transferidor: clique no vertice do angulo.");
   else if (mode === "section") setStatus("Modo Plano de secao: clique num ponto pra cortar o modelo nessa altura.");

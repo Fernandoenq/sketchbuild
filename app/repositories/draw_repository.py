@@ -14,7 +14,7 @@ from core.topology.historico import Historico
 from core.topology.intersect import intersectar
 from core.topology.sweep import siga_me
 from core.topology.draw import desenhar
-from core.topology.edit import escalar, mover, offset, rotacionar, vertices_da_selecao
+from core.topology.edit import apagar, escalar, mover, offset, rotacionar, vertices_da_selecao
 from core.topology.material import definir_material, matriz_uv, pintar, posicionar_textura
 from core.topology.pushpull import empurrar
 from core.topology import cotas, guias, selecao, soften, solido
@@ -136,6 +136,13 @@ class DrawRepository:
                 raise ValueError("escalar: falta o fator")
             delta = _HIST.executar("escalar", {"fator": fator}, lambda: escalar(_topo(), ids, fatores if fatores is not None else fator, centro))
         res = _chave(delta)
+        res["counts"] = _topo().counts()
+        return res
+
+    def apagar(self, arestas, faces) -> dict:
+        """Apagar aresta leva as faces e a curva dela; apagar face deixa as arestas."""
+        res = _chave(_HIST.executar("apagar", {"arestas": list(arestas), "faces": list(faces)},
+                                    lambda: apagar(_topo(), arestas, faces)))
         res["counts"] = _topo().counts()
         return res
 

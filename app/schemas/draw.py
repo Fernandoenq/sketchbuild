@@ -80,6 +80,11 @@ class EditRequest(BaseModel):
     fatores: Ponto | None = None  # escalar por eixo
 
 
+class EraseRequest(BaseModel):
+    arestas: list[int] = Field(default_factory=list)
+    faces: list[int] = Field(default_factory=list)
+
+
 class OffsetRequest(BaseModel):
     face_id: int
     distancia: float  # polegadas, negativo = para dentro

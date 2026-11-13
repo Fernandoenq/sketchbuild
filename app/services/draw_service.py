@@ -18,6 +18,9 @@ class DrawService:
     async def editar(self, **params) -> dict:
         return await run_in_threadpool(lambda: self._repository.editar(**params))
 
+    async def apagar(self, arestas: list[int], faces: list[int]) -> dict:
+        return await run_in_threadpool(self._repository.apagar, arestas, faces)
+
     async def offset(self, face_id: int, distancia: float) -> dict:
         return await run_in_threadpool(self._repository.offset, face_id, distancia)
 

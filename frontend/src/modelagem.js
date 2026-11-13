@@ -7,7 +7,7 @@
 // equivale a SketchUp (x, -z, y), o mesmo mapeamento do resto do app.
 
 import * as THREE from "three";
-import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawSolid, drawSelect, drawGroupSolid, drawNote, drawUv, drawBehavior, drawGroup, drawEnter, drawExit, drawUndo, drawRedo, drawSave } from "./api.js";
+import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawErase, drawSolid, drawSelect, drawGroupSolid, drawNote, drawUv, drawBehavior, drawGroup, drawEnter, drawExit, drawUndo, drawRedo, drawSave } from "./api.js";
 
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
@@ -1035,6 +1035,61 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
 
   const el = renderer.domElement;
   // fase de captura: com a modelagem ativa, o clique não chega à seleção do app
+  // Apagar (Ferramentas > Apagar, modo "erase"): clique numa aresta ou arraste por várias; leva as faces e a curva delas.
+  // Sem aresta sob o mouse não faz nada aqui e o clique segue para o Apagar das peças da cena aberta.
+  let apagando = null; // arestas sob o arraste
+  let apagouAgora = false;
+  el.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (getToolMode() !== "erase" || e.button !== 0) return;
+      const a = arestaSob(e);
+      apagando = new Set(a != null ? [a] : []);
+      sel.faces.clear();
+      sel.edges = new Set(apagando);
+      redesenhar();
+    },
+    true
+  );
+  el.addEventListener("pointermove", (e) => {
+    if (!apagando || getToolMode() !== "erase") return;
+    const a = arestaSob(e);
+    if (a != null && !apagando.has(a)) {
+      apagando.add(a);
+      sel.edges = new Set(apagando);
+      redesenhar();
+    }
+  });
+  el.addEventListener(
+    "pointerup",
+    async (e) => {
+      if (!apagando || e.button !== 0) return;
+      const ids = [...apagando].map(Number);
+      apagando = null;
+      sel.edges = new Set();
+      if (!ids.length) return redesenhar();
+      apagouAgora = true;
+      try {
+        const r = await drawErase({ arestas: ids });
+        aplicar(r);
+        setStatus("Apagado: " + ids.length + " aresta(s) (com as faces e curvas delas). " + r.counts.edges + " arestas, " + r.counts.faces + " faces restam.");
+      } catch (err) {
+        redesenhar();
+        setStatus("Erro ao apagar: " + (err?.message ?? err), true);
+      }
+    },
+    true
+  );
+  el.addEventListener(
+    "click",
+    (e) => {
+      if (apagouAgora) {
+        apagouAgora = false;
+        e.stopImmediatePropagation();
+      }
+    },
+    true
+  );
   el.addEventListener(
     "pointerdown",
     (e) => {
