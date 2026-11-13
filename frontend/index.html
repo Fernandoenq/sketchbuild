@@ -98,6 +98,7 @@
       border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
       padding: 12px; display: flex; flex-direction: column; gap: 10px; font-size: 12px;
     }
+    .pk-fer-caixa[hidden], .pk-cen-caixa[hidden] { display: none; } /* o display:flex acima anulava o atributo hidden */
     .pk-fer-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
     .pk-fer-x { border: 0; background: none; font-size: 18px; line-height: 1; color: #64748B; cursor: pointer; padding: 2px 6px; }
     .pk-fer-lista { display: flex; flex-direction: column; gap: 6px; }
@@ -127,6 +128,24 @@
       display: flex; align-items: stretch; overflow-x: auto;
       box-shadow: 0 1px 3px rgba(0,0,0,.08);
     }
+
+
+    /* Painel de controles da modelagem (modelagem.js): seções que quebram linha, sob a barra de ferramentas */
+    #modelagem-painel {
+      position: fixed; top: 94px; left: 0; right: 0; z-index: 28; max-height: 40vh; overflow-y: auto;
+      display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 14px; padding: 8px 12px;
+      background: var(--toolbar); border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0,0,0,.12); font-size: 12px;
+    }
+    #modelagem-painel.fechado { display: none; }
+    .mod-secao { display: flex; flex-direction: column; gap: 4px; padding-right: 14px; border-right: 1px solid var(--border); }
+    .mod-secao:last-child { border-right: none; }
+    .mod-secao-titulo { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text); opacity: .6; }
+    .mod-secao-corpo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+    .mod-secao-corpo input[type="text"], .mod-secao-corpo input[type="number"] { height: 26px; box-sizing: border-box; padding: 0 6px; border: 1px solid var(--border); border-radius: 3px; background: #fff; }
+    .mod-secao-corpo input[type="color"] { height: 26px; padding: 0; border: 1px solid var(--border); border-radius: 3px; }
+    .toolbar-btn.mod-btn { width: auto; height: 26px; padding: 0 9px; white-space: nowrap; font-size: 12px; background: #fff; border-color: var(--border); }
+    .toolbar-btn.mod-btn:hover { background: #E8EEF4; }
 
     /* VCB ("Value Control Box") -- igual a caixa contextual real do
        SketchUp (barra de status, canto inferior direito): so aparece

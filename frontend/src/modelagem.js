@@ -122,88 +122,125 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     });
     g.appendChild(dist);
     campoDist = dist;
+    // o resto dos controles vai para um painel próprio, em seções que quebram linha (a barra de ícones é fina demais)
+    const painel = document.createElement("div");
+    painel.id = "modelagem-painel";
+    document.body.appendChild(painel);
+    let alvo = painel;
+    const secao = (titulo) => {
+      const sec = document.createElement("div");
+      sec.className = "mod-secao";
+      const h = document.createElement("span");
+      h.className = "mod-secao-titulo";
+      h.textContent = titulo;
+      const corpo = document.createElement("div");
+      corpo.className = "mod-secao-corpo";
+      sec.append(h, corpo);
+      painel.appendChild(sec);
+      alvo = corpo;
+    };
+    const recolher = document.createElement("button");
+    recolher.className = "toolbar-btn mod-btn";
+    recolher.textContent = "Painel de modelagem ▾";
+    recolher.title = "Mostra ou esconde o painel de controles da modelagem";
+    recolher.addEventListener("click", () => {
+      const fechado = painel.classList.toggle("fechado");
+      recolher.textContent = "Painel de modelagem " + (fechado ? "▸" : "▾");
+    });
+    g.appendChild(recolher);
+    secao("Edição (valor ao lado)");
     const valor = document.createElement("input");
     valor.type = "text";
     valor.placeholder = "valor";
     valor.title = "Mover: dx,dy,dz em metros | Rotar: graus | Esc.: fator (ou fx,fy,fz) | Offset: metros (negativo para dentro)";
     valor.style.cssText = "width:90px;margin-left:4px";
     campoValor = valor;
-    g.appendChild(valor);
+    alvo.appendChild(valor);
     for (const [rotulo, op] of [["Mover", "mover"], ["Rotar", "rotacionar"], ["Esc.", "escalar"], ["Offset", "offset"], ["Intersec.", "intersect"], ["Siga-me", "followme"]]) {
       const b = document.createElement("button");
-      b.className = "toolbar-btn";
+      b.className = "toolbar-btn mod-btn";
       b.textContent = rotulo;
       b.title = rotulo + " a seleção com o valor do campo";
       b.addEventListener("click", () => aplicarEdicao(op));
-      g.appendChild(b);
+      alvo.appendChild(b);
     }
+    secao("Histórico");
     for (const [rotulo, titulo, fn] of [["Desfazer", "Desfazer (Ctrl+Z)", () => historico(drawUndo)], ["Refazer", "Refazer (Ctrl+Y)", () => historico(drawRedo)]]) {
       const b = document.createElement("button");
-      b.className = "toolbar-btn";
+      b.className = "toolbar-btn mod-btn";
       b.textContent = rotulo;
       b.title = titulo;
       b.addEventListener("click", fn);
-      g.appendChild(b);
+      alvo.appendChild(b);
     }
+    secao("Pintura");
     const cor = document.createElement("input");
     cor.type = "color";
     cor.value = "#cc2222";
     cor.title = "Cor do material";
     cor.style.cssText = "width:32px;margin-left:6px";
-    g.appendChild(cor);
+    alvo.appendChild(cor);
     for (const [rotulo, verso] of [["Pintar", false], ["Verso", true]]) {
       const b = document.createElement("button");
-      b.className = "toolbar-btn";
+      b.className = "toolbar-btn mod-btn";
       b.textContent = rotulo;
       b.title = verso ? "Pinta o verso das faces selecionadas com a cor ao lado" : "Pinta a frente das faces selecionadas com a cor ao lado";
       b.addEventListener("click", () => pintarSelecao(cor.value, verso));
-      g.appendChild(b);
+      alvo.appendChild(b);
     }
     const arq = document.createElement("input");
     arq.type = "file";
     arq.accept = "image/png,image/jpeg";
     arq.style.display = "none";
     arq.addEventListener("change", () => texturizarSelecao(arq));
-    g.appendChild(arq);
+    alvo.appendChild(arq);
     const tex = document.createElement("button");
-    tex.className = "toolbar-btn";
+    tex.className = "toolbar-btn mod-btn";
     tex.textContent = "Textura";
     tex.title = "Pinta a frente das faces selecionadas com uma imagem (PNG ou JPEG, até 8 MB)";
     tex.addEventListener("click", () => arq.click());
-    g.appendChild(tex);
+    alvo.appendChild(tex);
+    secao("Campos (tag / nome do grupo | texto / instâncias a,b)");
     const tagNome = document.createElement("input");
     tagNome.type = "text";
     tagNome.placeholder = "tag";
     tagNome.title = "Nome da tag (camada)";
     tagNome.style.cssText = "width:70px;margin-left:6px";
-    g.appendChild(tagNome);
+    alvo.appendChild(tagNome);
     const nota = document.createElement("input");
     nota.type = "text";
     nota.placeholder = "texto / pol";
     nota.title = "Texto da cota ou do texto livre; em Posicionar textura, o tamanho do ladrilho em polegadas";
     nota.style.cssText = "width:90px;margin-left:6px";
-    g.appendChild(nota);
-    for (const [rotulo, titulo, fn] of [
+    alvo.appendChild(nota);
+    for (const item of [
+      "Tags e cenas",
       ["Pôr na tag", "Cria a tag (se não existe) e põe a seleção nela", () => marcarSelecao(tagNome.value, null)],
       ["Tag on/off", "Liga ou desliga a visibilidade da tag (gravada no .skp)", () => alternarTag(tagNome.value)],
       ["Tirar da tag", "Devolve a seleção à tag padrão (Layer0)", () => marcarSelecao(null, true)],
+      ["Nova cena", "Acrescenta uma cena com o nome do campo ao lado (sem câmera)", () => novaCena(tagNome.value)],
+      "Suavizar",
       ["Suavizar", "Suaviza (suave + lisa) as arestas selecionadas", () => suavizarSelecao(false)],
       ["Endurecer", "Tira a suavização das arestas selecionadas", () => suavizarSelecao(true)],
       ["Suavizar 20°", "Suaviza as arestas do desenho entre faces com até 20° de diferença", () => suavizarAngulo(20)],
-      ["Nova cena", "Acrescenta uma cena com o nome do campo ao lado (sem câmera)", () => novaCena(tagNome.value)],
+      "Anotações e textura",
       ["Cotar", "Cota linear na aresta selecionada (o texto do campo ao lado vira o rótulo; vazio = a medida)", () => cotarSelecao(nota.value)],
       ["Texto", "Põe o texto do campo ao lado no meio da aresta ou no primeiro vértice da face selecionada", () => textoNaSelecao(nota.value)],
+      ["Posicionar textura", "Ajusta a textura das faces selecionadas para repetir a cada N polegadas (campo ao lado)", () => posicionarTextura(nota.value)],
+      "Grupos e componentes",
       ["Agrupar", "Cria um grupo com a seleção (nome no campo de tag)", () => agruparSelecao("grupo", tagNome.value)],
       ["Componente", "Cria um componente com a seleção (nome no campo de tag)", () => agruparSelecao("componente", tagNome.value)],
       ["Entrar", "Entra no último grupo/componente criado, ou no número da instância digitado no campo ao lado", () => entrarOuSair(true, nota.value)],
       ["Sair", "Sai da edição do grupo/componente", () => entrarOuSair(false)],
       ["Comportamento", "Define o comportamento do componente em que se entrou: face-me, corta, sombra, snap=0..4 (campo ao lado; vazio desliga)", () => comportamentoAtivo(nota.value)],
+      "Sólidos (booleana entre grupos)",
       ["União", "União entre dois grupos (campo ao lado: a,b = instâncias; vazio = os dois últimos criados). Nome do resultado no campo de tag", () => booleanaGrupos("uniao", nota.value, tagNome.value)],
       ["Subtrair", "A − B entre dois grupos (campo ao lado: a,b; vazio = os dois últimos criados; A é o primeiro)", () => booleanaGrupos("subtracao", nota.value, tagNome.value)],
       ["Interseção", "Só o volume comum a dois grupos (campo ao lado: a,b; vazio = os dois últimos)", () => booleanaGrupos("intersecao", nota.value, tagNome.value)],
       ["Aparar", "A perde o volume que divide com B; B continua (campo ao lado: a,b; vazio = os dois últimos)", () => booleanaGrupos("aparar", nota.value, tagNome.value)],
       ["Dividir", "Gera A−B, A∩B e B−A (campo ao lado: a,b; vazio = os dois últimos)", () => booleanaGrupos("dividir", nota.value, tagNome.value)],
       ["Volume", "Verifica se as faces selecionadas formam um sólido fechado e mostra o volume", () => volumeDaSelecao()],
+      "Seleção",
       ["Sel. tudo", "Seleciona todas as faces e arestas", () => selecionarPor("tudo")],
       ["Sel. inverter", "Inverte a seleção", () => selecionarPor("inverter")],
       ["Sel. conectados", "Amplia a seleção a tudo que está ligado a ela", () => selecionarPor("conectados")],
@@ -211,23 +248,28 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       ["Faces das arestas", "Seleciona as faces que usam as arestas selecionadas", () => selecionarPor("faces_das_arestas")],
       ["Sel. por tag", "Seleciona o que está na tag do campo de tag", () => selecionarPor("tag", tagNome.value)],
       ["Sel. por material", "Seleciona as faces pintadas com o material do campo de tag", () => selecionarPor("material", tagNome.value)],
-      ["Posicionar textura", "Ajusta a textura das faces selecionadas para repetir a cada N polegadas (campo ao lado)", () => posicionarTextura(nota.value)],
     ]) {
+      if (typeof item === "string") {
+        secao(item);
+        continue;
+      }
+      const [rotulo, titulo, fn] = item;
       const b = document.createElement("button");
-      b.className = "toolbar-btn";
+      b.className = "toolbar-btn mod-btn";
       b.textContent = rotulo;
       b.title = titulo;
       b.addEventListener("click", fn);
-      g.appendChild(b);
+      alvo.appendChild(b);
     }
+    secao("Arquivo");
     const salvar = document.createElement("button");
-    salvar.className = "toolbar-btn";
+    salvar.className = "toolbar-btn mod-btn";
     salvar.textContent = "Salvar .skp";
     salvar.title = "Grava o desenho num arquivo .skp novo (nunca sobrescreve sem perguntar)";
     salvar.addEventListener("click", salvarDesenho);
-    g.appendChild(salvar);
+    alvo.appendChild(salvar);
     const l = document.createElement("button");
-    l.className = "toolbar-btn";
+    l.className = "toolbar-btn mod-btn";
     l.textContent = "Limpar";
     l.title = "Zera o desenho do núcleo de topologia";
     l.addEventListener("click", async () => {
@@ -244,7 +286,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       redesenhar();
       setStatus("Desenho de modelagem zerado.");
     });
-    g.appendChild(l);
+    alvo.appendChild(l);
     barra.appendChild(g);
   }
 
