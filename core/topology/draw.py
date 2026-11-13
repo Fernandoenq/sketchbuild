@@ -32,6 +32,23 @@ def pontos_retangulo(p0: Point, p1: Point, normal: Point = (0, 0, 1)) -> List[Po
     return [p0, _pt(p0, x, y, a, 0), _pt(p0, x, y, a, b), _pt(p0, x, y, 0, b)]
 
 
+def pontos_retangulo_rotacionado(p0: Point, p1: Point, p2: Point, normal: Point = (0, 0, 1)) -> List[Point]:
+    """Retângulo com um lado p0→p1 em qualquer direção do plano da normal; p2 só dá a largura e o lado (a distância de p2 à
+    reta p0-p1, medida no plano)."""
+    n = _unit(normal)
+    lado = tuple(p1[i] - p0[i] for i in range(3))
+    lado = tuple(lado[i] - n[i] * _dot(lado, n) for i in range(3))  # no plano
+    if _norm(lado) <= 1e-9:
+        raise ValueError("retângulo: o primeiro lado tem comprimento zero")
+    u = _unit(lado)
+    v = _cross(n, u)  # esquerda de p0→p1 visto da normal
+    w = _dot(tuple(p2[i] - p0[i] for i in range(3)), v)
+    if abs(w) <= 1e-9:
+        raise ValueError("retângulo: a largura é zero")
+    q0, q1 = p0, tuple(p0[i] + u[i] * _dot(lado, u) for i in range(3))
+    return [q0, q1, tuple(q1[i] + v[i] * w for i in range(3)), tuple(q0[i] + v[i] * w for i in range(3))]
+
+
 def pontos_circulo(centro: Point, raio: float, normal: Point = (0, 0, 1),
                    lados: int = CIRCULO_LADOS) -> List[Point]:
     x, y = eixos(normal)
@@ -192,7 +209,7 @@ def _fechar_lacos(t: Topology, eids_antes: set) -> None:
 def desenhar(t: Topology, ferramenta: str, **p) -> Dict[str, dict]:
     """Aplica uma ferramenta e devolve o delta {vertices|edges|faces: {added, changed, removed}}.
 
-    linha(pontos) | retangulo(p0, p1, normal) | circulo(centro, raio, normal, lados)
+    linha(pontos) | retangulo(p0, p1, normal) | retangulo_rotacionado(p0, p1, p2, normal) | circulo(centro, raio, normal, lados)
     poligono(centro, raio, normal, lados, circunscrito) | arco(centro, raio, ang_ini, ang_fim, normal, lados)
     mao_livre(pontos, fechar, tolerancia) | arco_3pontos(p0, p1, p2, lados) | arco_corda(p0, p1, flecha, normal, lados)
     setor(centro, raio, ang_ini, ang_fim, normal, lados) | fatia(centro, raio, ang_ini, ang_fim, normal, lados)
@@ -204,6 +221,8 @@ def desenhar(t: Topology, ferramenta: str, **p) -> Dict[str, dict]:
         _fechar_lacos(t, eids)
     elif ferramenta == "retangulo":
         t.add_face(pontos_retangulo(p["p0"], p["p1"], p.get("normal", (0, 0, 1))))
+    elif ferramenta == "retangulo_rotacionado":
+        t.add_face(pontos_retangulo_rotacionado(p["p0"], p["p1"], p["p2"], p.get("normal", (0, 0, 1))))
     elif ferramenta == "circulo":
         pts = pontos_circulo(p["centro"], p["raio"], p.get("normal", (0, 0, 1)), p.get("lados", CIRCULO_LADOS))
         t.add_face(pts)

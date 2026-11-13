@@ -82,3 +82,25 @@ class TestDesenho(GoldenCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestRetanguloRotacionado(unittest.TestCase):
+    def test_lado_inclinado_e_largura_pelo_terceiro_ponto(self):
+        t = Topology()
+        desenhar(t, "retangulo_rotacionado", p0=(0, 0, 0), p1=(10, 10, 0), p2=(0, 10, 0))
+        (f,) = t.faces.values()
+        pts = [t.verts[v] for v in f.outer]
+        self.assertEqual(len(pts), 4)
+        lados = sorted(round(math.dist(pts[i], pts[(i + 1) % 4]), 6) for i in range(4))
+        self.assertAlmostEqual(lados[0], 7.071068, places=5)  # largura = distância de p2 à reta p0-p1
+        self.assertAlmostEqual(lados[3], 14.142136, places=5)
+        for i in range(4):  # cantos retos
+            a, b, c = pts[i - 1], pts[i], pts[(i + 1) % 4]
+            self.assertAlmostEqual(sum((a[k] - b[k]) * (c[k] - b[k]) for k in range(3)), 0.0, places=6)
+
+    def test_largura_zero_e_lado_zero_recusam(self):
+        t = Topology()
+        with self.assertRaises(ValueError):
+            desenhar(t, "retangulo_rotacionado", p0=(0, 0, 0), p1=(10, 0, 0), p2=(5, 0, 0))
+        with self.assertRaises(ValueError):
+            desenhar(t, "retangulo_rotacionado", p0=(0, 0, 0), p1=(0, 0, 0), p2=(5, 5, 0))

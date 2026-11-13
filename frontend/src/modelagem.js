@@ -16,6 +16,7 @@ const SNAP_PX = 12;
 const FERRAMENTAS = [
   ["linha", "Linha (modelagem)", '<line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="1.4" fill="currentColor"/><circle cx="19" cy="5" r="1.4" fill="currentColor"/>'],
   ["retangulo", "Retângulo (modelagem)", '<rect x="5" y="7" width="14" height="10"/>'],
+  ["retangulo_rotacionado", "Retângulo rotacionado (modelagem)", '<path d="M5 14l7-9 7 5-7 9z"/>'],
   ["circulo", "Círculo (modelagem)", '<circle cx="12" cy="12" r="8"/>'],
   ["poligono", "Polígono (modelagem)", '<path d="M12 4l7 5-3 9H8L5 9z"/>'],
   ["arco", "Arco (modelagem)", '<path d="M4 18c2-9 14-9 16 0"/>'],
@@ -32,6 +33,7 @@ const FERRAMENTAS = [
 const DICA = {
   linha: "Linha: clique os pontos. Enter, duplo clique ou Esc termina.",
   retangulo: "Retângulo: clique no primeiro canto e no canto oposto.",
+  retangulo_rotacionado: "Retângulo rotacionado: clique nas pontas do primeiro lado (qualquer direção) e depois para o lado da largura.",
   circulo: "Círculo: clique no centro e depois no raio.",
   poligono: "Polígono: clique no centro e depois num vértice (lados no campo ao lado).",
   arco: "Arco: clique no centro, no início e no fim (anti-horário).",
@@ -882,6 +884,16 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     const [a, b] = pontos;
     if (ferramenta === "linha") return [...pontos, p];
     if (ferramenta === "retangulo") return [a, new THREE.Vector3(p.x, 0, a.z), p, new THREE.Vector3(a.x, 0, p.z), a];
+    if (ferramenta === "retangulo_rotacionado") {
+      if (pontos.length === 1) return [a, p];
+      const u = b.clone().sub(a).setY(0);
+      if (u.lengthSq() < 1e-12) return [a, b];
+      u.normalize();
+      const n = new THREE.Vector3(-u.z, 0, u.x); // perpendicular no chão
+      const w = p.clone().sub(a).dot(n);
+      const d = n.multiplyScalar(w);
+      return [a, b, b.clone().add(d), a.clone().add(d), a];
+    }
     if (ferramenta === "circulo") return arcoPontos(a, a.distanceTo(p), 0, Math.PI * 2, 24);
     if (ferramenta === "poligono") return arcoPontos(a, a.distanceTo(p), 0, Math.PI * 2, lados);
     if (ferramenta === "arco_3pontos") return [a, ...(pontos.length === 2 ? [b] : []), p];
@@ -1064,6 +1076,9 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
           ferramenta === "circulo" ? { ferramenta, centro: toSku(a), raio } : { ferramenta, centro: toSku(a), raio, lados }
         );
       }
+      terminar();
+    } else if (ferramenta === "retangulo_rotacionado" && pontos.length === 3) {
+      await enviar({ ferramenta, p0: toSku(a), p1: toSku(b), p2: toSku(c) });
       terminar();
     } else if (ferramenta === "arco_3pontos" && pontos.length === 3) {
       await enviar({ ferramenta, p0: toSku(a), p1: toSku(b), p2: toSku(c) });

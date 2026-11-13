@@ -751,17 +751,33 @@
     <div class="menu-top-item" data-menu="desenho">
       Desenho
       <div class="menu-dropdown">
-        <div class="menu-dropdown-item" data-action="tool-line" title="Desenha linhas e arestas interativas com inferência de eixos e snapping (L)"><span>Linhas</span><span class="menu-dropdown-shortcut">L</span></div>
+        <div class="menu-dropdown-item has-submenu"><span>Linhas</span><span class="menu-dropdown-shortcut">&#9656;</span>
+          <div class="menu-dropdown">
+            <div class="menu-dropdown-item" data-action="mod-linha" title="Linha no desenho (núcleo de topologia): clique os pontos; Enter termina"><span>Linha</span></div>
+            <div class="menu-dropdown-item" data-action="mod-mao_livre" title="Mão livre: segure e arraste (tolerância no campo valor do painel)"><span>Mão livre</span></div>
+            <div class="menu-dropdown-item" data-action="mod-bezier" title="Curva de Bézier: clique os pontos de controle; Enter desenha"><span>Curva de Bézier</span></div>
+            <div class="menu-dropdown-item" data-action="tool-line" title="Linhas com inferência de eixos e snapping sobre a cena aberta (L)"><span>Linha da cena aberta</span><span class="menu-dropdown-shortcut">L</span></div>
+          </div>
+        </div>
         <div class="menu-dropdown-item has-submenu"><span>Arcos</span><span class="menu-dropdown-shortcut">&#9656;</span>
           <div class="menu-dropdown">
-            <div class="menu-dropdown-item" data-action="draw-arc"><span>Arco (2 Pontos)</span><span class="menu-dropdown-shortcut">A</span></div>
+            <div class="menu-dropdown-item" data-action="mod-arco" title="Arco por centro, início e fim"><span>Arco (centro)</span></div>
+            <div class="menu-dropdown-item" data-action="mod-arco_corda" title="Arco por corda e flecha"><span>Arco 2 pontos</span></div>
+            <div class="menu-dropdown-item" data-action="mod-arco_3pontos" title="Arco por início, meio e fim"><span>Arco 3 pontos</span></div>
+            <div class="menu-dropdown-item" data-action="mod-setor" title="Pizza: arco fechado pelos dois raios"><span>Pizza (setor)</span></div>
+            <div class="menu-dropdown-item" data-action="mod-fatia" title="Segmento circular: arco fechado pela corda"><span>Fatia (segmento)</span></div>
+            <div class="menu-dropdown-item" data-action="draw-arc" title="Arco sobre a cena aberta"><span>Arco da cena aberta</span><span class="menu-dropdown-shortcut">A</span></div>
           </div>
         </div>
         <div class="menu-dropdown-item has-submenu"><span>Formas</span><span class="menu-dropdown-shortcut">&#9656;</span>
           <div class="menu-dropdown">
-            <div class="menu-dropdown-item" data-action="draw-rectangle" title="Cria uma face retangular real no chao"><span>Retângulo</span><span class="menu-dropdown-shortcut">R</span></div>
+            <div class="menu-dropdown-item" data-action="mod-retangulo" title="Retângulo no desenho: dois cantos opostos"><span>Retângulo</span><span class="menu-dropdown-shortcut">R</span></div>
+            <div class="menu-dropdown-item" data-action="mod-retangulo_rotacionado" title="Retângulo rotacionado: lado em qualquer direção e largura"><span>Retângulo rotacionado</span></div>
+            <div class="menu-dropdown-item" data-action="mod-circulo" title="Círculo: centro e raio"><span>Círculo</span><span class="menu-dropdown-shortcut">C</span></div>
+            <div class="menu-dropdown-item" data-action="mod-poligono" title="Polígono: centro e vértice (lados no campo da barra)"><span>Polígono</span></div>
+            <div class="menu-dropdown-item" data-action="draw-rectangle" title="Cria uma face retangular real no chao da cena aberta"><span>Retângulo (cena aberta)</span></div>
+            <div class="menu-dropdown-item" data-action="draw-circle" title="Cria um Círculo B-Rep (Frente 14)"><span>Círculo (cena aberta)</span></div>
             <div class="menu-dropdown-item" data-action="draw-box" title="Cria um Sólido 3D Manifold (Frente 13)"><span>Bloco 3D (Push-Pull)</span><span class="menu-dropdown-shortcut">P</span></div>
-            <div class="menu-dropdown-item" data-action="draw-circle" title="Cria um Círculo B-Rep (Frente 14)"><span>Círculo</span><span class="menu-dropdown-shortcut">C</span></div>
             <div class="menu-dropdown-item" data-action="draw-cylinder" title="Cria um Cilindro/Poste 3D (Frente 14)"><span>Cilindro 3D</span></div>
             <div class="menu-dropdown-item" data-action="draw-hip-roof" title="Telhado 4 Águas Paramétrico"><span>Telhado 4 Águas</span></div>
             <div class="menu-dropdown-item" data-action="draw-spiral-tube" title="Tobogã Espiral 3D"><span>Tobogã Espiral</span></div>

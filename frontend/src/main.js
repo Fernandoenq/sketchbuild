@@ -2557,6 +2557,19 @@ const MENU_ACTIONS = {
   "export-executive-pdf": () => handleExportExecutivePdf(),
   "tool-follow-me": () => handleFollowMeTool(),
   "draw-arc": () => handleDrawArc(),
+  // ferramentas de desenho do núcleo de topologia (modelagem.js); o id é o mesmo da barra de ícones
+  "mod-linha": () => modelagemApi?.ativar("linha"),
+  "mod-mao_livre": () => modelagemApi?.ativar("mao_livre"),
+  "mod-bezier": () => modelagemApi?.ativar("bezier"),
+  "mod-arco": () => modelagemApi?.ativar("arco"),
+  "mod-arco_corda": () => modelagemApi?.ativar("arco_corda"),
+  "mod-arco_3pontos": () => modelagemApi?.ativar("arco_3pontos"),
+  "mod-setor": () => modelagemApi?.ativar("setor"),
+  "mod-fatia": () => modelagemApi?.ativar("fatia"),
+  "mod-retangulo": () => modelagemApi?.ativar("retangulo"),
+  "mod-retangulo_rotacionado": () => modelagemApi?.ativar("retangulo_rotacionado"),
+  "mod-circulo": () => modelagemApi?.ativar("circulo"),
+  "mod-poligono": () => modelagemApi?.ativar("poligono"),
   "import-obj": () => handleImportObj(),
   "export-cam-dxf": () => handleExportCamDxf(),
   "export-point-cloud": () => handleExportPointCloud(),
@@ -3003,10 +3016,11 @@ setTimeout(() => {
   }
 }, 100);
 
+let modelagemApi = null; // { ativar(id) }: as ferramentas de desenho do núcleo (menu Desenho > Linhas/Arcos/Formas)
 // F2: ferramentas de desenho sobre o nucleo de topologia (POST /api/v1/draw)
 setTimeout(() => {
   try {
-    iniciarModelagem({
+    modelagemApi = iniciarModelagem({
       scene,
       camera,
       renderer,

@@ -80,6 +80,7 @@ _OBRIGATORIOS = {
     "arco": ("centro", "raio", "ang_ini", "ang_fim"),
     "mao_livre": ("pontos",),
     "arco_3pontos": ("p0", "p1", "p2"),
+    "retangulo_rotacionado": ("p0", "p1", "p2"),
     "arco_corda": ("p0", "p1", "flecha"),
     "setor": ("centro", "raio", "ang_ini", "ang_fim"),
     "fatia": ("centro", "raio", "ang_ini", "ang_fim"),
