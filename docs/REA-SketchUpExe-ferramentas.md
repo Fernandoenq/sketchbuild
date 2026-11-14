@@ -80,3 +80,14 @@ Vtable de `CPushPullTool` (0x1420dae38) lida em bytes (ev_259e633b…). Slots co
 **LIDA** — `FUN_141948e90` (modo esticar; ev_a5e33d00…): exige que a seleção tenha **exatamente 1 item** (`+0x18 == 1`) e que ele seja **face (0x12)**; `FUN_141933920` reúne um conjunto de itens relacionados (`+0x40`) e, para cada um, `FUN_1408bc150(item, face)` testa se a face **pertence** àquele item (percorre a lista dele e compara; é só um teste de pertencimento, ev_e54c3a03… e ev_8fca44e0…). Se nenhum item falha no teste, o texto "This face cannot be stretched." é gravado. A interpretação exata (por que a mensagem sai quando todos passam) ainda é **SUPOSTA**; não foi usada.
 
 **O que isto muda no núcleo:** nada ainda. Resultado útil: o limiar de 3 px é regra de interface do SketchUp (a interface web já usa distância em unidades, não pixels) e o teste "curva/suavizada" **não está** no caminho do mouse — fica em `FUN_141933920`/`FUN_1419435a0`/`FUN_141940a70`, que são os próximos alvos.
+
+## Empurrar/Puxar: montagem dos dados — `FUN_1419435a0` (14/11, rodada 3)
+
+Lida em ev_72f90c94…. Ordem das etapas (**LIDA**, nomes de função são endereços, sem rótulo):
+1. `FUN_141940810()` devolve **dois bits de opção**: bit 0 (habilita o caminho completo) e bit 1 (modo "copiar", o mesmo que o Ctrl faz no SketchUp; **SUPOSTA** pelo uso: vira o 3º argumento de `FUN_1419419d0`).
+2. Percorre as **arestas da face** (`FUN_140871e20`); para cada aresta ainda sem dono (`+0x50 == 0`) desfaz vínculos nos dois vértices (`FUN_1408b61a0` / `FUN_140815e80`) e chama `FUN_1408bd080`. Ou seja: prepara as arestas da face antes de extrudar.
+3. `FUN_1419424e0` e `FUN_1419419d0(this, face, copiar)` criam a geometria nova (devolve a face/solido novo; nulo = falhou e o empurrar é recusado); `FUN_141941350` e `FUN_1407dd570` ligam o resultado à face original.
+4. Sem copiar: guarda a face em `this+0x68` e a marca (`FUN_140875760`). Com copiar: marca (valor 6, `FUN_1407dd3b0`) a face nova e as listas em `this+0x80` e `this+0x90`, roda `FUN_141942e90` e zera `this+0x68`.
+5. Limpeza final: para cada vértice da geometria nova, olha as arestas ligadas dois a dois. Quando duas delas têm o mesmo campo `+0x28` (índice 5 do vetor; candidato: mesma reta ou mesma curva), chama o método virtual `+0x20` nas duas e **desconta 2 do número de arestas do vértice**; quando sobram menos de 3, chama `FUN_1407f6940` (provável: apagar o vértice/aresta redundante). **SUPOSTA**: é a fusão de arestas colineares depois do empurrar.
+
+**O que ainda falta:** `FUN_1419419d0` (a extrusão em si), `FUN_141940a70` e `FUN_141933920`. Nada disto foi levado ao núcleo: o núcleo já faz o empurrar de face plana (`core/topology/pushpull.py`), e esta leitura só aponta onde o SketchUp limpa arestas colineares, regra que o núcleo ainda não replica.
