@@ -91,3 +91,13 @@ Lida em ev_72f90c94…. Ordem das etapas (**LIDA**, nomes de função são ender
 5. Limpeza final: para cada vértice da geometria nova, olha as arestas ligadas dois a dois. Quando duas delas têm o mesmo campo `+0x28` (índice 5 do vetor; candidato: mesma reta ou mesma curva), chama o método virtual `+0x20` nas duas e **desconta 2 do número de arestas do vértice**; quando sobram menos de 3, chama `FUN_1407f6940` (provável: apagar o vértice/aresta redundante). **SUPOSTA**: é a fusão de arestas colineares depois do empurrar.
 
 **O que ainda falta:** `FUN_1419419d0` (a extrusão em si), `FUN_141940a70` e `FUN_141933920`. Nada disto foi levado ao núcleo: o núcleo já faz o empurrar de face plana (`core/topology/pushpull.py`), e esta leitura só aponta onde o SketchUp limpa arestas colineares, regra que o núcleo ainda não replica.
+
+## Empurrar/Puxar: `FUN_1419419d0` é a CÓPIA da face, não a extrusão (14/11, rodada 4)
+
+Lida em ev_2028eec9…. Correção da rodada 3: eu tratava esta função como "a extrusão em si". Ela só **duplica a face e emparelha original com cópia**.
+- **LIDA:** cria uma lista com a face e executa uma operação de cópia sobre ela (`FUN_140917890` + `FUN_1409179d0`; retorno 0 = falhou, devolve nulo e o empurrar é recusado). `FUN_1407f40e0(this+0x10, lista)` devolve a lista copiada e a função pega o primeiro item, que precisa ser **face (0x12)**; é a face nova.
+- **LIDA:** monta dois mapas ordenados (`std::map`) por ponteiro: `this+0x80` (um tipo de elemento da face original → o equivalente na cópia) e `this+0x90` (aresta original → aresta da cópia). O emparelhamento é **por ordem de iteração**: percorre os elementos da original e da cópia em paralelo e liga o n-ésimo ao n-ésimo. Logo, a cópia preserva a ordem dos elementos do laço.
+- **LIDA:** fora do modo "copiar" (3º argumento = 0) e com um objeto de seleção ativo (`modelo+0x310`), os itens são também registrados nele (`FUN_1407b26c0`), o que explica a face/arestas ficarem selecionadas durante o arrasto. Em modo copiar isso é pulado.
+- **SUPOSTA:** os mapas servem depois (`FUN_141941350`, `FUN_141942e90`) para costurar original e cópia com as faces laterais e para mover só a cópia na distância digitada. É o mesmo desenho do núcleo (`core/topology/pushpull.py`: laço de cima copiado, laterais ligando os dois laços), então **nada a mudar no núcleo**.
+
+**Ainda falta** a costura/movimento (`FUN_141941350`, `FUN_141942e90`) e o teste de curva/suavizada (`FUN_141933920`, `FUN_141940a70`).
