@@ -32,6 +32,7 @@ const FERRAMENTAS = [
 
 // Grupos de ferramentas com seta (como a barra do SketchUp): um botão mostra a última escolhida e a seta abre as opções.
 const GRUPOS = [
+  { nome: "Linha", itens: [["linha", "Linha"], ["mao_livre", "Mão livre"], ["bezier", "Curva de Bézier"]] },
   {
     nome: "Arcos",
     itens: [
@@ -39,7 +40,12 @@ const GRUPOS = [
       ["arco_corda", "Arco de 2 pontos"],
       ["arco_3pontos", "Arco de 3 pontos"],
       ["setor", "Pizza"],
+      ["fatia", "Fatia (segmento)"], // não existe no SketchUp; fica aqui para não perder a ferramenta
     ],
+  },
+  {
+    nome: "Formas",
+    itens: [["retangulo", "Retângulo"], ["retangulo_rotacionado", "Retângulo rotacionado"], ["circulo", "Círculo"], ["poligono", "Polígono"]],
   },
 ];
 const GRUPO_DE = new Map(GRUPOS.flatMap((g) => g.itens.map(([id]) => [id, g])));
@@ -90,6 +96,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   const barra = document.getElementById("tools-toolbar");
   const botoes = new Map();
   const principais = [];
+  const caixas = new Map();
   if (barra) {
     const g = document.createElement("div");
     g.className = "toolbar-group";
@@ -313,6 +320,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     });
     alvo.appendChild(l);
     barra.appendChild(g);
+    posicionarNaBarra();
   }
 
   // desfazer/refazer devolvem o estado completo: troca o espelho local inteiro
@@ -702,6 +710,20 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     sincronizar();
   }
 
+  // Como no SketchUp: Linha, Arcos e Formas viram botões com seta no lugar dos botões soltos antigos (retângulo, linha,
+  // arcos desativado, círculo e empurrar/puxar da cena aberta, que seguem no menu Desenho com o sufixo "(cena aberta)").
+  function posicionarNaBarra() {
+    const velho = (sel) => barra.querySelector(sel);
+    const ancora = velho('[data-action="tool-rect"]');
+    if (!ancora) return;
+    for (const nome of ["Linha", "Arcos", "Formas"]) ancora.parentNode.insertBefore(caixas.get(nome), ancora);
+    const pp = velho('[data-action="tool-pushpull"]');
+    if (pp && botoes.get("pushpull")) pp.parentNode.insertBefore(botoes.get("pushpull"), pp);
+    for (const el of [ancora, velho('[data-action="tool-line"]'), velho('button[aria-label="Arcos"]:not(.tool-group-arrow)'), velho('[data-action="draw-circle"]'), pp]) {
+      if (el) el.style.display = "none";
+    }
+  }
+
   // Botão com seta: o botão principal ativa a última ferramenta usada do grupo; a seta abre a lista.
   function criarGrupo(grupo, dados, icone) {
     const caixa = document.createElement("div");
@@ -757,6 +779,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       if (e.key === "Escape") fechar();
     });
     principais.push({ grupo, principal, mostrar });
+    caixas.set(grupo.nome, caixa);
     caixa.append(principal, seta, lista);
     return caixa;
   }

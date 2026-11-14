@@ -237,6 +237,7 @@ import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
 import { InferenceEngine } from "./inferenceEngine.js?v=20261102_07";
 import { iniciarFerramentas } from "./ferramentas.js";
 import { iniciarModelagem } from "./modelagem.js";
+import { agruparBarraAntiga } from "./grupos_barra.js";
 
 function sendBrowserLog(type, msg, extra = {}) {
   try {
@@ -3030,6 +3031,11 @@ setTimeout(() => {
     });
   } catch (err) {
     console.warn("Falha ao inicializar a modelagem:", err);
+  }
+  try {
+    agruparBarraAntiga(document.getElementById("tools-toolbar"));
+  } catch (err) {
+    console.warn("Falha ao agrupar a barra de ferramentas:", err);
   }
 }, 150);
 

@@ -94,7 +94,10 @@
       border: 1px solid transparent; border-radius: 3px; color: var(--text); cursor: pointer; text-align: left;
     }
     .tool-group-item svg { width: 20px; height: 20px; flex: none; stroke-width: 1.6; }
-    .tool-group-item:hover { background: var(--hover, rgba(0,0,0,.08)); }
+    .tool-group-item:hover:not(.disabled) { background: var(--hover, rgba(0,0,0,.08)); }
+    .tool-group-menu > .toolbar-btn.tool-group-item { width: auto; height: 28px; justify-content: flex-start; gap: 8px; padding: 0 8px; }
+    .tool-group-menu > .toolbar-btn.tool-group-item svg { width: 20px; height: 20px; flex: none; }
+    .tool-group-menu > .toolbar-btn.tool-group-item.disabled { opacity: .5; }
     .tool-group-item.active { background: var(--active, rgba(60,120,220,.25)); border-color: var(--accent, #3c78dc); }
     .toolbar-btn {
       width: 30px; height: 28px; background: transparent; border: 1px solid transparent;
