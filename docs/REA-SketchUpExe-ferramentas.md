@@ -101,3 +101,17 @@ Lida em ev_2028eec9…. Correção da rodada 3: eu tratava esta função como "a
 - **SUPOSTA:** os mapas servem depois (`FUN_141941350`, `FUN_141942e90`) para costurar original e cópia com as faces laterais e para mover só a cópia na distância digitada. É o mesmo desenho do núcleo (`core/topology/pushpull.py`: laço de cima copiado, laterais ligando os dois laços), então **nada a mudar no núcleo**.
 
 **Ainda falta** a costura/movimento (`FUN_141941350`, `FUN_141942e90`) e o teste de curva/suavizada (`FUN_141933920`, `FUN_141940a70`).
+
+## `FUN_141933920`: conjunto de vértices da seleção — confirma 0x10 e 0x27 (14/11, rodada 5)
+
+Lida em ev_ae46d491…. A função esvazia o conjunto em `this+0x40` e, para cada item da seleção (`this+0x10`), chama `FUN_141933540` para inserir **vértices**:
+- item de código **0x12** (face): percorre os elementos da face (enumerador `FUN_140872bb0`) e insere cada um;
+- item de código **0x10**: insere `item+0x40` e `item+0x48` (os dois extremos);
+- item de código **0x27**: insere o próprio item;
+- qualquer outro código é ignorado.
+
+**Conclusões:** 0x12 = face (já confirmado), **0x10 = aresta** (tem dois extremos nos campos +0x40/+0x48), **0x27 = vértice** (entra direto no mesmo conjunto onde entram os extremos da aresta). Isto **corrige** a nota de 13/11 que dizia "0x27 provável contêiner". Selo: **LIDA** (estrutura) e **CONFIRMADA** (os três códigos, por consistência de uso), sem execução do SketchUp.
+
+**Efeito no modo esticar** (junto com `FUN_141948e90`, **SUPOSTA**): o conjunto é o de vértices que a seleção moveria; a recusa "This face cannot be stretched." sai quando **todos** esses vértices já estão sobre a face escolhida (o teste `FUN_1408bc150` só verifica se a face contém o vértice).
+
+**Ainda falta** para o Empurrar/Puxar: `FUN_141941350`, `FUN_141942e90` (costura e movimento) e `FUN_141940a70`. O teste de curva/suavizada continua sem aparecer; pode estar no `CPushPullController` (vtable 0x142781c90) e não na ferramenta.
