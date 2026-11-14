@@ -131,3 +131,20 @@ Os textos ficam colados à vtable do controlador (0x142781c90; bytes em ev_cca35
 **O que isto entrega:** o "esticar" (mover uma face arrastando as vizinhas, que é o que o Empurrar/Puxar faz numa face inclinada de uma peça) tem **três recusas geométricas** (2, 3, 4, 5 são variantes) e todas giram em torno de **faces vizinhas planas, sem furos, com arestas paralelas ao movimento, ou triângulos nos cantos**. São a especificação dos testes de pré-condição que o núcleo precisaria ter se um dia implementar esse modo. **A mensagem "curved or smoothed" é outra**, da ferramenta (construtor), para arestas/faces suavizadas.
 
 **Núcleo:** o núcleo só faz o empurrar de face plana por normal (sem arrastar vizinhas), então **nada foi implementado**. Quando for implementar o modo esticar, usar esta tabela como lista de casos de teste de recusa. Falta ler qual função emite cada mensagem (as referências cruzadas partem do código de `FUN_141933920` em diante) para provar a condição exata de cada uma.
+
+## `FUN_141947ce0`: o teste da face vizinha no "esticar" (14/11, rodada 7)
+
+A mensagem "Stretch would result in non-planar face" (0x142781dc0) tem uma só referência, em **`FUN_141947ce0`** (ev_8757492a…, decompilada em ev_628e138a…). Ela emite três das cinco recusas: "non-planar", "non-parallel edge" e "face touching at corner must be a triangle". Parâmetros: `(this, saída_de_mensagem, face_vizinha, direção_do_movimento[3])`. **LIDA** (estrutura do código; os nomes M/F abaixo são meus):
+
+1. **Passa direto (sem mensagem)** se `FUN_1406e4d40(normal_da_vizinha, direção)` for verdadeiro (relação entre a normal e a direção do movimento; candidato: normal perpendicular à direção, ou seja, a vizinha só desliza no próprio plano) ou se a vizinha tem **2 ou mais laços** e `FUN_141949030` falha (o ramo dos furos está em `FUN_141949030`, não aqui).
+2. **Triângulo (3 vértices) passa direto**: `FUN_14087a870(laço) == 3` não entra no teste.
+3. Para os outros polígonos, divide os vértices da vizinha em **M** (`FUN_141949160` verdadeiro: vértice que se move com a face) e **F** (os que ficam).
+4. Casos, com `n` = nº de vértices:
+   - **M = n** (todos se movem): passa.
+   - **F = n** (nenhum se move; a vizinha só toca num canto): se tem **4 vértices**, faz um teste de paralelogramo (as duas arestas do canto, com `|dot(aresta, direção)| < tolerância` e mesmo tipo `+0x38`, e as pontas deslocadas pelo vetor da aresta batendo uma com a outra, dentro de `DAT_142c40108`); se falha, ou se não tem 4 vértices: **"Cannot move face - face touching at corner must be a triangle."**
+   - **F < 3 e M > 0** (sobram só 1 ou 2 vértices fixos): **"Stretch would result in non-planar face"**.
+   - **F ≥ 3 e M > 0**: precisa que a direção definida pelos vértices que se movem (`FUN_14193d030`) seja **paralela** à definida pelos fixos (`FUN_14193d050`, `FUN_1406e4c80`); senão: **"adjacent face has non-parallel edge"**.
+
+**SUPOSTA (leitura, sem executar):** com 3 ou mais vértices fixos o plano da vizinha está travado, então só vale mover os outros ao longo de uma direção paralela a uma aresta dela; com menos de 3 fixos, o plano deixa de ser determinado e o SketchUp recusa por não-planaridade. A tolerância é a constante global `DAT_142c40108` (valor não lido ainda).
+
+**Para o núcleo (futuro modo esticar):** os testes de recusa são puramente geométricos (contagens de vértices fixos/móveis, paralelismo com a direção, triângulo no canto) e podem ser escritos como funções puras com casos de teste vindos das 5 mensagens. Antes de implementar: ler o valor de `DAT_142c40108`, o que `FUN_141949160` considera "vértice que se move" e `FUN_141949030` (furos).
