@@ -664,7 +664,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
         if (nums.length !== 1 || !Number.isFinite(nums[0])) return setStatus("Rotar: informe o ângulo em graus.", true);
         r = await drawEdit({ ...corpo, angulo: nums[0] });
       } else if (op === "escalar") {
-        if (![1, 3].includes(nums.length) || nums.some((n) => !Number.isFinite(n) || n <= 0)) return setStatus("Esc.: informe um fator positivo (ou três).", true);
+        if (![1, 3].includes(nums.length) || nums.some((n) => !Number.isFinite(n) || n === 0)) return setStatus("Esc.: informe um fator diferente de zero (ou três); negativo espelha.", true);
         r = await drawEdit(nums.length === 1 ? { ...corpo, fator: nums[0] } : { ...corpo, fatores: [nums[0], nums[2], nums[1]] });
       } else {
         if (sel.faces.size !== 1 || nums.length !== 1 || !Number.isFinite(nums[0])) return setStatus("Offset: escolha uma face e informe a distância em metros.", true);

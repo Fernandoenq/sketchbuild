@@ -65,9 +65,9 @@ class TestEdicao(unittest.TestCase):
         escalar(t, set(t.verts), (1, 2, 3), centro=(0, 0, 0))
         self.assertEqual(caixa(t)[1], (100, 200, 150))
 
-    def test_escalar_negativo_recusado(self):
+    def test_escalar_zero_recusado(self):
         with self.assertRaises(ValueError):
-            escalar(cubo(), {1}, -1)
+            escalar(cubo(), {1}, (1, 0, 1))
 
     def test_offset_para_dentro(self):
         t = Topology()

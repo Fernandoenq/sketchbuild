@@ -76,7 +76,7 @@ class EditRequest(BaseModel):
     angulo: float | None = None  # rotacionar (graus)
     eixo: Ponto = (0.0, 0.0, 1.0)
     centro: Ponto | None = None  # rotacionar, escalar (padrao: centro da selecao)
-    fator: float | None = Field(default=None, gt=0)  # escalar uniforme
+    fator: float | None = None  # escalar uniforme (negativo espelha; zero o núcleo recusa)
     fatores: Ponto | None = None  # escalar por eixo
 
 

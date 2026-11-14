@@ -46,10 +46,12 @@ def _plana(t: Topology, f: Face) -> bool:
     return all(abs(_dot(_sub(t.verts[v], pts[0]), n)) <= t.tol * 10 for lp in f.loops() for v in lp)
 
 
-def _aplicar(t: Topology, ids: Set[int], mapa) -> None:
-    """Move os vértices por `mapa(ponto) -> ponto`; desfaz tudo se o grafo ficar inválido."""
+def _aplicar(t: Topology, ids: Set[int], mapa, espelho=None) -> None:
+    """Move os vértices por `mapa(ponto) -> ponto`; desfaz tudo se o grafo ficar inválido.
+    `espelho` = fatores de escala quando o produto é negativo (espelhamento)."""
     velhos = {i: t.verts[i] for i in ids}
     normais = {fid: f.normal for fid, f in t.faces.items()}
+    lacos = {fid: (list(f.outer), [list(h) for h in f.holes]) for fid, f in t.faces.items()}
     for i in ids:
         t.verts[i] = tuple(float(x) for x in mapa(t.verts[i]))
     try:
@@ -66,12 +68,23 @@ def _aplicar(t: Topology, ids: Set[int], mapa) -> None:
             if not _plana(t, f):
                 raise ValueError(f"a face {fid} deixaria de ser plana (não suportado)")
             n = _unit(_newell([t.verts[v] for v in f.outer]))
-            f.normal = n if _dot(n, normais[fid]) >= 0 else tuple(-x for x in n)
+            if espelho is not None:
+                # escala negativa (conferido na SDK): a normal é a refletida (n_k / s_k) e a ordem dos vértices inverte
+                f.normal = _unit(tuple(normais[fid][k] / espelho[k] for k in range(3)))
+                f.outer.reverse()
+                for h in f.holes:
+                    h.reverse()
+            else:
+                f.normal = n if _dot(n, normais[fid]) >= 0 else tuple(-x for x in n)
     except ValueError:
         for i, p in velhos.items():
             t.verts[i] = p
         for fid, n in normais.items():
             t.faces[fid].normal = n
+        for fid, (o, hs) in lacos.items():
+            t.faces[fid].outer[:] = o
+            for h, h0 in zip(t.faces[fid].holes, hs):
+                h[:] = h0
         raise
 
 
@@ -106,15 +119,16 @@ def rotacionar(t: Topology, ids: Set[int], angulo_graus: float, eixo: Point = (0
 
 
 def escalar(t: Topology, ids: Set[int], fator, centro: Point = None) -> Dict[str, dict]:
-    """`fator` é um número (uniforme) ou (fx, fy, fz). Fator zero ou negativo é recusado."""
+    """`fator` é um número (uniforme) ou (fx, fy, fz). Fator zero é recusado; negativo espelha (conferido na SDK)."""
     f = (fator, fator, fator) if isinstance(fator, (int, float)) else tuple(fator)
-    if len(f) != 3 or any(x <= 0 for x in f):
-        raise ValueError("o fator de escala precisa ser positivo")
+    if len(f) != 3 or any(abs(x) < 1e-12 for x in f):
+        raise ValueError("o fator de escala não pode ser zero")
     if all(abs(x - 1) < 1e-12 for x in f):
         raise ValueError("fator 1 não muda nada")
     antes = _estado(t)
     c = centro if centro is not None else _centroide(t, ids)
-    _aplicar(t, ids, lambda p: tuple(c[k] + (p[k] - c[k]) * f[k] for k in range(3)))
+    neg = f[0] * f[1] * f[2] < 0
+    _aplicar(t, ids, lambda p: tuple(c[k] + (p[k] - c[k]) * f[k] for k in range(3)), espelho=f if neg else None)
     return _delta(antes, _estado(t))
 
 
