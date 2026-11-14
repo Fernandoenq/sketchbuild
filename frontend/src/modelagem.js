@@ -97,6 +97,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   // Plano de desenho do Retângulo (docs/REA-PLANO-DE-DESENHO.md). Em coordenadas do SketchUp: { n, o } = normal e um ponto.
   // Antes do 1º clique vale o plano automático da câmera; o 1º clique o fixa (face sob o mouse, senão o automático).
   let planoDesenho = null;
+  let planoForcado = null; // normal (SketchUp) travada com as setas no Retângulo; null = automático
   let faceSob = null; // normal (SketchUp) da face sob o mouse na última leitura de pontoBruto
   const dirCameraSku = () => {
     const d = camera.getWorldDirection(new THREE.Vector3());
@@ -964,7 +965,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     }
     if (ferramenta === "retangulo" && !pontos.length) {
       // espaço vazio: plano automático da câmera; se não for o chão, o ponto cai no plano vertical que passa pela origem
-      const n = planoAutomatico(dirCameraSku());
+      const n = planoForcado ?? planoAutomatico(dirCameraSku());
       if (n[2] !== 1) {
         const dir = ray.ray.direction;
         const q = raioNoPlano(vetSku(ray.ray.origin), [dir.x, -dir.z, dir.y], [0, 0, 0], n);
@@ -1420,14 +1421,15 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   // O chão fica sempre com a normal (0, 0, 1) do SketchUp; os demais planos viram para o lado da câmera.
   function fixarPlanoRetangulo(p) {
     const dir = dirCameraSku();
-    let n = faceSob ?? planoAutomatico(dir);
-    if (faceSob || n[2] !== 1) n = normalParaCamera(n, dir);
+    let n = planoForcado ?? faceSob ?? planoAutomatico(dir);
+    if ((faceSob && !planoForcado) || n[2] !== 1) n = normalParaCamera(n, dir);
     planoDesenho = { n, o: vetSku(p) };
     setStatus(`Retângulo no plano ${nomeDoPlano(n)}.`);
   }
 
   function terminar() {
     planoDesenho = null;
+    planoForcado = null;
     pontos = [];
     livre = null;
     previa.visible = false;
@@ -1558,6 +1560,21 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       apagarMarcados(alvo).then((r) => setStatus("Apagado: " + r + ".")).catch((err) => setStatus("Erro ao apagar: " + (err?.message ?? err), true));
       e.preventDefault();
       return;
+    }
+    if (ferramenta === "retangulo" && e.key.startsWith("Arrow") && !e.target.matches?.("input,textarea")) {
+      // setas travam o plano do Retângulo: cima = chão (vermelho-verde), direita = verde-azul, esquerda = vermelho-azul, baixo = automático
+      const mapa = { ArrowUp: [0, 0, 1], ArrowRight: [1, 0, 0], ArrowLeft: [0, 1, 0], ArrowDown: null };
+      if (e.key in mapa) {
+        planoForcado = mapa[e.key];
+        if (planoDesenho) {
+          const dir = dirCameraSku();
+          const n = planoForcado ? (planoForcado[2] === 1 ? planoForcado : normalParaCamera(planoForcado, dir)) : planoDesenho.n;
+          planoDesenho = { n, o: planoDesenho.o };
+        }
+        setStatus(planoForcado ? `Plano travado: ${nomeDoPlano(planoForcado)}.` : "Plano automático.");
+        e.preventDefault();
+        return;
+      }
     }
     if (e.key === "Escape" || e.key === "Enter") terminar();
     if (e.ctrlKey && e.key.toLowerCase() === "z" && !e.target.matches?.("input,textarea")) historico(drawUndo);
