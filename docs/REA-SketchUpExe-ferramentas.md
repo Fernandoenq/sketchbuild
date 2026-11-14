@@ -32,3 +32,16 @@ Alvo: `C:\Program Files\SketchUp\SketchUp 2026\SketchUp\SketchUp.exe`, sha256 `f
 - Classes `PushPullHelper::Face_PushPullData` e `Base_PushPullData`: os dados por face do empurrar/puxar.
 
 Pendente: ler os métodos do controlador (extrusão, fusão, "criar nova" com Ctrl) e achar o que torna uma face "curva ou suavizada".
+
+## Entidades e algoritmos do modelo no .exe (RTTI, nome em)
+`CEntity` 0x142db9a68 · `CFace` 0x142de4848 · `CEdge` 0x142de52d8 · `CEdgeUse` 0x142de4828 · `CLoop` 0x142de4a48 · `CVertex` 0x142de5218 · `CCurve` 0x142de39c0 · `CGroup` 0x142de5728 · `CComponent`/`CComponentDefinition`/`CComponentInstance` 0x142de3090/0x142d797d0/0x142de3110 · `CText` 0x142de5370 · `CDimension*` · `CSectionPlane` 0x142de55a0 · `CTexture` 0x142de4f80 · `CEntitySet` 0x142de2e18.
+
+Algoritmos que interessam ao plano:
+- **`CFaceFinder`** (0x142de51d0): procura ciclos fechados que viram face quando uma aresta é desenhada (regra "linha fecha ciclo → face").
+- **`CEdgeEraseSet`** (0x142de5048): o conjunto de apagar da borracha (fusão, arestas suaves).
+- **`CEdgeChain`** (0x142e4b368) e **`CCurveBuilder`** (0x142e0f9a0): cadeias de arestas e construção de curvas (arcos, círculos, mão livre).
+- **`CFaceTesselator`/`CFaceToMesh`**: triangulação.
+- **`CInterferenceDetectionHelper`**: usado pelo Mover (colisão).
+
+## Empurrar/Puxar: "This face cannot be stretched." (LIDA)
+`FUN_141948e90(controlador, resultado)`: só avalia quando **há exatamente uma entidade selecionada** (`+0x18 == 1`), a entidade é do tipo **0x12** (`vtable+0x98`; mesmo código visto no `SUEntitiesErase`) e a ferramenta não está em estado de arrasto (`+0x30 == 0`). Chama `FUN_141933920` (monta o conjunto de entidades vizinhas em `+0x40`) e testa cada vizinha com `FUN_1408bc150(vizinha, entidade)`; **se todas passam**, escreve a mensagem "This face cannot be stretched." Ou seja: a recusa depende do conjunto de vizinhas da face, não da geometria da própria face. Semântica exata de `FUN_1408bc150` ainda não lida.
