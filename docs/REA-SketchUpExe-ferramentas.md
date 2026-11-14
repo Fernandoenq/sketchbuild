@@ -61,3 +61,22 @@ O MCP corta chamada sem resposta por **30 min** (`CLAUDE_CODE_MCP_TOOL_IDLE_TIME
 - **LIDA** (ev_b896d782…, ev_bf94ebee…): a string "Cannot Push/Pull curved or smoothed surfaces" (0x1420db090) tem uma única referência, em `FUN_140ca4370` (0x140ca4370), que é o **construtor** de `CPushPullTool` (grava a vtable, zera ~0x30 campos e guarda a mensagem num membro, `this+0xf8`, via `FUN_1406bfb10`).
 - Conclusão: a mensagem é só texto guardado na criação. O teste de "curva/suavizada" fica em outro método, que lê esse membro. Nenhuma regra geométrica foi extraída; nada entra no núcleo.
 - Próximo passo: achar os leitores do campo `this+0xf8` (métodos de `CPushPullTool` na vtable) e decompilar o que chama `FUN_1408bc150`. Fazer na próxima sessão, com `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT=0`.
+
+## Empurrar/Puxar: o caminho do mouse até a recusa (14/11, rodada 3)
+
+Vtable de `CPushPullTool` (0x1420dae38) lida em bytes (ev_259e633b…). Slots com código próprio da ferramenta ficam em 0x140ca4600–0x140ca7a70; o resto aponta para a classe-base (0x140b0…).
+
+**LIDA** — `FUN_140ca6220` (slot 15, movimento do mouse; ev_92751936…):
+- Só começa o empurrar quando já há uma face escolhida (`this+0x80`) e o botão está apertado, e o mouse andou **3 pixels ou mais** em x ou y (`|dx| < 3 && |dy| < 3` não faz nada).
+- Escreve "Push/Pull" na barra de status (`FUN_1407b1610`, código 0x2e).
+- Chama `FUN_141943ae0(this+0x198, face, +0x138, modo==2)` para criar os dados do empurrar. Se devolve nulo: se a mensagem de recusa está preenchida, mostra-a (`FUN_140b4b880`); senão volta ao estado inicial. Se devolve algo, entra no estado "puxando" (`this+0x98 = 1`) e atualiza a distância (`FUN_140ca50c0`, `FUN_140ca5780`).
+- `this+0x318` (int) guarda o modo; `== 1` e `== 2` mudam os parâmetros de `FUN_141943ae0` (provável: Ctrl cria cópia e modo "esticar").
+
+**LIDA** — `FUN_141943ae0` (cria os dados; ev_27a0e66f…):
+- O dono da face (`face+0x18`, chamado por `vtable+0x98`) só pode ter tipo **2, 4 ou 0x4b**; qualquer outro devolve nulo e a ferramenta não age. Os rótulos desses três códigos não foram confirmados (candidatos: modelo, grupo, definição de componente).
+- Se `param_4 == 0` (empurrar normal): `FUN_1419435a0` monta os dados e `FUN_141940a70` os prepara.
+- Se `param_4 != 0` (modo esticar): chama `FUN_141948e90`, que devolve a mensagem de recusa.
+
+**LIDA** — `FUN_141948e90` (modo esticar; ev_a5e33d00…): exige que a seleção tenha **exatamente 1 item** (`+0x18 == 1`) e que ele seja **face (0x12)**; `FUN_141933920` reúne um conjunto de itens relacionados (`+0x40`) e, para cada um, `FUN_1408bc150(item, face)` testa se a face **pertence** àquele item (percorre a lista dele e compara; é só um teste de pertencimento, ev_e54c3a03… e ev_8fca44e0…). Se nenhum item falha no teste, o texto "This face cannot be stretched." é gravado. A interpretação exata (por que a mensagem sai quando todos passam) ainda é **SUPOSTA**; não foi usada.
+
+**O que isto muda no núcleo:** nada ainda. Resultado útil: o limiar de 3 px é regra de interface do SketchUp (a interface web já usa distância em unidades, não pixels) e o teste "curva/suavizada" **não está** no caminho do mouse — fica em `FUN_141933920`/`FUN_1419435a0`/`FUN_141940a70`, que são os próximos alvos.
