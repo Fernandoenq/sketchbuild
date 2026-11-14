@@ -18,3 +18,6 @@ Oráculo: `tools/conferir_desenho_em_face_sdk.py` (SketchUpAPI, `SUEntitiesFill`
 Consequência para o plano: as regras de "linha divide face", "retângulo/círculo em face cria furo" e Push/Pull/Offset só saem de REA do `SketchUp.exe` (e de arquivos feitos no SketchUp real). Até lá, o que o núcleo faz nesses casos é **SUPOSTA**.
 
 Próximo oráculo possível na SDK: `SUEntitiesWeld` e `SUModelMergeCoplanarFaces` (o que fundem), e `SUEntitiesTransform` (mover/rotar/escalar).
+
+## Fusão (`SUModelMergeCoplanarFaces`) — INCONCLUSIVO (14/11/2026)
+`tools/conferir_fundir_sdk.py`: dois quadrados coplanares adjacentes feitos em dois `SUEntitiesFill` seguidos ficam com 8 arestas (a aresta comum aparece duas vezes: os passos não se soldam) e `SUModelMergeCoplanarFaces(model)` devolve 0 sem mudar nada (2 faces, 8 arestas antes e depois). Pode ser assinatura/uso errado ou geometria não soldada. Pendência para o REA da DLL (assinatura e o que a função percorre); não conta como regra.
