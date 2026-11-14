@@ -324,7 +324,17 @@ class DrawRepository:
         _HIST.executar("posicionar", {"faces": list(faces)}, acao)
         return self.estado()
 
-    def suavizar(self, arestas=(), angulo=None, suave=True, lisa=True, limpar=False) -> dict:
+    def suavizar(self, arestas=(), angulo=None, suave=True, lisa=True, limpar=False, ocultar=None) -> dict:
+        if ocultar is not None:
+            if not arestas:
+                raise ValueError("ocultar: informe as arestas")
+
+            def acao_ocultar():
+                soften.ocultar(_topo(), arestas, ocultar)
+                return {}
+
+            _HIST.executar("ocultar", {"arestas": list(arestas), "oculta": ocultar}, acao_ocultar)
+            return self.estado()
         if not arestas and angulo is None:
             raise ValueError("suavizar: informe arestas ou angulo")
         if limpar and angulo is not None:

@@ -326,6 +326,20 @@ class TestDrawController(unittest.TestCase):
         e = run(self.c.desfazer())
         self.assertEqual(len(e.suaves), 24)
 
+    def test_ocultar_arestas_pelo_shift_do_apagar(self):
+        j = run(self.c.desenhar(DrawRequest(ferramenta="retangulo", p0=(0, 0, 0), p1=(10, 10, 0))))
+        eid = int(next(iter(j.edges.added)))
+        e = run(self.c.suavizar(SoftenRequest(arestas=[eid], ocultar=True)))
+        self.assertEqual(e.suaves[str(eid)] & 1, 1)
+        self.assertEqual(len(e.edges), 4)  # ocultar não apaga
+        e = run(self.c.desfazer())
+        self.assertNotIn(str(eid), e.suaves)
+        e = run(self.c.suavizar(SoftenRequest(arestas=[eid], ocultar=True)))
+        e = run(self.c.suavizar(SoftenRequest(arestas=[eid], ocultar=False)))
+        self.assertNotIn(str(eid), e.suaves)
+        with self.assertRaises(HTTPException):
+            run(self.c.suavizar(SoftenRequest(ocultar=True)))  # sem arestas
+
     def test_guias_e_plano_de_secao_na_api(self):
         e = run(self.c.guia(GuiaRequest(tipo="ponto", p=(1, 2, 3))))
         self.assertEqual(len(e.guias), 1)

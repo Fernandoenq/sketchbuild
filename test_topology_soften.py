@@ -7,7 +7,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core.topology import Topology  # noqa: E402
-from core.topology.soften import LISA, SUAVE, definir, limpar, normais_suaves, por_angulo  # noqa: E402
+from core.topology.soften import LISA, SUAVE, definir, limpar, normais_suaves, ocultar, por_angulo  # noqa: E402
 
 
 def telhado(graus):
@@ -42,6 +42,22 @@ class TestSoften(unittest.TestCase):
         self.assertNotIn(e, t.eflags)
         with self.assertRaises(ValueError):
             definir(t, [999])
+
+    def test_ocultar_so_mexe_no_bit_0x01(self):
+        t = telhado(30)
+        e = aresta_do_meio(t)
+        definir(t, [e])
+        self.assertEqual(ocultar(t, [e]), 1)
+        self.assertEqual(t.eflags[e], 0x01 | SUAVE | LISA)
+        self.assertEqual(ocultar(t, [e]), 0)
+        self.assertEqual(ocultar(t, [e], False), 1)
+        self.assertEqual(t.eflags[e], SUAVE | LISA)
+        limpar(t, [e])
+        ocultar(t, [e])
+        ocultar(t, [e], False)
+        self.assertNotIn(e, t.eflags)
+        with self.assertRaises(ValueError):
+            ocultar(t, [999])
 
     def test_por_angulo(self):
         t = telhado(30)

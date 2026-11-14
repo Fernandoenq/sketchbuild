@@ -96,6 +96,8 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   const barra = document.getElementById("tools-toolbar");
   const botoes = new Map();
   const principais = [];
+  let eflags = {}; // aresta -> bits do 0x07d3 (0x01 oculta, 0x08 suave, 0x10 lisa), do último estado completo
+  const oculta = (eid) => ((eflags[eid] ?? 0) & 1) === 1;
   const caixas = new Map();
   if (barra) {
     const g = document.createElement("div");
@@ -604,6 +606,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     corDaFace.clear();
     for (const k of Object.keys(normaisLisas)) delete normaisLisas[k];
     Object.assign(normaisLisas, s.normais_suaves ?? {});
+    eflags = s.suaves ?? {};
     tagInfo.tags = s.tags ?? {};
     tagInfo.faces = s.tag_faces ?? {};
     tagInfo.arestas = s.tag_arestas ?? {};
@@ -797,7 +800,55 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   setInterval(sincronizar, 300);
 
   // -- ponto sob o mouse (chão + encaixe em vértices existentes) -------------
+  // Inferência de eixo no chão (vermelho = x, verde = y do SketchUp) e travamento com Shift: com a ferramenta já com um
+  // ponto fixo, o segmento que sai dele gruda no eixo quando está quase nele; segurar Shift mantém a direção que estava
+  // inferida (como o SketchUp). Só vale nas ferramentas de direção livre.
+  const COM_EIXO = new Set(["linha", "retangulo_rotacionado", "arco_corda", "arco_3pontos", "bezier"]);
+  const EIXOS = { x: { dir: new THREE.Vector3(1, 0, 0), cor: 0xcc2222 }, z: { dir: new THREE.Vector3(0, 0, 1), cor: 0x22aa22 } };
+  let eixoInferido = null; // "x" | "z" | null na última posição do mouse
+  let eixoTravado = null; // fixado ao apertar Shift
+  const COR_PREVIA = 0x2255cc;
+  window.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.key === "Shift" && !e.repeat && eixoInferido && pontos.length) eixoTravado = eixoInferido;
+    },
+    true
+  );
+  window.addEventListener(
+    "keyup",
+    (e) => {
+      if (e.key === "Shift") eixoTravado = null;
+    },
+    true
+  );
+  window.addEventListener("blur", () => {
+    eixoTravado = null;
+  });
+
   function pontoDe(event) {
+    const p = pontoBruto(event);
+    if (!p) return p;
+    eixoInferido = null;
+    previa.material.color.setHex(COR_PREVIA);
+    if (!pontos.length || !COM_EIXO.has(ferramenta)) return p;
+    const base = pontos[pontos.length - 1];
+    const dx = p.x - base.x;
+    const dz = p.z - base.z;
+    const comp = Math.hypot(dx, dz);
+    if (comp < 1e-6) return p;
+    const travado = event.shiftKey && eixoTravado;
+    const candidato = travado || (Math.abs(dz) < comp * 0.05 ? "x" : Math.abs(dx) < comp * 0.05 ? "z" : null);
+    if (!candidato || (p.vertice && !travado)) return p;
+    const { dir, cor } = EIXOS[candidato];
+    const t = dx * dir.x + dz * dir.z;
+    const q = new THREE.Vector3(base.x + dir.x * t, 0, base.z + dir.z * t);
+    eixoInferido = candidato;
+    previa.material.color.setHex(cor);
+    return q;
+  }
+
+  function pontoBruto(event) {
     const r = renderer.domElement.getBoundingClientRect();
     const nx = ((event.clientX - r.left) / r.width) * 2 - 1;
     const ny = -((event.clientY - r.top) / r.height) * 2 + 1;
@@ -813,7 +864,10 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
         melhor = w;
       }
     }
-    if (melhor) return melhor;
+    if (melhor) {
+      melhor.vertice = true;
+      return melhor;
+    }
     const alvo = new THREE.Vector3();
     if (!ray.ray.intersectPlane(chao, alvo)) return null;
     alvo.x = Math.round(alvo.x / PASSO) * PASSO;
@@ -918,7 +972,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     });
     const seg = [];
     for (const [eid, [a, b]] of estado.edges) {
-      if (tagOculta(tagInfo.arestas[eid])) continue;
+      if (tagOculta(tagInfo.arestas[eid]) || oculta(eid)) continue;
       const pa = estado.vertices.get(String(a));
       const pb = estado.vertices.get(String(b));
       if (!pa || !pb) continue;
@@ -1072,6 +1126,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     let melhor = null;
     let dist = 8;
     for (const [id, [a, b]] of estado.edges) {
+      if (oculta(id)) continue;
       const [ax, ay] = tela(estado.vertices.get(String(a)));
       const [bx, by] = tela(estado.vertices.get(String(b)));
       const dx = bx - ax;
@@ -1143,18 +1198,19 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     ray.setFromCamera({ x: ((event.clientX - r.left) / r.width) * 2 - 1, y: -((event.clientY - r.top) / r.height) * 2 + 1 }, camera);
     const aresta = arestaSob(event);
     const hit = ray.intersectObjects(grupo.children.filter((o) => o.isMesh), false)[0];
-    if (!event.shiftKey) {
+    // SketchUp: Shift alterna, Ctrl soma, Ctrl+Shift tira; sem tecla troca a seleção
+    const modo = event.ctrlKey || event.metaKey ? (event.shiftKey ? "tirar" : "somar") : event.shiftKey ? "alternar" : "trocar";
+    if (modo === "trocar") {
       sel.faces.clear();
       sel.edges.clear();
     }
-    if (aresta != null) {
-      if (sel.edges.has(aresta)) sel.edges.delete(aresta);
-      else sel.edges.add(aresta);
-    } else if (hit) {
-      const id = hit.object.userData.fid;
-      if (sel.faces.has(id)) sel.faces.delete(id);
-      else sel.faces.add(id);
-    }
+    const aplicar1 = (conjunto, id) => {
+      if (modo === "tirar") conjunto.delete(id);
+      else if (modo === "alternar") conjunto.has(id) ? conjunto.delete(id) : conjunto.add(id);
+      else conjunto.add(id);
+    };
+    if (aresta != null) aplicar1(sel.edges, aresta);
+    else if (hit) aplicar1(sel.faces, hit.object.userData.fid);
     redesenhar();
     setStatus("Seleção: " + sel.faces.size + " face(s), " + sel.edges.size + " aresta(s).");
   }
@@ -1263,6 +1319,16 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       if (!alvo.arestas.length && !alvo.notas.length) return redesenhar();
       apagouAgora = true;
       try {
+        // SketchUp: Shift oculta, Ctrl suaviza, Ctrl+Shift endurece (tira o suave); sem tecla apaga
+        const tecla = e.ctrlKey || e.metaKey ? (e.shiftKey ? "endurecer" : "suavizar") : e.shiftKey ? "ocultar" : null;
+        if (tecla) {
+          if (!alvo.arestas.length) return redesenhar();
+          const corpo = tecla === "ocultar" ? { arestas: alvo.arestas, ocultar: true } : { arestas: alvo.arestas, limpar: tecla === "endurecer" };
+          substituirEstado(await drawSoften(corpo));
+          redesenhar();
+          const verbo = { ocultar: "Ocultadas", suavizar: "Suavizadas", endurecer: "Endurecidas" }[tecla];
+          return setStatus(`${verbo}: ${alvo.arestas.length} aresta(s).`);
+        }
         setStatus("Apagado: " + (await apagarMarcados(alvo)) + ".");
       } catch (err) {
         redesenhar();

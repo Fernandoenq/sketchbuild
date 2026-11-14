@@ -4,6 +4,7 @@ from typing import Dict, Iterable, List, Sequence
 
 from .model import Face, Topology, _cross, _dot, _norm, _sub, _unit, _has_edge, _newell
 
+OCULTA = 0x01
 SUAVE = 0x08
 LISA = 0x10
 
@@ -21,6 +22,24 @@ def definir(t: Topology, arestas: Sequence[int], suave: bool = True, lisa: bool 
         if depois != antes:
             t.eflags[e] = depois
             mudou += 1
+    return mudou
+
+
+def ocultar(t: Topology, arestas: Sequence[int], oculta: bool = True) -> int:
+    """Liga (ou desliga) o bit oculta (0x01) das arestas, como Shift+Apagar do SketchUp. Devolve quantas mudaram."""
+    faltam = [e for e in arestas if e not in t.edges]
+    if faltam:
+        raise ValueError(f"arestas inexistentes: {faltam}")
+    mudou = 0
+    for e in arestas:
+        antes = t.eflags.get(e, 0)
+        depois = antes | OCULTA if oculta else antes & ~OCULTA
+        if depois != antes:
+            mudou += 1
+            if depois:
+                t.eflags[e] = depois
+            else:
+                t.eflags.pop(e, None)
     return mudou
 
 

@@ -164,6 +164,7 @@ class SoftenRequest(BaseModel):
     suave: bool = True
     lisa: bool = True
     limpar: bool = False  # tira suave e lisa das arestas dadas
+    ocultar: bool | None = None  # True oculta, False reexibe as arestas dadas (Shift+Apagar)
 
 
 class SolidoRequest(BaseModel):
