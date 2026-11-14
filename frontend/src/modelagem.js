@@ -789,6 +789,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
 
   function sincronizar() {
     const viva = getToolMode() === "modelar";
+    if (!viva) marca.style.display = rotulo.style.display = "none";
     if (!viva && (pontos.length || livre)) terminar();
     for (const [id, b] of botoes) b.classList.toggle("active", viva && id === ferramenta);
     for (const { grupo, principal, mostrar } of principais) {
@@ -842,38 +843,113 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     if (!candidato || (p.vertice && !travado)) return p;
     const { dir, cor } = EIXOS[candidato];
     const t = dx * dir.x + dz * dir.z;
-    const q = new THREE.Vector3(base.x + dir.x * t, 0, base.z + dir.z * t);
+    const q = new THREE.Vector3(base.x + dir.x * t, base.y, base.z + dir.z * t);
     eixoInferido = candidato;
     previa.material.color.setHex(cor);
     return q;
   }
 
+  // Inferências de ponto, como no SketchUp (o quadrado colorido que aparece na ponta do cursor):
+  // ponto final (verde) > ponto médio (ciano) > na aresta (vermelho) > na face (azul) > chão (sem indicador).
+  const TIPOS = {
+    final: { nome: "Ponto final", cor: "#12b000" },
+    medio: { nome: "Ponto médio", cor: "#00c4c4" },
+    aresta: { nome: "Na aresta", cor: "#e01010" },
+    face: { nome: "Na face", cor: "#1a50ff" },
+  };
+  let inferencia = null; // { tipo, ponto } do último pontoBruto
+
   function pontoBruto(event) {
+    inferencia = null;
     const r = renderer.domElement.getBoundingClientRect();
     const nx = ((event.clientX - r.left) / r.width) * 2 - 1;
     const ny = -((event.clientY - r.top) / r.height) * 2 + 1;
     ray.setFromCamera({ x: nx, y: ny }, camera);
+    const px = (w) => {
+      const s = w.clone().project(camera);
+      return Math.hypot(((s.x - nx) * r.width) / 2, ((s.y - ny) * r.height) / 2);
+    };
+    const achou = (tipo, w) => {
+      w.vertice = true;
+      inferencia = { tipo, ponto: w };
+      return w;
+    };
     let melhor = null;
     let dist = SNAP_PX;
     for (const v of estado.vertices.values()) {
       const w = fromSku(v);
-      const s = w.clone().project(camera);
-      const d = Math.hypot(((s.x - nx) * r.width) / 2, ((s.y - ny) * r.height) / 2);
+      const d = px(w);
       if (d < dist) {
         dist = d;
         melhor = w;
       }
     }
-    if (melhor) {
-      melhor.vertice = true;
-      return melhor;
+    if (melhor) return achou("final", melhor);
+    // arestas visíveis: ponto médio e ponto sobre a aresta (o mais perto do raio do mouse)
+    let med = null;
+    let sobre = null;
+    let dMed = SNAP_PX;
+    let dSobre = 8;
+    const noRaio = new THREE.Vector3();
+    const naAresta = new THREE.Vector3();
+    for (const [eid, [ea, eb]] of estado.edges) {
+      if (tagOculta(tagInfo.arestas[eid]) || oculta(eid)) continue;
+      const pa = estado.vertices.get(String(ea));
+      const pb = estado.vertices.get(String(eb));
+      if (!pa || !pb) continue;
+      const va = fromSku(pa);
+      const vb = fromSku(pb);
+      const m = va.clone().add(vb).multiplyScalar(0.5);
+      const dm = px(m);
+      if (dm < dMed) {
+        dMed = dm;
+        med = m;
+      }
+      ray.ray.distanceSqToSegment(va, vb, noRaio, naAresta);
+      const ds = px(naAresta);
+      if (ds < dSobre) {
+        dSobre = ds;
+        sobre = naAresta.clone();
+      }
     }
+    if (med) return achou("medio", med);
+    if (sobre) return achou("aresta", sobre);
+    const hit = ray.intersectObjects(grupo.children.filter((o) => o.isMesh), false)[0];
+    if (hit) return achou("face", hit.point.clone());
     const alvo = new THREE.Vector3();
     if (!ray.ray.intersectPlane(chao, alvo)) return null;
     alvo.x = Math.round(alvo.x / PASSO) * PASSO;
     alvo.z = Math.round(alvo.z / PASSO) * PASSO;
     alvo.y = 0;
     return alvo;
+  }
+
+  // O quadrado e o rótulo que acompanham o cursor
+  const marca = document.createElement("div");
+  marca.style.cssText =
+    "position:fixed;z-index:50;pointer-events:none;display:none;transform:translate(-50%,-50%);width:11px;height:11px;border:2px solid #fff;box-shadow:0 0 0 1px #000;box-sizing:border-box";
+  const rotulo = document.createElement("div");
+  rotulo.style.cssText =
+    "position:fixed;z-index:50;pointer-events:none;display:none;font:12px sans-serif;padding:1px 5px;background:#ffffe1;border:1px solid #333;color:#000;white-space:nowrap";
+  document.body.append(marca, rotulo);
+  function mostrarMarca(event) {
+    const tipo = inferencia && TIPOS[inferencia.tipo];
+    if (!tipo || getToolMode() !== "modelar" || ferramenta === "selecionar" || ferramenta === "pushpull") {
+      marca.style.display = rotulo.style.display = "none";
+      return;
+    }
+    const r = renderer.domElement.getBoundingClientRect();
+    const s = inferencia.ponto.clone().project(camera);
+    const x = r.left + ((s.x + 1) / 2) * r.width;
+    const y = r.top + ((1 - s.y) / 2) * r.height;
+    marca.style.background = tipo.cor;
+    marca.style.left = `${x}px`;
+    marca.style.top = `${y}px`;
+    marca.style.display = "block";
+    rotulo.textContent = tipo.nome;
+    rotulo.style.left = `${x + 14}px`;
+    rotulo.style.top = `${y + 10}px`;
+    rotulo.style.display = "block";
   }
 
   // -- envio e redesenho ------------------------------------------------------
@@ -1088,7 +1164,8 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   function mover(event) {
     if (getToolMode() !== "modelar" || !ferramenta) return;
     const p = pontoDe(event);
-    if (!p) return;
+    if (!p) return mostrarMarca(event);
+    mostrarMarca(event);
     if (ferramenta === "mao_livre") {
       if (livre) {
         if (livre[livre.length - 1].distanceTo(p) >= 0.02) livre.push(p);
@@ -1281,6 +1358,9 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   }
 
   const el = renderer.domElement;
+  el.addEventListener("pointerleave", () => {
+    marca.style.display = rotulo.style.display = "none";
+  });
   // fase de captura: com a modelagem ativa, o clique não chega à seleção do app
   // Apagar (Ferramentas > Apagar, modo "erase"): clique numa aresta, cota ou texto, ou arraste por vários; a aresta leva as
   // faces e a curva dela. Sem nada sob o mouse não faz nada aqui e o clique segue para o Apagar das peças da cena aberta.
