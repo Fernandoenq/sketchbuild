@@ -9,6 +9,8 @@
 import * as THREE from "three";
 import { drawTool, drawState, drawClear, drawPushPull, drawEdit, drawOffset, drawFollowMe, drawIntersect, drawPaint, drawTag, drawScene, drawSoften, drawErase, drawEraseInstance, drawSolid, drawSelect, drawGroupSolid, drawNote, drawUv, drawBehavior, drawGroup, drawEnter, drawExit, drawUndo, drawRedo, drawSave } from "./api.js";
 
+import { planoAutomatico, cantosRetangulo, raioNoPlano, projetarNoPlano, normalParaCamera, nomeDoPlano } from "./planoDesenho.js";
+
 const POL = 39.37007874015748; // polegadas por metro
 const PASSO = 0.01; // 1 cm
 const SNAP_PX = 12;
@@ -91,6 +93,18 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   let campoValor = null;
   const chao = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const ray = new THREE.Raycaster();
+
+  // Plano de desenho do Retângulo (docs/REA-PLANO-DE-DESENHO.md). Em coordenadas do SketchUp: { n, o } = normal e um ponto.
+  // Antes do 1º clique vale o plano automático da câmera; o 1º clique o fixa (face sob o mouse, senão o automático).
+  let planoDesenho = null;
+  let faceSob = null; // normal (SketchUp) da face sob o mouse na última leitura de pontoBruto
+  const dirCameraSku = () => {
+    const d = camera.getWorldDirection(new THREE.Vector3());
+    return [d.x, -d.z, d.y];
+  };
+  const vetSku = (v) => [v.x * POL, -v.z * POL, v.y * POL];
+  const vetThree = ([x, y, z]) => new THREE.Vector3(x / POL, z / POL, -y / POL);
+  const planoThree = (n, o) => new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(n[0], n[2], -n[1]), vetThree(o));
 
   // -- barra de ferramentas --------------------------------------------------
   const barra = document.getElementById("tools-toolbar");
@@ -828,9 +842,32 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     eixoTravado = null;
   });
 
+  // Retângulo depois do 1º clique: o 2º canto fica no plano fixado. Pontos encaixados (final, médio, aresta) são projetados
+  // nele; o resto vem do raio do mouse cruzando o plano (como no SketchUp, o canto não sai do plano).
+  function pontoNoPlano(p, event) {
+    const { n, o } = planoDesenho;
+    const encaixe = inferencia && ["final", "medio", "aresta"].includes(inferencia.tipo);
+    if (encaixe) return vetThree(projetarNoPlano(vetSku(p), o, n));
+    const dir = ray.ray.direction;
+    const q = raioNoPlano(vetSku(ray.ray.origin), [dir.x, -dir.z, dir.y], o, n);
+    if (!q) return p;
+    inferencia = null;
+    // grade de 1 cm só nos planos alinhados aos eixos (nos inclinados não há eixo para arredondar)
+    const alinhado = n.some((c) => Math.abs(c) > 0.999999);
+    const v = vetThree(q);
+    if (alinhado) {
+      const eixo = n.findIndex((c) => Math.abs(c) > 0.999999);
+      const fixo = vetThree(o);
+      const fixar = eixo === 2 ? "y" : eixo === 1 ? "z" : "x";
+      for (const c of ["x", "y", "z"]) v[c] = c === fixar ? fixo[c] : Math.round(v[c] / PASSO) * PASSO;
+    }
+    return v;
+  }
+
   function pontoDe(event) {
-    const p = pontoBruto(event);
+    let p = pontoBruto(event);
     if (!p) return p;
+    if (ferramenta === "retangulo" && planoDesenho && pontos.length === 1) p = pontoNoPlano(p, event);
     eixoInferido = null;
     previa.material.color.setHex(COR_PREVIA);
     if (!pontos.length || !COM_EIXO.has(ferramenta)) return p;
@@ -862,6 +899,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
 
   function pontoBruto(event) {
     inferencia = null;
+    faceSob = null;
     const r = renderer.domElement.getBoundingClientRect();
     const nx = ((event.clientX - r.left) / r.width) * 2 - 1;
     const ny = -((event.clientY - r.top) / r.height) * 2 + 1;
@@ -916,7 +954,28 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     if (med) return achou("medio", med);
     if (sobre) return achou("aresta", sobre);
     const hit = ray.intersectObjects(grupo.children.filter((o) => o.isMesh), false)[0];
-    if (hit) return achou("face", hit.point.clone());
+    if (hit) {
+      const pos = hit.object.geometry.getAttribute("position");
+      const vert = (i) => new THREE.Vector3().fromBufferAttribute(pos, i);
+      const a0 = vert(hit.face.a);
+      const nn = vert(hit.face.b).sub(a0).cross(vert(hit.face.c).sub(a0)).normalize();
+      faceSob = [nn.x, -nn.z, nn.y];
+      return achou("face", hit.point.clone());
+    }
+    if (ferramenta === "retangulo" && !pontos.length) {
+      // espaço vazio: plano automático da câmera; se não for o chão, o ponto cai no plano vertical que passa pela origem
+      const n = planoAutomatico(dirCameraSku());
+      if (n[2] !== 1) {
+        const dir = ray.ray.direction;
+        const q = raioNoPlano(vetSku(ray.ray.origin), [dir.x, -dir.z, dir.y], [0, 0, 0], n);
+        if (q) {
+          const v = vetThree(q);
+          const fixar = n[1] === 1 ? "z" : "x"; // normal y do SketchUp = z do three; normal x = x
+          for (const c of ["x", "y", "z"]) v[c] = c === fixar ? 0 : Math.round(v[c] / PASSO) * PASSO;
+          return v;
+        }
+      }
+    }
     const alvo = new THREE.Vector3();
     if (!ray.ray.intersectPlane(chao, alvo)) return null;
     alvo.x = Math.round(alvo.x / PASSO) * PASSO;
@@ -1123,7 +1182,11 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   function previaPontos(p) {
     const [a, b] = pontos;
     if (ferramenta === "linha") return [...pontos, p];
-    if (ferramenta === "retangulo") return [a, new THREE.Vector3(p.x, 0, a.z), p, new THREE.Vector3(a.x, 0, p.z), a];
+    if (ferramenta === "retangulo") {
+      if (!planoDesenho) return [a, new THREE.Vector3(p.x, 0, a.z), p, new THREE.Vector3(a.x, 0, p.z), a];
+      const c = cantosRetangulo(vetSku(a), vetSku(p), planoDesenho.n).map(vetThree);
+      return [...c, c[0]];
+    }
     if (ferramenta === "retangulo_rotacionado") {
       if (pontos.length === 1) return [a, p];
       const u = b.clone().sub(a).setY(0);
@@ -1307,10 +1370,11 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       pontos.push(p);
       return;
     }
+    if (ferramenta === "retangulo" && !pontos.length) fixarPlanoRetangulo(p);
     pontos.push(p);
     const [a, b, c] = pontos;
     if (ferramenta === "retangulo" && pontos.length === 2) {
-      await enviar({ ferramenta: "retangulo", p0: toSku(a), p1: toSku(b) });
+      await enviar({ ferramenta: "retangulo", p0: toSku(a), p1: toSku(b), normal: planoDesenho?.n ?? [0, 0, 1] });
       terminar();
     } else if ((ferramenta === "circulo" || ferramenta === "poligono") && pontos.length === 2) {
       const raio = a.distanceTo(b) * POL;
@@ -1352,7 +1416,18 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     }
   }
 
+  // 1º clique do Retângulo: a face sob o mouse define o plano; sem face vale o automático da câmera (planoDesenho.js).
+  // O chão fica sempre com a normal (0, 0, 1) do SketchUp; os demais planos viram para o lado da câmera.
+  function fixarPlanoRetangulo(p) {
+    const dir = dirCameraSku();
+    let n = faceSob ?? planoAutomatico(dir);
+    if (faceSob || n[2] !== 1) n = normalParaCamera(n, dir);
+    planoDesenho = { n, o: vetSku(p) };
+    setStatus(`Retângulo no plano ${nomeDoPlano(n)}.`);
+  }
+
   function terminar() {
+    planoDesenho = null;
     pontos = [];
     livre = null;
     previa.visible = false;
