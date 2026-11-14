@@ -115,3 +115,19 @@ Lida em ev_ae46d491…. A função esvazia o conjunto em `this+0x40` e, para cad
 **Efeito no modo esticar** (junto com `FUN_141948e90`, **SUPOSTA**): o conjunto é o de vértices que a seleção moveria; a recusa "This face cannot be stretched." sai quando **todos** esses vértices já estão sobre a face escolhida (o teste `FUN_1408bc150` só verifica se a face contém o vértice).
 
 **Ainda falta** para o Empurrar/Puxar: `FUN_141941350`, `FUN_141942e90` (costura e movimento) e `FUN_141940a70`. O teste de curva/suavizada continua sem aparecer; pode estar no `CPushPullController` (vtable 0x142781c90) e não na ferramenta.
+
+## `CPushPullController`: as regras de recusa do "esticar" (14/11, rodada 6)
+
+Os textos ficam colados à vtable do controlador (0x142781c90; bytes em ev_cca3508d…, busca em ev_27b61ec1…). **LIDO** (texto exato, endereços 0x142781cxx–0x142781e10):
+
+| # | Mensagem do SketchUp | Condição que ela descreve (SUPOSTA, só pelo texto) |
+|---|---|---|
+| 1 | "This face cannot be stretched." | nenhum vértice da seleção sai da face (ver `FUN_141948e90`, rodada 3 e 5) |
+| 2 | "Cannot move face - face touching at corner must be a triangle." | ao mover uma face, a face vizinha que toca só num canto (por um vértice) precisa ser **triângulo** |
+| 3 | "Stretch would result in non-planar face" | esticar deixaria uma face vizinha não plana |
+| 4 | "adjacent face has non-parallel edge" | a vizinha tem aresta não paralela à direção do movimento |
+| 5 | "adjacent face has holes" | a vizinha tem furos |
+
+**O que isto entrega:** o "esticar" (mover uma face arrastando as vizinhas, que é o que o Empurrar/Puxar faz numa face inclinada de uma peça) tem **três recusas geométricas** (2, 3, 4, 5 são variantes) e todas giram em torno de **faces vizinhas planas, sem furos, com arestas paralelas ao movimento, ou triângulos nos cantos**. São a especificação dos testes de pré-condição que o núcleo precisaria ter se um dia implementar esse modo. **A mensagem "curved or smoothed" é outra**, da ferramenta (construtor), para arestas/faces suavizadas.
+
+**Núcleo:** o núcleo só faz o empurrar de face plana por normal (sem arrastar vizinhas), então **nada foi implementado**. Quando for implementar o modo esticar, usar esta tabela como lista de casos de teste de recusa. Falta ler qual função emite cada mensagem (as referências cruzadas partem do código de `FUN_141933920` em diante) para provar a condição exata de cada uma.
