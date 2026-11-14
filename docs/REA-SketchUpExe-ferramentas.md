@@ -189,3 +189,17 @@ Lidas por inteiro (ev_f885d5b3…, ev_a68f81e6…). **LIDA:**
 Interpretação geométrica (**SUPOSTA**): é a condição para a vizinha continuar plana quando um lado dela é arrastado, esticando-se como um trapézio/paralelogramo: o lado que anda e o lado oposto que fica precisam ser paralelos.
 
 **Falta** para escrever o esticar: o movimento em si (`FUN_141941350`, `FUN_141942e90`) e `FUN_1408bda20` / `FUN_1406ecac0` (igualdade de direção e escolha do extremo), além da identidade do anel `+0x58`.
+
+## Paredes e limpeza do Empurrar/Puxar: `FUN_141941350` e `FUN_141942e90` (14/11, rodada 11)
+
+Lidas em ev_75fdd928… e ev_1d07b659…. **LIDA:**
+- **`FUN_141941350(this, face_original, face_copia)` cria as paredes.** Guarda a normal da face (`+0x40`) e, para cada aresta da original, monta uma lista (aresta, marca). A marca é zerada quando alguma face vizinha dessa aresta tem **normal perpendicular à da face puxada** (`FUN_1406e4d40`, folga 0,001). Depois, para cada aresta: se a vizinha **não** é perpendicular (ou se é modo copiar, `this+0x149 != 0`), chama `FUN_141942080` (o tratamento de esticar a vizinha; devolve não-zero em falha e interrompe). Se nada falhou, numa 2ª passada cria **três objetos de 0x58 bytes por aresta** (`FUN_140869850`: ligações aresta→laço, com o vértice original, a aresta compartilhada e o vértice da cópia) e marca `this+0x14b = 1`. É a montagem do laço [a, b, b', a'] de cada parede.
+- **`FUN_141942e90(this, face)` limpa depois.** Junta, sem repetir, os itens do enumerador de arestas da face e, para cada um com `+0x58 == 0` (sem anel de uso), chama `FUN_1407ba210` (apagar; **SUPOSTA** a identificação). Antes, `FUN_1407f6940` limpa a seleção.
+
+**Reinterpretação (SUPOSTA, mais coerente com todas as leituras):** o anel em `+0x58` é a lista de **usos de face da aresta** (cada nó liga uma face, ver `FUN_1408bc150`, que procura a face no anel). Então `FUN_1408b8940(aresta)` = **quantas faces usam a aresta**; "adjacent face has holes" = existe laço interno cuja aresta é usada por 2 ou mais faces; e a limpeza final apaga as **arestas que ficaram sem nenhuma face**. As "cadeias" M/F do esticar seriam cadeias de arestas (têm extremos em `+0x40/+0x48`). "This face cannot be stretched." = todas as arestas em volta dos vértices da seleção já pertencem só àquela face (face isolada, nada para esticar).
+
+## Implementado no núcleo (a partir da leitura)
+
+`core/topology/pushpull.py`: a regra "todas as vizinhas perpendiculares → a face desliza (mover); senão extrusa" já existia, mas usava a folga **1e-6**. O SketchUp usa **|n·n| < 0,001** nesse mesmo teste (`FUN_1406e4d40`, **CONFIRMADA**, ver rodada 9). Troquei por `_TOL_PERPENDICULAR = 1e-3`. Dois testes novos em `test_topology_pushpull.py`: inclinação de 5e-4 na parede ainda desliza (8 vértices, 12 arestas, 6 faces); 2e-3 vira extrusão (12/20/10). Suíte `test_topology*`: 131 testes OK.
+
+**Não implementado, de propósito:** o modo esticar (vizinha inclinada arrastada), porque falta `FUN_141942080` (o tratamento em si) e o movimento dos vértices. A limpeza de arestas sem face e a fusão de colineares também ficam fora até o núcleo mostrar que precisa delas (o golden `r05` já passa).

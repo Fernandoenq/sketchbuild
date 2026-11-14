@@ -41,6 +41,24 @@ class TestPushPull(GoldenCase):
         self.assertEqual(t.counts(), {"vertices": 8, "edges": 12, "faces": 6})
         self.assertAlmostEqual(max(p[2] for p in t.verts.values()), 80)
 
+    def _cubo_com_parede_inclinada(self, inclinacao):
+        t = cubo()
+        parede = next(i for i, f in t.faces.items() if abs(f.normal[2]) < 1e-9)
+        n = t.faces[parede].normal
+        t.faces[parede].normal = (n[0], n[1], n[2] + inclinacao)
+        return t
+
+    def test_parede_quase_perpendicular_ainda_desliza(self):
+        # SketchUp.exe (FUN_1406e4d40): vizinha com |n.n| < 0,001 conta como perpendicular
+        t = self._cubo_com_parede_inclinada(5e-4)
+        empurrar(t, topo(t), 30)
+        self.assertEqual(t.counts(), {"vertices": 8, "edges": 12, "faces": 6})
+
+    def test_parede_alem_da_folga_vira_extrusao(self):
+        t = self._cubo_com_parede_inclinada(2e-3)
+        empurrar(t, topo(t), 30)
+        self.assertEqual(t.counts(), {"vertices": 12, "edges": 20, "faces": 10})
+
     def test_r05_empurrar_tudo_colapsa(self):
         t = cubo()
         empurrar(t, topo(t), -50)

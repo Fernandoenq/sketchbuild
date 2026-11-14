@@ -16,6 +16,11 @@ from core.topology.draw import _delta, _estado
 from core.topology.model import Face, Point, Topology, _cross, _dot, _norm, _sub, _unit
 
 
+# Folga do teste "vizinha perpendicular": |normal_vizinha · normal_face| < 0,001 (normais unitárias).
+# Lida no SketchUp.exe (FUN_1406e4d40, usada no passo das paredes do Empurrar/Puxar); docs/REA-SketchUpExe-ferramentas.md.
+_TOL_PERPENDICULAR = 1e-3
+
+
 def _vizinhas(t: Topology, fid: int) -> List[int]:
     """Faces que dividem alguma aresta com `fid`, uma entrada por aresta."""
     f = t.faces[fid]
@@ -182,7 +187,7 @@ def empurrar(t: Topology, fid: int, distancia: float, criar_nova: bool = False) 
     f = t.faces[fid]
     v = tuple(x * distancia for x in f.normal)
     vizinhas = _vizinhas(t, fid)
-    perpendiculares = bool(vizinhas) and all(abs(_dot(t.faces[o].normal, f.normal)) < 1e-6 for o in vizinhas)
+    perpendiculares = bool(vizinhas) and all(abs(_dot(t.faces[o].normal, f.normal)) < _TOL_PERPENDICULAR for o in vizinhas)
     if perpendiculares and not criar_nova:
         _mover(t, fid, v, distancia)
     else:
