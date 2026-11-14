@@ -45,3 +45,13 @@ Algoritmos que interessam ao plano:
 
 ## Empurrar/Puxar: "This face cannot be stretched." (LIDA)
 `FUN_141948e90(controlador, resultado)`: só avalia quando **há exatamente uma entidade selecionada** (`+0x18 == 1`), a entidade é do tipo **0x12** (`vtable+0x98`; mesmo código visto no `SUEntitiesErase`) e a ferramenta não está em estado de arrasto (`+0x30 == 0`). Chama `FUN_141933920` (monta o conjunto de entidades vizinhas em `+0x40`) e testa cada vizinha com `FUN_1408bc150(vizinha, entidade)`; **se todas passam**, escreve a mensagem "This face cannot be stretched." Ou seja: a recusa depende do conjunto de vizinhas da face, não da geometria da própria face. Semântica exata de `FUN_1408bc150` ainda não lida.
+
+## Entidade 0x12 = face (LIDA, 14/11/2026)
+`CFaceFinder` (vtable em 0x1420ac438; só o slot 4, `FUN_1408b1a60`, tem código próprio) recebe uma entidade, converte para `CEntity`, chama `vtable+0x98` e **só guarda se o código for 0x12**, inserindo-a numa lista ordenada de faces (`+0x98/+0xa0`). Logo **0x12 = `CFace`**, o mesmo código que o `CPushPullController` testa e que aparece nos tipos do `SUEntitiesErase` (REA da DLL, 13/11). 0x10 e 0x27 seguem sem confirmação direta (provável aresta e contêiner).
+
+## Método que funcionou e o que não rende
+- **Rende:** partir de uma *string de regra* (mensagem de erro, rótulo "Distance", nome de opção), pegar o `xrefs` e decompilar a função que a usa. Foi assim que saíram o rótulo do campo de valor e a regra "cannot be stretched".
+- **Não rende:** abrir um a um os slots da vtable de uma ferramenta. A maioria é getter/stub de 1 a 5 linhas (ex.: `FUN_140ca5500`), e cada chamada ao REA devolve ~8 KB de texto, o que esgota o contexto antes de achar a lógica de geometria. Próxima vez: usar `procedure_callees` da função de clique, ou `search_strings` por mensagens específicas de cada ferramenta (cursores `cursor_pushpull*`, "Distance", "Length", "Angle", textos de barra de status).
+
+## Limite do MCP e como destravar
+O MCP corta chamada sem resposta por **30 min** (`CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT`, padrão 1800 s) e a análise do `.exe` leva ~40 min. Contornei esperando o processo do Ghidra terminar (a sessão ficou pronta às 03:49). Para as próximas aberturas: reiniciar o Claude com `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT=0` (ou `"timeout"` no servidor `rea` do `.claude.json`) e `REA_GHIDRA_DISABLED_ANALYZERS` para pular os analisadores mais caros. A sessão atual só dura enquanto o processo do REA ficar vivo; o Windows não persiste a análise.
