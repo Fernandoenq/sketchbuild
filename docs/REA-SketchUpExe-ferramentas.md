@@ -156,3 +156,22 @@ A mensagem "Stretch would result in non-planar face" (0x142781dc0) tem uma só r
 - **`FUN_141949030` = teste de furos** (ev_fe61e01f…, emite "adjacent face has holes"). **LIDA:** percorre os laços da face vizinha; para cada laço com a marca `+0x38 == 0` (SUPOSTA: laço interno, não o externo), percorre os vértices e exige que `FUN_1408b8940(vértice) < 2` para todos. Se algum vértice de um laço interno tem contagem ≥ 2, devolve 0 e grava a mensagem "adjacent face has holes". Ou seja, **um furo na vizinha só é aceito se o contorno dele não for compartilhado com outras arestas/faces** (o sentido exato de `FUN_1408b8940`, provavelmente nº de arestas ou faces ligadas ao vértice, **não foi lido**). Chamada na entrada de `FUN_141947ce0` quando a vizinha tem 2 ou mais laços. O destino da mensagem (4º argumento) não ficou claro no decompilado; tratar como SUPOSTA a ligação mensagem→chamador.
 
 **Estado:** das cinco recusas do esticar, todas têm agora o ponto de código e as constantes conhecidas, menos o sentido de `FUN_1408b8940` e de `FUN_1406e4d40` (relação normal×direção). Isso é o que falta para escrever o modo esticar como funções puras com testes.
+
+## Primitivas do esticar fechadas (14/11, rodada 9)
+
+Três funções pequenas, lidas por inteiro. Selo **CONFIRMADA** (o código é a própria definição; sem execução do SketchUp):
+
+| Função | Definição lida | Evidence |
+|---|---|---|
+| `FUN_1406e4d40(a, b)` | `abs(a·b) < 0,001` → vetores **perpendiculares** (produto escalar quase zero) | ev_fcbb3ef9… |
+| `FUN_1406e4c80(a, b)` | `a == b` **ou** `a == -b`, componente a componente, com folga 0,001 → vetores **paralelos ou antiparalelos** (supõe unitários) | ev_021245c1… |
+| `FUN_1408b8940(vértice)` | tamanho de um anel circular ligado em `vértice+0x58` (conta os nós seguindo `+0x48` até voltar à cabeça; 0 se o ponteiro é nulo) | ev_add4b840… |
+
+**Efeitos nas regras do esticar:**
+- Passo 1 de `FUN_141947ce0`: a vizinha **passa direto quando a normal dela é perpendicular à direção do movimento** (a face só desliza no próprio plano). Fecha o ponto que estava em aberto.
+- "adjacent face has non-parallel edge": a comparação final é "paralelo ou antiparalelo" (sinal não importa).
+- Furos: a regra vira "todo vértice de laço interno da vizinha pertence a **menos de 2** elementos do anel `+0x58`". **SUPOSTA** a leitura de que o anel `+0x58` é o das "ocorrências do vértice em laços de faces" (então um furo só vale se seu contorno não é usado por outra face). O anel em si não foi identificado.
+
+**Ainda não lido** para fechar o modo esticar: `FUN_14193d030` e `FUN_14193d050` (o vetor de direção que sai dos vértices móveis e dos fixos), o movimento em si (`FUN_141941350`, `FUN_141942e90`) e a identidade do anel `+0x58`.
+
+**Decisão sobre o núcleo:** não implementei o modo esticar. Sem o movimento e sem os dois vetores acima, qualquer código seria invenção, e a regra do projeto é só entrar o que está confirmado. As três primitivas acima são triviais e ficam documentadas para quando o resto estiver lido.
