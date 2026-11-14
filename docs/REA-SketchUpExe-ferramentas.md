@@ -175,3 +175,17 @@ Três funções pequenas, lidas por inteiro. Selo **CONFIRMADA** (o código é a
 **Ainda não lido** para fechar o modo esticar: `FUN_14193d030` e `FUN_14193d050` (o vetor de direção que sai dos vértices móveis e dos fixos), o movimento em si (`FUN_141941350`, `FUN_141942e90`) e a identidade do anel `+0x58`.
 
 **Decisão sobre o núcleo:** não implementei o modo esticar. Sem o movimento e sem os dois vetores acima, qualquer código seria invenção, e a regra do projeto é só entrar o que está confirmado. As três primitivas acima são triviais e ficam documentadas para quando o resto estiver lido.
+
+## `FUN_14193d050`/`FUN_14193d030`: o teste "cadeia reta" do esticar (14/11, rodada 10)
+
+Lidas por inteiro (ev_f885d5b3…, ev_a68f81e6…). **LIDA:**
+- Os baldes M (vértices que se movem) e F (fixos) de `FUN_141947ce0` são **cadeias ordenadas de arestas** (vetor em `cadeia+0x8`, quantidade em `+0x14`, marca de validade em `+0x1c`; sem a marca, o teste falha).
+- `FUN_14193d050(cadeia, i0, i1, saída)` anda pelas arestas de `i0` a `i1`: pega a direção da primeira aresta (`FUN_1406eb3c0`, vetor entre os dois extremos, respeitando o sentido de percurso, que inverte conforme a aresta seguinte compartilha o extremo certo; `FUN_1408bda20` decide qual extremo) e exige que **cada aresta seguinte tenha a mesma direção** (`FUN_1406ecac0`). Qualquer divergência devolve 0.
+- `FUN_14193d030(cadeia, saída)` = `d050(cadeia, 0, n-1, saída)`: a cadeia **inteira**.
+
+**Regra resultante do esticar** (leitura; o passo da comparação de direção usa `FUN_1406e4c80`, paralelo ou antiparalelo, já confirmado):
+> Numa vizinha com vértices que se movem e **pelo menos 3 fixos**: **(a)** todas as arestas da cadeia M têm a mesma direção (M é um segmento reto); **(b)** as arestas **internas** de F (índices 1 a F-2, sem a primeira e a última) têm a mesma direção (F é reto no miolo); **(c)** as duas direções são paralelas ou antiparalelas. Se alguma falha: "adjacent face has non-parallel edge".
+
+Interpretação geométrica (**SUPOSTA**): é a condição para a vizinha continuar plana quando um lado dela é arrastado, esticando-se como um trapézio/paralelogramo: o lado que anda e o lado oposto que fica precisam ser paralelos.
+
+**Falta** para escrever o esticar: o movimento em si (`FUN_141941350`, `FUN_141942e90`) e `FUN_1408bda20` / `FUN_1406ecac0` (igualdade de direção e escolha do extremo), além da identidade do anel `+0x58`.
