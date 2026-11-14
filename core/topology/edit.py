@@ -206,7 +206,13 @@ def _apagar_aresta(t: Topology, e: int) -> None:
     if len(usos) == 2 and all(k == 0 for _, k in usos):
         f1, f2 = usos[0][0], usos[1][0]
         if f1 != f2 and abs(_dot(_unit(t.faces[f1].normal), _unit(t.faces[f2].normal))) >= 1 - 1e-9:
+            frente_b, verso_b = t.faces[f2].frente, t.faces[f2].verso
             t._merge_faces(f1, f2, a, b)
+            nova = t.faces[max(t.faces)]
+            # medido na SDK: a face que sobra fica com a frente da primeira criada, ou da outra se a primeira não tem
+            # material; o verso segue a mesma regra por analogia (NÃO medido)
+            nova.frente = nova.frente or frente_b
+            nova.verso = nova.verso or verso_b
             usos = []
     for fid, k in usos:
         if fid not in t.faces:
@@ -224,7 +230,8 @@ def apagar(t: Topology, arestas: Iterable[int] = (), faces: Iterable[int] = ()) 
 
     Aresta: regras de `_apagar_aresta` (conferidas na SDK). Se faz parte de uma curva (círculo, arco, Bézier, polígono, mão
     livre) a curva inteira vai junto: isso é comportamento da interface do SketchUp, não da SDK (que apaga só a aresta e
-    recusa apagar a curva como entidade). Face: só a face some, as arestas ficam."""
+    recusa apagar a curva como entidade). Face: a face some e as arestas ficam, EXCETO as suaves (bit 0x08) que ficam sem
+    nenhuma face: essas vão junto (lido no REA em `FUN_18045dad0`/`FUN_1801909a0` e medido na SDK)."""
     arestas, faces = list(dict.fromkeys(arestas)), list(dict.fromkeys(faces))
     faltam = [e for e in arestas if e not in t.edges] + [f for f in faces if f not in t.faces]
     if faltam:
@@ -236,8 +243,14 @@ def apagar(t: Topology, arestas: Iterable[int] = (), faces: Iterable[int] = ()) 
     for cid in [c for c, cv in t.curvas.items() if set(arestas) & set(cv["arestas"])]:
         alvo += [e for e in t.curvas[cid]["arestas"] if e not in alvo]
         del t.curvas[cid]
+    suaves = set()
     for fid in faces:
-        t.faces.pop(fid, None)
+        f = t.faces.pop(fid, None)
+        for lp in (f.loops() if f else ()):
+            for i, a in enumerate(lp):
+                b = lp[(i + 1) % len(lp)]
+                suaves |= {e for e, (x, y) in t.edges.items() if {x, y} == {a, b} and t.eflags.get(e, 0) & 0x08}
+    alvo += [e for e in suaves if e not in alvo and not _usos(t, *t.edges[e])]
     for e in alvo:
         if e in t.edges:  # a fusão de vértices pode já ter juntado esta aresta com a vizinha
             _apagar_aresta(t, e)

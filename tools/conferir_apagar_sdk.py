@@ -105,7 +105,7 @@ def _entidade_da_face(d, ents, vertices):
     raise AssertionError("face não existe")
 
 
-def apagar(verts, faces=(), arestas_soltas=(), alvos=(), arcos=()) -> dict:
+def apagar(verts, faces=(), arestas_soltas=(), alvos=(), arcos=(), suaves=False) -> dict:
     """Monta a geometria, apaga os `alvos` e devolve {"faces": set de frozenset(posições), "arestas": ..., "curvas": n}.
 
     verts: lista de pontos; faces: listas de índices ou {"outer", "holes"}; arestas_soltas: pares de índices;
@@ -161,6 +161,10 @@ def apagar(verts, faces=(), arestas_soltas=(), alvos=(), arcos=()) -> dict:
                                           ctypes.byref(_vec(SUPoint3D, f)), ctypes.byref(_vec(SUVector3D, n)), k) == 0
                 assert d.SUEntitiesAddArcCurves(ents, 1, (_Ref * 1)(arco)) == 0
                 arco_refs.append(arco)
+        if suaves:  # todas as arestas suaves (SUEdgeSetSoft) antes de apagar
+            d.SUEdgeSetSoft.argtypes = [_Ref, ctypes.c_bool]
+            for e in _lista(d, ents, "SUEntitiesGetNumEdges", "SUEntitiesGetEdges"):
+                assert d.SUEdgeSetSoft(e, True) == 0
         inicial = {"faces": set(_faces(d, ents)), "arestas": set(_arestas(d, ents)), "curvas": _curvas(d, ents)}
         refs = []
         for alvo in alvos:

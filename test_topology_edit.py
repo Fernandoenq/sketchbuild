@@ -138,6 +138,20 @@ class TestApagar(unittest.TestCase):
         apagar(t, arestas=[e])
         self.assertEqual((len(t.faces), len(t.edges)), (4, 11))  # SDK: 6f/12a -> 4f/11a
 
+    def _dois_quadrados(self, mat_a, mat_b):
+        t = Topology()
+        f1 = t.add_face([(0, 0, 0), (10, 0, 0), (10, 10, 0), (0, 10, 0)])
+        f2 = t.add_face([(10, 0, 0), (20, 0, 0), (20, 10, 0), (10, 10, 0)])
+        t.faces[f1].frente, t.faces[f2].frente = mat_a, mat_b
+        comum = next(e for e, (a, b) in t.edges.items() if {t.verts[a], t.verts[b]} == {(10, 0, 0), (10, 10, 0)})
+        return t, comum
+
+    def test_fusao_fica_com_o_material_da_primeira_criada(self):
+        for a, b, esperado in (("A", "B", "A"), (None, "B", "B"), ("A", None, "A")):  # SDK: ver docs/PLANO-DE-ACAO.md
+            t, comum = self._dois_quadrados(a, b)
+            apagar(t, arestas=[comum])
+            self.assertEqual([f.frente for f in t.faces.values()], [esperado])
+
     def test_face_apagada_deixa_as_arestas(self):
         t = cubo()
         apagar(t, faces=[next(iter(t.faces))])

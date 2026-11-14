@@ -69,6 +69,15 @@ def _face_do_nucleo(t, vertices):
     raise AssertionError("face não existe no núcleo")
 
 
+# apagar face leva as arestas SUAVES que ficam sem face (REA FUN_18045dad0 + FUN_1801909a0; medido na SDK)
+CASOS_SUAVES = {
+    "quadrado_face_suave": (_Q, [[0, 1, 2, 3]], [], [("face", _Q)]),
+    "dois_quadrados_face_suave": ([(0, 0, 0), (10, 0, 0), (20, 0, 0), (20, 10, 0), (10, 10, 0), (0, 10, 0)],
+                                  [[0, 1, 4, 5], [1, 2, 3, 4]], [], [("face", [(0, 0, 0), (10, 0, 0), (10, 10, 0), (0, 10, 0)])]),
+    "cubo_face_suave": (_CUBO_V, _CUBO_F, [], [("face", _CUBO_V[4:8])]),
+}
+
+
 @unittest.skipUnless(DISPONIVEL, "SketchUpAPI.dll / Python 3.12 indisponível")
 class TestApagarContraASdk(unittest.TestCase):
     def test_bate_com_a_sdk(self):
@@ -85,6 +94,20 @@ class TestApagarContraASdk(unittest.TestCase):
                 arestas = [_aresta_do_nucleo(t, a[1], a[2]) for a in alvos if a[0] == "aresta"]
                 faces_alvo = [_face_do_nucleo(t, a[1]) for a in alvos if a[0] == "face"]
                 apagar(t, arestas=arestas, faces=faces_alvo)
+                faces_n, arestas_n = _foto(t)
+                self.assertEqual(arestas_n, sdk["arestas"], "arestas")
+                self.assertEqual(faces_n, sdk["faces"], "faces")
+
+    def test_face_leva_arestas_suaves_sem_face(self):
+        from core.topology.soften import definir
+        for nome, (verts, faces, soltas, alvos) in CASOS_SUAVES.items():
+            with self.subTest(nome):
+                sdk = oraculo.apagar(verts, faces, soltas, alvos, suaves=True)
+                t = Topology()
+                for f in faces:
+                    t.add_face([verts[i] for i in f])
+                definir(t, list(t.edges), suave=True, lisa=False)
+                apagar(t, faces=[_face_do_nucleo(t, a[1]) for a in alvos])
                 faces_n, arestas_n = _foto(t)
                 self.assertEqual(arestas_n, sdk["arestas"], "arestas")
                 self.assertEqual(faces_n, sdk["faces"], "faces")
