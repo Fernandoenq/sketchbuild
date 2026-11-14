@@ -174,7 +174,8 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     };
     const recolher = document.createElement("button");
     recolher.className = "toolbar-btn mod-btn";
-    recolher.textContent = "Painel de modelagem ▾";
+    painel.classList.add("fechado"); // começa escondido; o botão abre
+    recolher.textContent = "Painel de modelagem ▸";
     recolher.title = "Mostra ou esconde o painel de controles da modelagem";
     recolher.addEventListener("click", () => {
       const fechado = painel.classList.toggle("fechado");
