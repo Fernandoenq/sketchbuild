@@ -30,6 +30,20 @@ const FERRAMENTAS = [
   ["pushpull", "Empurrar/Puxar (modelagem)", '<rect x="4" y="10" width="16" height="10"/><path d="M12 2v8M9 5l3-3 3 3"/>'],
 ];
 
+// Grupos de ferramentas com seta (como a barra do SketchUp): um botão mostra a última escolhida e a seta abre as opções.
+const GRUPOS = [
+  {
+    nome: "Arcos",
+    itens: [
+      ["arco", "Arco"],
+      ["arco_corda", "Arco de 2 pontos"],
+      ["arco_3pontos", "Arco de 3 pontos"],
+      ["setor", "Pizza"],
+    ],
+  },
+];
+const GRUPO_DE = new Map(GRUPOS.flatMap((g) => g.itens.map(([id]) => [id, g])));
+
 const DICA = {
   linha: "Linha: clique os pontos. Enter, duplo clique ou Esc termina.",
   retangulo: "Retângulo: clique no primeiro canto e no canto oposto.",
@@ -75,16 +89,24 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   // -- barra de ferramentas --------------------------------------------------
   const barra = document.getElementById("tools-toolbar");
   const botoes = new Map();
+  const principais = [];
   if (barra) {
     const g = document.createElement("div");
     g.className = "toolbar-group";
     g.title = "Modelagem sobre o núcleo de topologia (F2)";
+    const icone = (svg) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${svg}</svg>`;
+    const dados = new Map(FERRAMENTAS.map(([id, titulo, svg]) => [id, { titulo, svg }]));
     for (const [id, titulo, svg] of FERRAMENTAS) {
+      const grupoDe = GRUPO_DE.get(id);
+      if (grupoDe) {
+        if (id === grupoDe.itens[0][0]) g.appendChild(criarGrupo(grupoDe, dados, icone));
+        continue;
+      }
       const b = document.createElement("button");
       b.className = "toolbar-btn tool-icon-btn";
       b.title = titulo;
       b.setAttribute("aria-label", titulo);
-      b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">${svg}</svg>`;
+      b.innerHTML = icone(svg);
       b.addEventListener("click", () => ativar(id));
       botoes.set(id, b);
       g.appendChild(b);
@@ -680,10 +702,74 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     sincronizar();
   }
 
+  // Botão com seta: o botão principal ativa a última ferramenta usada do grupo; a seta abre a lista.
+  function criarGrupo(grupo, dados, icone) {
+    const caixa = document.createElement("div");
+    caixa.className = "tool-group-split";
+    const principal = document.createElement("button");
+    principal.className = "toolbar-btn tool-icon-btn tool-group-main";
+    const seta = document.createElement("button");
+    seta.className = "toolbar-btn tool-group-arrow";
+    seta.textContent = "\u25BE";
+    seta.title = `${grupo.nome}: escolher a ferramenta`;
+    seta.setAttribute("aria-label", seta.title);
+    seta.setAttribute("aria-haspopup", "true");
+    const lista = document.createElement("div");
+    lista.className = "tool-group-menu";
+    lista.hidden = true;
+    let atual = grupo.itens[0][0];
+    const mostrar = (id) => {
+      atual = id;
+      const d = dados.get(id);
+      principal.innerHTML = icone(d.svg);
+      principal.title = d.titulo;
+      principal.setAttribute("aria-label", d.titulo);
+    };
+    mostrar(atual);
+    const fechar = () => {
+      lista.hidden = true;
+    };
+    for (const [id, rotulo] of grupo.itens) {
+      const item = document.createElement("button");
+      item.className = "tool-group-item";
+      item.innerHTML = `${icone(dados.get(id).svg)}<span>${rotulo}</span>`;
+      item.title = DICA[id];
+      item.addEventListener("click", () => {
+        fechar();
+        mostrar(id);
+        ativar(id);
+      });
+      botoes.set(id, item);
+      lista.appendChild(item);
+    }
+    principal.addEventListener("click", () => ativar(atual));
+    seta.addEventListener("click", (e) => {
+      e.stopPropagation();
+      lista.hidden = !lista.hidden;
+      if (!lista.hidden) {  // fixo: a barra tem overflow e cortaria um menu absoluto
+        const r = principal.getBoundingClientRect();
+        lista.style.left = `${r.left}px`;
+        lista.style.top = `${r.bottom + 2}px`;
+      }
+    });
+    document.addEventListener("click", fechar);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") fechar();
+    });
+    principais.push({ grupo, principal, mostrar });
+    caixa.append(principal, seta, lista);
+    return caixa;
+  }
+
   function sincronizar() {
     const viva = getToolMode() === "modelar";
     if (!viva && (pontos.length || livre)) terminar();
     for (const [id, b] of botoes) b.classList.toggle("active", viva && id === ferramenta);
+    for (const { grupo, principal, mostrar } of principais) {
+      const dele = viva && grupo.itens.some(([id]) => id === ferramenta);
+      if (dele) mostrar(ferramenta);
+      principal.classList.toggle("active", dele);
+    }
   }
   setInterval(sincronizar, 300);
 

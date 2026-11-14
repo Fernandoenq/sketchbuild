@@ -78,6 +78,24 @@
       border-right: 1px solid var(--border);
     }
     .toolbar-group:last-child { border-right: none; }
+    .tool-group-split { position: relative; display: flex; align-items: center; }
+    .tool-group-arrow {
+      width: 12px; font-size: 10px; padding: 0; margin-left: -2px; color: var(--text);
+    }
+    .tool-group-arrow:hover { background: var(--hover, rgba(0,0,0,.08)); }
+    .tool-group-menu {
+      position: fixed; z-index: 60; min-width: 170px;
+      background: var(--toolbar); border: 1px solid var(--border); border-radius: 3px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.25); padding: 2px; display: flex; flex-direction: column;
+    }
+    .tool-group-menu[hidden] { display: none; }
+    .tool-group-item {
+      display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; background: transparent;
+      border: 1px solid transparent; border-radius: 3px; color: var(--text); cursor: pointer; text-align: left;
+    }
+    .tool-group-item svg { width: 20px; height: 20px; flex: none; stroke-width: 1.6; }
+    .tool-group-item:hover { background: var(--hover, rgba(0,0,0,.08)); }
+    .tool-group-item.active { background: var(--active, rgba(60,120,220,.25)); border-color: var(--accent, #3c78dc); }
     .toolbar-btn {
       width: 30px; height: 28px; background: transparent; border: 1px solid transparent;
       border-radius: 3px; display: flex; align-items: center; justify-content: center;
