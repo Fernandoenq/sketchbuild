@@ -96,7 +96,7 @@ Contexto: a `SketchUpAPI.dll` (já aberta no REA, 65.823 procedimentos) só tem 
 
 ## 8.1 Regras de segurança da execução sem supervisão
 1. **Não tocar no servidor em uso** (porta 8000) nem clicar em nada contra backend compartilhado. Verificações só por scripts isolados (`tools/conferir_*_sdk.py` em processo próprio, Python 3.12) e `pytest`.
-2. **Não mexer no repo do 3D Parkelô** durante a noite. A sincronização é de manhã, com `tools/sincronizar_do_sketchbuild.py`.
+2. **Não modificar nada no 3D Parkelô** (ordem do Fernando, 14/11): nem arquivos, nem branch, nem push, nem servidor 8011. Tudo desta noite fica só no `sketchup_companion`. Sincronizar com o Parkelô só quando o Fernando pedir.
 3. **Só implementar no núcleo regra marcada CONFIRMADA** (SDK) ou regra de interface sem efeito na geometria (modificadores, campo de valor, estados, dicas). Regra só LIDA no REA ou SUPOSTA vai para a lista de pendências do relatório, sem código.
 4. **Um commit por bloco**, com push só no repo do SketchBuild. Sem assinatura do Claude.
 5. **Sem laço de tentativa**: mesma falha 3 vezes → registrar, pular para a próxima ferramenta.
