@@ -55,3 +55,9 @@ Algoritmos que interessam ao plano:
 
 ## Limite do MCP e como destravar
 O MCP corta chamada sem resposta por **30 min** (`CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT`, padrão 1800 s) e a análise do `.exe` leva ~40 min. Contornei esperando o processo do Ghidra terminar (a sessão ficou pronta às 03:49). Para as próximas aberturas: reiniciar o Claude com `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT=0` (ou `"timeout"` no servidor `rea` do `.claude.json`) e `REA_GHIDRA_DISABLED_ANALYZERS` para pular os analisadores mais caros. A sessão atual só dura enquanto o processo do REA ficar vivo; o Windows não persiste a análise.
+
+## Empurrar/Puxar: a mensagem "curved or smoothed" (14/11, rodada 2)
+
+- **LIDA** (ev_b896d782…, ev_bf94ebee…): a string "Cannot Push/Pull curved or smoothed surfaces" (0x1420db090) tem uma única referência, em `FUN_140ca4370` (0x140ca4370), que é o **construtor** de `CPushPullTool` (grava a vtable, zera ~0x30 campos e guarda a mensagem num membro, `this+0xf8`, via `FUN_1406bfb10`).
+- Conclusão: a mensagem é só texto guardado na criação. O teste de "curva/suavizada" fica em outro método, que lê esse membro. Nenhuma regra geométrica foi extraída; nada entra no núcleo.
+- Próximo passo: achar os leitores do campo `this+0xf8` (métodos de `CPushPullTool` na vtable) e decompilar o que chama `FUN_1408bc150`. Fazer na próxima sessão, com `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT=0`.
