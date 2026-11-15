@@ -821,7 +821,11 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   // ponto fixo, o segmento que sai dele gruda no eixo quando está quase nele; segurar Shift mantém a direção que estava
   // inferida (como o SketchUp). Só vale nas ferramentas de direção livre.
   const COM_EIXO = new Set(["linha", "retangulo_rotacionado", "arco_corda", "arco_3pontos", "bezier"]);
-  const EIXOS = { x: { dir: new THREE.Vector3(1, 0, 0), cor: 0xcc2222 }, z: { dir: new THREE.Vector3(0, 0, 1), cor: 0x22aa22 } };
+  const EIXOS = {
+    x: { dir: new THREE.Vector3(1, 0, 0), cor: 0xcc2222 }, // vermelho
+    z: { dir: new THREE.Vector3(0, 0, 1), cor: 0x22aa22 }, // verde (y do SketchUp)
+    y: { dir: new THREE.Vector3(0, 1, 0), cor: 0x2255ff }, // azul (z do SketchUp)
+  };
   let eixoInferido = null; // "x" | "z" | null na última posição do mouse
   let eixoTravado = null; // fixado ao apertar Shift
   const COR_PREVIA = 0x2255cc;
@@ -901,6 +905,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     previa.material.color.setHex(COR_PREVIA);
     if (!pontos.length || !COM_EIXO.has(ferramenta)) return p;
     const base = pontos[pontos.length - 1];
+    if (ferramenta === "linha") return pontoNosEixos(p, base, event);
     const dx = p.x - base.x;
     const dz = p.z - base.z;
     const comp = Math.hypot(dx, dz);
@@ -914,6 +919,41 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     eixoInferido = candidato;
     previa.material.color.setHex(cor);
     return q;
+  }
+
+  // Linha: inferência nos três eixos (vermelho, verde, azul), nos dois sentidos, a partir do último ponto. Regra lida em
+  // FUN_140b36930 (motor de inferência, ev_a6264655…): cada candidato é uma reta pela origem; acha-se o ponto da reta mais
+  // perto do raio do mouse (FUN_1406eb670) e vale o candidato que fica perto do cursor na tela (FUN_140b465d0). A
+  // tolerância em pixels real vem de DAT_142c469c8 (não lida); aqui vale o mesmo SNAP_PX do encaixe de pontos.
+  // Pontos final e médio ganham da inferência de eixo (o motor tenta o encaixe de pontos primeiro).
+  function pontoNosEixos(p, base, event) {
+    const tipo = inferencia?.tipo;
+    const travado = event.shiftKey && eixoTravado;
+    if ((tipo === "final" || tipo === "medio" || tipo === "aresta") && !travado) return p;
+    const r = renderer.domElement.getBoundingClientRect();
+    const mx = event.clientX - r.left;
+    const my = event.clientY - r.top;
+    const o = ray.ray.origin;
+    const rd = ray.ray.direction;
+    let melhor = null;
+    for (const [nome, { dir }] of Object.entries(EIXOS)) {
+      if (travado && nome !== travado) continue;
+      // ponto da reta (base + t dir) mais perto do raio (o + s rd)
+      const w = base.clone().sub(o);
+      const b = dir.dot(rd);
+      const den = 1 - b * b;
+      if (den < 1e-9) continue; // reta paralela ao raio
+      const t = (b * rd.dot(w) - dir.dot(w)) / den;
+      const q = base.clone().addScaledVector(dir, t);
+      if (rd.dot(q.clone().sub(o)) <= 0) continue; // atrás da câmera
+      const sc = q.clone().project(camera);
+      const d = Math.hypot((sc.x + 1) / 2 * r.width - mx, (1 - sc.y) / 2 * r.height - my);
+      if (travado || (d < SNAP_PX && (!melhor || d < melhor.d))) melhor = { nome, q, d };
+    }
+    if (!melhor) return p;
+    eixoInferido = melhor.nome;
+    previa.material.color.setHex(EIXOS[melhor.nome].cor);
+    return melhor.q;
   }
 
   // Inferências de ponto, como no SketchUp (o quadrado colorido que aparece na ponta do cursor):

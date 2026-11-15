@@ -51,3 +51,11 @@ Há um ramo próprio quando as duas inferências têm uma face em comum (`FUN_14
 A criação (`FUN_140cb3e30`, nome da operação "Rectangle") projeta o ponto final em dois planos que passam pela origem (`+0x150` e `+0x170`, os dois eixos no plano), exatamente o que `cantosRetangulo` faz. Fica **fora** o ramo de `FUN_140cb4bd0` e o ramo de face inclinada.
 
 Implementado em `frontend/src/modelagem.js` (`trocarPlanoPeloAlvo`), substituindo a heurística anterior.
+
+## Linha: inferência nos três eixos — LIDA (parcial)
+
+Motor de inferência `FUN_140b31eb0` (ev_7ebd3bc2…), chamado a cada movimento com a origem por `FUN_140b35750`. Ordem lida: encaixe de pontos (vértice, médio) → retas candidatas (`FUN_140b36930`, ev_a6264655…) → ramos de face e chão.
+
+`FUN_140b36930` percorre a lista de retas candidatas a partir da origem (`+0x4d8`, 0x58 bytes cada; tipo em `+0x40`: 5 aresta, 6 face, 8 eixo, 0xb ponto de curva). Para cada uma acha o ponto da reta mais perto do raio do mouse (`FUN_1406eb670`) e testa se está perto do cursor na tela (`FUN_140b465d0`); acha → inferência "On Red/Green/Blue Axis" (strings `0x1420c1d60/70/80`), "Parallel/Perpendicular to Edge", "From Point". O resultado é esse ponto sobre a reta (não a projeção no chão).
+
+Implementado em `modelagem.js` (`pontoNosEixos`): as três retas dos eixos, nos dois sentidos, para a ferramenta Linha; Shift trava o eixo. **Não lido:** quem monta a lista (`+0x4d8`) e a tolerância em pixels (`DAT_142c469c8`); usei `SNAP_PX`. Paralelo/perpendicular a aresta (magenta) e "From Point" ainda não existem. Os "45°" que aparecem no SketchUp não vieram desta regra; ver pendências.
