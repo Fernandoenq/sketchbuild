@@ -59,3 +59,14 @@ Motor de inferência `FUN_140b31eb0` (ev_7ebd3bc2…), chamado a cada movimento 
 `FUN_140b36930` percorre a lista de retas candidatas a partir da origem (`+0x4d8`, 0x58 bytes cada; tipo em `+0x40`: 5 aresta, 6 face, 8 eixo, 0xb ponto de curva). Para cada uma acha o ponto da reta mais perto do raio do mouse (`FUN_1406eb670`) e testa se está perto do cursor na tela (`FUN_140b465d0`); acha → inferência "On Red/Green/Blue Axis" (strings `0x1420c1d60/70/80`), "Parallel/Perpendicular to Edge", "From Point". O resultado é esse ponto sobre a reta (não a projeção no chão).
 
 Implementado em `modelagem.js` (`pontoNosEixos`): as três retas dos eixos, nos dois sentidos, para a ferramenta Linha; Shift trava o eixo. **Não lido:** quem monta a lista (`+0x4d8`) e a tolerância em pixels (`DAT_142c469c8`); usei `SNAP_PX`. Paralelo/perpendicular a aresta (magenta) e "From Point" ainda não existem. Os "45°" que aparecem no SketchUp não vieram desta regra; ver pendências.
+
+## Linha: uso completo da ferramenta (CSketchTool) — LIDA
+
+Vtable do `CSketchTool` em `0x1420dbf80` (COL `0x1428199f0`). Os métodos próprios da Linha são poucos; o resto é a base compartilhada (`FUN_140cd5450` movimento, `FUN_140cd59b0`/`FUN_140cd50e0` botões).
+
+- **Criação** (`FUN_140cbbd50`, ev_5c484cc7…, operação "Draw Line"): se cada eixo e a distância entre início e fim ficam abaixo de 0,001 pol, **não cria aresta** (encerra). Cria ou reaproveita o vértice de cada ponta (`FUN_14193a090`), procura aresta já existente entre os dois (`FUN_1408b5e50`) e só cria se não houver (`FUN_140cbb550`). Depois a ponta final vira o início do próximo segmento (`+0x16`).
+- **Fim do encadeamento** (retorno do mesmo método): 0 quando a aresta já existia ou ficou ligada a uma face (laço fechado); 1 caso contrário, se a preferência `DAT_142e726b5` estiver ligada (assumida ligada). A leitura do retorno como "continua/encerra" é SUPOSTA.
+- **Alt** (`FUN_140cbc920`, só ao soltar a tecla `0x12`): alterna `+0x1a8` 0 → 2 → 1 → 0 e grava máscara em `ctx+0x628` (`|0xf` no modo 1, `|0x7f` no modo 2). Rótulos (`FUN_140cbb650`): "Toggle Linear Inferences" com "All On" (0), "Parallel/Perpendicular Only" (1), "All Off" (2).
+- **Barra de status**: "Click to set first endpoint." e "Click to set second endpoint or enter length."; campo de valor "Length" (`FUN_140cbb910`).
+
+Implementado em `modelagem.js`: comprimento nulo encerra sem criar; laço fechado ou aresta repetida encerra o encadeamento; Alt alterna o modo (modos 1 e 2 desligam os eixos, pois paralelo/perpendicular ainda não existe). **Ainda não lido:** quais bits de `0x628` desligam o quê, entrada de comprimento digitado (`+0x270`), travamento por setas na Linha.

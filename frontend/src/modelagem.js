@@ -828,11 +828,25 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
   };
   let eixoInferido = null; // "x" | "z" | null na última posição do mouse
   let eixoTravado = null; // fixado ao apertar Shift
+  let modoLinear = 0; // Alt na Linha (FUN_140cbc920): 0 tudo ligado, 2 tudo desligado, 1 só paralelo/perpendicular
   const COR_PREVIA = 0x2255cc;
   window.addEventListener(
     "keydown",
     (e) => {
       if (e.key === "Shift" && !e.repeat && eixoInferido && pontos.length) eixoTravado = eixoInferido;
+      if (e.key === "Alt" && getToolMode() === "modelar" && ferramenta === "linha") e.preventDefault(); // não deixa o navegador focar o menu
+    },
+    true
+  );
+  window.addEventListener(
+    "keyup",
+    (e) => {
+      // FUN_140cbc920 (só ao soltar a tecla 0x12, Alt): alterna 0 -> 2 -> 1 -> 0; barra de status mostra o modo (FUN_140cbb650)
+      if (e.key !== "Alt" || getToolMode() !== "modelar" || ferramenta !== "linha") return;
+      modoLinear = modoLinear === 0 ? 2 : modoLinear === 2 ? 1 : 0;
+      const nome = ["Tudo ligado", null, "Tudo desligado", ][modoLinear] ?? "Só paralelo/perpendicular";
+      setStatus(`Alt = Alternar inferências lineares (${nome}).`);
+      e.preventDefault();
     },
     true
   );
@@ -930,6 +944,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     const tipo = inferencia?.tipo;
     const travado = event.shiftKey && eixoTravado;
     if ((tipo === "final" || tipo === "medio" || tipo === "aresta") && !travado) return p;
+    if (modoLinear !== 0 && !travado) return p; // modo 1 (só paralelo/perpendicular) também desliga os eixos: paralelo/perpendicular ainda não existe
     const r = renderer.domElement.getBoundingClientRect();
     const mx = event.clientX - r.left;
     const my = event.clientY - r.top;
@@ -1089,8 +1104,10 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       aplicar(r);
       const c = r.counts;
       setStatus(`${c.vertices} vértices, ${c.edges} arestas, ${c.faces} faces.`);
+      return r;
     } catch (err) {
       setStatus(`Erro ao desenhar: ${err?.message ?? err}`, true);
+      return null;
     }
   }
 
@@ -1436,7 +1453,22 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
       return;
     }
     if (ferramenta === "linha") {
-      if (pontos.length) await enviar({ ferramenta: "linha", pontos: [toSku(pontos[pontos.length - 1]), toSku(p)] });
+      if (pontos.length) {
+        const a = toSku(pontos[pontos.length - 1]);
+        const b = toSku(p);
+        // FUN_140cbbd50: comprimento nulo (cada eixo e a distância abaixo de 0,001 pol) não cria aresta e encerra o encadeamento
+        if (a.every((c, i) => Math.abs(c - b[i]) < 0.001) && Math.hypot(...a.map((c, i) => c - b[i])) < 0.001) {
+          terminar();
+          return;
+        }
+        const antes = { arestas: estado.edges.size, faces: estado.faces.size };
+        const r = await enviar({ ferramenta: "linha", pontos: [a, b] });
+        // o retorno do mesmo método encerra o encadeamento quando a aresta já existia ou fechou um laço (SUPOSTO: leitura do retorno)
+        if (r && (estado.faces.size > antes.faces || estado.edges.size === antes.arestas)) {
+          terminar();
+          return;
+        }
+      }
       pontos.push(p);
       return;
     }
