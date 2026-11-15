@@ -236,7 +236,7 @@ import { buildOutlinerTree } from "./outliner.js";
 import { renderRecentFiles, renderAutosaveDrafts } from "./welcome.js";
 import { InferenceEngine } from "./inferenceEngine.js?v=20261102_07";
 import { iniciarFerramentas } from "./ferramentas.js";
-import { iniciarModelagem } from "./modelagem.js?v=20261114_02";
+import { iniciarModelagem } from "./modelagem.js?v=20261114_03";
 import { agruparBarraAntiga } from "./grupos_barra.js";
 
 function sendBrowserLog(type, msg, extra = {}) {

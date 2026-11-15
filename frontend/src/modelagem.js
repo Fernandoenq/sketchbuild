@@ -905,6 +905,15 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     const nx = ((event.clientX - r.left) / r.width) * 2 - 1;
     const ny = -((event.clientY - r.top) / r.height) * 2 + 1;
     ray.setFromCamera({ x: nx, y: ny }, camera);
+    // a face sob o mouse define o plano do Retângulo mesmo quando o cursor está encaixado num vértice ou aresta dela
+    const hit = ray.intersectObjects(grupo.children.filter((o) => o.isMesh), false)[0];
+    if (hit) {
+      const pos = hit.object.geometry.getAttribute("position");
+      const vert = (i) => new THREE.Vector3().fromBufferAttribute(pos, i);
+      const a0 = vert(hit.face.a);
+      const nn = vert(hit.face.b).sub(a0).cross(vert(hit.face.c).sub(a0)).normalize();
+      faceSob = [nn.x, -nn.z, nn.y];
+    }
     const px = (w) => {
       const s = w.clone().project(camera);
       return Math.hypot(((s.x - nx) * r.width) / 2, ((s.y - ny) * r.height) / 2);
@@ -954,15 +963,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     }
     if (med) return achou("medio", med);
     if (sobre) return achou("aresta", sobre);
-    const hit = ray.intersectObjects(grupo.children.filter((o) => o.isMesh), false)[0];
-    if (hit) {
-      const pos = hit.object.geometry.getAttribute("position");
-      const vert = (i) => new THREE.Vector3().fromBufferAttribute(pos, i);
-      const a0 = vert(hit.face.a);
-      const nn = vert(hit.face.b).sub(a0).cross(vert(hit.face.c).sub(a0)).normalize();
-      faceSob = [nn.x, -nn.z, nn.y];
-      return achou("face", hit.point.clone());
-    }
+    if (hit) return achou("face", hit.point.clone());
     if (ferramenta === "retangulo" && !pontos.length) {
       // espaço vazio: plano automático da câmera; se não for o chão, o ponto cai no plano vertical que passa pela origem
       const n = planoForcado ?? planoAutomatico(dirCameraSku());
