@@ -865,19 +865,27 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     return v;
   }
 
-  // Troca automática do plano (heurística nossa, não lida no SketchUp.exe): com o mouse num ponto de um objeto, o retângulo
-  // fica no plano alinhado aos eixos que contém a origem e esse ponto, ou seja, o de normal no eixo em que o deslocamento é
-  // menor. Alvo acima ou abaixo da origem vira plano em pé; alvo na altura da origem fica no chão. As setas sobrepõem.
+  // Troca automática do plano do Retângulo, regra lida em FUN_140cb28a0 (CRectangleTool, ev_5360933d…): a cada movimento,
+  // com a origem e o ponto sob o mouse (a inferência), o plano é o primeiro dos três planos dos eixos, passando pela origem,
+  // que contém esse ponto (folga 0,001 pol): chão (normal z), depois normal y, depois normal x. Se nenhum contém, o plano
+  // é o vertical que passa pela origem e pelo ponto (normal = z x deslocamento). Com travamento por seta não roda.
+  // Plano vindo de uma face (1º clique) é mantido enquanto o ponto continua nele (no SketchUp há um ramo próprio para a face).
+  const TOL_PLANO = 0.001;
   function trocarPlanoPeloAlvo(p) {
     const o = planoDesenho.o;
     const d = vetSku(p).map((c, i) => c - o[i]);
-    const tam = Math.hypot(d[0], d[1], d[2]);
-    if (tam < 1e-6) return;
-    const eixo = [0, 1, 2].reduce((m, i) => (Math.abs(d[i]) < Math.abs(d[m]) - 1e-9 ? i : m), 2);
-    let n = [0, 0, 0];
-    n[eixo] = 1;
-    if (eixo !== 2) n = normalParaCamera(n, dirCameraSku());
-    if (n.every((c, i) => c === planoDesenho.n[i])) return;
+    if (planoDesenho.deFace && Math.abs(d[0] * planoDesenho.n[0] + d[1] * planoDesenho.n[1] + d[2] * planoDesenho.n[2]) < TOL_PLANO) return;
+    let n;
+    if (Math.abs(d[2]) < TOL_PLANO) n = [0, 0, 1];
+    else if (Math.abs(d[1]) < TOL_PLANO) n = [0, 1, 0];
+    else if (Math.abs(d[0]) < TOL_PLANO) n = [1, 0, 0];
+    else {
+      n = [-d[1], d[0], 0]; // z x d
+      const t = Math.hypot(n[0], n[1]);
+      n = [n[0] / t, n[1] / t, 0];
+    }
+    if (n[2] !== 1) n = normalParaCamera(n, dirCameraSku());
+    if (n.every((c, k) => Math.abs(c - planoDesenho.n[k]) < 1e-9)) return;
     planoDesenho = { n, o };
     setStatus(`Retângulo no plano ${nomeDoPlano(n)}.`);
   }
@@ -1444,7 +1452,7 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     const dir = dirCameraSku();
     let n = planoForcado ?? faceSob ?? planoAutomatico(dir);
     if ((faceSob && !planoForcado) || n[2] !== 1) n = normalParaCamera(n, dir);
-    planoDesenho = { n, o: vetSku(p) };
+    planoDesenho = { n, o: vetSku(p), deFace: !planoForcado && !!faceSob };
     setStatus(`Retângulo no plano ${nomeDoPlano(n)}.`);
   }
 

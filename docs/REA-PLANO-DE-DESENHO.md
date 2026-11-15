@@ -36,3 +36,18 @@ Depois do 1º clique o 2º canto fica no plano fixado: pontos encaixados são pr
 ## Testes
 
 `node --test frontend/src/planoDesenho.test.mjs`: 12 testes (limiar de 10°, desempate, câmera de cima/inclinada/horizontal, cantos idênticos aos do núcleo Python, interseção raio-plano, projeção). **A integração na tela (cliques e prévia no navegador) não foi testada**: depende de abrir o app e clicar, e ficou para Fernando validar.
+
+## Troca automática do plano depois do 1º clique (CRectangleTool) — LIDA
+
+Vtable do `CRectangleTool` em `0x1420db748` (COL em `0x142819840`). O movimento do mouse (slot 14, `FUN_140cb6ee0` → `FUN_140cd5450`) roda a inferência com o ponto de origem (`FUN_140b35750`) e, a cada movimento sem travamento por seta (`+0x4c == 0`, `+0x4a == 0`, `+0x111 == 0`), chama **`FUN_140cb28a0`** (ev_5360933d…), que escolhe o plano do retângulo. Com a inferência de origem (`+0xb0`) e a do ponto atual (`+0xd0`), sem face comum às duas:
+
+1. Se o ponto atual está a menos de 0,001 pol do plano **de normal z** que passa pela origem: chão.
+2. Senão, se está no plano de **normal y** pela origem: plano vermelho-azul.
+3. Senão, se está no plano de **normal x** pela origem: plano verde-azul.
+4. Senão, (após tentar `FUN_140cb4bd0`, regra por arestas/faces ainda **não lida**) o plano é o **vertical que contém a origem e o ponto**: normal = z × (ponto − origem).
+
+Há um ramo próprio quando as duas inferências têm uma face em comum (`FUN_140cb44b0`): os eixos seguem a face. Só o caso da face paralela ao plano já escolhido foi aproximado (mantém o plano da face enquanto o ponto está nele).
+
+A criação (`FUN_140cb3e30`, nome da operação "Rectangle") projeta o ponto final em dois planos que passam pela origem (`+0x150` e `+0x170`, os dois eixos no plano), exatamente o que `cantosRetangulo` faz. Fica **fora** o ramo de `FUN_140cb4bd0` e o ramo de face inclinada.
+
+Implementado em `frontend/src/modelagem.js` (`trocarPlanoPeloAlvo`), substituindo a heurística anterior.
