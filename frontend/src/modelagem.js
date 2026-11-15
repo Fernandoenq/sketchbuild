@@ -865,10 +865,30 @@ export function iniciarModelagem({ scene, camera, renderer, getToolMode, setTool
     return v;
   }
 
+  // Troca automática do plano (heurística nossa, não lida no SketchUp.exe): com o mouse num ponto de um objeto, o retângulo
+  // fica no plano alinhado aos eixos que contém a origem e esse ponto, ou seja, o de normal no eixo em que o deslocamento é
+  // menor. Alvo acima ou abaixo da origem vira plano em pé; alvo na altura da origem fica no chão. As setas sobrepõem.
+  function trocarPlanoPeloAlvo(p) {
+    const o = planoDesenho.o;
+    const d = vetSku(p).map((c, i) => c - o[i]);
+    const tam = Math.hypot(d[0], d[1], d[2]);
+    if (tam < 1e-6) return;
+    const eixo = [0, 1, 2].reduce((m, i) => (Math.abs(d[i]) < Math.abs(d[m]) - 1e-9 ? i : m), 2);
+    let n = [0, 0, 0];
+    n[eixo] = 1;
+    if (eixo !== 2) n = normalParaCamera(n, dirCameraSku());
+    if (n.every((c, i) => c === planoDesenho.n[i])) return;
+    planoDesenho = { n, o };
+    setStatus(`Retângulo no plano ${nomeDoPlano(n)}.`);
+  }
+
   function pontoDe(event) {
     let p = pontoBruto(event);
     if (!p) return p;
-    if (ferramenta === "retangulo" && planoDesenho && pontos.length === 1) p = pontoNoPlano(p, event);
+    if (ferramenta === "retangulo" && planoDesenho && pontos.length === 1) {
+      if (!planoForcado && inferencia) trocarPlanoPeloAlvo(p);
+      p = pontoNoPlano(p, event);
+    }
     eixoInferido = null;
     previa.material.color.setHex(COR_PREVIA);
     if (!pontos.length || !COM_EIXO.has(ferramenta)) return p;
